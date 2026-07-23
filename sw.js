@@ -1,5 +1,19 @@
-const CACHE = "fluyo-static-v2";
-const ASSETS = ["./", "./index.html", "./manifest.webmanifest", "./sw.js"];
+const CACHE = "fluyo-static-v3";
+const ASSETS = [
+  "./",
+  "./index.html",
+  "./manifest.webmanifest",
+  "./sw.js",
+  "./css/styles.css",
+  "./js/config.js",
+  "./js/state.js",
+  "./js/selection.js",
+  "./js/geometry.js",
+  "./js/render.js",
+  "./js/interaction.js",
+  "./js/ui.js",
+  "./js/export.js"
+];
 const GIF_CDN = "https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/";
 const CDN_ASSETS = [
   GIF_CDN + "gif.js",

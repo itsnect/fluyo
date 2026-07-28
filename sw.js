@@ -1,4 +1,4 @@
-const CACHE = "fluyo-static-v3";
+const CACHE = "fluyo-static-v4";
 const ASSETS = [
   "./",
   "./index.html",

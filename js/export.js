@@ -28,14 +28,21 @@ $("fileIn").onchange=ev=>{
         if(!e.waypoints) e.waypoints=[];
         if(!e.route) e.route="straight";
       }));
+      doc.pages.forEach(pg=>pg.nodes.forEach(n=>{
+        if(n.fill===undefined) n.fill=null;
+        if(!n.border) n.border="solid";
+        if(!n.lblPos) n.lblPos="center";
+        if(n.textBg===undefined) n.textBg=null;
+        if(n.font===undefined) n.font=null;
+        if(n.bold===undefined) n.bold=false;
+      }));
+      if(doc.customBg===undefined) doc.customBg="";
+      if(!settings.font) settings.font=DEFAULT_FONT;
       undoStack.length=0; redoStack.length=0;
       if(d.settings) Object.assign(settings,d.settings);
       if(settings.grid===undefined) settings.grid=true;
       doc.cur=clamp(doc.cur||0,0,doc.pages.length-1);
-      $("themeSel").value=doc.theme;
-      $("chkGrid").checked=settings.grid;
-      $("speedIn").value=settings.speed; $("dotsIn").value=settings.dots;
-      $("buildChk").checked=settings.build; $("staggerIn").value=settings.stagger;
+      syncProjectControls();
       clearSel(); renderTabs(); centerView();
     }catch(e){ alert("El archivo no es un diagrama Fluyo válido."); }
   });
@@ -116,7 +123,7 @@ function buildSVGDefs(){
 }
 const SVG_NS="http://www.w3.org/2000/svg";
 let _svgMeasure=null;
-function svgTextWidth(text, fs){
+function svgTextWidth(text, fs, family, bold){
   if(!_svgMeasure){
     _svgMeasure=document.createElementNS(SVG_NS,"svg");
     _svgMeasure.setAttribute("aria-hidden","true");
@@ -125,31 +132,57 @@ function svgTextWidth(text, fs){
   }
   _svgMeasure.replaceChildren();
   const el=document.createElementNS(SVG_NS,"text");
-  el.setAttribute("font-family","Georgia, serif");
+  el.setAttribute("font-family",family||DEFAULT_FONT);
   el.setAttribute("font-size",String(fs));
+  if(bold) el.setAttribute("font-weight","bold");
   el.textContent=text;
   _svgMeasure.appendChild(el);
   return el.getBBox().width;
 }
-function fitSvgFontSize(lines, baseFs, maxWidth, explicitFs){
+function fitSvgFontSize(lines, baseFs, maxWidth, explicitFs, family, bold){
   if(explicitFs) return explicitFs;
   let fs=baseFs;
   const avail=maxWidth;
-  let maxW=Math.max(...lines.map(l=>svgTextWidth(l,fs)),1);
+  let maxW=Math.max(...lines.map(l=>svgTextWidth(l,fs,family,bold)),1);
   if(maxW>avail) fs=Math.max(10, fs*avail/maxW);
   return fs;
+}
+function svgNodeFill(n, theme){
+  if(n.fill==="none") return "none";
+  if(n.fill) return escapeAttribute(n.fill);
+  return svgFillColor(n.color, theme);
+}
+function svgDash(n){
+  if(n.border==="dashed") return ' stroke-dasharray="9 7"';
+  if(n.border==="dotted") return ' stroke-dasharray="2 5"';
+  return "";
 }
 function svgLabelLines(n, theme, baseFs, cy){
   if(!n.label) return "";
   const T=THEMES[theme];
   const lines=String(n.label).split("\n");
-  const fs=fitSvgFontSize(lines, baseFs, n.w-18, n.fs||null);
-  const lh=fs*1.25, oy=cy-(lines.length-1)*lh/2;
-  const fill=n.shape==="text"? n.color : T.text;
-  const clipId=`clip-label-${n.id}`;
-  const parts=[`<clipPath id="${clipId}"><rect x="${(n.x-n.w/2+2).toFixed(2)}" y="${(oy-fs*.6).toFixed(2)}" width="${(n.w-4).toFixed(2)}" height="${(lines.length*lh).toFixed(2)}"/></clipPath>`];
+  const family=n.font||settings.font||DEFAULT_FONT, bold=!!n.bold;
+  const fs=fitSvgFontSize(lines, baseFs, n.w-18, n.fs||null, family, bold);
+  const lh=fs*1.25;
+  const pos=n.lblPos||"center";
+  const inset=Math.min(14, n.w*.12, n.h*.18);
+  let baseY, anchor="middle", tx=n.x;
+  if(pos==="top") baseY=n.y-n.h/2+inset+fs*.7;
+  else if(pos==="bottom") baseY=n.y+n.h/2-inset-(lines.length-1)*lh-fs*.1;
+  else baseY=cy-(lines.length-1)*lh/2;
+  if(pos==="left"){ anchor="start"; tx=n.x-n.w/2+inset; }
+  else if(pos==="right"){ anchor="end"; tx=n.x+n.w/2-inset; }
+  const fill=(n.shape==="text"||n.shape==="anim")? n.color : T.text;
+  const parts=[];
+  if(n.textBg){
+    let maxW=Math.max(...lines.map(l=>svgTextWidth(l,fs,family,bold)),1);
+    const padX=10, padY=6, bw=maxW+padX*2, bh=lines.length*lh+padY*2;
+    let bx; if(anchor==="start") bx=tx-padX; else if(anchor==="end") bx=tx-bw+padX; else bx=tx-bw/2;
+    const by=baseY-fs*.7-padY;
+    parts.push(`<rect x="${bx.toFixed(2)}" y="${by.toFixed(2)}" width="${bw.toFixed(2)}" height="${bh.toFixed(2)}" rx="8" ry="8" fill="${escapeAttribute(n.textBg)}"/>`);
+  }
   lines.forEach((l,i)=>{
-    parts.push(`<text x="${n.x}" y="${(oy+i*lh).toFixed(2)}" font-family="Georgia, serif" font-size="${fs.toFixed(1)}" fill="${escapeAttribute(fill)}" text-anchor="middle" dominant-baseline="middle" clip-path="url(#${clipId})">${escapeXML(l)}</text>`);
+    parts.push(`<text x="${tx.toFixed(2)}" y="${(baseY+i*lh).toFixed(2)}" font-family="${escapeAttribute(family)}" font-size="${fs.toFixed(1)}"${bold?' font-weight="bold"':''} fill="${escapeAttribute(fill)}" text-anchor="${anchor}" dominant-baseline="middle">${escapeXML(l)}</text>`);
   });
   return parts.join("\n");
 }
@@ -165,25 +198,25 @@ function renderImageToSVG(n){
   return `<image x="${(n.x-n.w/2).toFixed(2)}" y="${(n.y-n.h/2).toFixed(2)}" width="${n.w}" height="${n.h}" href="${escapeAttribute(n.img)}" preserveAspectRatio="xMidYMid meet"/>`;
 }
 function renderNodeToSVG(n, theme){
-  const fill=svgFillColor(n.color, theme), stroke=escapeAttribute(n.color);
+  const fill=svgNodeFill(n, theme), stroke=escapeAttribute(n.color), dash=svgDash(n);
   const parts=[`<g id="node-${n.id}">`];
   switch(n.shape){
     case "circle":
-      parts.push(`<ellipse cx="${n.x}" cy="${n.y}" rx="${(n.w/2).toFixed(2)}" ry="${(n.h/2).toFixed(2)}" fill="${fill}" stroke="${stroke}" stroke-width="2.5"/>`);
+      parts.push(`<ellipse cx="${n.x}" cy="${n.y}" rx="${(n.w/2).toFixed(2)}" ry="${(n.h/2).toFixed(2)}" fill="${fill}" stroke="${stroke}" stroke-width="2.5"${dash}/>`);
       parts.push(svgLabelLines(n,theme,17,n.y));
       break;
     case "diamond":
-      parts.push(`<polygon points="${n.x},${(n.y-n.h/2).toFixed(2)} ${(n.x+n.w/2).toFixed(2)},${n.y} ${n.x},${(n.y+n.h/2).toFixed(2)} ${(n.x-n.w/2).toFixed(2)},${n.y}" fill="${fill}" stroke="${stroke}" stroke-width="2.5"/>`);
+      parts.push(`<polygon points="${n.x},${(n.y-n.h/2).toFixed(2)} ${(n.x+n.w/2).toFixed(2)},${n.y} ${n.x},${(n.y+n.h/2).toFixed(2)} ${(n.x-n.w/2).toFixed(2)},${n.y}" fill="${fill}" stroke="${stroke}" stroke-width="2.5"${dash}/>`);
       parts.push(svgLabelLines(n,theme,17,n.y));
       break;
     case "hex":
-      parts.push(`<polygon points="${hexPointsSVG(n)}" fill="${fill}" stroke="${stroke}" stroke-width="2.5"/>`);
+      parts.push(`<polygon points="${hexPointsSVG(n)}" fill="${fill}" stroke="${stroke}" stroke-width="2.5"${dash}/>`);
       parts.push(svgLabelLines(n,theme,17,n.y));
       break;
     case "cylinder":{
       const {x,y,w,h}=n, ry=Math.min(16,h*.18), top=y-h/2, bot=y+h/2;
       const d=`M ${(x-w/2).toFixed(2)} ${(top+ry).toFixed(2)} L ${(x-w/2).toFixed(2)} ${(bot-ry).toFixed(2)} C ${(x-w/2).toFixed(2)} ${(bot+ry*.8).toFixed(2)} ${(x+w/2).toFixed(2)} ${(bot+ry*.8).toFixed(2)} ${(x+w/2).toFixed(2)} ${(bot-ry).toFixed(2)} L ${(x+w/2).toFixed(2)} ${(top+ry).toFixed(2)} C ${(x+w/2).toFixed(2)} ${(top-ry*.8).toFixed(2)} ${(x-w/2).toFixed(2)} ${(top-ry*.8).toFixed(2)} ${(x-w/2).toFixed(2)} ${(top+ry).toFixed(2)} Z`;
-      parts.push(`<path d="${d}" fill="${fill}" stroke="${stroke}" stroke-width="2.5"/>`);
+      parts.push(`<path d="${d}" fill="${fill}" stroke="${stroke}" stroke-width="2.5"${dash}/>`);
       parts.push(`<ellipse cx="${x}" cy="${(top+ry).toFixed(2)}" rx="${(w/2).toFixed(2)}" ry="${ry.toFixed(2)}" fill="none" stroke="${stroke}" stroke-width="2.5"/>`);
       parts.push(svgLabelLines(n,theme,17,y+6));
       break;
@@ -191,6 +224,13 @@ function renderNodeToSVG(n, theme){
     case "text":
       parts.push(svgLabelLines(n,theme,22,n.y));
       break;
+    case "anim":{
+      const src=animURL[n.anim]||"";
+      const s=Math.max(10, Math.min(n.w,n.h-(n.label?26:8)));
+      if(src) parts.push(`<image x="${(n.x-s/2).toFixed(2)}" y="${(n.y-(n.label?8:0)-s/2).toFixed(2)}" width="${s.toFixed(2)}" height="${s.toFixed(2)}" href="${escapeAttribute(src)}" preserveAspectRatio="xMidYMid meet"/>`);
+      parts.push(svgLabelLines(n,theme,14,n.y+n.h/2-8));
+      break;
+    }
     case "icon":{
       const src=iconURL[n.icon]||"";
       const s=Math.min(n.w,n.h-26)*.78;
@@ -203,7 +243,7 @@ function renderNodeToSVG(n, theme){
       parts.push(svgLabelLines(n,theme,14,n.y+n.h/2+14));
       break;
     default:
-      parts.push(`<rect x="${(n.x-n.w/2).toFixed(2)}" y="${(n.y-n.h/2).toFixed(2)}" width="${n.w}" height="${n.h}" rx="10" ry="10" fill="${fill}" stroke="${stroke}" stroke-width="2.5"/>`);
+      parts.push(`<rect x="${(n.x-n.w/2).toFixed(2)}" y="${(n.y-n.h/2).toFixed(2)}" width="${n.w}" height="${n.h}" rx="10" ry="10" fill="${fill}" stroke="${stroke}" stroke-width="2.5"${dash}/>`);
       parts.push(svgLabelLines(n,theme,17,n.y));
   }
   parts.push("</g>");
@@ -224,10 +264,11 @@ function renderConnectorToSVG(e, theme){
   const parts=[`<polyline points="${ptsStr}" fill="none" stroke="${lineCol}" stroke-width="2" stroke-linejoin="round"${dash}${markers}/>`];
   if(e.label){
     const m=pointAt(pts,.5), efs=e.fs||13;
-    const tw=svgTextWidth(e.label, efs);
+    const family=e.font||settings.font||DEFAULT_FONT, bold=!!e.bold;
+    const tw=svgTextWidth(e.label, efs, family, bold);
     const rx=(m.x-tw/2-6).toFixed(2), ry=(m.y-efs*.85).toFixed(2);
     parts.push(`<rect x="${rx}" y="${ry}" width="${(tw+12).toFixed(2)}" height="${(efs*1.7).toFixed(2)}" fill="${escapeAttribute(T.lblBg)}"/>`);
-    parts.push(`<text x="${m.x.toFixed(2)}" y="${m.y.toFixed(2)}" font-family="Georgia, serif" font-size="${efs}" fill="${escapeAttribute(T.edgeLbl)}" text-anchor="middle" dominant-baseline="middle">${escapeXML(e.label)}</text>`);
+    parts.push(`<text x="${m.x.toFixed(2)}" y="${m.y.toFixed(2)}" font-family="${escapeAttribute(family)}" font-size="${efs}"${bold?' font-weight="bold"':''} fill="${escapeAttribute(T.edgeLbl)}" text-anchor="middle" dominant-baseline="middle">${escapeXML(e.label)}</text>`);
   }
   return parts.join("\n");
 }

@@ -11,6 +11,25 @@ const PALETTE=[
   {c:"#c16a6a", n:"Alerta"},
   {c:"#8f8f8f", n:"Externo"},
   {c:"#c9b458", n:"Config"},
+  {c:"#5bb0a0", n:"Cache"},
+  {c:"#b5739b", n:"Cola"},
+  {c:"#6b78c9", n:"Red"},
+  {c:"#c98f5b", n:"Almacén"},
+  {c:"#7bb85b", n:"Éxito"},
+  {c:"#d0576a", n:"Error"},
+  {c:"#5b9bd0", n:"Info"},
+];
+/* Paleta amplia para el selector de color (rejilla de swatches) */
+const SWATCH_COLORS=[
+  "#ffffff","#e8e6e1","#b8b5ad","#8f8f8f","#5a5a5a","#2b2b2b","#000000",
+  "#f4a3a3","#e06666","#c1272d","#8b1a1a","#5c0f0f",
+  "#f6c28b","#e8964f","#d0791f","#a85a10","#6e3a08",
+  "#f2e08a","#e0c94f","#c9b458","#a68f1f","#6e5f10",
+  "#b7e08a","#8fca5f","#6aa63e","#4a7d28","#2e5216",
+  "#8fe0c9","#5bb0a0","#2e9b86","#1f6e5f","#124239",
+  "#8fc4f2","#5b9bd0","#3a7bc8","#1f5aa0","#123a6e",
+  "#b3a3f2","#9b7fb5","#7a5fb0","#5a3f8f","#3a2860",
+  "#e8a3d8","#c96fb5","#a83f96","#7d2870","#521a4a",
 ];
 const THEMES={
   dark : {bg:"#161616", grid:"rgba(255,255,255,.045)", text:"#ededed", edge:"#777", edgeLbl:"#bdbdbd", lblBg:"#161616"},
@@ -19,6 +38,21 @@ const THEMES={
 };
 const DIR={n:{x:0,y:-1}, s:{x:0,y:1}, e:{x:1,y:0}, w:{x:-1,y:0}};
 const SIDES=["n","e","s","w"];
+/* Tipografías disponibles (el primer valor es la fuente global por defecto) */
+const FONTS=[
+  {n:"Georgia",     f:"Georgia, serif"},
+  {n:"Times",       f:"'Times New Roman', Times, serif"},
+  {n:"Palatino",    f:"'Palatino Linotype', 'Book Antiqua', Palatino, serif"},
+  {n:"Segoe UI",    f:"'Segoe UI', system-ui, sans-serif"},
+  {n:"Arial",       f:"Arial, Helvetica, sans-serif"},
+  {n:"Verdana",     f:"Verdana, Geneva, sans-serif"},
+  {n:"Trebuchet",   f:"'Trebuchet MS', Tahoma, sans-serif"},
+  {n:"Tahoma",      f:"Tahoma, Geneva, sans-serif"},
+  {n:"Courier",     f:"'Courier New', Courier, monospace"},
+  {n:"Impact",      f:"Impact, Haettenschweiler, sans-serif"},
+  {n:"Comic Sans",  f:"'Comic Sans MS', 'Comic Sans', cursive"},
+];
+const DEFAULT_FONT=FONTS[0].f;
 
 /* ===================== Iconos cloud (SVG simplificados) ===================== */
 const badge=(bg,inner)=>`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect x="2" y="2" width="60" height="60" rx="14" fill="${bg}"/>${inner}</svg>`;
@@ -61,7 +95,44 @@ const ICONS={
   cosmos:{g:"Azure",n:"Cosmos DB",svg:badge(AZ_BLUE,`<circle cx="32" cy="32" r="12" fill="none" stroke="#fff" stroke-width="3.4"/><ellipse cx="32" cy="32" rx="22" ry="8" fill="none" stroke="#fff" stroke-width="2.6" transform="rotate(-20 32 32)"/>`)},
   azbus:{g:"Azure",n:"Service Bus",svg:badge(AZ_BLUE,`<rect x="14" y="26" width="36" height="12" rx="4" fill="#fff"/><circle cx="22" cy="32" r="2.6" fill="${AZ_BLUE}"/><circle cx="32" cy="32" r="2.6" fill="${AZ_BLUE}"/><circle cx="42" cy="32" r="2.6" fill="${AZ_BLUE}"/>`)},
   aks:{g:"Azure",n:"AKS",svg:badge(AZ_BLUE,`<path d="M32 12 l17 10 v20 l-17 10 -17 -10 V22z" fill="none" stroke="#fff" stroke-width="3.4"/><circle cx="32" cy="32" r="6" fill="#fff"/>`)},
+  /* --- Estados --- */
+  ok:{g:"Estados",n:"Éxito",svg:badge("#2e7d46",`<path d="M20 33 l8 9 16 -18" fill="none" stroke="#fff" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>`)},
+  err:{g:"Estados",n:"Error",svg:badge("#c1272d",`<path d="M22 22 l20 20 M42 22 l-20 20" stroke="#fff" stroke-width="5.5" stroke-linecap="round"/>`)},
+  warn:{g:"Estados",n:"Aviso",svg:badge("#d99a1f",`<path d="M32 14 l20 34 h-40z" fill="none" stroke="#fff" stroke-width="4" stroke-linejoin="round"/><line x1="32" y1="28" x2="32" y2="38" stroke="#fff" stroke-width="4" stroke-linecap="round"/><circle cx="32" cy="44" r="2.6" fill="#fff"/>`)},
+  info:{g:"Estados",n:"Info",svg:badge("#2f6fb5",`<circle cx="32" cy="32" r="19" fill="none" stroke="#fff" stroke-width="4"/><circle cx="32" cy="22" r="2.8" fill="#fff"/><path d="M32 30 v14" stroke="#fff" stroke-width="4" stroke-linecap="round"/>`)},
+  bug:{g:"Estados",n:"Bug",svg:badge("#7a3b3b",`<ellipse cx="32" cy="34" rx="11" ry="13" fill="none" stroke="#fff" stroke-width="3.4"/><circle cx="32" cy="18" r="6" fill="none" stroke="#fff" stroke-width="3.4"/><path d="M18 28 h8 M38 28 h8 M17 40 h8 M39 40 h8 M32 21 v26" stroke="#fff" stroke-width="3" stroke-linecap="round"/>`)},
+  bell:{g:"Estados",n:"Alerta",svg:badge("#b5732e",`<path d="M20 42 c0 -3 3 -4 3 -12 a9 9 0 0 1 18 0 c0 8 3 9 3 12z" fill="none" stroke="#fff" stroke-width="3.4" stroke-linejoin="round"/><path d="M28 46 a4 4 0 0 0 8 0" fill="none" stroke="#fff" stroke-width="3.4"/>`)},
+  /* --- Archivos & varios --- */
+  file:{g:"Varios",n:"Archivo",svg:badge("#455060",`<path d="M22 14 h14 l8 8 v28 h-22z" fill="none" stroke="#fff" stroke-width="3.4" stroke-linejoin="round"/><path d="M36 14 v8 h8" fill="none" stroke="#fff" stroke-width="3.4" stroke-linejoin="round"/>`)},
+  folder:{g:"Varios",n:"Carpeta",svg:badge("#c9992e",`<path d="M14 22 h12 l4 5 h20 v20 h-36z" fill="none" stroke="#fff" stroke-width="3.4" stroke-linejoin="round"/>`)},
+  mail:{g:"Varios",n:"Correo",svg:badge("#3c6e71",`<rect x="14" y="20" width="36" height="24" rx="3" fill="none" stroke="#fff" stroke-width="3.4"/><path d="M14 22 l18 14 18 -14" fill="none" stroke="#fff" stroke-width="3.4" stroke-linejoin="round"/>`)},
+  clock:{g:"Varios",n:"Reloj",svg:badge("#4a5560",`<circle cx="32" cy="32" r="18" fill="none" stroke="#fff" stroke-width="3.4"/><path d="M32 22 v11 l8 5" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round"/>`)},
+  gear:{g:"Varios",n:"Config",svg:badge("#3b4252",wheel("#fff"))},
+  server:{g:"Varios",n:"Servidor",svg:badge("#3b4252",`<rect x="16" y="16" width="32" height="14" rx="3" fill="none" stroke="#fff" stroke-width="3.2"/><rect x="16" y="34" width="32" height="14" rx="3" fill="none" stroke="#fff" stroke-width="3.2"/><circle cx="23" cy="23" r="2.4" fill="#fff"/><circle cx="23" cy="41" r="2.4" fill="#fff"/>`)},
+  cache:{g:"Varios",n:"Cache",svg:badge("#7a2e2e",`<path d="M20 26 l12 -8 12 8 v12 l-12 8 -12 -8z" fill="none" stroke="#fff" stroke-width="3.4" stroke-linejoin="round"/><path d="M20 26 l12 8 12 -8 M32 34 v12" fill="none" stroke="#fff" stroke-width="3"/>`)},
+  cdn:{g:"Varios",n:"CDN",svg:badge("#2f4858",`<circle cx="32" cy="32" r="16" fill="none" stroke="#fff" stroke-width="3"/><ellipse cx="32" cy="32" rx="7" ry="16" fill="none" stroke="#fff" stroke-width="2.6"/><line x1="16" y1="32" x2="48" y2="32" stroke="#fff" stroke-width="2.6"/><circle cx="46" cy="20" r="4" fill="#fff"/>`)},
+  balancer:{g:"Varios",n:"Balanceador",svg:badge("#2e6b5b",`<circle cx="32" cy="16" r="5" fill="#fff"/><circle cx="16" cy="46" r="5" fill="#fff"/><circle cx="32" cy="46" r="5" fill="#fff"/><circle cx="48" cy="46" r="5" fill="#fff"/><path d="M32 21 v8 M32 29 h-16 v10 M32 29 v10 M32 29 h16 v10" fill="none" stroke="#fff" stroke-width="3"/>`)},
+  git:{g:"Varios",n:"Git",svg:badge("#5b3a2e",`<circle cx="22" cy="20" r="5" fill="#fff"/><circle cx="22" cy="44" r="5" fill="#fff"/><circle cx="42" cy="30" r="5" fill="#fff"/><path d="M22 25 v14 M22 32 c0 -8 8 -2 16 -4" fill="none" stroke="#fff" stroke-width="3.2"/>`)},
+  docker:{g:"Varios",n:"Docker",svg:badge("#1d63a8",`<rect x="18" y="30" width="7" height="7" fill="#fff"/><rect x="27" y="30" width="7" height="7" fill="#fff"/><rect x="36" y="30" width="7" height="7" fill="#fff"/><rect x="27" y="22" width="7" height="7" fill="#fff"/><path d="M14 38 h34 c0 6 -5 9 -12 9 h-10 c-8 0 -12 -4 -12 -9z" fill="#fff"/>`)},
+  graph:{g:"Varios",n:"Métricas",svg:badge("#3c5a3c",`<path d="M16 46 v-28 M16 46 h32" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round"/><path d="M20 40 l8 -10 6 6 12 -16" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>`)},
 };
+
+/* ===================== GIFs animados (dibujados por frame) ===================== */
+/* Cada uno se dibuja proceduralmente en render.js según n.anim y el tiempo t.
+   El thumbnail del cajón usa un SVG estático de vista previa. */
+const anStroke="#e8e6e1";
+const ANIMS={
+  spinner:{n:"Cargando",  svg:badge("#20242a",`<circle cx="32" cy="32" r="15" fill="none" stroke="#3aa7e8" stroke-width="5" stroke-linecap="round" stroke-dasharray="60 40"/>`)},
+  progress:{n:"Progreso", svg:badge("#20242a",`<rect x="14" y="28" width="36" height="8" rx="4" fill="none" stroke="${anStroke}" stroke-width="2.6"/><rect x="14" y="28" width="22" height="8" rx="4" fill="#3aa7e8"/>`)},
+  ticket:{n:"Ticket",     svg:badge("#20242a",`<rect x="16" y="22" width="32" height="20" rx="3" fill="none" stroke="#7bb85b" stroke-width="3"/><path d="M22 30 h20 M22 36 h12" stroke="#7bb85b" stroke-width="2.6" stroke-linecap="round"/>`)},
+  errmove:{n:"Error",     svg:badge("#20242a",`<circle cx="32" cy="32" r="15" fill="none" stroke="#d0576a" stroke-width="3.4"/><path d="M25 25 l14 14 M39 25 l-14 14" stroke="#d0576a" stroke-width="4" stroke-linecap="round"/>`)},
+  check:{n:"Éxito anim",  svg:badge("#20242a",`<circle cx="32" cy="32" r="15" fill="none" stroke="#7bb85b" stroke-width="3.4"/><path d="M24 33 l6 6 11 -13" fill="none" stroke="#7bb85b" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>`)},
+  typing:{n:"Escribiendo",svg:badge("#20242a",`<circle cx="22" cy="32" r="4" fill="${anStroke}"/><circle cx="32" cy="32" r="4" fill="${anStroke}"/><circle cx="42" cy="32" r="4" fill="${anStroke}"/>`)},
+  upload:{n:"Subiendo",   svg:badge("#20242a",`<path d="M32 44 v-22 M24 30 l8 -8 8 8" fill="none" stroke="#5b9bd0" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 46 h28" stroke="#5b9bd0" stroke-width="3.4" stroke-linecap="round"/>`)},
+  pulse:{n:"Latido",      svg:badge("#20242a",`<circle cx="32" cy="32" r="8" fill="#c16a6a"/><circle cx="32" cy="32" r="15" fill="none" stroke="#c16a6a" stroke-width="2.4" opacity=".5"/>`)},
+};
+const animURL={};
+for(const k in ANIMS) animURL[k]="data:image/svg+xml;utf8,"+encodeURIComponent(ANIMS[k].svg);
 const iconURL={}, imgCache={};
 for(const k in ICONS) iconURL[k]="data:image/svg+xml;utf8,"+encodeURIComponent(ICONS[k].svg);
 function getImg(src){

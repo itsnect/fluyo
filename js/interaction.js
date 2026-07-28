@@ -81,13 +81,14 @@ cv.addEventListener("pointerdown", ev=>{
   commitEditBox();
   cv.setPointerCapture(ev.pointerId);
 
-  if(pendingShape || pendingIcon){
+  if(pendingShape || pendingIcon || pendingAnim){
     pushUndo();
     let n;
     if(pendingIcon) n=newNode("icon",p.x,p.y,{icon:pendingIcon, label:ICONS[pendingIcon].n});
+    else if(pendingAnim) n=newNode("anim",p.x,p.y,{anim:pendingAnim, label:ANIMS[pendingAnim].n, color:PALETTE[0].c});
     else n=newNode(pendingShape,p.x,p.y);
     selectOnly("node",n.id);
-    pendingShape=null; pendingIcon=null; syncRail();
+    pendingShape=null; pendingIcon=null; pendingAnim=null; syncRail();
     return;
   }
   const n=hitNode(p.x,p.y);
@@ -189,9 +190,9 @@ cv.addEventListener("pointermove", ev=>{
   if(drag){
     for(const id in drag.offs){
       const nn=nodeById(+id);
-      if(nn){ nn.x=snap(p.x-drag.offs[id].dx); nn.y=snap(p.y-drag.offs[id].dy); }
+      if(nn){ nn.x=snapV(p.x-drag.offs[id].dx); nn.y=snapV(p.y-drag.offs[id].dy); }
     }
-    drag.wps.forEach(o=>{ o.w.x=snap(p.x-o.dx); o.w.y=snap(p.y-o.dy); });
+    drag.wps.forEach(o=>{ o.w.x=snapV(p.x-o.dx); o.w.y=snapV(p.y-o.dy); });
     return;
   }
   if(resizing){
@@ -210,8 +211,8 @@ cv.addEventListener("pointermove", ev=>{
   if(wpDrag){
     const e=edgeById(wpDrag.edgeId);
     if(e && e.waypoints[wpDrag.idx]){
-      e.waypoints[wpDrag.idx].x=snap(p.x);
-      e.waypoints[wpDrag.idx].y=snap(p.y);
+      e.waypoints[wpDrag.idx].x=snapV(p.x);
+      e.waypoints[wpDrag.idx].y=snapV(p.y);
     }
     return;
   }
@@ -221,7 +222,7 @@ cv.addEventListener("pointermove", ev=>{
   }
   const single=singleSel();
   let cur="default";
-  if(pendingShape||pendingIcon||mode==="connect"||connectDrag) cur="crosshair";
+  if(pendingShape||pendingIcon||pendingAnim||mode==="connect"||connectDrag) cur="crosshair";
   else if(single&&single.type==="node"&&single.obj&&hitCorner(single.obj,p.x,p.y)>=0) cur="nwse-resize";
   else if(hoverNode&&hitSideArrow(hoverNode,p.x,p.y)) cur="crosshair";
   else if(hoverNode) cur="grab";
@@ -297,6 +298,8 @@ cv.addEventListener("dblclick", ev=>{
   editBox.style.top = (screenCY - 16*viewZoom) + "px";
   editBox.style.width = (w * viewZoom) + "px";
   editBox.style.fontSize = Math.max(12, 15 * viewZoom) + "px";
+  editBox.style.fontFamily = tgt.font || settings.font || "Georgia, serif";
+  editBox.style.fontWeight = tgt.bold ? "bold" : "normal";
   editBox.value=tgt.label||"";
   editBox.rows=(editBox.value.split("\n").length)||1;
   editBox.focus(); editBox.select();
@@ -331,7 +334,7 @@ document.addEventListener("keydown", ev=>{
     return;
   }
   if(ev.key==="Delete"||ev.key==="Backspace") deleteSel();
-  if(ev.key==="Escape"){ pendingShape=null; pendingIcon=null; connecting=null; connectDrag=null; marquee=null; $("iconDrawer").style.display="none"; syncRail(); }
+  if(ev.key==="Escape"){ pendingShape=null; pendingIcon=null; pendingAnim=null; connecting=null; connectDrag=null; marquee=null; $("iconDrawer").style.display="none"; $("animDrawer").style.display="none"; syncRail(); }
   if(k==="v") setMode("select");
   if(k==="c") setMode("connect");
   if(ev.key===" "){ ev.preventDefault(); togglePlay(); }

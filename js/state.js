@@ -3,13 +3,13 @@
 
 /* ===================== Documento (páginas) ===================== */
 function blankPage(name){ return {name, nodes:[], edges:[], nextId:1}; }
-let doc={ theme:"dark", pages:[blankPage("Página 1")], cur:0 };
-let settings={ speed:.5, dots:3, build:false, stagger:.45, grid:true };
+let doc={ theme:"dark", customBg:"", pages:[blankPage("Página 1")], cur:0 };
+let settings={ speed:.5, dots:3, build:false, stagger:.45, grid:true, snap:false, font:DEFAULT_FONT };
 const P=()=>doc.pages[doc.cur];
 
 /* ===================== Estado de UI ===================== */
 const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
-let mode="select", pendingShape=null, pendingIcon=null, connecting=null;
+let mode="select", pendingShape=null, pendingIcon=null, pendingAnim=null, connecting=null;
 let selN=new Set(), selE=new Set();
 let drag=null;                // {offs:{id:{dx,dy}}, wps:[{w,dx,dy}]}
 let resizing=null;            // {id, fx, fy, aspect}
@@ -57,22 +57,25 @@ const lerp=(a,b,t)=>a+(b-a)*t;
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
 const smooth=t=>{t=clamp(t,0,1); return t*t*(3-2*t);};
 const snap=v=>Math.round(v/GRID)*GRID;
+/* Movimiento libre por defecto; snap a rejilla solo si settings.snap está activo */
+const snapV=v=>settings.snap? Math.round(v/GRID)*GRID : Math.round(v);
 const deep=o=>JSON.parse(JSON.stringify(o));
 function hexA(col,a){ const v=parseInt(col.slice(1),16);
   return `rgba(${v>>16&255},${v>>8&255},${v&255},${a})`; }
 
 function newNode(shape,x,y,extra={}){
-  const sizes={rect:[180,70], cylinder:[150,90], diamond:[160,100], circle:[110,110], hex:[170,80], text:[200,40], icon:[120,92], image:[220,160]};
+  const sizes={rect:[180,70], cylinder:[150,90], diamond:[160,100], circle:[110,110], hex:[170,80], text:[200,40], icon:[120,92], image:[220,160], anim:[120,100]};
   const [w,h]=sizes[shape]||[160,70];
-  const n=Object.assign({ id:P().nextId++, shape, x:snap(x), y:snap(y), w, h,
-    label: shape==="text"?"Texto":(shape==="icon"||shape==="image")?"":"Nodo",
-    color:PALETTE[0].c, pulse:false, order:P().nodes.length }, extra);
+  const n=Object.assign({ id:P().nextId++, shape, x:snapV(x), y:snapV(y), w, h,
+    label: shape==="text"?"Texto":(shape==="icon"||shape==="image"||shape==="anim")?"":"Nodo",
+    color:PALETTE[0].c, fill:null, border:"solid", lblPos:"center", textBg:null,
+    font:null, bold:false, pulse:false, order:P().nodes.length }, extra);
   P().nodes.push(n); return n;
 }
 function newEdge(a,b,opts={}){
   if(a===b) return null;
   const e=Object.assign({ id:P().nextId++, from:a, to:b, fromSide:null, toSide:null,
-    route:"straight", waypoints:[], label:"", animated:true, dashed:false, startArrow:false, endArrow:true, flowDir:"normal" }, opts);
+    route:"straight", waypoints:[], label:"", font:null, bold:false, animated:true, dashed:false, startArrow:false, endArrow:true, flowDir:"normal" }, opts);
   P().edges.push(e); return e;
 }
 
@@ -122,6 +125,10 @@ function syncProjectControls(){
   $("dotsIn").value=settings.dots;
   $("buildChk").checked=settings.build;
   $("staggerIn").value=settings.stagger;
+  if($("chkGrid")) $("chkGrid").checked=settings.grid!==false;
+  if($("chkSnap")) $("chkSnap").checked=!!settings.snap;
+  if($("bgCustom") && doc.customBg) $("bgCustom").value=doc.customBg;
+  if($("fontGlobalSel")) $("fontGlobalSel").value=settings.font||DEFAULT_FONT;
 }
 function applyProjectData(d){
   runWithoutAutosave(()=>{
@@ -135,7 +142,19 @@ function applyProjectData(d){
       if(!e.flowDir) e.flowDir="normal";
       if(!e.waypoints) e.waypoints=[];
       if(!e.route) e.route="straight";
+      if(e.font===undefined) e.font=null;
+      if(e.bold===undefined) e.bold=false;
     }));
+    doc.pages.forEach(pg=>pg.nodes.forEach(n=>{
+      if(n.fill===undefined) n.fill=null;
+      if(!n.border) n.border="solid";
+      if(!n.lblPos) n.lblPos="center";
+      if(n.textBg===undefined) n.textBg=null;
+      if(n.font===undefined) n.font=null;
+      if(n.bold===undefined) n.bold=false;
+    }));
+    if(doc.customBg===undefined) doc.customBg="";
+    if(!settings.font) settings.font=DEFAULT_FONT;
     undoStack.length=0; redoStack.length=0;
     if(d.settings) Object.assign(settings,d.settings);
     doc.cur=clamp(doc.cur||0,0,doc.pages.length-1);

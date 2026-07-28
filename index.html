@@ -26,8 +26,16 @@
     <option value="crema">Fondo crema</option>
     <option value="claro">Fondo claro</option>
   </select>
+  <select id="fontGlobalSel" title="Tipografía global — cambia la fuente de todo el diagrama"></select>
   <label style="display:flex; align-items:center; gap:5px; font-size:12px; cursor:pointer; color:var(--text);">
     <input type="checkbox" id="chkGrid" checked style="accent-color:var(--accent); width:15px; height:15px;"> Cuadrícula
+  </label>
+  <label style="display:flex; align-items:center; gap:5px; font-size:12px; cursor:pointer; color:var(--text);" title="Ajustar el movimiento a la cuadrícula (desactivado = movimiento libre)">
+    <input type="checkbox" id="chkSnap" style="accent-color:var(--accent); width:15px; height:15px;"> Ajustar a rejilla
+  </label>
+  <label style="display:flex; align-items:center; gap:5px; font-size:12px; cursor:pointer; color:var(--text);" title="Color de fondo personalizado del lienzo">
+    Fondo <input type="color" id="bgCustom" value="#161616" style="width:26px; height:22px; padding:0; border:1px solid var(--line); border-radius:5px; background:none; cursor:pointer;">
+    <button id="btnBgClear" title="Quitar fondo personalizado" style="padding:3px 6px;">✕</button>
   </label>
   <button id="btnPlay" class="toggled">⏸ Pausa</button>
   <button id="btnJsonOut" title="Guardar archivo .fluyo.json (Ctrl+S)">💾 Guardar</button>
@@ -59,6 +67,9 @@
     <button id="btnImg" title="Insertar imagen (o pega con Ctrl+V)">
       <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l5-5 4 4 3-3 4 4"/></svg>Imagen
     </button>
+    <button id="btnAnims" title="GIFs animados (cargando, error, éxito…)">
+      <svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9" /><path d="M12 7v5l3 2"/></svg>GIFs
+    </button>
   </nav>
 
   <div class="stage">
@@ -67,6 +78,7 @@
       <textarea id="editBox" rows="1"></textarea>
     </div>
     <div id="iconDrawer" role="dialog" aria-label="Iconos"></div>
+    <div id="animDrawer" role="dialog" aria-label="GIFs animados"></div>
   </div>
 
   <aside>
@@ -99,9 +111,60 @@
           <textarea id="lblEdit"></textarea>
         </div>
         <div class="row" id="rowFs"><label>Tamaño de texto</label><input type="number" id="fsIn" min="8" max="96" placeholder="auto"></div>
+        <div class="row" id="rowFont"><label>Tipografía</label><select id="fontSel"></select></div>
+        <div class="row" id="rowBold"><label>Negrita</label><input type="checkbox" id="boldChk"></div>
         <div class="row" id="rowColor" style="flex-direction:column; align-items:stretch;">
-          <label>Color semántico</label>
+          <label>Color de línea / borde</label>
           <div class="swatches" id="swatches"></div>
+          <div class="colorTools">
+            <label class="pickLbl" title="Color personalizado del borde">
+              <input type="color" id="strokeCustom"><span>Personalizado</span>
+            </label>
+            <button id="btnEyedrop" class="mini" title="Cuentagotas: tomar un color del lienzo">🎯 Picker</button>
+          </div>
+        </div>
+        <div class="row" id="rowFill" style="flex-direction:column; align-items:stretch;">
+          <label>Relleno de la forma</label>
+          <div class="swatches" id="fillSw"></div>
+          <div class="colorTools">
+            <label class="pickLbl" title="Color de relleno personalizado">
+              <input type="color" id="fillCustom"><span>Personalizado</span>
+            </label>
+          </div>
+        </div>
+        <div class="row" id="rowBorder"><label>Estilo de borde</label>
+          <select id="borderSel">
+            <option value="solid">Sólido —</option>
+            <option value="dashed">Discontinuo - -</option>
+            <option value="dotted">Punteado ·····</option>
+          </select>
+        </div>
+        <div class="row" id="rowLblPos"><label>Posición del texto</label>
+          <select id="lblPosSel">
+            <option value="center">Centro</option>
+            <option value="top">Arriba</option>
+            <option value="bottom">Abajo</option>
+            <option value="left">Izquierda</option>
+            <option value="right">Derecha</option>
+          </select>
+        </div>
+        <div class="row" id="rowTextBg" style="flex-direction:column; align-items:stretch;">
+          <label>Fondo del texto</label>
+          <div class="swatches" id="textBgSw"></div>
+          <div class="colorTools">
+            <label class="pickLbl" title="Fondo de texto personalizado">
+              <input type="color" id="textBgCustom"><span>Personalizado</span>
+            </label>
+          </div>
+        </div>
+        <div class="row" id="rowZ" style="flex-direction:column; align-items:stretch;">
+          <label>Orden (capas)</label>
+          <div class="btnGrid">
+            <button id="btnFront" title="Traer al frente">⬆ Al frente</button>
+            <button id="btnBack" title="Enviar al fondo">⬇ Al fondo</button>
+            <button id="btnForward" title="Subir una capa">＋ Subir</button>
+            <button id="btnBackward" title="Bajar una capa">－ Bajar</button>
+          </div>
         </div>
         <div class="row" id="rowShape"><label>Forma</label>
           <select id="shapeSel">
@@ -137,10 +200,20 @@
         <div class="row" id="rowLineC" style="flex-direction:column; align-items:stretch;">
           <label>Color de línea</label>
           <div class="swatches" id="lineSw"></div>
+          <div class="colorTools">
+            <label class="pickLbl" title="Color de línea personalizado">
+              <input type="color" id="lineCustom"><span>Personalizado</span>
+            </label>
+          </div>
         </div>
         <div class="row" id="rowDotC" style="flex-direction:column; align-items:stretch;">
           <label>Color de puntos</label>
           <div class="swatches" id="dotSw"></div>
+          <div class="colorTools">
+            <label class="pickLbl" title="Color de puntos personalizado">
+              <input type="color" id="dotCustom"><span>Personalizado</span>
+            </label>
+          </div>
         </div>
         <div class="row" id="rowDash"><label>Línea punteada</label><input type="checkbox" id="dashChk"></div>
         <div class="row" id="rowArrS"><label>Punta al inicio</label><input type="checkbox" id="arrSChk"></div>
@@ -160,6 +233,23 @@
       <div class="row"><label>Animar aparición</label><input type="checkbox" id="buildChk"></div>
       <div class="row"><label>Intervalo aparición</label><input type="range" id="staggerIn" min="0.2" max="1.2" step="0.1" value="0.45"></div>
       <p class="hint">La aparición usa el «orden» de cada nodo. Las flechas aparecen cuando ambos nodos son visibles.</p>
+    </section>
+
+    <section id="ossSection">
+      <h3>Open Source</h3>
+      <p class="hint">Fluyo es libre y de código abierto. ¡Tu contribución es bienvenida! ⭐</p>
+      <a class="ossLink" href="https://github.com/itsnect/fluyo" target="_blank" rel="noopener">
+        <span class="ossIcon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.49 0-.24-.01-.87-.01-1.71-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.36-2.22-.26-4.56-1.14-4.56-5.06 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05a9.3 9.3 0 0 1 5 0c1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.93-2.35 4.79-4.58 5.05.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.81 0 .27.18.6.69.49A10.03 10.03 0 0 0 22 12.25C22 6.58 17.52 2 12 2z"/></svg>
+        </span>
+        <span><b>itsnect/fluyo</b><br><span class="hint">Contribuye en GitHub</span></span>
+      </a>
+      <a class="ossLink" href="https://github.com/itsnect/fluyo-mcp" target="_blank" rel="noopener">
+        <span class="ossIcon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="18" height="18"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M4 12l6-6 4 4M4 12l6 6M14 10l6 6-4 4-6-6M20 8l-4-4"/></svg>
+        </span>
+        <span><b>fluyo-mcp</b><br><span class="hint">Úsalo con tu IA vía MCP</span></span>
+      </a>
     </section>
   </aside>
 </main>

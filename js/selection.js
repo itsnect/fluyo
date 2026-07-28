@@ -57,6 +57,40 @@ function deleteSel(){
   clearSel();
 }
 
+/* ---- orden Z (traer al frente / enviar al fondo) ---- */
+function bringToFront(){
+  if(!selN.size) return;
+  pushUndo();
+  const sel=P().nodes.filter(n=>selN.has(n.id));
+  P().nodes=P().nodes.filter(n=>!selN.has(n.id)).concat(sel);
+  scheduleAutosave();
+}
+function sendToBack(){
+  if(!selN.size) return;
+  pushUndo();
+  const sel=P().nodes.filter(n=>selN.has(n.id));
+  P().nodes=sel.concat(P().nodes.filter(n=>!selN.has(n.id)));
+  scheduleAutosave();
+}
+function bringForward(){
+  if(!selN.size) return;
+  pushUndo();
+  const ns=P().nodes;
+  for(let i=ns.length-2;i>=0;i--){
+    if(selN.has(ns[i].id) && !selN.has(ns[i+1].id)){ [ns[i],ns[i+1]]=[ns[i+1],ns[i]]; }
+  }
+  scheduleAutosave();
+}
+function sendBackward(){
+  if(!selN.size) return;
+  pushUndo();
+  const ns=P().nodes;
+  for(let i=1;i<ns.length;i++){
+    if(selN.has(ns[i].id) && !selN.has(ns[i-1].id)){ [ns[i],ns[i-1]]=[ns[i-1],ns[i]]; }
+  }
+  scheduleAutosave();
+}
+
 /* ---- deshacer / rehacer ---- */
 let undoStack=[], redoStack=[], lblDirty=false, fsDirty=false;
 function snapPage(){ return {pi:doc.cur, data:deep({nodes:P().nodes, edges:P().edges, nextId:P().nextId})}; }

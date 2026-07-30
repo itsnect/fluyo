@@ -87,6 +87,10 @@ cv.addEventListener("pointerdown", ev=>{
     if(pendingIcon) n=newNode("icon",p.x,p.y,{icon:pendingIcon, label:ICONS[pendingIcon].n});
     else if(pendingAnim) n=newNode("anim",p.x,p.y,{anim:pendingAnim, label:ANIMS[pendingAnim].n, color:PALETTE[0].c});
     else n=newNode(pendingShape,p.x,p.y);
+    /* se mide al colocar el nodo, no al elegirlo en el cajón: elegir solo arma
+       la herramienta y el usuario puede no llegar a poner nada nunca */
+    if(pendingAnim) trackEvent("gif_animation_added",{anim:pendingAnim});
+    trackFirstNode();
     selectOnly("node",n.id);
     pendingShape=null; pendingIcon=null; pendingAnim=null; syncRail();
     return;
@@ -370,6 +374,7 @@ function addImageFromBlob(blob, x=W/2, y=H/2){
       pushUndo();
       const maxD=320, sc=Math.min(1, maxD/Math.max(im.naturalWidth,im.naturalHeight));
       const n=newNode("image",x,y,{img:url, w:Math.round(im.naturalWidth*sc), h:Math.round(im.naturalHeight*sc)});
+      trackFirstNode();
       selectOnly("node",n.id);
     };
     im.src=url;

@@ -19,10 +19,17 @@
    reporta nada a este proyecto, que es el comportamiento correcto. */
 const ANALYTICS_HOSTS = ["fluyo.space", "www.fluyo.space"];
 
-/* Website ID de Umami Cloud. Vacío = telemetría apagada en todas partes,
-   incluido el sitio público. Es el valor que se comitea a propósito: el repo
-   no debe traer un id ajeno preconfigurado. */
-const UMAMI_WEBSITE_ID = "";
+/* Website ID de Umami Cloud. No es un secreto: va en el HTML de cada carga de
+   página y cualquiera que visite el sitio puede leerlo, igual que un id de
+   Google Analytics. Está en el repo a propósito.
+
+   Que sea público no expone nada de nadie, pero sí permite que alguien mande
+   eventos falsos a este panel. Se acepta: es inherente a cualquier analítica
+   de cliente, y aquí el dato es orientativo, no una métrica de negocio.
+
+   Vaciar esta constante apaga la telemetría en todas partes, producción
+   incluida, sin tocar nada más. */
+const UMAMI_WEBSITE_ID = "bf627279-0eb4-4be4-aee7-ce020e7e66f6";
 
 /* Se eligió Umami Cloud sobre Vercel Web Analytics por una razón concreta:
    los eventos custom de Vercel requieren plan Pro. En el plan Hobby la llamada

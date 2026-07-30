@@ -3,19 +3,74 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fluyo — diagramas que fluyen</title>
-<meta name="description" content="Crea diagramas animados de arquitectura y exporta GIF, PNG o JPG directo desde el navegador. Gratis, sin cuenta, sin backend.">
-<meta property="og:title" content="Fluyo — diagramas que fluyen">
-<meta property="og:description" content="Diagramas animados de arquitectura con export a GIF, PNG y JPG. Gratis y directo en tu navegador.">
+<title>Fluyo — editor de diagramas de arquitectura animados con export a GIF</title>
+<meta name="description" content="Dibuja diagramas de arquitectura con flujo animado y expórtalos a GIF, PNG, JPG o SVG. Gratis, sin cuenta y sin backend: todo corre en tu navegador.">
+<link rel="canonical" href="https://fluyo.space/">
+<meta property="og:title" content="Fluyo — editor de diagramas de arquitectura animados con export a GIF">
+<meta property="og:description" content="Dibuja diagramas de arquitectura con flujo animado y expórtalos a GIF, PNG, JPG o SVG. Gratis, sin cuenta y sin backend.">
 <meta property="og:type" content="website">
+<meta property="og:url" content="https://fluyo.space/">
+<meta property="og:site_name" content="Fluyo">
+<meta property="og:locale" content="es_ES">
+<!-- 1200×630 px. Las URLs absolutas son obligatorias: los crawlers no resuelven rutas relativas. -->
+<meta property="og:image" content="https://fluyo.space/assets/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Diagrama de arquitectura animado hecho con Fluyo">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Fluyo — diagramas de arquitectura animados">
+<meta name="twitter:description" content="Dibuja diagramas de arquitectura con flujo animado y expórtalos a GIF, PNG, JPG o SVG. Gratis y sin cuenta.">
+<meta name="twitter:image" content="https://fluyo.space/assets/og-image.png">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Fluyo",
+  "alternateName": "Fluyo — diagramas que fluyen",
+  "description": "Editor de diagramas de arquitectura con animación de flujo y exportación a GIF, PNG, JPG y SVG. Funciona íntegramente en el navegador, sin cuenta ni backend.",
+  "applicationCategory": "DesignApplication",
+  "applicationSubCategory": "Diagramming",
+  "operatingSystem": "Cualquiera con navegador web",
+  "url": "https://fluyo.space/",
+  "codeRepository": "https://github.com/itsnect/fluyo",
+  "license": "https://opensource.org/licenses/MIT",
+  "isAccessibleForFree": true,
+  "inLanguage": "es",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "featureList": [
+    "Animación de flujo sobre las conexiones",
+    "Exportación a GIF animado, PNG, JPG y SVG",
+    "Iconos de GCP, AWS y Azure",
+    "Lienzo infinito con múltiples páginas",
+    "Funciona sin conexión (PWA)"
+  ]
+}
+</script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23161616'/%3E%3Ccircle cx='18' cy='32' r='7' fill='%23d08b5b'/%3E%3Ccircle cx='40' cy='32' r='5' fill='%23d08b5b' opacity='.65'/%3E%3Ccircle cx='54' cy='32' r='3.4' fill='%23d08b5b' opacity='.35'/%3E%3C/svg%3E">
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#111213">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js"></script>
-<!-- Vercel Web Analytics -->
-<!-- IMPORTANT: Before deploying, enable Web Analytics in your Vercel dashboard -->
-<!-- Then replace /_vercel/insights/script.js with your project-specific path -->
-<script defer src="/_vercel/insights/script.js"></script>
+<!--
+  Telemetría — solo en el sitio público (fluyo.space).
+
+  Fluyo es open source y funciona 100% en el navegador, sin backend.
+  Este script se carga ÚNICAMENTE cuando el hostname es el dominio oficial,
+  por lo que si clonas el repo, lo abres localmente o lo self-hosteas,
+  no se ejecuta ninguna telemetría y no se hace ninguna llamada de red.
+  Los dominios de preview quedan fuera a propósito: son pruebas del
+  mantenedor, no tráfico real.
+
+  Lo que se mide en el sitio público: pageviews y eventos de uso agregados
+  (sin cookies, sin fingerprinting, sin identificar usuarios).
+  Lo que NUNCA se envía: el contenido de tus diagramas. Los diagramas viven
+  solo en tu navegador y no salen de tu máquina.
+
+  Si prefieres cero telemetría, usa el proyecto en local o self-hosteado.
+
+  La condición de carga y el helper trackEvent() están en js/analytics.js,
+  en un único bloque para poder cambiar de proveedor sin tocar el resto.
+-->
+<script src="js/analytics.js"></script>
 <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
@@ -65,13 +120,13 @@
     <button data-shape="hex" title="Hexágono"><svg viewBox="0 0 24 24"><path d="M7 4h10l4 8-4 8H7l-4-8z"/></svg>Hex</button>
     <button data-shape="text" title="Solo texto"><svg viewBox="0 0 24 24"><path d="M5 6h14M12 6v13"/></svg>Texto</button>
     <hr>
-    <button id="btnIcons" title="Iconos cloud (GCP, AWS, Azure…)">
+    <button id="btnIcons" title="Iconos cloud (GCP, AWS, Azure…)" aria-expanded="false" aria-controls="iconDrawer">
       <svg viewBox="0 0 24 24"><path d="M7 17a4 4 0 0 1 0-8 5.5 5.5 0 0 1 10.6 1.4A3.5 3.5 0 0 1 17 17z"/></svg>Iconos
     </button>
     <button id="btnImg" title="Insertar imagen (o pega con Ctrl+V)">
       <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l5-5 4 4 3-3 4 4"/></svg>Imagen
     </button>
-    <button id="btnAnims" title="GIFs animados (cargando, error, éxito…)">
+    <button id="btnAnims" title="GIFs animados (cargando, error, éxito…)" aria-expanded="false" aria-controls="animDrawer">
       <svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9" /><path d="M12 7v5l3 2"/></svg>GIFs
     </button>
   </nav>
@@ -258,7 +313,15 @@
   </aside>
 </main>
 
-<footer id="pagesBar"></footer>
+<div id="bottomBar">
+  <footer id="pagesBar"></footer>
+  <nav id="siteLinks" aria-label="Enlaces del proyecto">
+    <a href="docs/">Docs</a>
+    <a href="ejemplos/">Ejemplos</a>
+    <a href="https://github.com/itsnect/fluyo" target="_blank" rel="noopener">GitHub</a>
+    <a href="https://github.com/itsnect/fluyo-mcp" target="_blank" rel="noopener">MCP</a>
+  </nav>
+</div>
 
 <!-- Export modal -->
 <div class="overlay" id="exModal">
@@ -299,6 +362,9 @@
     <h2>Generando GIF…</h2>
     <div class="hint" id="ovMsg">Renderizando fotogramas</div>
     <div id="bar"><div id="barFill"></div></div>
+    <div class="actions" style="justify-content:center;">
+      <button id="progCancel">Cancelar</button>
+    </div>
   </div>
 </div>
 
@@ -314,6 +380,7 @@
 </div>
 
 <script src="js/config.js"></script>
+<script src="js/examples.js"></script>
 <script src="js/state.js"></script>
 <script src="js/selection.js"></script>
 <script src="js/geometry.js"></script>

@@ -44,6 +44,7 @@ $("fileIn").onchange=ev=>{
       doc.cur=clamp(doc.cur||0,0,doc.pages.length-1);
       syncProjectControls();
       clearSel(); renderTabs(); centerView();
+      trackEvent("file_imported");   // dentro del try: un archivo inválido no cuenta
     }catch(e){ alert("El archivo no es un diagrama Fluyo válido."); }
   });
   ev.target.value="";
@@ -82,6 +83,7 @@ $("btnDemo").onclick=()=>{
   e=newEdge(C.id,E.id); e.dashed=true; e.label="persistencia";
   e=newEdge(F.id,A.id); e.label="instrucción"; e.fromSide="n"; e.toSide="s"; e.route="ortho";
   centerView();
+  trackEvent("example_loaded",{example:"demo"});
 };
 
 /* ===================== Exportación SVG ===================== */
@@ -304,10 +306,26 @@ $("btnExport").onclick=()=>{ exModal.style.display="flex"; syncExportRows(); };
 $("exCancel").onclick=()=>exModal.style.display="none";
 function slug(){ return (P().name||"diagrama").toLowerCase().replace(/[^a-z0-9áéíóúñ]+/gi,"-"); }
 
+/* gif.js se carga desde un CDN, así que puede faltar por un bloqueador de
+   anuncios, una extensión de privacidad o una primera visita sin conexión.
+   Antes esto llegaba al usuario como «GIF is not defined», un mensaje que no le
+   dice ni qué pasó ni qué hacer. Se comprueba antes de abrir el progreso. */
+function gifEncoderReady(){ return typeof GIF==="function"; }
+
 $("exGo").onclick=()=>{
   const fmt=$("exFmt").value, scale=+$("exRes").value;
   exModal.style.display="none";
   if(P().nodes.length===0){ alert("La página está vacía."); return; }
+  if(fmt==="gif" && !gifEncoderReady()){
+    alert("No se puede generar el GIF: la librería que lo codifica (gif.js) no se cargó.\n\n"+
+          "Lo más habitual es un bloqueador de anuncios o una primera visita sin conexión. "+
+          "Prueba a recargar la página con el bloqueador desactivado.\n\n"+
+          "PNG, JPG y SVG no dependen de esa librería y funcionan igual.");
+    return;
+  }
+  /* después del guard, para no contar exports abortados. Mide la intención:
+     un GIF puede fallar más tarde en el encoder y eso no se refleja aquí */
+  trackEvent("diagram_exported",{format:fmt});
   if(fmt==="gif") exportGIF(scale, $("exTr").checked);
   else if(fmt==="svg") exportSVG(scale);
   else exportStatic(fmt, scale, $("exTr").checked);
@@ -329,6 +347,40 @@ function exportStatic(fmt,scale,transparent){
     setTimeout(()=>URL.revokeObjectURL(a.href),3000);
   }, mime, .92);
 }
+/* ===================== Salida del progreso del GIF =====================
+   gif.js codifica en web workers y no emite ningún evento si uno muere: el
+   overlay «Generando GIF…» se quedaba visible indefinidamente, sin botón de
+   cancelar ni forma de cerrarlo, así que la única salida era recargar y perder
+   la sesión. Estas tres piezas garantizan que siempre se pueda salir:
+   el botón Cancelar, un vigilante por inactividad, y el flag que corta el bucle
+   de fotogramas (que es un `await` y no se puede abortar desde fuera). */
+const GIF_STALL_MS=25000;
+let activeGif=null, gifWatchdog=null, gifCancelled=false;
+
+function stopGifWatchdog(){ clearTimeout(gifWatchdog); gifWatchdog=null; }
+/* Se rearma en cada señal de vida (cada fotograma y cada tick del encoder),
+   así que solo salta si de verdad no avanza nada. */
+function armGifWatchdog(){
+  stopGifWatchdog();
+  gifWatchdog=setTimeout(()=>abortGIF(
+    "La generación del GIF se detuvo: no respondió en "+(GIF_STALL_MS/1000)+" segundos.\n\n"+
+    "Prueba con una duración más corta, menos FPS o una escala menor. "+
+    "PNG y SVG no usan el codificador y siempre funcionan."), GIF_STALL_MS);
+}
+function closeProgress(){
+  stopGifWatchdog();
+  $("progOv").style.display="none";
+  activeGif=null;
+}
+function abortGIF(msg){
+  gifCancelled=true;
+  try{ if(activeGif && typeof activeGif.abort==="function") activeGif.abort(); }
+  catch(e){ /* si abort() no existe o falla, igual hay que cerrar el overlay */ }
+  closeProgress();
+  if(msg) alert(msg);
+}
+$("progCancel").onclick=()=>abortGIF(null);
+
 let workerUrl=null;
 async function getWorker(){
   if(workerUrl) return workerUrl;
@@ -346,6 +398,8 @@ async function exportGIF(scale, transparent){
 
   const ov=$("progOv"), fill=$("barFill"), msg=$("ovMsg");
   ov.style.display="flex"; fill.style.width="0%"; msg.textContent="Renderizando fotogramas…";
+  gifCancelled=false;
+  armGifWatchdog();
   try{
     const wurl=await getWorker();
     const b = getBounds();
@@ -357,6 +411,7 @@ async function exportGIF(scale, transparent){
     const gifOpts={workers:2, quality:8, width:w, height:h, workerScript:wurl};
     if(transparent) gifOpts.transparent=keyNum;
     const gif=new GIF(gifOpts);
+    activeGif=gif;
     const frames=Math.round(dur*fps);
     settings.speed=exSpeed;
     for(let f=0;f<frames;f++){
@@ -365,22 +420,31 @@ async function exportGIF(scale, transparent){
       render(oc,t, transparent? {export:true, bg:keyCss, bounds:b} : {export:true, bounds:b});
       oc.restore();
       gif.addFrame(off,{copy:true, delay:Math.round(1000/fps)});
-      if(f%5===0){ fill.style.width=(f/frames*40)+"%"; await new Promise(r=>setTimeout(r)); }
+      if(f%5===0){
+        fill.style.width=(f/frames*40)+"%";
+        armGifWatchdog();
+        await new Promise(r=>setTimeout(r));
+        /* el bucle es un await y no se puede abortar desde fuera: se comprueba
+           el flag tras cada cesión para que Cancelar surta efecto de verdad */
+        if(gifCancelled){ settings.speed=realSpeed; return; }
+      }
     }
     settings.speed=realSpeed;
     msg.textContent="Codificando GIF…";
-    gif.on("progress",p=>{ fill.style.width=(40+p*60)+"%"; });
+    gif.on("progress",p=>{ fill.style.width=(40+p*60)+"%"; armGifWatchdog(); });
     gif.on("finished",blob=>{
+      if(gifCancelled) return;
       const a=document.createElement("a");
       a.href=URL.createObjectURL(blob);
       a.download=slug()+".gif"; a.click();
       setTimeout(()=>URL.revokeObjectURL(a.href),5000);
-      ov.style.display="none";
+      closeProgress();
     });
     gif.render();
+    armGifWatchdog();
   }catch(err){
     settings.speed=realSpeed;
-    ov.style.display="none";
+    closeProgress();
     alert("No se pudo generar el GIF: "+err.message);
   }
 }

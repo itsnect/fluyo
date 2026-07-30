@@ -65,6 +65,41 @@ function refreshPanel(){
     [...$("dotSw").children].forEach(sw=>sw.classList.toggle("sel", (obj.dotColor||"")===sw.dataset.c));
   }
 }
+/* ===================== Teclado en las rejillas de swatches =====================
+   Los swatches son <div> a propósito (son muestras de color, no texto), pero eso
+   los dejaba fuera del alcance del teclado por completo: con más de 200 en el
+   panel, quien navega con tabulador no podía cambiar ningún color.
+
+   Se usa el patrón de «tabindex móvil» en lugar de hacer focusable cada uno: el
+   grupo entero es UNA parada de tabulador y dentro se navega con las flechas.
+   Doscientas paradas seguidas serían tan inutilizables como ninguna. */
+function enableSwatchKeyboard(containerId, label){
+  const cont=$(containerId);
+  cont.setAttribute("role","group");
+  cont.setAttribute("aria-label",label);
+  const items=()=>[...cont.children];
+  items().forEach((el,i)=>{ el.tabIndex = i===0 ? 0 : -1; });
+  cont.addEventListener("keydown", ev=>{
+    const list=items(), i=list.indexOf(document.activeElement);
+    if(i<0) return;
+    let j=null;
+    if(ev.key==="ArrowRight"||ev.key==="ArrowDown") j=(i+1)%list.length;
+    else if(ev.key==="ArrowLeft"||ev.key==="ArrowUp") j=(i-1+list.length)%list.length;
+    else if(ev.key==="Home") j=0;
+    else if(ev.key==="End") j=list.length-1;
+    else if(ev.key==="Enter"||ev.key===" "){
+      /* stopPropagation es imprescindible: el handler global de teclado usa la
+         barra espaciadora para pausar la animación */
+      ev.preventDefault(); ev.stopPropagation();
+      document.activeElement.click();
+      return;
+    }
+    else return;
+    ev.preventDefault(); ev.stopPropagation();
+    list[i].tabIndex=-1; list[j].tabIndex=0; list[j].focus();
+  });
+}
+
 const DASH_PAT="repeating-linear-gradient(45deg,#5a5a5a 0 4px,#2e3134 4px 8px)";
 const CHECKER_PAT="repeating-conic-gradient(#3a3d40 0% 25%, #26292c 0% 50%) 0 0/10px 10px";
 /* Rejilla de swatches para propiedades de nodo (paleta amplia + opciones especiales) */
@@ -75,6 +110,8 @@ function buildNodeSwatches(containerId, field, extras){
     d.className="swatch"+(special?" special":"");
     d.style.background=bg;
     d.title=title; d.dataset.v=(value===null||value===undefined)?"__null__":value;
+    d.setAttribute("role","button");
+    d.setAttribute("aria-label",title);
     d.onclick=()=>{
       if(!selN.size) return;
       pushUndo();
@@ -100,6 +137,9 @@ buildNodeSwatches("fillSw","fill",[
 buildNodeSwatches("textBgSw","textBg",[
   {label:"Sin fondo", value:null, pattern:CHECKER_PAT},
 ]);
+enableSwatchKeyboard("swatches","Color de línea o borde");
+enableSwatchKeyboard("fillSw","Relleno de la forma");
+enableSwatchKeyboard("textBgSw","Fondo del texto");
 function applyNodeVal(field,val){
   if(!selN.size) return;
   pushUndo();
@@ -131,6 +171,8 @@ function buildEdgeSwatches(containerId, field){
     d.className="swatch";
     d.style.background = color || "repeating-linear-gradient(45deg,#5a5a5a 0 4px,#2e3134 4px 8px)";
     d.title=title; d.dataset.c=color||"";
+    d.setAttribute("role","button");
+    d.setAttribute("aria-label",title);
     d.onclick=()=>{ const e=singleEdge(); if(e){ pushUndo(); e[field]=color; refreshPanel(); } };
     cont.appendChild(d);
   };
@@ -139,6 +181,8 @@ function buildEdgeSwatches(containerId, field){
 }
 buildEdgeSwatches("lineSw","lineColor");
 buildEdgeSwatches("dotSw","dotColor");
+enableSwatchKeyboard("lineSw","Color de línea de la flecha");
+enableSwatchKeyboard("dotSw","Color de los puntos animados");
 $("lineCustom").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); e.lineColor=$("lineCustom").value; refreshPanel(); scheduleAutosave(); } };
 $("dotCustom").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); e.dotColor=$("dotCustom").value; refreshPanel(); scheduleAutosave(); } };
 
@@ -198,8 +242,14 @@ function syncRail(){
       (b.dataset.mode && b.dataset.mode===mode && !pendingShape && !pendingIcon && !pendingAnim) ||
       (b.dataset.shape && b.dataset.shape===pendingShape));
   });
-  $("btnIcons").classList.toggle("toggled", $("iconDrawer").style.display==="block");
-  $("btnAnims").classList.toggle("toggled", $("animDrawer").style.display==="block" || !!pendingAnim);
+  const iconsOpen=$("iconDrawer").style.display==="block";
+  const animsOpen=$("animDrawer").style.display==="block";
+  $("btnIcons").classList.toggle("toggled", iconsOpen);
+  $("btnAnims").classList.toggle("toggled", animsOpen || !!pendingAnim);
+  /* los cajones ya son role="dialog" y Esc los cierra, pero sin aria-expanded
+     un lector de pantalla no anuncia si están abiertos o cerrados */
+  $("btnIcons").setAttribute("aria-expanded", String(iconsOpen));
+  $("btnAnims").setAttribute("aria-expanded", String(animsOpen));
 }
 document.querySelectorAll(".rail button[data-mode],.rail button[data-shape]").forEach(b=>{
   b.onclick=()=>{
@@ -310,4 +360,6 @@ function renderTabs(){
 }
 
 renderTabs();
-if(hasAutosave()) showAutosaveRestorePrompt();
+/* si la URL pide un ejemplo concreto, esa intención explícita gana sobre
+   ofrecer restaurar la sesión anterior (lo carga js/examples.js) */
+if(hasAutosave() && !EXAMPLE_SLUG) showAutosaveRestorePrompt();

@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Documentación de Fluyo — diagramas de arquitectura animados</title>
+<meta name="description" content="Cómo usar Fluyo: lienzo, estilos, capas, animación de flujo, GIFs, iconos cloud, el formato .fluyo.json y el servidor MCP con sus 7 tools.">
+<link rel="canonical" href="https://fluyo.space/docs/">
+<meta property="og:title" content="Documentación de Fluyo">
+<meta property="og:description" content="Guía completa de Fluyo: features del editor, el formato .fluyo.json, el servidor MCP y la política de privacidad.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://fluyo.space/docs/">
+<meta property="og:site_name" content="Fluyo">
+<meta property="og:image" content="https://fluyo.space/assets/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Documentación de Fluyo">
+<meta name="twitter:description" content="Guía completa de Fluyo: features del editor, el formato .fluyo.json y el servidor MCP.">
+<meta name="twitter:image" content="https://fluyo.space/assets/og-image.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23161616'/%3E%3Ccircle cx='18' cy='32' r='7' fill='%23d08b5b'/%3E%3Ccircle cx='40' cy='32' r='5' fill='%23d08b5b' opacity='.65'/%3E%3Ccircle cx='54' cy='32' r='3.4' fill='%23d08b5b' opacity='.35'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#111213">
+<link rel="stylesheet" href="../css/pages.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="inner">
+    <a class="logo" href="../">flu<b>yo</b><span class="dots" aria-hidden="true"><span></span><span></span><span></span></span></a>
+    <nav>
+      <a href="../">Editor</a>
+      <a href="../ejemplos/">Ejemplos</a>
+      <a href="./" aria-current="page">Docs</a>
+      <a href="https://github.com/itsnect/fluyo" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+<h1>Documentación</h1>
+<p class="lead">Todo lo que hace Fluyo, en una página que se lee entera.</p>
+
+<h2>Qué es Fluyo y qué problema resuelve</h2>
+<p>Fluyo es un editor de diagramas de arquitectura en el que <strong>las conexiones se mueven</strong>: puntos que recorren las flechas mostrando la dirección del flujo, nodos que laten y elementos que aparecen en secuencia. El resultado se exporta como GIF animado.</p>
+<p>El problema concreto que resuelve: explicar un sistema distribuido con una imagen estática obliga a que quien la ve reconstruya mentalmente el orden de los pasos. Un diagrama animado lo muestra. Eso importa cuando el diagrama va a un README, a una presentación, a una propuesta de diseño o a un post — sitios donde no puedes estar delante para narrarlo.</p>
+<p>Las herramientas que animan de verdad son de pago, viven en la nube y te piden una cuenta. Fluyo es open source con licencia MIT, no tiene backend y no guarda nada: el editor, la animación y hasta la codificación del GIF ocurren en tu navegador.</p>
+
+<h2>Cómo empezar</h2>
+<p>Abres <a href="https://fluyo.space/">fluyo.space</a> y ya estás dentro. No hay registro, ni email, ni onboarding, ni límite de uso.</p>
+<p>Si prefieres no depender de nadie: clona el repositorio y sírvelo tú. Es HTML, CSS y JavaScript sin dependencias ni paso de compilación.</p>
+<pre><code>git clone https://github.com/itsnect/fluyo.git
+cd fluyo
+python -m http.server 8000</code></pre>
+<p>Y abre <code>http://localhost:8000</code>. Cualquier servidor de archivos estáticos sirve.</p>
+<div class="note">
+  <p>El primer nodo: elige una forma en la barra izquierda y haz clic en el lienzo. Para conectar, pasa el ratón sobre un nodo y arrastra una de las flechas azules que aparecen en sus lados.</p>
+</div>
+
+<h2>Referencia de features</h2>
+
+<h3>Lienzo y navegación</h3>
+<p>El lienzo es infinito. Se mueve con la rueda del ratón, con <kbd>clic derecho</kbd>, <kbd>clic central</kbd> o <kbd>Alt</kbd>+arrastrar, y se hace zoom con <kbd>Ctrl</kbd>+rueda.</p>
+<p>Un documento puede tener <strong>varias páginas</strong>, con pestañas en la barra inferior. Doble clic en una pestaña la renombra. Cada página se exporta por separado.</p>
+
+<h3>Movimiento libre y rejilla</h3>
+<p>Por defecto los nodos se mueven libremente, píxel a píxel. Si prefieres alineación automática, activa <strong>Ajustar a rejilla</strong> en la barra superior. La cuadrícula visible se enciende y apaga aparte, con <strong>Cuadrícula</strong>.</p>
+
+<h3>Formas y contenido</h3>
+<ul>
+  <li><strong>Formas</strong> — caja, cilindro (base de datos), rombo (decisión), círculo, hexágono y texto suelto.</li>
+  <li><strong>Iconos cloud</strong> — más de 40: GCP, AWS y Azure, más Kafka, Kubernetes, Docker, colas, cachés, balanceadores y estados.</li>
+  <li><strong>Imágenes</strong> — pega con <kbd>Ctrl+V</kbd> o arrastra un archivo al lienzo. Se incrustan en el documento como data URI, así que el <code>.fluyo.json</code> sigue siendo autocontenido.</li>
+</ul>
+
+<h3>Estilos</h3>
+<p>Con algo seleccionado, el panel derecho ofrece color de borde, relleno (automático, sólido o ninguno), estilo de línea, posición y fondo del texto, tamaño y negrita. Hay una paleta semántica con nombres — <em>Servicio</em>, <em>Eventos</em>, <em>Datos</em>, <em>Error</em> — más una rejilla amplia y un selector personalizado. El botón <strong>Picker</strong> es un cuentagotas que toma cualquier color del lienzo (solo en navegadores con la API EyeDropper).</p>
+
+<h3>Capas</h3>
+<p>El orden de dibujado se controla con <strong>Al frente</strong>, <strong>Al fondo</strong>, <strong>Subir</strong> y <strong>Bajar</strong>. No hay que confundirlo con <strong>Orden de aparición</strong>, que es un número distinto: controla la secuencia de la animación de entrada, no qué tapa a qué.</p>
+
+<h3>Conexiones</h3>
+<p>Pasa el ratón sobre un nodo y arrastra una de las flechas azules de sus lados. La flecha queda anclada a ese lado, así que se mantiene coherente cuando muevas los nodos. Se puede elegir ruta recta u ortogonal, fijar por qué lado sale y entra, y poner o quitar punta en cada extremo.</p>
+<p>Con una flecha seleccionada aparecen <strong>puntos huecos</strong>: arrástralos para doblarla; doble clic en un codo lo elimina.</p>
+
+<h3>Animación y GIF</h3>
+<p>Esto es el diferenciador del producto:</p>
+<ul>
+  <li><strong>Flujo de puntos</strong> — puntos que recorren cada flecha. Velocidad y cantidad globales, con multiplicador y número propios por flecha. La dirección puede ser normal, inversa o alterna.</li>
+  <li><strong>Pulso</strong> — un nodo late para llamar la atención.</li>
+  <li><strong>Aparición secuencial</strong> — los elementos entran uno a uno siguiendo su <em>orden</em>. Las flechas aparecen cuando ya están sus dos nodos.</li>
+  <li><strong>GIFs predefinidos</strong> — ocho animaciones dibujadas fotograma a fotograma (cargando, progreso, error, éxito, escribiendo, subiendo, latido, ticket) que se colocan como cualquier nodo y se animan también en el GIF exportado.</li>
+</ul>
+<p>Al exportar a GIF, el bucle de flujo <strong>se ajusta solo</strong> para que el resultado sea perfectamente cíclico y no dé un salto al reiniciar.</p>
+
+<h3>Tipografías</h3>
+<p>Once familias, todas de sistema — no se descarga ninguna fuente. Se puede fijar una <strong>global</strong> para el diagrama entero y sobrescribirla en elementos concretos.</p>
+
+<h3>Exportación</h3>
+<table>
+  <tr><th>Formato</th><th>Para qué</th><th>Notas</th></tr>
+  <tr><td>GIF</td><td>README, presentaciones, redes</td><td>Bucle cíclico automático. FPS y duración configurables. Transparencia de bordes duros.</td></tr>
+  <tr><td>PNG</td><td>Imagen estática de calidad</td><td>Admite fondo transparente con bordes suaves.</td></tr>
+  <tr><td>JPG</td><td>Cuando el peso importa</td><td>Sin transparencia.</td></tr>
+  <tr><td>SVG</td><td>Seguir editando en otra herramienta</td><td>Vectorial. El fotograma es estático.</td></tr>
+</table>
+<p>La escala va de 0,5× a 2×. El recorte se calcula sobre el contenido real, no sobre el lienzo completo.</p>
+
+<h3>Autoguardado</h3>
+<p>La sesión se guarda sola en el <code>localStorage</code> de tu navegador. Al volver, Fluyo pregunta si quieres restaurarla. Es un archivo local en tu equipo: no se sube a ninguna parte.</p>
+
+<h2>El formato .fluyo.json</h2>
+<p><strong>Guardar</strong> (<kbd>Ctrl+S</kbd>) descarga un <code>.fluyo.json</code>. Es JSON legible y versionable en git, sin nada binario salvo las imágenes que hayas pegado.</p>
+<pre><code>{
+  "version": 3,
+  "app": "fluyo",
+  "doc": {
+    "theme": "dark",
+    "customBg": "",
+    "cur": 0,
+    "pages": [
+      {
+        "name": "Página 1",
+        "nextId": 5,
+        "nodes": [
+          {
+            "id": 1, "shape": "rect", "x": 480, "y": 620,
+            "w": 180, "h": 70, "label": "API Gateway",
+            "color": "#6a9fb5", "fill": null, "border": "solid",
+            "lblPos": "center", "pulse": false, "order": 0
+          }
+        ],
+        "edges": [
+          {
+            "id": 3, "from": 1, "to": 2,
+            "fromSide": "e", "toSide": "w", "route": "ortho",
+            "waypoints": [], "label": "eventos",
+            "animated": true, "dashed": false,
+            "startArrow": false, "endArrow": true, "flowDir": "normal"
+          }
+        ]
+      }
+    ]
+  },
+  "settings": { "speed": 0.5, "dots": 3, "build": false, "stagger": 0.45 }
+}</code></pre>
+<p>Lo esencial:</p>
+<ul>
+  <li><code>doc.pages</code> es un array: un documento son varias páginas independientes.</li>
+  <li>Los <code>id</code> son únicos <em>por página</em> y <code>nextId</code> es el siguiente a repartir. Nodos y flechas comparten el mismo contador.</li>
+  <li>Las flechas referencian nodos por <code>from</code> y <code>to</code>. Si apuntan a un id inexistente, simplemente no se dibujan.</li>
+  <li><code>x</code> e <code>y</code> son el <strong>centro</strong> del nodo, no su esquina.</li>
+  <li><code>shape</code> puede ser <code>rect</code>, <code>cylinder</code>, <code>diamond</code>, <code>circle</code>, <code>hex</code>, <code>text</code>, <code>icon</code>, <code>image</code> o <code>anim</code>. Los tres últimos usan además <code>icon</code>, <code>img</code> o <code>anim</code> como clave.</li>
+  <li>Al abrir un archivo antiguo, los campos que falten se rellenan con valores por defecto: no hace falta escribir todas las claves a mano.</li>
+</ul>
+<p>Los <a href="../ejemplos/">diagramas de ejemplo</a> son archivos <code>.fluyo.json</code> reales, así que sirven de referencia viva del formato.</p>
+
+<h2>Servidor MCP</h2>
+<p><a href="https://github.com/itsnect/fluyo-mcp" target="_blank" rel="noopener">fluyo-mcp</a> es un servidor <a href="https://modelcontextprotocol.io" target="_blank" rel="noopener">Model Context Protocol</a> que permite a un asistente de IA crear y editar diagramas de Fluyo por ti: describes la arquitectura en lenguaje natural y recibes un <code>.fluyo.json</code> que abres en el editor.</p>
+<p>No añade ningún backend: es una capa delgada sobre el mismo modelo de documento que usa el editor, con la paleta, los iconos y el exportador SVG portados uno a uno. Un diagrama generado desde el MCP se abre con el botón <strong>Abrir</strong> de Fluyo sin conversión de por medio.</p>
+
+<h3>Instalación</h3>
+<p>El servidor sí tiene paso de compilación — la restricción de «cero build» es del editor, no de esta herramienta. Clona el repositorio y compila:</p>
+<pre><code>git clone https://github.com/itsnect/fluyo-mcp.git
+cd fluyo-mcp
+npm install
+npm run build</code></pre>
+<p>Después añade el servidor a tu configuración MCP, apuntando a la ruta absoluta del <code>dist/index.js</code> que acabas de generar:</p>
+<pre><code>{
+  "mcpServers": {
+    "fluyo": {
+      "command": "node",
+      "args": ["/ruta/absoluta/a/fluyo-mcp/dist/index.js"]
+    }
+  }
+}</code></pre>
+<p>Si lo instalas como ejecutable global (con <code>npm link</code>, o desde npm cuando esté publicado), la configuración se reduce a <code>"command": "fluyo-mcp"</code> sin argumentos.</p>
+<div class="note">
+  <p>Consulta siempre el <a href="https://github.com/itsnect/fluyo-mcp" target="_blank" rel="noopener">README de <code>fluyo-mcp</code></a> como fuente de verdad: es el que se actualiza cuando cambian las rutas o el nombre del paquete.</p>
+</div>
+
+<h3>Las siete tools</h3>
+<table>
+  <tr><th>Tool</th><th>Qué hace</th></tr>
+  <tr><td><code>create_diagram</code></td><td>Crea un diagrama completo a partir de una lista de nodos y aristas. Si no le das coordenadas, aplica un auto-layout por capas.</td></tr>
+  <tr><td><code>edit_diagram</code></td><td>Aplica una lista ordenada de operaciones sobre un documento existente: <code>add_node</code>, <code>update_node</code>, <code>remove_node</code>, <code>add_edge</code>, <code>update_edge</code>, <code>remove_edge</code>, <code>set_theme</code>, <code>rename_page</code> y <code>relayout</code>.</td></tr>
+  <tr><td><code>export_diagram</code></td><td>Exporta una página a <strong>SVG estático</strong>, con el mismo renderer que usa el editor.</td></tr>
+  <tr><td><code>list_icons</code></td><td>Devuelve las claves de icono válidas, para que el asistente no tenga que adivinarlas.</td></tr>
+  <tr><td><code>list_colors</code></td><td>Devuelve la paleta semántica con sus nombres (<em>Servicio</em>, <em>Eventos / Kafka</em>, <em>Datos</em>…).</td></tr>
+  <tr><td><code>list_templates</code></td><td>Lista los patrones de arquitectura predefinidos: Kafka, RAG, microservicios y otros.</td></tr>
+  <tr><td><code>create_from_template</code></td><td>Instancia una de esas plantillas, sustituyendo las etiquetas por las tuyas.</td></tr>
+</table>
+<p>Al referenciar nodos que ya existen en un documento hay que usar su <code>id</code> numérico. Las <code>key</code> que pasas en <code>add_node</code> son temporales: sirven para encadenar referencias dentro de la misma llamada y no se guardan en el <code>.fluyo.json</code>.</p>
+
+<h3>Qué no puede hacer todavía</h3>
+<ul>
+  <li><strong>Solo exporta SVG.</strong> Nada de PNG ni GIF: eso requeriría un renderer en Node. Para el GIF animado, abre el documento en el editor y expórtalo desde ahí.</li>
+  <li><strong>El SVG no lleva animación</strong> — ni flujo de puntos ni aparición progresiva. Es la misma limitación que el export SVG nativo del editor, no un problema del MCP.</li>
+  <li><strong>No puede crear nodos de tipo <code>image</code></strong>, porque dependen de archivos binarios importados a mano. Sí puede editarlos si ya existen en el documento.</li>
+  <li><strong>El auto-layout es por capas</strong> (Sugiyama simplificado). Va muy bien con pipelines y arquitecturas convencionales; para grafos densos conviene dar coordenadas a mano o usar <code>relayout</code> y ajustar después.</li>
+</ul>
+
+<h2>Privacidad y telemetría</h2>
+<p>Tus diagramas <strong>nunca salen de tu navegador</strong>. No hay backend al que puedan ir: Fluyo es un sitio de archivos estáticos. El dibujado, la animación y la codificación del GIF ocurren en tu equipo, y lo que se guarda con el autoguardado va al <code>localStorage</code> de tu navegador, no a un servidor.</p>
+<p>En el sitio público <strong>fluyo.space</strong> hay telemetría de producto: pageviews y un puñado de eventos de uso agregados (si se creó un diagrama, si se exportó y en qué formato, si se cargó un ejemplo, si se usó un GIF animado). Sin cookies, sin fingerprinting y sin identificar usuarios. <strong>El contenido de tus diagramas no se envía nunca</strong>, ni entero ni en fragmentos: los eventos solo llevan valores de una lista cerrada, como <code>png</code> o <code>gif</code>.</p>
+<p>El script de telemetría se carga <strong>únicamente</strong> cuando el dominio es el oficial. Si clonas el repositorio, lo abres en local o lo self-hosteas, no se ejecuta ninguna telemetría y no se hace ninguna llamada de red — no es que se filtren los datos, es que ese código no llega a correr. Los dominios de preview también quedan fuera a propósito.</p>
+<p>Si quieres cero telemetría, usa el proyecto en local o self-hosteado. La condición está en <code>js/analytics.js</code>, en un solo bloque, para que puedas comprobarlo tú mismo en un minuto.</p>
+<p>La única petición externa del editor es <a href="https://github.com/jnordberg/gif.js" target="_blank" rel="noopener">gif.js</a> desde un CDN, la librería que codifica el GIF. Se precachea en la primera visita para que funcione sin conexión.</p>
+
+<h2>Cómo contribuir</h2>
+<p>Fluyo es MIT y las contribuciones son bienvenidas. No hay paso de compilación ni dependencias: clonas, abres y editas.</p>
+<ul>
+  <li>Empieza por <a href="https://github.com/itsnect/fluyo/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener">CONTRIBUTING.md</a>: explica la estructura de archivos y trae guías paso a paso para las dos contribuciones más habituales, añadir un icono y añadir una animación.</li>
+  <li>Para arreglos pequeños, manda el Pull Request directamente.</li>
+  <li>Para cambios grandes o features nuevas, abre antes un issue: es más rápido acordar el enfoque que rehacer el trabajo.</li>
+  <li>¿Una idea que no vas a implementar ahora? Va a <a href="https://github.com/itsnect/fluyo/blob/main/ideas.md" target="_blank" rel="noopener">ideas.md</a>.</li>
+</ul>
+
+<footer class="pagefoot">
+  <p>Fluyo es software libre con licencia MIT · <a href="../">Editor</a> · <a href="../ejemplos/">Ejemplos</a> · <a href="https://github.com/itsnect/fluyo" target="_blank" rel="noopener">GitHub</a> · <a href="https://github.com/itsnect/fluyo-mcp" target="_blank" rel="noopener">MCP</a></p>
+</footer>
+
+</main>
+</body>
+</html>

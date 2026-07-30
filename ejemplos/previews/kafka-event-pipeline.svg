@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1675" height="606" viewBox="380 280 1675 606">
+<defs>
+  <marker id="fluyo-arrow-end" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="strokeWidth">
+    <path d="M 0 0 L 10 4 L 0 8 z" fill="context-stroke"/>
+  </marker>
+  <marker id="fluyo-arrow-start" markerWidth="10" markerHeight="8" refX="1" refY="4" orient="auto-start-reverse" markerUnits="strokeWidth">
+    <path d="M 0 0 L 10 4 L 0 8 z" fill="context-stroke"/>
+  </marker>
+</defs>
+<polyline points="540.00,620.00 568.00,620.00 640.00,620.00 712.00,620.00 740.00,620.00" fill="none" stroke="#777" stroke-width="2" stroke-linejoin="round" marker-end="url(#fluyo-arrow-end)"/>
+<rect x="616.66" y="608.95" width="46.68" height="22.10" fill="#161616"/>
+<text x="640.00" y="620.00" font-family="Georgia, serif" font-size="13" fill="#bdbdbd" text-anchor="middle" dominant-baseline="middle">HTTP</text>
+<polyline points="860.00,620.00 888.00,620.00 972.50,620.00 1057.00,620.00 1085.00,620.00" fill="none" stroke="#777" stroke-width="2" stroke-linejoin="round" marker-end="url(#fluyo-arrow-end)"/>
+<rect x="942.86" y="608.95" width="59.27" height="22.10" fill="#161616"/>
+<text x="972.50" y="620.00" font-family="Georgia, serif" font-size="13" fill="#bdbdbd" text-anchor="middle" dominant-baseline="middle">produce</text>
+<polyline points="1235.00,620.00 1263.00,620.00 1367.50,620.00 1367.50,460.00 1472.00,460.00 1500.00,460.00" fill="none" stroke="#777" stroke-width="2" stroke-linejoin="round" marker-end="url(#fluyo-arrow-end)"/>
+<rect x="1326.45" y="528.95" width="82.11" height="22.10" fill="#161616"/>
+<text x="1367.50" y="540.00" font-family="Georgia, serif" font-size="13" fill="#bdbdbd" text-anchor="middle" dominant-baseline="middle">topic: pagos</text>
+<polyline points="1235.00,620.00 1263.00,620.00 1367.50,620.00 1472.00,620.00 1500.00,620.00" fill="none" stroke="#777" stroke-width="2" stroke-linejoin="round" marker-end="url(#fluyo-arrow-end)"/>
+<rect x="1324.63" y="608.95" width="85.74" height="22.10" fill="#161616"/>
+<text x="1367.50" y="620.00" font-family="Georgia, serif" font-size="13" fill="#bdbdbd" text-anchor="middle" dominant-baseline="middle">topic: envios</text>
+<polyline points="1235.00,620.00 1263.00,620.00 1367.50,620.00 1367.50,800.00 1472.00,800.00 1500.00,800.00" fill="none" stroke="#777" stroke-width="2" stroke-linejoin="round" stroke-dasharray="8 7" marker-end="url(#fluyo-arrow-end)"/>
+<rect x="1345.55" y="698.95" width="43.89" height="22.10" fill="#161616"/>
+<text x="1367.50" y="710.00" font-family="Georgia, serif" font-size="13" fill="#bdbdbd" text-anchor="middle" dominant-baseline="middle">fallos</text>
+<polyline points="1620.00,460.00 1648.00,460.00 1742.50,460.00 1837.00,460.00 1865.00,460.00" fill="none" stroke="#777" stroke-width="2" stroke-linejoin="round" marker-end="url(#fluyo-arrow-end)"/>
+<rect x="1713.88" y="448.95" width="57.24" height="22.10" fill="#161616"/>
+<text x="1742.50" y="460.00" font-family="Georgia, serif" font-size="13" fill="#bdbdbd" text-anchor="middle" dominant-baseline="middle">persiste</text>
+<polyline points="1620.00,620.00 1648.00,620.00 1750.00,620.00 1750.00,680.00 1852.00,680.00 1880.00,680.00" fill="none" stroke="#777" stroke-width="2" stroke-linejoin="round" stroke-dasharray="8 7" marker-end="url(#fluyo-arrow-end)"/>
+<rect x="1719.08" y="638.95" width="61.84" height="22.10" fill="#161616"/>
+<text x="1750.00" y="650.00" font-family="Georgia, serif" font-size="13" fill="#bdbdbd" text-anchor="middle" dominant-baseline="middle">analítica</text>
+<g id="node-1">
+<text x="1280.00" y="340.00" font-family="Georgia, serif" font-size="30.0" fill="#d08b5b" text-anchor="middle" dominant-baseline="middle">Pipeline de eventos con Apache Kafka</text>
+</g>
+<g id="node-2">
+<image x="454.26" y="578.00" width="51.48" height="51.48" href="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20x%3D%222%22%20y%3D%222%22%20width%3D%2260%22%20height%3D%2260%22%20rx%3D%2214%22%20fill%3D%22%233c6e71%22%2F%3E%3Ccircle%20cx%3D%2232%22%20cy%3D%2232%22%20r%3D%2217%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%223.2%22%2F%3E%3Cellipse%20cx%3D%2232%22%20cy%3D%2232%22%20rx%3D%228%22%20ry%3D%2217%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%223%22%2F%3E%3Cline%20x1%3D%2215%22%20y1%3D%2232%22%20x2%3D%2249%22%20y2%3D%2232%22%20stroke%3D%22%23fff%22%20stroke-width%3D%223%22%2F%3E%3C%2Fsvg%3E" preserveAspectRatio="xMidYMid meet"/>
+<text x="480.00" y="656.00" font-family="Georgia, serif" font-size="12.9" fill="#ededed" text-anchor="middle" dominant-baseline="middle">Apps productoras</text>
+</g>
+<g id="node-3">
+<image x="774.26" y="578.00" width="51.48" height="51.48" href="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20x%3D%222%22%20y%3D%222%22%20width%3D%2260%22%20height%3D%2260%22%20rx%3D%2214%22%20fill%3D%22%23232f3e%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2233%22%20font-size%3D%2221%22%20font-family%3D%22Georgia%2Cserif%22%20fill%3D%22%23ff9900%22%20text-anchor%3D%22middle%22%20dominant-baseline%3D%22central%22%3E%26lt%3B%2F%26gt%3B%3C%2Ftext%3E%3C%2Fsvg%3E" preserveAspectRatio="xMidYMid meet"/>
+<text x="800.00" y="656.00" font-family="Georgia, serif" font-size="14.0" fill="#ededed" text-anchor="middle" dominant-baseline="middle">API Gateway</text>
+</g>
+<g id="node-4">
+<image x="1127.24" y="569.00" width="65.52" height="65.52" href="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20x%3D%222%22%20y%3D%222%22%20width%3D%2260%22%20height%3D%2260%22%20rx%3D%2214%22%20fill%3D%22%231b1b1b%22%2F%3E%3Ccircle%20cx%3D%2232%22%20cy%3D%2214%22%20r%3D%226%22%20fill%3D%22%23fff%22%2F%3E%3Ccircle%20cx%3D%2232%22%20cy%3D%2250%22%20r%3D%226%22%20fill%3D%22%23fff%22%2F%3E%3Ccircle%20cx%3D%2246%22%20cy%3D%2223%22%20r%3D%226%22%20fill%3D%22%23fff%22%2F%3E%3Ccircle%20cx%3D%2246%22%20cy%3D%2241%22%20r%3D%226%22%20fill%3D%22%23fff%22%2F%3E%3Ccircle%20cx%3D%2228%22%20cy%3D%2232%22%20r%3D%227%22%20fill%3D%22%23fff%22%2F%3E%3Cline%20x1%3D%2232%22%20y1%3D%2218%22%20x2%3D%2242%22%20y2%3D%2224%22%20stroke%3D%22%23fff%22%20stroke-width%3D%223%22%2F%3E%3Cline%20x1%3D%2242%22%20y1%3D%2240%22%20x2%3D%2232%22%20y2%3D%2246%22%20stroke%3D%22%23fff%22%20stroke-width%3D%223%22%2F%3E%3Cline%20x1%3D%2230%22%20y1%3D%2220%22%20x2%3D%2229%22%20y2%3D%2226%22%20stroke%3D%22%23fff%22%20stroke-width%3D%223%22%2F%3E%3Cline%20x1%3D%2229%22%20y1%3D%2238%22%20x2%3D%2230%22%20y2%3D%2244%22%20stroke%3D%22%23fff%22%20stroke-width%3D%223%22%2F%3E%3C%2Fsvg%3E" preserveAspectRatio="xMidYMid meet"/>
+<text x="1160.00" y="665.00" font-family="Georgia, serif" font-size="14.0" fill="#ededed" text-anchor="middle" dominant-baseline="middle">Kafka</text>
+</g>
+<g id="node-5">
+<image x="1534.26" y="418.00" width="51.48" height="51.48" href="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20x%3D%222%22%20y%3D%222%22%20width%3D%2260%22%20height%3D%2260%22%20rx%3D%2214%22%20fill%3D%22%234285f4%22%2F%3E%3Ccircle%20cx%3D%2232%22%20cy%3D%2232%22%20r%3D%2217%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%223.4%22%2F%3E%3Cpath%20d%3D%22M27%2024%20l13%208%20-13%208z%22%20fill%3D%22%23fff%22%2F%3E%3C%2Fsvg%3E" preserveAspectRatio="xMidYMid meet"/>
+<text x="1560.00" y="496.00" font-family="Georgia, serif" font-size="13.4" fill="#ededed" text-anchor="middle" dominant-baseline="middle">Servicio de pagos</text>
+</g>
+<g id="node-6">
+<image x="1534.26" y="578.00" width="51.48" height="51.48" href="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20x%3D%222%22%20y%3D%222%22%20width%3D%2260%22%20height%3D%2260%22%20rx%3D%2214%22%20fill%3D%22%234285f4%22%2F%3E%3Ccircle%20cx%3D%2232%22%20cy%3D%2232%22%20r%3D%2217%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%223.4%22%2F%3E%3Cpath%20d%3D%22M27%2024%20l13%208%20-13%208z%22%20fill%3D%22%23fff%22%2F%3E%3C%2Fsvg%3E" preserveAspectRatio="xMidYMid meet"/>
+<text x="1560.00" y="656.00" font-family="Georgia, serif" font-size="12.9" fill="#ededed" text-anchor="middle" dominant-baseline="middle">Servicio de envíos</text>
+</g>
+<g id="node-7">
+<image x="1534.26" y="758.00" width="51.48" height="51.48" href="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20x%3D%222%22%20y%3D%222%22%20width%3D%2260%22%20height%3D%2260%22%20rx%3D%2214%22%20fill%3D%22%235b4a72%22%2F%3E%3Crect%20x%3D%2214%22%20y%3D%2218%22%20width%3D%2224%22%20height%3D%228%22%20rx%3D%223%22%20fill%3D%22%23fff%22%2F%3E%3Crect%20x%3D%2214%22%20y%3D%2229%22%20width%3D%2224%22%20height%3D%228%22%20rx%3D%223%22%20fill%3D%22%23fff%22%2F%3E%3Crect%20x%3D%2214%22%20y%3D%2240%22%20width%3D%2224%22%20height%3D%228%22%20rx%3D%223%22%20fill%3D%22%23fff%22%2F%3E%3Cpath%20d%3D%22M42%2028%20l10%205%20-10%205z%22%20fill%3D%22%23fff%22%2F%3E%3C%2Fsvg%3E" preserveAspectRatio="xMidYMid meet"/>
+<text x="1560.00" y="836.00" font-family="Georgia, serif" font-size="13.0" fill="#ededed" text-anchor="middle" dominant-baseline="middle">Dead letter queue</text>
+</g>
+<g id="node-8">
+<path d="M 1865.00 431.00 L 1865.00 489.00 C 1865.00 517.80 2015.00 517.80 2015.00 489.00 L 2015.00 431.00 C 2015.00 402.20 1865.00 402.20 1865.00 431.00 Z" fill="rgba(127,166,107,0.18)" stroke="#7fa66b" stroke-width="2.5"/>
+<ellipse cx="1940" cy="431.00" rx="75.00" ry="16.00" fill="none" stroke="#7fa66b" stroke-width="2.5"/>
+<text x="1940.00" y="466.00" font-family="Georgia, serif" font-size="17.0" fill="#ededed" text-anchor="middle" dominant-baseline="middle">PostgreSQL</text>
+</g>
+<g id="node-9">
+<image x="1914.26" y="638.00" width="51.48" height="51.48" href="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20x%3D%222%22%20y%3D%222%22%20width%3D%2260%22%20height%3D%2260%22%20rx%3D%2214%22%20fill%3D%22%234285f4%22%2F%3E%3Ccircle%20cx%3D%2229%22%20cy%3D%2229%22%20r%3D%2213%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%223.6%22%2F%3E%3Cline%20x1%3D%2238%22%20y1%3D%2238%22%20x2%3D%2249%22%20y2%3D%2249%22%20stroke%3D%22%23fff%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22round%22%2F%3E%3Cline%20x1%3D%2224%22%20y1%3D%2231%22%20x2%3D%2224%22%20y2%3D%2234%22%20stroke%3D%22%23fff%22%20stroke-width%3D%223%22%2F%3E%3Cline%20x1%3D%2229%22%20y1%3D%2226%22%20x2%3D%2229%22%20y2%3D%2234%22%20stroke%3D%22%23fff%22%20stroke-width%3D%223%22%2F%3E%3Cline%20x1%3D%2234%22%20y1%3D%2229%22%20x2%3D%2234%22%20y2%3D%2234%22%20stroke%3D%22%23fff%22%20stroke-width%3D%223%22%2F%3E%3C%2Fsvg%3E" preserveAspectRatio="xMidYMid meet"/>
+<text x="1940.00" y="716.00" font-family="Georgia, serif" font-size="14.0" fill="#ededed" text-anchor="middle" dominant-baseline="middle">Data warehouse</text>
+</g>
+</svg>

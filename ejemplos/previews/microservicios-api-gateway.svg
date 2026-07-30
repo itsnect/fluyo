@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1340" height="866" viewBox="380 240 1340 866">
+<defs>
+  <marker id="fluyo-arrow-end" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="strokeWidth">
+    <path d="M 0 0 L 10 4 L 0 8 z" fill="context-stroke"/>
+  </marker>
+  <marker id="fluyo-arrow-start" markerWidth="10" markerHeight="8" refX="1" refY="4" orient="auto-start-reverse" markerUnits="strokeWidth">
+    <path d="M 0 0 L 10 4 L 0 8 z" fill="context-stroke"/>
+  </marker>
+</defs>
+<polyline points="540.00,560.00 568.00,560.00 655.00,560.00 655.00,660.00 742.00,660.00 770.00,660.00" fill="none" stroke="#777" stroke-width="2" stroke-linejoin="round" marker-end="url(#fluyo-arrow-end)"/>
+<polyline points="540.00,760.00 568.00,760.00 655.00,760.00 655.00,660.00 742.00,660.00 770.00,660.00" fill="none" stroke="#777" stroke-width="2" stroke-linejoin="round" marker-end="url(#fluyo-arrow-end)"/>
+<polyline points="910.00,660.00 938.00,660.00 1025.00,660.00 1025.00,420.00 1112.00,420.00 1140.00,420.00" fill="none" stroke="#777" stroke-width="2" stroke-linejoin="round" marker-end="url(#fluyo-arrow-end)"/>
+<rect x="997.09" y="528.95" width="55.81" height="22.10" fill="#161616"/>
+<text x="1025.00" y="540.00" font-family="Georgia, serif" font-size="13" fill="#bdbdbd" text-anchor="middle" dominant-baseline="middle">verifica</text>
+<polyline points="910.00,660.00 938.00,660.00 1025.00,660.00 1025.00,620.00 1112.00,620.00 1140.00,620.00" fill="none" stroke="#777" stroke-width="2" stroke-linejoin="round" marker-end="url(#fluyo-arrow-end)"/>
+<rect x="1000.60" y="628.95" width="48.80" height="22.10" fill="#161616"/>
+<text x="1025.00" y="640.00" font-family="Georgia, serif" font-size="13" fill="#bdbdbd" text-anchor="middle" dominant-baseline="middle">/users</text>
+<polyline points="910.00,660.00 938.00,660.00 1025.00,660.00 1025.00,820.00 1112.00,820.00 1140.00,820.00" fill="none" stroke="#777" stroke-width="2" stroke-linejoin="round" marker-end="url(#fluyo-arrow-end)"/>
+<rect x="997.25" y="728.95" width="55.50" height="22.10" fill="#161616"/>
+<text x="1025.00" y="740.00" font-family="Georgia, serif" font-size="13" fill="#bdbdbd" text-anchor="middle" dominant-baseline="middle">/orders</text>
+<polyline points="1260.00,420.00 1288.00,420.00 1380.00,420.00 1472.00,420.00 1500.00,420.00" fill="none" stroke="#777" stroke-width="2" stroke-linejoin="round" stroke-dasharray="8 7" marker-end="url(#fluyo-arrow-end)"/>
+<polyline points="1260.00,620.00 1288.00,620.00 1372.50,620.00 1457.00,620.00 1485.00,620.00" fill="none" stroke="#777" stroke-width="2" stroke-linejoin="round" marker-end="url(#fluyo-arrow-end)"/>
+<polyline points="1260.00,820.00 1288.00,820.00 1372.50,820.00 1457.00,820.00 1485.00,820.00" fill="none" stroke="#777" stroke-width="2" stroke-linejoin="round" marker-end="url(#fluyo-arrow-end)"/>
+<polyline points="1200.00,866.00 1200.00,894.00 1200.00,1020.00 1288.00,1020.00 1260.00,1020.00" fill="none" stroke="#777" stroke-width="2" stroke-linejoin="round" marker-end="url(#fluyo-arrow-end)"/>
+<rect x="1172.52" y="989.95" width="54.95" height="22.10" fill="#161616"/>
+<text x="1200.00" y="1001.00" font-family="Georgia, serif" font-size="13" fill="#bdbdbd" text-anchor="middle" dominant-baseline="middle">publica</text>
+<polyline points="1140.00,1020.00 1112.00,1020.00 1200.00,1020.00 1200.00,694.00 1200.00,666.00" fill="none" stroke="#777" stroke-width="2" stroke-linejoin="round" stroke-dasharray="8 7" marker-end="url(#fluyo-arrow-end)"/>
+<rect x="1168.10" y="889.95" width="63.80" height="22.10" fill="#161616"/>
+<text x="1200.00" y="901.00" font-family="Georgia, serif" font-size="13" fill="#bdbdbd" text-anchor="middle" dominant-baseline="middle">consume</text>
+<g id="node-1">
+<text x="1280.00" y="300.00" font-family="Georgia, serif" font-size="30.0" fill="#6a9fb5" text-anchor="middle" dominant-baseline="middle">Arquitectura de microservicios con API Gateway</text>
+</g>
+<g id="node-2">
+<image x="454.26" y="518.00" width="51.48" height="51.48" href="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20x%3D%222%22%20y%3D%222%22%20width%3D%2260%22%20height%3D%2260%22%20rx%3D%2214%22%20fill%3D%22%233c6e71%22%2F%3E%3Ccircle%20cx%3D%2232%22%20cy%3D%2232%22%20r%3D%2217%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%223.2%22%2F%3E%3Cellipse%20cx%3D%2232%22%20cy%3D%2232%22%20rx%3D%228%22%20ry%3D%2217%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%223%22%2F%3E%3Cline%20x1%3D%2215%22%20y1%3D%2232%22%20x2%3D%2249%22%20y2%3D%2232%22%20stroke%3D%22%23fff%22%20stroke-width%3D%223%22%2F%3E%3C%2Fsvg%3E" preserveAspectRatio="xMidYMid meet"/>
+<text x="480.00" y="596.00" font-family="Georgia, serif" font-size="14.0" fill="#ededed" text-anchor="middle" dominant-baseline="middle">Web</text>
+</g>
+<g id="node-3">
+<image x="454.26" y="718.00" width="51.48" height="51.48" href="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20x%3D%222%22%20y%3D%222%22%20width%3D%2260%22%20height%3D%2260%22%20rx%3D%2214%22%20fill%3D%22%234a5560%22%2F%3E%3Crect%20x%3D%2222%22%20y%3D%2212%22%20width%3D%2220%22%20height%3D%2240%22%20rx%3D%224%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%223.4%22%2F%3E%3Ccircle%20cx%3D%2232%22%20cy%3D%2245%22%20r%3D%222.4%22%20fill%3D%22%23fff%22%2F%3E%3C%2Fsvg%3E" preserveAspectRatio="xMidYMid meet"/>
+<text x="480.00" y="796.00" font-family="Georgia, serif" font-size="14.0" fill="#ededed" text-anchor="middle" dominant-baseline="middle">Móvil</text>
+</g>
+<g id="node-4">
+<image x="809.19" y="611.50" width="61.62" height="61.62" href="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20x%3D%222%22%20y%3D%222%22%20width%3D%2260%22%20height%3D%2260%22%20rx%3D%2214%22%20fill%3D%22%23232f3e%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2233%22%20font-size%3D%2221%22%20font-family%3D%22Georgia%2Cserif%22%20fill%3D%22%23ff9900%22%20text-anchor%3D%22middle%22%20dominant-baseline%3D%22central%22%3E%26lt%3B%2F%26gt%3B%3C%2Ftext%3E%3C%2Fsvg%3E" preserveAspectRatio="xMidYMid meet"/>
+<text x="840.00" y="702.50" font-family="Georgia, serif" font-size="14.0" fill="#ededed" text-anchor="middle" dominant-baseline="middle">API Gateway</text>
+</g>
+<g id="node-5">
+<image x="1174.26" y="378.00" width="51.48" height="51.48" href="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20x%3D%222%22%20y%3D%222%22%20width%3D%2260%22%20height%3D%2260%22%20rx%3D%2214%22%20fill%3D%22%237a3b3b%22%2F%3E%3Crect%20x%3D%2219%22%20y%3D%2229%22%20width%3D%2226%22%20height%3D%2221%22%20rx%3D%224%22%20fill%3D%22%23fff%22%2F%3E%3Cpath%20d%3D%22M24%2029%20v-5%20a8%208%200%200%201%2016%200%20v5%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%223.6%22%2F%3E%3C%2Fsvg%3E" preserveAspectRatio="xMidYMid meet"/>
+<text x="1200.00" y="456.00" font-family="Georgia, serif" font-size="14.0" fill="#ededed" text-anchor="middle" dominant-baseline="middle">Auth</text>
+</g>
+<g id="node-6">
+<image x="1174.26" y="578.00" width="51.48" height="51.48" href="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20x%3D%222%22%20y%3D%222%22%20width%3D%2260%22%20height%3D%2260%22%20rx%3D%2214%22%20fill%3D%22%234285f4%22%2F%3E%3Ccircle%20cx%3D%2232%22%20cy%3D%2232%22%20r%3D%2217%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%223.4%22%2F%3E%3Cpath%20d%3D%22M27%2024%20l13%208%20-13%208z%22%20fill%3D%22%23fff%22%2F%3E%3C%2Fsvg%3E" preserveAspectRatio="xMidYMid meet"/>
+<text x="1200.00" y="656.00" font-family="Georgia, serif" font-size="14.0" fill="#ededed" text-anchor="middle" dominant-baseline="middle">Usuarios</text>
+</g>
+<g id="node-7">
+<image x="1174.26" y="778.00" width="51.48" height="51.48" href="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20x%3D%222%22%20y%3D%222%22%20width%3D%2260%22%20height%3D%2260%22%20rx%3D%2214%22%20fill%3D%22%234285f4%22%2F%3E%3Ccircle%20cx%3D%2232%22%20cy%3D%2232%22%20r%3D%2217%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%223.4%22%2F%3E%3Cpath%20d%3D%22M27%2024%20l13%208%20-13%208z%22%20fill%3D%22%23fff%22%2F%3E%3C%2Fsvg%3E" preserveAspectRatio="xMidYMid meet"/>
+<text x="1200.00" y="856.00" font-family="Georgia, serif" font-size="14.0" fill="#ededed" text-anchor="middle" dominant-baseline="middle">Pedidos</text>
+</g>
+<g id="node-8">
+<image x="1534.26" y="378.00" width="51.48" height="51.48" href="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20x%3D%222%22%20y%3D%222%22%20width%3D%2260%22%20height%3D%2260%22%20rx%3D%2214%22%20fill%3D%22%237a2e2e%22%2F%3E%3Cpath%20d%3D%22M20%2026%20l12%20-8%2012%208%20v12%20l-12%208%20-12%20-8z%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%223.4%22%20stroke-linejoin%3D%22round%22%2F%3E%3Cpath%20d%3D%22M20%2026%20l12%208%2012%20-8%20M32%2034%20v12%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%223%22%2F%3E%3C%2Fsvg%3E" preserveAspectRatio="xMidYMid meet"/>
+<text x="1560.00" y="456.00" font-family="Georgia, serif" font-size="14.0" fill="#ededed" text-anchor="middle" dominant-baseline="middle">Redis</text>
+</g>
+<g id="node-9">
+<path d="M 1485.00 591.00 L 1485.00 649.00 C 1485.00 677.80 1635.00 677.80 1635.00 649.00 L 1635.00 591.00 C 1635.00 562.20 1485.00 562.20 1485.00 591.00 Z" fill="rgba(127,166,107,0.18)" stroke="#7fa66b" stroke-width="2.5"/>
+<ellipse cx="1560" cy="591.00" rx="75.00" ry="16.00" fill="none" stroke="#7fa66b" stroke-width="2.5"/>
+<text x="1560.00" y="626.00" font-family="Georgia, serif" font-size="17.0" fill="#ededed" text-anchor="middle" dominant-baseline="middle">users-db</text>
+</g>
+<g id="node-10">
+<path d="M 1485.00 791.00 L 1485.00 849.00 C 1485.00 877.80 1635.00 877.80 1635.00 849.00 L 1635.00 791.00 C 1635.00 762.20 1485.00 762.20 1485.00 791.00 Z" fill="rgba(127,166,107,0.18)" stroke="#7fa66b" stroke-width="2.5"/>
+<ellipse cx="1560" cy="791.00" rx="75.00" ry="16.00" fill="none" stroke="#7fa66b" stroke-width="2.5"/>
+<text x="1560.00" y="826.00" font-family="Georgia, serif" font-size="17.0" fill="#ededed" text-anchor="middle" dominant-baseline="middle">orders-db</text>
+</g>
+<g id="node-11">
+<image x="1174.26" y="978.00" width="51.48" height="51.48" href="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20x%3D%222%22%20y%3D%222%22%20width%3D%2260%22%20height%3D%2260%22%20rx%3D%2214%22%20fill%3D%22%235b4a72%22%2F%3E%3Crect%20x%3D%2214%22%20y%3D%2218%22%20width%3D%2224%22%20height%3D%228%22%20rx%3D%223%22%20fill%3D%22%23fff%22%2F%3E%3Crect%20x%3D%2214%22%20y%3D%2229%22%20width%3D%2224%22%20height%3D%228%22%20rx%3D%223%22%20fill%3D%22%23fff%22%2F%3E%3Crect%20x%3D%2214%22%20y%3D%2240%22%20width%3D%2224%22%20height%3D%228%22%20rx%3D%223%22%20fill%3D%22%23fff%22%2F%3E%3Cpath%20d%3D%22M42%2028%20l10%205%20-10%205z%22%20fill%3D%22%23fff%22%2F%3E%3C%2Fsvg%3E" preserveAspectRatio="xMidYMid meet"/>
+<text x="1200.00" y="1056.00" font-family="Georgia, serif" font-size="14.0" fill="#ededed" text-anchor="middle" dominant-baseline="middle">Event bus</text>
+</g>
+</svg>

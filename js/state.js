@@ -4,7 +4,7 @@
 /* ===================== Documento (páginas) ===================== */
 function blankPage(name){ return {name, nodes:[], edges:[], nextId:1}; }
 let doc={ theme:"dark", customBg:"", pages:[blankPage("Página 1")], cur:0 };
-let settings={ speed:.5, dots:3, build:false, stagger:.45, grid:true, snap:false, font:DEFAULT_FONT };
+let settings={ speed:.5, dots:3, build:false, stagger:.45, grid:true, snap:false, font:DEFAULT_FONT, single:false };
 const P=()=>doc.pages[doc.cur];
 
 /* ===================== Estado de UI ===================== */
@@ -23,6 +23,7 @@ let t0=performance.now(), playing=true, pausedAt=0;
 const mouse={x:0,y:0};
 let viewX=0, viewY=0, viewZoom=0.8;
 let panDrag=null;
+let presenting=false;         // modo presentación: el lienzo ocupa la pantalla y las páginas son diapositivas
 
 function getBounds(){
   if(P().nodes.length===0) return {x:0, y:0, w:1280, h:720};
@@ -47,6 +48,17 @@ function centerView(){
   viewX=(r.width-b.w*viewZoom)/2 - b.x*viewZoom;
   viewY=(r.height-b.h*viewZoom)/2 - b.y*viewZoom;
 }
+/* Como centerView, pero además elige el zoom para que la página entre entera.
+   getBounds ya deja 40 px de aire alrededor, así que aquí no se añade más. */
+function fitView(maxZoom=2.5){
+  const r=$("wrap").getBoundingClientRect();
+  if(r.width===0 || r.height===0) return;
+  const b=getBounds();
+  if(b.w<=0 || b.h<=0) return;
+  viewZoom=clamp(Math.min(r.width/b.w, r.height/b.h), 0.05, maxZoom);
+  viewX=(r.width-b.w*viewZoom)/2 - b.x*viewZoom;
+  viewY=(r.height-b.h*viewZoom)/2 - b.y*viewZoom;
+}
 setTimeout(centerView, 100);
 
 /* ===================== Utilidades ===================== */
@@ -68,7 +80,7 @@ function newNode(shape,x,y,extra={}){
   const [w,h]=sizes[shape]||[160,70];
   const n=Object.assign({ id:P().nextId++, shape, x:snapV(x), y:snapV(y), w, h,
     label: shape==="text"?"Texto":(shape==="icon"||shape==="image"||shape==="anim")?"":"Nodo",
-    color:PALETTE[0].c, fill:null, border:"solid", lblPos:"center", textBg:null,
+    color:PALETTE[0].c, fill:null, border:"solid", lblPos:"center", textBg:null, textColor:null,
     font:null, bold:false, pulse:false, order:P().nodes.length }, extra);
   P().nodes.push(n); return n;
 }
@@ -127,6 +139,7 @@ function syncProjectControls(){
   $("staggerIn").value=settings.stagger;
   if($("chkGrid")) $("chkGrid").checked=settings.grid!==false;
   if($("chkSnap")) $("chkSnap").checked=!!settings.snap;
+  if($("chkSingle")) $("chkSingle").checked=!!settings.single;
   if($("bgCustom") && doc.customBg) $("bgCustom").value=doc.customBg;
   if($("fontGlobalSel")) $("fontGlobalSel").value=settings.font||DEFAULT_FONT;
 }
@@ -150,6 +163,7 @@ function applyProjectData(d){
       if(!n.border) n.border="solid";
       if(!n.lblPos) n.lblPos="center";
       if(n.textBg===undefined) n.textBg=null;
+      if(n.textColor===undefined) n.textColor=null;
       if(n.font===undefined) n.font=null;
       if(n.bold===undefined) n.bold=false;
     }));

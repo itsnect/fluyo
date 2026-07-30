@@ -10,6 +10,21 @@ function singleSel(){
   if(selE.size===1 && selN.size===0) return {type:"edge", obj:edgeById([...selE][0])};
   return null;
 }
+/* Con ratón las flechas de conexión salen al pasar por encima de un nodo. En
+   táctil no existe el «pasar por encima»: sin esto no habría ninguna forma de
+   conectar dos cajas con el dedo. Por eso el nodo seleccionado también las
+   muestra — que además es lo que hacen draw.io o Figma.
+
+   Vive aquí, y no en js/interaction.js, porque render.js también la llama y se
+   carga antes: definida allí, el primer fotograma reventaba con ReferenceError
+   y el bucle de dibujo moría antes de pedir el siguiente. */
+function arrowHostNode(){
+  const s=singleSel();
+  const n=hoverNode || ((s && s.type==="node") ? s.obj : null);
+  /* hoverNode sobrevive a un cambio de página o a cargar un ejemplo: sin esta
+     comprobación se pintan las flechas de un nodo que ya no está en el lienzo */
+  return (n && P().nodes.includes(n)) ? n : null;
+}
 function selectAll(){
   selN=new Set(P().nodes.map(n=>n.id));
   selE=new Set(P().edges.map(e=>e.id));

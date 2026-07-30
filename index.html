@@ -97,11 +97,15 @@
     <button id="btnBgClear" title="Quitar fondo personalizado" style="padding:3px 6px;">✕</button>
   </label>
   <button id="btnPlay" class="toggled">⏸ Pausa</button>
+  <button id="btnPresent" title="Modo presentación (P): pantalla completa, una página por diapositiva">▶ Presentar</button>
   <button id="btnJsonOut" title="Guardar archivo .fluyo.json (Ctrl+S)">💾 Guardar</button>
   <button id="btnJsonIn" title="Abrir archivo guardado">📂 Abrir</button>
   <input type="file" id="fileIn" accept=".json,.fluyo" style="display:none">
   <input type="file" id="imgIn" accept="image/*" style="display:none">
   <button id="btnExport" class="primary">⬇ Exportar</button>
+  <!-- Solo visible en pantallas estrechas: ahí el panel de propiedades es un
+       cajón lateral en vez de una columna fija. -->
+  <button id="btnPanel" title="Propiedades de la selección" aria-expanded="false" aria-controls="propPanel">⚙</button>
 </header>
 
 <main>
@@ -140,18 +144,20 @@
     <div id="animDrawer" role="dialog" aria-label="GIFs animados"></div>
   </div>
 
-  <aside>
+  <aside id="propPanel">
     <section>
       <h3>Selección</h3>
       <div id="noSel" class="hint">Nada seleccionado.<br><br>
         • Forma del menú izquierdo → clic en el lienzo.<br>
         • <kbd>Rueda ratón</kbd> mover · <kbd>Ctrl+Rueda</kbd> zoom.<br>
         • <kbd>Clic derecho</kbd>, <kbd>Clic central</kbd> o <kbd>Alt+Arrastrar</kbd> para pan.<br>
-        • Pasa el mouse sobre un nodo y <b>arrastra una flecha azul</b> para conectar.<br>
+        • Táctil: <b>un dedo</b> mueve el plano, <b>dos dedos</b> hacen zoom, doble toque edita.<br>
+        • Pasa el mouse sobre un nodo (o selecciónalo) y <b>arrastra una flecha azul</b> para conectar.<br>
         • <b>Arrastra en el vacío</b> para seleccionar varios; <kbd>Shift</kbd>+clic suma o quita.<br>
         • <kbd>Ctrl+C</kbd> copiar · <kbd>Ctrl+X</kbd> cortar · <kbd>Ctrl+V</kbd> pegar · <kbd>Ctrl+D</kbd> duplicar · <kbd>Ctrl+A</kbd> todo.<br>
         • <kbd>Ctrl+Z</kbd> deshacer · <kbd>Ctrl+Y</kbd> rehacer.<br>
         • Doble clic = editar texto. <kbd>Supr</kbd> borra. <kbd>Esc</kbd> cancela.<br>
+        • <kbd>P</kbd> presenta a pantalla completa; <kbd>←</kbd> <kbd>→</kbd> cambian de página.<br>
         • Con una flecha seleccionada, arrastra los <b>puntos huecos</b> para doblarla; doble clic en un codo lo elimina.<br>
         • Pega imágenes con <kbd>Ctrl+V</kbd>.
       </div>
@@ -172,6 +178,15 @@
         <div class="row" id="rowFs"><label>Tamaño de texto</label><input type="number" id="fsIn" min="8" max="96" placeholder="auto"></div>
         <div class="row" id="rowFont"><label>Tipografía</label><select id="fontSel"></select></div>
         <div class="row" id="rowBold"><label>Negrita</label><input type="checkbox" id="boldChk"></div>
+        <div class="row" id="rowTextColor" style="flex-direction:column; align-items:stretch;">
+          <label>Color del texto</label>
+          <div class="swatches" id="textColorSw"></div>
+          <div class="colorTools">
+            <label class="pickLbl" title="Color de texto personalizado">
+              <input type="color" id="textColorCustom"><span>Personalizado</span>
+            </label>
+          </div>
+        </div>
         <div class="row" id="rowColor" style="flex-direction:column; align-items:stretch;">
           <label>Color de línea / borde</label>
           <div class="swatches" id="swatches"></div>
@@ -289,9 +304,13 @@
       <h3>Animación</h3>
       <div class="row"><label>Velocidad de flujo</label><input type="range" id="speedIn" min="0.2" max="2" step="0.1" value="0.5"></div>
       <div class="row"><label>Puntos por flecha</label><input type="range" id="dotsIn" min="1" max="6" step="1" value="3"></div>
+      <div class="row" title="Una sola pelota recorre la cadena entera (nodo 1 → nodo 2 → nodo 3) en vez de puntos sueltos en cada flecha; en las bifurcaciones se parte y sigue por todas las ramas">
+        <label for="chkSingle">Una pelota por ruta</label><input type="checkbox" id="chkSingle">
+      </div>
       <div class="row"><label>Animar aparición</label><input type="checkbox" id="buildChk"></div>
       <div class="row"><label>Intervalo aparición</label><input type="range" id="staggerIn" min="0.2" max="1.2" step="0.1" value="0.45"></div>
       <p class="hint">La aparición usa el «orden» de cada nodo. Las flechas aparecen cuando ambos nodos son visibles.</p>
+      <p class="hint">Con «una pelota por ruta» las flechas se encadenan: sale una pelota de cada nodo de origen y recorre el diagrama entero. Al llegar a un nodo que se abre en varias ramas, la pelota se parte y sigue por todas a la vez.</p>
     </section>
 
     <section id="ossSection">
@@ -321,6 +340,14 @@
     <a href="https://github.com/itsnect/fluyo" target="_blank" rel="noopener">GitHub</a>
     <a href="https://github.com/itsnect/fluyo-mcp" target="_blank" rel="noopener">MCP</a>
   </nav>
+</div>
+
+<!-- Mando del modo presentación: solo se muestra con body.presenting -->
+<div id="presentBar">
+  <button id="prPrev" title="Diapositiva anterior (←)" aria-label="Diapositiva anterior">◀</button>
+  <span id="prPos" aria-live="polite"></span>
+  <button id="prNext" title="Diapositiva siguiente (→)" aria-label="Diapositiva siguiente">▶</button>
+  <button id="prExit" title="Salir de la presentación (Esc)" aria-label="Salir de la presentación">✕</button>
 </div>
 
 <!-- Export modal -->

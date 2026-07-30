@@ -33,6 +33,7 @@ $("fileIn").onchange=ev=>{
         if(!n.border) n.border="solid";
         if(!n.lblPos) n.lblPos="center";
         if(n.textBg===undefined) n.textBg=null;
+        if(n.textColor===undefined) n.textColor=null;
         if(n.font===undefined) n.font=null;
         if(n.bold===undefined) n.bold=false;
       }));
@@ -174,7 +175,7 @@ function svgLabelLines(n, theme, baseFs, cy){
   else baseY=cy-(lines.length-1)*lh/2;
   if(pos==="left"){ anchor="start"; tx=n.x-n.w/2+inset; }
   else if(pos==="right"){ anchor="end"; tx=n.x+n.w/2-inset; }
-  const fill=(n.shape==="text"||n.shape==="anim")? n.color : T.text;
+  const fill=n.textColor || ((n.shape==="text"||n.shape==="anim")? n.color : T.text);
   const parts=[];
   if(n.textBg){
     let maxW=Math.max(...lines.map(l=>svgTextWidth(l,fs,family,bold)),1);

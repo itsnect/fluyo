@@ -148,6 +148,29 @@ footer .tab .x:hover{opacity:1; color:#c97070;}
 .card .actions{display:flex; justify-content:flex-end; gap:8px; margin-top:16px;}
 kbd{background:var(--panel2); border:1px solid var(--line); border-radius:4px; padding:0 4px; font-size:11px;}
 
+/* ---- modo presentación ----
+   El diagrama se queda solo en pantalla: fuera cabecera, rail, panel y pestañas.
+   El mando se aparta visualmente (opacidad baja) para no salir en la foto, pero
+   sigue ahí y se recupera al acercar el puntero o al enfocarlo con el teclado. */
+#btnPanel{display:none;}
+#presentBar{
+  display:none; position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
+  align-items:center; gap:8px; z-index:60;
+  background:#000000bb; border:1px solid var(--line); border-radius:999px;
+  padding:6px 10px; opacity:.35; transition:opacity .2s;
+}
+#presentBar:hover, #presentBar:focus-within{opacity:1;}
+#presentBar button{min-width:44px; height:38px; border-radius:999px; font-size:14px;}
+#presentBar #prPos{color:var(--muted); font-size:12px; padding:0 6px; min-width:70px; text-align:center;}
+body.presenting header,
+body.presenting .rail,
+body.presenting aside,
+body.presenting #bottomBar,
+body.presenting #iconDrawer,
+body.presenting #animDrawer{display:none !important;}
+body.presenting #presentBar{display:flex;}
+@media (prefers-reduced-motion: reduce){ #presentBar{transition:none;} }
+
 /* ============ Responsive ============ */
 @media (max-width: 700px) {
   header { gap: 4px; padding: 5px 8px; }
@@ -178,10 +201,21 @@ kbd{background:var(--panel2); border:1px solid var(--line); border-radius:4px; p
   .stage { padding: 0; }
   #wrap { width: 100%; height: 100%; }
 
-  aside { display: none; }
+  /* El panel de propiedades ya no se oculta en móvil: era la única vía a los
+     colores, la tipografía y el resto de ajustes de la selección, así que
+     ocultarlo dejaba media aplicación fuera del alcance del dedo. Pasa a ser un
+     cajón lateral que abre y cierra el botón ⚙ de la cabecera. */
+  #btnPanel { display: inline-flex; align-items: center; justify-content: center; }
+  aside {
+    display: flex; position: fixed; top: 0; right: 0; bottom: 0;
+    width: min(310px, 88vw); z-index: 45;
+    transform: translateX(102%); transition: transform .2s ease;
+    box-shadow: -10px 0 28px #0009;
+  }
+  body.panelOpen aside { transform: none; }
 
-  /* en móvil el aside desaparece, así que estos enlaces pasan a ser la única
-     vía a /docs y /ejemplos: se aprietan, pero no se ocultan */
+  /* en móvil los enlaces del pie son la vía visible a /docs y /ejemplos:
+     se aprietan, pero no se ocultan */
   #siteLinks { gap: 9px; padding: 5px 8px 5px 2px; }
   #siteLinks a { font-size: 10.5px; }
 
@@ -189,6 +223,8 @@ kbd{background:var(--panel2); border:1px solid var(--line); border-radius:4px; p
     left: 4px; right: 4px; width: auto;
     top: auto; bottom: 46px;
   }
+
+  @media (prefers-reduced-motion: reduce){ aside { transition: none; } }
 }
 
 @media (min-width: 701px) and (max-width: 1024px) {

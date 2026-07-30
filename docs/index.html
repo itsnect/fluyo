@@ -61,6 +61,8 @@ python -m http.server 8000</code></pre>
 
 <h3>Lienzo y navegación</h3>
 <p>El lienzo es infinito. Se mueve con la rueda del ratón, con <kbd>clic derecho</kbd>, <kbd>clic central</kbd> o <kbd>Alt</kbd>+arrastrar, y se hace zoom con <kbd>Ctrl</kbd>+rueda.</p>
+<p>En pantalla táctil: <strong>un dedo sobre el vacío</strong> desplaza el plano, <strong>un dedo sobre un nodo</strong> lo arrastra y <strong>dos dedos</strong> hacen zoom. Doble toque edita el texto. El marco de selección múltiple es lo único que se queda fuera del táctil: necesita el ratón.</p>
+<p>En móvil el panel de propiedades es un cajón lateral que abre y cierra el botón <strong>⚙</strong> de la cabecera.</p>
 <p>Un documento puede tener <strong>varias páginas</strong>, con pestañas en la barra inferior. Doble clic en una pestaña la renombra. Cada página se exporta por separado.</p>
 
 <h3>Movimiento libre y rejilla</h3>
@@ -74,7 +76,7 @@ python -m http.server 8000</code></pre>
 </ul>
 
 <h3>Estilos</h3>
-<p>Con algo seleccionado, el panel derecho ofrece color de borde, relleno (automático, sólido o ninguno), estilo de línea, posición y fondo del texto, tamaño y negrita. Hay una paleta semántica con nombres — <em>Servicio</em>, <em>Eventos</em>, <em>Datos</em>, <em>Error</em> — más una rejilla amplia y un selector personalizado. El botón <strong>Picker</strong> es un cuentagotas que toma cualquier color del lienzo (solo en navegadores con la API EyeDropper).</p>
+<p>Con algo seleccionado, el panel derecho ofrece color de borde, relleno (automático, sólido o ninguno), estilo de línea, posición, color y fondo del texto, tamaño y negrita. El <strong>color del texto</strong> es independiente del color del borde: en automático, un texto suelto hereda el color del nodo y el texto dentro de una forma usa el del tema. Hay una paleta semántica con nombres — <em>Servicio</em>, <em>Eventos</em>, <em>Datos</em>, <em>Error</em> — más una rejilla amplia y un selector personalizado. El botón <strong>Picker</strong> es un cuentagotas que toma cualquier color del lienzo (solo en navegadores con la API EyeDropper).</p>
 
 <h3>Capas</h3>
 <p>El orden de dibujado se controla con <strong>Al frente</strong>, <strong>Al fondo</strong>, <strong>Subir</strong> y <strong>Bajar</strong>. No hay que confundirlo con <strong>Orden de aparición</strong>, que es un número distinto: controla la secuencia de la animación de entrada, no qué tapa a qué.</p>
@@ -87,11 +89,16 @@ python -m http.server 8000</code></pre>
 <p>Esto es el diferenciador del producto:</p>
 <ul>
   <li><strong>Flujo de puntos</strong> — puntos que recorren cada flecha. Velocidad y cantidad globales, con multiplicador y número propios por flecha. La dirección puede ser normal, inversa o alterna.</li>
+  <li><strong>Una pelota por ruta</strong> — en vez de puntos sueltos en cada flecha, las flechas se encadenan y una única pelota recorre el camino entero: nace en el primer nodo, pasa al segundo y termina en el último. Al llegar a un nodo que se abre en varias ramas, la pelota <strong>se parte</strong> y sigue por todas a la vez, sincronizadas: hasta la bifurcación se ve una sola. Las ramas más cortas terminan antes y se apagan al llegar a su destino.</li>
   <li><strong>Pulso</strong> — un nodo late para llamar la atención.</li>
   <li><strong>Aparición secuencial</strong> — los elementos entran uno a uno siguiendo su <em>orden</em>. Las flechas aparecen cuando ya están sus dos nodos.</li>
   <li><strong>GIFs predefinidos</strong> — ocho animaciones dibujadas fotograma a fotograma (cargando, progreso, error, éxito, escribiendo, subiendo, latido, ticket) que se colocan como cualquier nodo y se animan también en el GIF exportado.</li>
 </ul>
 <p>Al exportar a GIF, el bucle de flujo <strong>se ajusta solo</strong> para que el resultado sea perfectamente cíclico y no dé un salto al reiniciar.</p>
+
+<h3>Modo presentación</h3>
+<p>El botón <strong>Presentar</strong> (o la tecla <kbd>P</kbd>) esconde toda la interfaz, pone el diagrama a pantalla completa y lo encaja en la pantalla. Cada página pasa a ser una diapositiva.</p>
+<p>Se avanza con <kbd>→</kbd>, <kbd>Espacio</kbd> o <kbd>AvPág</kbd>, se retrocede con <kbd>←</kbd> y se sale con <kbd>Esc</kbd>; en táctil, un toque avanza. Si la animación de aparición está activa, se reinicia en cada diapositiva. Al salir se recupera la vista exacta —posición y zoom— que había antes de presentar.</p>
 
 <h3>Tipografías</h3>
 <p>Once familias, todas de sistema — no se descarga ninguna fuente. Se puede fijar una <strong>global</strong> para el diagrama entero y sobrescribirla en elementos concretos.</p>

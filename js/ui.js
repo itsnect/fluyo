@@ -24,8 +24,8 @@ function refreshPanel(){
   $("fsIn").value=obj.fs||"";
   $("fontSel").value=obj.font||"";
   $("boldChk").checked=!!obj.bold;
-  const nodeRows=["rowColor","rowFill","rowBorder","rowLblPos","rowTextBg","rowZ","rowShape","rowPulse","rowOrder"];
-  const edgeRows=["rowRoute","rowFrom","rowTo","rowAnim","rowDash","rowArrS","rowArrE","rowFlow","rowLineC","rowDotC"];
+  const nodeRows=["rowColor","rowFill","rowBorder","rowLblPos","rowTextBg","rowTextColor","rowZ","rowShape","rowPulse","rowOrder"];
+  const edgeRows=["rowRoute","rowFrom","rowTo","rowAnim","rowSpeedF","rowDotsGlobal","rowDots","rowDash","rowArrS","rowArrE","rowFlow","rowLineC","rowDotC"];
   nodeRows.forEach(r=>$(r).style.display=isNode?"flex":"none");
   edgeRows.forEach(r=>$(r).style.display=isNode?"none":"flex");
   $("btnWps").style.display=(!isNode&&(obj.waypoints||[]).length)?"block":"none";
@@ -46,9 +46,11 @@ function refreshPanel(){
     if(hx(obj.color)) $("strokeCustom").value=hx(obj.color);
     if(hx(obj.fill)) $("fillCustom").value=hx(obj.fill);
     if(hx(obj.textBg)) $("textBgCustom").value=hx(obj.textBg);
+    if(hx(obj.textColor)) $("textColorCustom").value=hx(obj.textColor);
     markSw("swatches",obj.color);
     markSw("fillSw",obj.fill===undefined?null:obj.fill);
     markSw("textBgSw",obj.textBg??null);
+    markSw("textColorSw",obj.textColor??null);
   } else {
     const hx=v=>(typeof v==="string"&&/^#[0-9a-f]{6}$/i.test(v))?v:null;
     if(hx(obj.lineColor)) $("lineCustom").value=hx(obj.lineColor);
@@ -57,6 +59,12 @@ function refreshPanel(){
     $("fromSel").value=obj.fromSide||"";
     $("toSel").value=obj.toSide||"";
     $("animChk").checked=!!obj.animated;
+    $("speedFacSel").value=String(edgeSpeedFac(obj));
+    $("dotsGlobalChk").checked=obj.dotsGlobal!==false;
+    $("edgeDotsIn").value=obj.dots||"";
+    /* el número propio de puntos solo tiene sentido si esta flecha no sigue al
+       global: enseñar los dos a la vez invita a cambiar el que no manda */
+    $("rowDots").style.display=obj.dotsGlobal===false?"flex":"none";
     $("dashChk").checked=!!obj.dashed;
     $("arrSChk").checked=!!obj.startArrow;
     $("arrEChk").checked=obj.endArrow!==false;
@@ -137,9 +145,15 @@ buildNodeSwatches("fillSw","fill",[
 buildNodeSwatches("textBgSw","textBg",[
   {label:"Sin fondo", value:null, pattern:CHECKER_PAT},
 ]);
+/* «Automático» no es lo mismo en todas las formas: en un texto suelto o en un
+   GIF el color del nodo manda; dentro de una caja manda el color del tema. */
+buildNodeSwatches("textColorSw","textColor",[
+  {label:"Automático (según la forma y el tema)", value:null, pattern:DASH_PAT},
+]);
 enableSwatchKeyboard("swatches","Color de línea o borde");
 enableSwatchKeyboard("fillSw","Relleno de la forma");
 enableSwatchKeyboard("textBgSw","Fondo del texto");
+enableSwatchKeyboard("textColorSw","Color del texto");
 function applyNodeVal(field,val){
   if(!selN.size) return;
   pushUndo();
@@ -149,6 +163,7 @@ function applyNodeVal(field,val){
 $("strokeCustom").onchange=()=>applyNodeVal("color",$("strokeCustom").value);
 $("fillCustom").onchange=()=>applyNodeVal("fill",$("fillCustom").value);
 $("textBgCustom").onchange=()=>applyNodeVal("textBg",$("textBgCustom").value);
+$("textColorCustom").onchange=()=>applyNodeVal("textColor",$("textColorCustom").value);
 $("borderSel").onchange=()=>applyNodeVal("border",$("borderSel").value);
 $("lblPosSel").onchange=()=>applyNodeVal("lblPos",$("lblPosSel").value);
 $("btnFront").onclick=bringToFront;
@@ -223,6 +238,22 @@ $("routeSel").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); e.route=$(
 $("fromSel").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); e.fromSide=$("fromSel").value||null; e.waypoints=[]; refreshPanel(); scheduleAutosave(); } };
 $("toSel").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); e.toSide=$("toSel").value||null; e.waypoints=[]; refreshPanel(); scheduleAutosave(); } };
 $("animChk").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); e.animated=$("animChk").checked; scheduleAutosave(); } };
+/* Estos tres controles llevaban en el HTML desde el merge de la rama de estilos,
+   pero sin handler: se veían en el panel y no hacían nada. */
+$("speedFacSel").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); e.speedFac=+$("speedFacSel").value||1; scheduleAutosave(); } };
+$("dotsGlobalChk").onchange=()=>{
+  const e=singleEdge(); if(!e) return;
+  pushUndo();
+  e.dotsGlobal=$("dotsGlobalChk").checked;
+  if(e.dotsGlobal===false && !e.dots) e.dots=settings.dots;   // arranca donde estaba, no en vacío
+  refreshPanel(); scheduleAutosave();
+};
+$("edgeDotsIn").oninput=()=>{
+  const e=singleEdge(); if(!e) return;
+  const v=+$("edgeDotsIn").value;
+  e.dots=(v>=1&&v<=6)? Math.round(v) : null;
+  scheduleAutosave();
+};
 $("dashChk").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); e.dashed=$("dashChk").checked; scheduleAutosave(); } };
 $("arrSChk").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); e.startArrow=$("arrSChk").checked; scheduleAutosave(); } };
 $("arrEChk").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); e.endArrow=$("arrEChk").checked; scheduleAutosave(); } };
@@ -262,20 +293,19 @@ function togglePlay(){
   else { t0=performance.now()-pausedAt*1000; playing=true; $("btnPlay").textContent="⏸ Pausa"; $("btnPlay").classList.add("toggled"); }
 }
 $("btnPlay").onclick=togglePlay;
+/* Estos cinco iban asignados dos veces por un merge: la segunda asignación,
+   sin scheduleAutosave(), ganaba y dejaba tema, velocidad, puntos y aparición
+   fuera del autoguardado. Queda solo la versión que sí guarda. */
 $("themeSel").onchange=()=>{ doc.theme=$("themeSel").value; scheduleAutosave(); };
 $("speedIn").oninput=()=>{ settings.speed=+$("speedIn").value; scheduleAutosave(); };
 $("dotsIn").oninput=()=>{ settings.dots=+$("dotsIn").value; scheduleAutosave(); };
 $("buildChk").onchange=()=>{ settings.build=$("buildChk").checked; t0=performance.now(); pausedAt=0; scheduleAutosave(); };
 $("staggerIn").oninput=()=>{ settings.stagger=+$("staggerIn").value; scheduleAutosave(); };
-$("themeSel").onchange=()=>{ doc.theme=$("themeSel").value; };
+$("chkSingle").onchange=()=>{ settings.single=$("chkSingle").checked; scheduleAutosave(); };
 $("chkGrid").onchange=()=>{ settings.grid=$("chkGrid").checked; scheduleAutosave(); };
 $("chkSnap").onchange=()=>{ settings.snap=$("chkSnap").checked; scheduleAutosave(); };
 $("bgCustom").oninput=()=>{ doc.customBg=$("bgCustom").value; scheduleAutosave(); };
 $("btnBgClear").onclick=()=>{ doc.customBg=""; scheduleAutosave(); };
-$("speedIn").oninput=()=>settings.speed=+$("speedIn").value;
-$("dotsIn").oninput=()=>settings.dots=+$("dotsIn").value;
-$("buildChk").onchange=()=>{ settings.build=$("buildChk").checked; t0=performance.now(); pausedAt=0; };
-$("staggerIn").oninput=()=>settings.stagger=+$("staggerIn").value;
 $("btnClear").onclick=()=>{ if(confirm("¿Borrar todo el contenido de esta página?")){ pushUndo(); P().nodes=[]; P().edges=[]; clearSel(); } };
 
 /* ===================== Cajón de iconos ===================== */
@@ -358,6 +388,77 @@ function renderTabs(){
   add.onclick=()=>{ doc.pages.push(blankPage("Página "+(doc.pages.length+1))); doc.cur=doc.pages.length-1; clearSel(); renderTabs(); scheduleAutosave(); };
   bar.appendChild(add);
 }
+
+/* ===================== Modo presentación =====================
+   Cada página pasa a ser una diapositiva: pantalla completa, interfaz fuera y el
+   diagrama encajado en la pantalla; ← y → cambian de página.
+
+   La vista previa (posición y zoom) se guarda y se restaura al salir, para que
+   quien estaba trabajando en una esquina del lienzo vuelva exactamente ahí. */
+let preView=null;
+function updatePresentBar(){
+  $("prPos").textContent=(doc.cur+1)+" / "+doc.pages.length;
+  $("prPrev").disabled=doc.cur===0;
+  $("prNext").disabled=doc.cur===doc.pages.length-1;
+}
+function goSlide(i){
+  const j=clamp(i,0,doc.pages.length-1);
+  if(j===doc.cur) return;
+  doc.cur=j; clearSel(); renderTabs();
+  /* la aparición se reinicia en cada diapositiva: si no, a partir de la segunda
+     ya habría terminado y el diagrama saldría montado de golpe */
+  if(settings.build){ t0=performance.now(); pausedAt=0; }
+  fitView();
+  updatePresentBar();
+}
+function nextSlide(){ goSlide(doc.cur+1); }
+function prevSlide(){ goSlide(doc.cur-1); }
+function enterPresent(){
+  if(presenting) return;
+  commitEditBox();
+  preView={x:viewX, y:viewY, z:viewZoom};
+  presenting=true;
+  clearSel();
+  setMode("select");
+  $("iconDrawer").style.display="none";
+  $("animDrawer").style.display="none";
+  document.body.classList.remove("panelOpen");
+  document.body.classList.add("presenting");
+  /* la pantalla completa puede denegarse (permiso, iframe sin allow). No es
+     motivo para no presentar: el modo funciona igual dentro de la ventana. */
+  if(document.documentElement.requestFullscreen)
+    document.documentElement.requestFullscreen().catch(()=>{});
+  if(settings.build){ t0=performance.now(); pausedAt=0; }
+  /* el layout aún no se ha rehecho tras esconder la interfaz: sin esperar un
+     fotograma, fitView mediría el lienzo con el tamaño viejo */
+  requestAnimationFrame(()=>{ resizeCanvas(); fitView(); });
+  updatePresentBar();
+  trackEvent("present_started",{pages:doc.pages.length});
+}
+function exitPresent(){
+  if(!presenting) return;
+  presenting=false;
+  document.body.classList.remove("presenting");
+  if(document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(()=>{});
+  if(preView){ viewX=preView.x; viewY=preView.y; viewZoom=preView.z; preView=null; }
+  requestAnimationFrame(resizeCanvas);
+}
+$("btnPresent").onclick=enterPresent;
+$("prNext").onclick=nextSlide;
+$("prPrev").onclick=prevSlide;
+$("prExit").onclick=exitPresent;
+/* salir de la pantalla completa por la vía del navegador (Esc, F11) también
+   tiene que deshacer el modo; si no, la interfaz se quedaría escondida */
+document.addEventListener("fullscreenchange", ()=>{
+  if(!document.fullscreenElement && presenting) exitPresent();
+});
+
+/* ===================== Panel de propiedades en móvil ===================== */
+$("btnPanel").onclick=()=>{
+  const open=!document.body.classList.contains("panelOpen");
+  document.body.classList.toggle("panelOpen", open);
+  $("btnPanel").setAttribute("aria-expanded", String(open));
+};
 
 renderTabs();
 /* si la URL pide un ejemplo concreto, esa intención explícita gana sobre

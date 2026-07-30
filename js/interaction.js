@@ -34,14 +34,19 @@ function hitEdge(x,y){
   }
   return null;
 }
-function hitSideArrow(n,x,y){
+function hitSideArrow(n,x,y,r){
   if(!n) return null;
+  const rad=r||14;
   for(const s of SIDES){
     const p=sidePoint(n,s), d=DIR[s];
-    if(Math.hypot(x-(p.x+d.x*ARROW_OFF), y-(p.y+d.y*ARROW_OFF))<14) return s;
+    if(Math.hypot(x-(p.x+d.x*ARROW_OFF), y-(p.y+d.y*ARROW_OFF))<rad) return s;
   }
   return null;
 }
+/* arrowHostNode() vive en js/selection.js: render.js también la usa y se carga antes. */
+/* El radio va en unidades de mundo, así que con zoom bajo un objetivo de 14
+   queda por debajo del tamaño de un dedo. */
+function arrowHitRadius(){ return isTouch()? Math.max(18, 24/viewZoom) : 14; }
 function hitCorner(n,x,y){
   if(!n) return -1;
   const cs=nodeCorners(n);
@@ -67,8 +72,47 @@ cv.addEventListener("contextmenu", ev => {
   if (wasRightDrag) ev.preventDefault();
 });
 
+/* ===================== Gestos táctiles =====================
+   Con ratón hay tres botones y una rueda; con un dedo no hay ninguno de los
+   cuatro, así que el pan y el zoom necesitan su propia vía:
+
+     · un dedo sobre el vacío  → desplaza el plano (con ratón eso es el marco de
+       selección, que en táctil se pierde a cambio de poder moverse)
+     · un dedo sobre un nodo   → lo arrastra, igual que con ratón
+     · dos dedos               → pellizco para zoom + desplazamiento
+
+   El pellizco cancela cualquier gesto de un dedo que estuviera en curso: si no,
+   al apoyar el segundo dedo se arrastraría un nodo mientras se hace zoom. */
+const activeTouches=new Map();
+let pinch=null, lastPointerType="mouse", lastTap={t:0,x:0,y:0}, downPt=null;
+const isTouch=()=>lastPointerType==="touch";
+function cancelGestures(){
+  drag=null; resizing=null; wpDrag=null; marquee=null; connectDrag=null; panDrag=null;
+}
+function startPinch(){
+  cancelGestures();
+  const [a,b]=[...activeTouches.values()];
+  pinch={ d0:Math.hypot(a.x-b.x,a.y-b.y)||1, zoom0:viewZoom,
+          cx:(a.x+b.x)/2, cy:(a.y+b.y)/2, viewX0:viewX, viewY0:viewY };
+}
+
 cv.addEventListener("pointerdown", ev=>{
-  if (ev.button === 1 || ev.button === 2 || (ev.button === 0 && ev.altKey)) {
+  lastPointerType = ev.pointerType || "mouse";
+  downPt={x:ev.clientX, y:ev.clientY};
+  if(ev.pointerType==="touch"){
+    activeTouches.set(ev.pointerId,{x:ev.clientX,y:ev.clientY});
+    cv.setPointerCapture(ev.pointerId);
+    if(activeTouches.size===2){ startPinch(); return; }
+    if(activeTouches.size>2) return;
+  }
+  /* presentando no se edita nada: el lienzo solo se mueve y se amplía */
+  if(presenting){
+    ev.preventDefault();
+    panDrag={ x:ev.clientX, y:ev.clientY, startX:viewX, startY:viewY, isRight:ev.button===2, moved:false, tap:true };
+    if(ev.pointerType!=="touch") cv.setPointerCapture(ev.pointerId);
+    return;
+  }
+  if (ev.pointerType!=="touch" && (ev.button === 1 || ev.button === 2 || (ev.button === 0 && ev.altKey))) {
     if (ev.button !== 2) ev.preventDefault();
     panDrag = { x: ev.clientX, y: ev.clientY, startX: viewX, startY: viewY, isRight: ev.button===2, moved: false };
     cv.setPointerCapture(ev.pointerId);
@@ -137,9 +181,10 @@ cv.addEventListener("pointerdown", ev=>{
     }
   }
   // 3) flechas direccionales (conexión estilo draw.io)
-  const arrowSide=hitSideArrow(hoverNode,p.x,p.y);
-  if(arrowSide && hoverNode){
-    connectDrag={fromId:hoverNode.id, fromSide:arrowSide};
+  const host=arrowHostNode();
+  const arrowSide=hitSideArrow(host,p.x,p.y,arrowHitRadius());
+  if(arrowSide && host){
+    connectDrag={fromId:host.id, fromSide:arrowSide};
     return;
   }
   // 4) nodo → seleccionar / arrastrar grupo
@@ -176,11 +221,33 @@ cv.addEventListener("pointerdown", ev=>{
     else selectOnly("edge",e.id);
     return;
   }
-  // 6) vacío → marco de selección
+  // 6) vacío → marco de selección (ratón) o desplazamiento del plano (dedo)
+  if(ev.pointerType==="touch"){
+    panDrag={ x:ev.clientX, y:ev.clientY, startX:viewX, startY:viewY, isRight:false, moved:false, tap:true };
+    return;
+  }
   marquee={x0:p.x, y0:p.y, x1:p.x, y1:p.y, add:ev.shiftKey};
 });
 
 cv.addEventListener("pointermove", ev=>{
+  if(ev.pointerType==="touch" && activeTouches.has(ev.pointerId))
+    activeTouches.set(ev.pointerId,{x:ev.clientX,y:ev.clientY});
+  if(pinch){
+    if(activeTouches.size<2) return;
+    const [a,b]=[...activeTouches.values()];
+    const r=cv.getBoundingClientRect();
+    const d=Math.hypot(a.x-b.x,a.y-b.y)||1;
+    const z=clamp(pinch.zoom0*(d/pinch.d0), 0.1, 5);
+    /* el punto del mundo que había bajo el centro inicial de los dedos se queda
+       bajo el centro actual: así el diagrama sigue a la mano en vez de escaparse */
+    const wx=(pinch.cx-r.left-pinch.viewX0)/pinch.zoom0;
+    const wy=(pinch.cy-r.top -pinch.viewY0)/pinch.zoom0;
+    viewZoom=z;
+    viewX=((a.x+b.x)/2-r.left)-wx*z;
+    viewY=((a.y+b.y)/2-r.top )-wy*z;
+    commitEditBox();
+    return;
+  }
   if(panDrag){
     const dx = ev.clientX - panDrag.x;
     const dy = ev.clientY - panDrag.y;
@@ -228,20 +295,42 @@ cv.addEventListener("pointermove", ev=>{
   let cur="default";
   if(pendingShape||pendingIcon||pendingAnim||mode==="connect"||connectDrag) cur="crosshair";
   else if(single&&single.type==="node"&&single.obj&&hitCorner(single.obj,p.x,p.y)>=0) cur="nwse-resize";
-  else if(hoverNode&&hitSideArrow(hoverNode,p.x,p.y)) cur="crosshair";
+  else if(hitSideArrow(arrowHostNode(),p.x,p.y,arrowHitRadius())) cur="crosshair";
   else if(hoverNode) cur="grab";
   cv.style.cursor=cur;
 });
 
+function endTouchPointer(ev){
+  if(ev.pointerType!=="touch") return false;
+  activeTouches.delete(ev.pointerId);
+  if(pinch && activeTouches.size<2){
+    /* el dedo que queda no debe convertirse en un arrastre: el pellizco ya
+       canceló todo, y aquí se corta también el resto del gesto */
+    pinch=null; cancelGestures();
+    return true;
+  }
+  return false;
+}
+cv.addEventListener("pointercancel", ev=>{
+  if(ev.pointerType==="touch"){ activeTouches.delete(ev.pointerId); if(activeTouches.size<2) pinch=null; }
+  cancelGestures();
+});
+
 cv.addEventListener("pointerup", ev=>{
+  if(endTouchPointer(ev)) return;
   if(panDrag){
     if (panDrag.isRight && panDrag.moved) {
       wasRightDrag = true;
       setTimeout(() => wasRightDrag = false, 50);
     }
+    const wasTap = panDrag.tap && !panDrag.moved;
     panDrag=null;
+    /* presentando, un toque sin arrastre pasa a la diapositiva siguiente */
+    if(presenting && wasTap && ev.pointerType==="touch") nextSlide();
+    else if(wasTap && ev.pointerType==="touch") handleTouchTap(ev);
     return;
   }
+  if(presenting) return;
   const p=toWorld(ev);
   const hadDrag=!!(drag||resizing||wpDrag);
   if(connectDrag){
@@ -277,13 +366,31 @@ cv.addEventListener("pointerup", ev=>{
   }
   drag=null; resizing=null; wpDrag=null;
   if(hadDrag) scheduleAutosave();
+  if(ev.pointerType==="touch" && downPt && Math.hypot(ev.clientX-downPt.x, ev.clientY-downPt.y)<=6)
+    handleTouchTap(ev);
+  downPt=null;
 });
+
+/* El doble clic no llega con fiabilidad desde una pantalla táctil (el lienzo usa
+   touch-action:none, así que el navegador no sintetiza los eventos de ratón),
+   y sin él no habría forma de editar un texto con el dedo. */
+function isDoubleTap(ev){
+  const t=performance.now();
+  const dbl=(t-lastTap.t)<320 && Math.hypot(ev.clientX-lastTap.x, ev.clientY-lastTap.y)<26;
+  lastTap={t: dbl?0:t, x:ev.clientX, y:ev.clientY};
+  return dbl;
+}
+function handleTouchTap(ev){
+  const p=toWorld(ev);
+  if(isDoubleTap(ev)){ openEditorAt(p); return; }
+  if(!hitNode(p.x,p.y) && !hitEdge(p.x,p.y)) clearSel();
+}
 
 /* doble clic: editar texto / borrar codo */
 const editBox=$("editBox");
 let editing=null;
-cv.addEventListener("dblclick", ev=>{
-  const p=toWorld(ev);
+cv.addEventListener("dblclick", ev=>{ if(!presenting) openEditorAt(toWorld(ev)); });
+function openEditorAt(p){
   const single=singleSel();
   if(single && single.type==="edge" && single.obj){
     const wi=hitWaypoint(single.obj,p.x,p.y);
@@ -307,7 +414,7 @@ cv.addEventListener("dblclick", ev=>{
   editBox.value=tgt.label||"";
   editBox.rows=(editBox.value.split("\n").length)||1;
   editBox.focus(); editBox.select();
-});
+}
 function commitEditBox(){
   if(!editing) return;
   if(editing.label!==editBox.value) pushUndo();
@@ -325,6 +432,17 @@ editBox.addEventListener("blur", commitEditBox);
 document.addEventListener("keydown", ev=>{
   if(ev.target.tagName==="TEXTAREA"||ev.target.tagName==="INPUT") return;
   const k=ev.key.toLowerCase(), ctl=ev.ctrlKey||ev.metaKey;
+  /* presentando manda el mando de diapositivas y se cierran los atajos de
+     edición: nadie quiere borrar un nodo delante de la sala por pulsar Supr */
+  if(presenting){
+    if(ev.key==="Escape"){ ev.preventDefault(); exitPresent(); return; }
+    if(["ArrowRight","ArrowDown","PageDown"," ","Enter"].includes(ev.key)){ ev.preventDefault(); nextSlide(); return; }
+    if(["ArrowLeft","ArrowUp","PageUp","Backspace"].includes(ev.key)){ ev.preventDefault(); prevSlide(); return; }
+    if(ev.key==="Home"){ ev.preventDefault(); goSlide(0); return; }
+    if(ev.key==="End"){ ev.preventDefault(); goSlide(doc.pages.length-1); return; }
+    return;
+  }
+  if(k==="p" && !ctl && !ev.altKey){ ev.preventDefault(); enterPresent(); return; }
   if(ctl && k==="z"){ ev.preventDefault(); ev.shiftKey? redo():undo(); return; }
   if(ctl && k==="y"){ ev.preventDefault(); redo(); return; }
   if(ctl && k==="s"){ ev.preventDefault(); saveJSON(); return; }

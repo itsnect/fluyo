@@ -145,23 +145,25 @@
 <p>One honest detail: <code>@hono/node-server</code>, the component that adapts the HTTP request, may write connection errors to the console — <code>ECONNRESET</code> and similar, typical of a client that disconnects mid-response. <strong>Those messages are socket errors and contain no user data</strong>: they carry no document, no labels and no tool arguments.</p>
 
 <h2>Hosting platform logs</h2>
-<p>Both domains — <code>fluyo.space</code> and <code>mcp.fluyo.space</code> — are hosted on <strong>Vercel</strong>, as separate projects under the same account.</p>
-<p>Like any hosting provider, Vercel keeps <strong>its own platform logs</strong>, separate from the MCP server's and outside the control of this project's code. Those logs typically include:</p>
+<p>Both domains — <code>fluyo.space</code> and <code>mcp.fluyo.space</code> — are hosted on <strong>Google Cloud</strong>, as separate services under the same account. The MCP server specifically runs on <strong>Cloud Run</strong>.</p>
+<p>Like any hosting provider, Google Cloud keeps <strong>its own platform logs</strong> in Cloud Logging, separate from the MCP server's and outside the control of this project's code. In the case of Cloud Run, the platform writes one log entry per request <strong>automatically, before the request reaches our code</strong>. Those logs include:</p>
 <ul>
   <li>The client <strong>IP address</strong>.</li>
   <li>The requested <strong>path</strong> and HTTP method.</li>
-  <li>The response <strong>status code</strong> and its duration.</li>
+  <li>The response <strong>status code</strong> and its latency.</li>
   <li>The <strong>user agent</strong> and other request headers.</li>
 </ul>
-<p><strong>Retention: [RETENCIÓN: PENDIENTE]</strong>, per the Vercel plan in use.</p>
-<p>They do not contain request bodies, so <strong>the content of your diagrams does not appear in them</strong>. For how Vercel handles that data as an infrastructure provider, see their <a href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noopener">privacy policy</a>.</p>
+<p><strong>Retention: 7 days.</strong> This is not the default — Google Cloud Logging retains 30 days out of the box — but a value set explicitly on the <code>_Default</code> bucket. The exact command that sets it is published in the <a href="https://github.com/itsnect/fluyo-mcp#retención-de-logs" target="_blank" rel="noopener">server's README</a>, so this figure is verifiable rather than a promise.</p>
+<p>They do not contain request bodies, so <strong>the content of your diagrams does not appear in them</strong>.</p>
+<p>These logs should not be confused with the application log described above: they are two different things. The application log <strong>writes no user data at all, not even the IP address</strong>, and that stays true regardless of what happens to platform retention. Platform logs do contain the IP address, which is why they expire after 7 days.</p>
+<p>For how Google handles that data as an infrastructure provider, see the <a href="https://cloud.google.com/terms/cloud-privacy-notice" target="_blank" rel="noopener">Google Cloud privacy notice</a>.</p>
 
 <h2>Who the data is shared with</h2>
 <p><strong>Nobody.</strong> It is not sold, not transferred, not used for advertising and not used to train models. There is no profiling and no automated decision-making about people.</p>
 <p>The only third parties involved are infrastructure providers, each with a narrow role:</p>
 <table>
   <tr><th>Provider</th><th>What it sees</th><th>Why</th></tr>
-  <tr><td><strong>Vercel</strong></td><td>Platform logs for both domains (IP, path, status, user agent)</td><td>Hosting</td></tr>
+  <tr><td><strong>Google Cloud</strong></td><td>Platform logs for both domains (IP, path, status, user agent), retained 7 days</td><td>Hosting</td></tr>
   <tr><td><strong>Umami Cloud</strong></td><td>Pageviews and the events listed above, without cookies or identifiers</td><td>Editor analytics</td></tr>
   <tr><td><strong>Cloudflare (cdnjs)</strong></td><td>The request for the <code>gif.js</code> file: IP and user agent</td><td>Delivery of the GIF library</td></tr>
 </table>

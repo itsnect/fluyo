@@ -145,23 +145,25 @@
 <p>Una precisión honesta: <code>@hono/node-server</code>, que es la pieza que adapta la petición HTTP, puede escribir a la consola errores de conexión —<code>ECONNRESET</code> y similares, típicos de un cliente que corta a mitad—. <strong>Esos mensajes son errores de socket y no contienen datos del usuario</strong>: no llevan el documento, ni las etiquetas, ni los argumentos de ninguna herramienta.</p>
 
 <h2>Logs de la plataforma de alojamiento</h2>
-<p>Los dos dominios —<code>fluyo.space</code> y <code>mcp.fluyo.space</code>— están alojados en <strong>Vercel</strong>, en proyectos separados de la misma cuenta.</p>
-<p>Como cualquier proveedor de alojamiento, Vercel mantiene <strong>sus propios registros de plataforma</strong>, independientes de los del servidor MCP y fuera del control del código de este proyecto. Esos registros incluyen típicamente:</p>
+<p>Los dos dominios —<code>fluyo.space</code> y <code>mcp.fluyo.space</code>— están alojados en <strong>Google Cloud</strong>, en servicios separados de la misma cuenta. El servidor MCP corre concretamente en <strong>Cloud Run</strong>.</p>
+<p>Como cualquier proveedor de alojamiento, Google Cloud mantiene <strong>sus propios registros de plataforma</strong> en Cloud Logging, independientes de los del servidor MCP y fuera del control del código de este proyecto. En el caso de Cloud Run, la plataforma escribe un registro por petición <strong>automáticamente, antes de que la petición llegue a nuestro código</strong>. Esos registros incluyen:</p>
 <ul>
   <li>La <strong>dirección IP</strong> del cliente.</li>
   <li>La <strong>ruta</strong> solicitada y el método HTTP.</li>
-  <li>El <strong>código de estado</strong> de la respuesta y su duración.</li>
+  <li>El <strong>código de estado</strong> de la respuesta y su latencia.</li>
   <li>El <strong>user-agent</strong> y otras cabeceras de la petición.</li>
 </ul>
-<p><strong>Retención: [RETENCIÓN: PENDIENTE]</strong>, según el plan contratado en Vercel.</p>
-<p>No contienen el cuerpo de las peticiones, así que <strong>el contenido de tus diagramas no aparece en ellos</strong>. Para el tratamiento que Vercel hace de esos datos como proveedor de infraestructura, consulta su <a href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noopener">política de privacidad</a>.</p>
+<p><strong>Retención: 7 días.</strong> No es el valor por omisión —Google Cloud Logging retiene 30 días por defecto—, sino uno configurado explícitamente en el bucket <code>_Default</code>. El comando exacto que lo fija está publicado en el <a href="https://github.com/itsnect/fluyo-mcp#retención-de-logs" target="_blank" rel="noopener">README del servidor</a>, para que esta cifra sea verificable y no una promesa.</p>
+<p>No contienen el cuerpo de las peticiones, así que <strong>el contenido de tus diagramas no aparece en ellos</strong>.</p>
+<p>Conviene no confundir estos registros con el de la aplicación descrito más arriba: son dos cosas distintas. El registro de la aplicación <strong>no escribe ningún dato del usuario, ni siquiera la IP</strong>, y eso seguirá siendo cierto pase lo que pase con la retención de la plataforma. Los registros de plataforma sí contienen la IP, y por eso caducan a los 7 días.</p>
+<p>Para el tratamiento que Google hace de esos datos como proveedor de infraestructura, consulta su <a href="https://cloud.google.com/terms/cloud-privacy-notice" target="_blank" rel="noopener">aviso de privacidad de Google Cloud</a>.</p>
 
 <h2>Con quién se comparten los datos</h2>
 <p><strong>Con nadie.</strong> No se venden, no se ceden, no se usan para publicidad y no se usan para entrenar modelos. No hay perfilado ni decisiones automatizadas sobre personas.</p>
 <p>Los únicos terceros que intervienen son proveedores de infraestructura, cada uno con su propio papel acotado:</p>
 <table>
   <tr><th>Proveedor</th><th>Qué ve</th><th>Por qué</th></tr>
-  <tr><td><strong>Vercel</strong></td><td>Logs de plataforma de los dos dominios (IP, ruta, estado, user-agent)</td><td>Alojamiento</td></tr>
+  <tr><td><strong>Google Cloud</strong></td><td>Logs de plataforma de los dos dominios (IP, ruta, estado, user-agent), retenidos 7 días</td><td>Alojamiento</td></tr>
   <tr><td><strong>Umami Cloud</strong></td><td>Pageviews y los eventos de la lista de arriba, sin cookies ni identificadores</td><td>Analítica del editor</td></tr>
   <tr><td><strong>Cloudflare (cdnjs)</strong></td><td>La petición del archivo <code>gif.js</code>: IP y user-agent</td><td>Entrega de la librería de GIF</td></tr>
 </table>

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Documentación de Fluyo — diagramas de arquitectura animados</title>
-<meta name="description" content="Cómo usar Fluyo: lienzo, estilos, capas, animación de flujo, GIFs, iconos cloud, el formato .fluyo.json y el servidor MCP con sus 7 tools.">
+<meta name="description" content="Cómo usar Fluyo: lienzo, estilos, capas, animación de flujo, GIFs, iconos cloud, el formato .fluyo.json y el servidor MCP con sus 9 tools.">
 <link rel="canonical" href="https://fluyo.space/docs/">
 <meta property="og:title" content="Documentación de Fluyo">
 <meta property="og:description" content="Guía completa de Fluyo: features del editor, el formato .fluyo.json, el servidor MCP y la política de privacidad.">
@@ -164,10 +164,21 @@ python -m http.server 8000</code></pre>
 
 <h2>Servidor MCP</h2>
 <p><a href="https://github.com/itsnect/fluyo-mcp" target="_blank" rel="noopener">fluyo-mcp</a> es un servidor <a href="https://modelcontextprotocol.io" target="_blank" rel="noopener">Model Context Protocol</a> que permite a un asistente de IA crear y editar diagramas de Fluyo por ti: describes la arquitectura en lenguaje natural y recibes un <code>.fluyo.json</code> que abres en el editor.</p>
-<p>No añade ningún backend: es una capa delgada sobre el mismo modelo de documento que usa el editor, con la paleta, los iconos y el exportador SVG portados uno a uno. Un diagrama generado desde el MCP se abre con el botón <strong>Abrir</strong> de Fluyo sin conversión de por medio.</p>
+<p>Es una capa delgada sobre el mismo modelo de documento que usa el editor, con la paleta, los iconos y el exportador SVG portados uno a uno. Un diagrama generado desde el MCP se abre con el botón <strong>Abrir</strong> de Fluyo sin conversión de por medio.</p>
+<div class="note">
+  <p><strong>El editor sigue sin backend; el servidor MCP es otra cosa.</strong> El editor de <a href="https://fluyo.space/">fluyo.space</a> no envía tus diagramas a ninguna parte. El servidor MCP, en cambio, <strong>sí recibe el contenido del diagrama</strong> cuando lo usas como conector remoto — no puede editar lo que no ha recibido. Lo procesa en memoria y lo descarta sin guardarlo. Los dos flujos están explicados por separado en la <a href="../privacidad/">política de privacidad</a>.</p>
+</div>
 
-<h3>Instalación</h3>
-<p>El servidor sí tiene paso de compilación — la restricción de «cero build» es del editor, no de esta herramienta. Clona el repositorio y compila:</p>
+<h3>Conectarlo</h3>
+<p>Hay <strong>dos transportes</strong> sobre el mismo núcleo. Las nueve tools, sus schemas y el renderer son idénticos en ambos; lo único que cambia es por dónde entran los mensajes.</p>
+
+<h4 style="font-size:14px;text-transform:none;letter-spacing:0;color:var(--text);margin-top:20px">Como conector remoto</h4>
+<p>Lo más rápido: no hay nada que instalar. Pega esta URL donde tu cliente MCP pida un servidor remoto.</p>
+<pre><code>https://mcp.fluyo.space/mcp</code></pre>
+<p>Sin autenticación y sin cuenta. Tiene topes que la versión local no tiene: 1 MB por petición, 200 KB por respuesta de herramienta y 30 peticiones por minuto y por IP. Un diagrama con imágenes incrustadas puede pasarse de los dos primeros.</p>
+
+<h4 style="font-size:14px;text-transform:none;letter-spacing:0;color:var(--text);margin-top:20px">Como proceso local</h4>
+<p>Sin red de por medio y sin ningún tope. El servidor sí tiene paso de compilación — la restricción de «cero build» es del editor, no de esta herramienta:</p>
 <pre><code>git clone https://github.com/itsnect/fluyo-mcp.git
 cd fluyo-mcp
 npm install
@@ -186,7 +197,7 @@ npm run build</code></pre>
   <p>Consulta siempre el <a href="https://github.com/itsnect/fluyo-mcp" target="_blank" rel="noopener">README de <code>fluyo-mcp</code></a> como fuente de verdad: es el que se actualiza cuando cambian las rutas o el nombre del paquete.</p>
 </div>
 
-<h3>Las siete tools</h3>
+<h3>Las nueve tools</h3>
 <table>
   <tr><th>Tool</th><th>Qué hace</th></tr>
   <tr><td><code>create_diagram</code></td><td>Crea un diagrama completo a partir de una lista de nodos y aristas. Si no le das coordenadas, aplica un auto-layout por capas.</td></tr>
@@ -194,7 +205,9 @@ npm run build</code></pre>
   <tr><td><code>export_diagram</code></td><td>Exporta una página a <strong>SVG estático</strong>, con el mismo renderer que usa el editor.</td></tr>
   <tr><td><code>list_icons</code></td><td>Devuelve las claves de icono válidas, para que el asistente no tenga que adivinarlas.</td></tr>
   <tr><td><code>list_colors</code></td><td>Devuelve la paleta semántica con sus nombres (<em>Servicio</em>, <em>Eventos / Kafka</em>, <em>Datos</em>…).</td></tr>
-  <tr><td><code>list_templates</code></td><td>Lista los patrones de arquitectura predefinidos: Kafka, RAG, microservicios y otros.</td></tr>
+  <tr><td><code>list_anims</code></td><td>Devuelve las claves de los ocho GIFs animados, para nodos <code>shape="anim"</code>.</td></tr>
+  <tr><td><code>list_fonts</code></td><td>Devuelve las once familias tipográficas disponibles, con la familia CSS completa que espera el campo <code>font</code>.</td></tr>
+  <tr><td><code>list_templates</code></td><td>Lista los patrones de arquitectura predefinidos: Kafka, RAG y microservicios.</td></tr>
   <tr><td><code>create_from_template</code></td><td>Instancia una de esas plantillas, sustituyendo las etiquetas por las tuyas.</td></tr>
 </table>
 <p>Al referenciar nodos que ya existen en un documento hay que usar su <code>id</code> numérico. Las <code>key</code> que pasas en <code>add_node</code> son temporales: sirven para encadenar referencias dentro de la misma llamada y no se guardan en el <code>.fluyo.json</code>.</p>
@@ -208,6 +221,7 @@ npm run build</code></pre>
 </ul>
 
 <h2>Privacidad y telemetría</h2>
+<p>Este resumen cubre <strong>el editor</strong>. El servidor MCP remoto tiene un comportamiento distinto y se explica aparte en la <a href="../privacidad/">política de privacidad</a>, que es la fuente de verdad para ambos.</p>
 <p>Tus diagramas <strong>nunca salen de tu navegador</strong>. No hay backend al que puedan ir: Fluyo es un sitio de archivos estáticos. El dibujado, la animación y la codificación del GIF ocurren en tu equipo, y lo que se guarda con el autoguardado va al <code>localStorage</code> de tu navegador, no a un servidor.</p>
 <p>En el sitio público <strong>fluyo.space</strong> hay telemetría de producto: pageviews y un puñado de eventos de uso agregados (si se creó un diagrama, si se exportó y en qué formato, si se cargó un ejemplo, si se usó un GIF animado). Sin cookies, sin fingerprinting y sin identificar usuarios. <strong>El contenido de tus diagramas no se envía nunca</strong>, ni entero ni en fragmentos: los eventos solo llevan valores de una lista cerrada, como <code>png</code> o <code>gif</code>.</p>
 <p>El script de telemetría se carga <strong>únicamente</strong> cuando el dominio es el oficial. Si clonas el repositorio, lo abres en local o lo self-hosteas, no se ejecuta ninguna telemetría y no se hace ninguna llamada de red — no es que se filtren los datos, es que ese código no llega a correr. Los dominios de preview también quedan fuera a propósito.</p>

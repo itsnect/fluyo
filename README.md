@@ -118,11 +118,13 @@ Los [diagramas de ejemplo](https://fluyo.space/ejemplos/) son archivos `.fluyo.j
 
 [**itsnect/fluyo-mcp**](https://github.com/itsnect/fluyo-mcp) es un servidor [Model Context Protocol](https://modelcontextprotocol.io) que permite a un asistente de IA crear y editar diagramas de Fluyo: describes la arquitectura en lenguaje natural y recibes un `.fluyo.json` que abres en el editor.
 
-Expone siete tools: `create_diagram`, `edit_diagram`, `export_diagram`, `list_icons`, `list_colors`, `list_templates` y `create_from_template`. Trabaja sobre el mismo formato, así que lo que genera se abre con el botón **Abrir** sin conversión de por medio.
+Expone nueve tools: `create_diagram`, `edit_diagram`, `export_diagram`, `list_icons`, `list_colors`, `list_anims`, `list_fonts`, `list_templates` y `create_from_template`. Trabaja sobre el mismo formato, así que lo que genera se abre con el botón **Abrir** sin conversión de por medio.
 
 Su exportador produce **solo SVG estático**: para el GIF animado, abre el documento en el editor y expórtalo desde ahí.
 
-Las instrucciones de instalación están en el [README de ese repositorio](https://github.com/itsnect/fluyo-mcp) — requiere `npm install && npm run build`, porque el paso de compilación que este editor no tiene sí lo necesita esa herramienta.
+Se puede usar de dos formas. Como **conector remoto**, pegando `https://mcp.fluyo.space/mcp` donde tu cliente MCP pida un servidor remoto, sin instalar nada. O como **proceso local**, siguiendo el [README de ese repositorio](https://github.com/itsnect/fluyo-mcp) — requiere `npm install && npm run build`, porque el paso de compilación que este editor no tiene sí lo necesita esa herramienta.
+
+> El editor no tiene backend, pero **el servidor MCP sí recibe el contenido del diagrama** cuando se usa como conector remoto: no puede editar lo que no ha recibido. Lo procesa en memoria y lo descarta. Los dos flujos están separados y explicados en la [política de privacidad](https://fluyo.space/privacidad/).
 
 ---
 

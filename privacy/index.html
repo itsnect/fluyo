@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacy Policy — Fluyo</title>
+<meta name="description" content="What data Fluyo receives and what it does with it. The editor runs entirely in your browser; the MCP server does receive your diagrams over the network, processes them in memory and discards them.">
+<link rel="canonical" href="https://fluyo.space/privacy/">
+<link rel="alternate" hreflang="es" href="https://fluyo.space/privacidad/">
+<link rel="alternate" hreflang="en" href="https://fluyo.space/privacy/">
+<link rel="alternate" hreflang="x-default" href="https://fluyo.space/privacidad/">
+<meta property="og:title" content="Fluyo Privacy Policy">
+<meta property="og:description" content="Two distinct data flows, described separately: the editor sends nothing; the MCP server receives your diagrams and stores none of them.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://fluyo.space/privacy/">
+<meta property="og:site_name" content="Fluyo">
+<meta property="og:image" content="https://fluyo.space/assets/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Fluyo Privacy Policy">
+<meta name="twitter:description" content="The editor sends nothing. The MCP server receives diagrams, processes them in memory and discards them.">
+<meta name="twitter:image" content="https://fluyo.space/assets/og-image.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23161616'/%3E%3Ccircle cx='18' cy='32' r='7' fill='%23d08b5b'/%3E%3Ccircle cx='40' cy='32' r='5' fill='%23d08b5b' opacity='.65'/%3E%3Ccircle cx='54' cy='32' r='3.4' fill='%23d08b5b' opacity='.35'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#111213">
+<link rel="stylesheet" href="../css/pages.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="inner">
+    <a class="logo" href="../">flu<b>yo</b><span class="dots" aria-hidden="true"><span></span><span></span><span></span></span></a>
+    <nav>
+      <a href="../">Editor</a>
+      <a href="../docs/">Docs</a>
+      <a href="./" aria-current="page">Privacy</a>
+      <a href="../terminos/">Terms</a>
+      <a href="../soporte/">Support</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+<h1>Privacy Policy</h1>
+<p class="lead">Last updated: 3 August 2026. <a href="../privacidad/">Versión en español</a>.</p>
+
+<p>Fluyo is <strong>two different things</strong> with two different data behaviours, and this policy treats them separately because conflating them would be misleading:</p>
+
+<table>
+  <tr><th>&nbsp;</th><th>The editor — fluyo.space</th><th>The MCP server — mcp.fluyo.space</th></tr>
+  <tr>
+    <td><strong>Does it receive your diagrams?</strong></td>
+    <td><strong>No.</strong> They never leave the browser</td>
+    <td><strong>Yes.</strong> They travel over the network to the server</td>
+  </tr>
+  <tr>
+    <td><strong>Does it store them?</strong></td>
+    <td>Only on your own machine (<code>localStorage</code>)</td>
+    <td>No. Processed in memory, then discarded</td>
+  </tr>
+  <tr>
+    <td><strong>When does it apply?</strong></td>
+    <td>Whenever you use the website</td>
+    <td>Only if you connect the remote server to your AI assistant</td>
+  </tr>
+</table>
+
+<div class="note">
+  <p>If you only use the editor at <a href="../">fluyo.space</a> and have never added the remote MCP connector, <strong>section B does not apply to you at all</strong>: none of your diagrams has ever left your browser.</p>
+</div>
+
+<h2>Who is responsible</h2>
+<p>Fluyo is an open-source project maintained by <strong>itsnect</strong> (Claudio Jiménez Flores), based in Chile. It is not an incorporated company, sells nothing, has no customers and processes no payments.</p>
+<p>Contact for any privacy matter: <strong>[CORREO: PENDIENTE]</strong>. Further channels on the <a href="../soporte/">support page</a>.</p>
+
+<h2>A. The editor at fluyo.space</h2>
+
+<p>The editor is a <strong>static file site</strong>. There is no application server, no database and no API of our own for the browser to call. Everything — drawing, animating, computing layout and encoding the GIF — happens on your machine, using your machine's processor.</p>
+
+<h3>Your diagrams</h3>
+<p><strong>They are not sent anywhere.</strong> There is no backend for them to go to. When you click <em>Save</em>, the browser downloads a <code>.fluyo.json</code> file to your disk; when you click <em>Open</em>, it reads one from your disk. Neither involves a network request.</p>
+
+<h3>Autosave</h3>
+<p>The current session is saved to your browser's <code>localStorage</code>, under the key <code>fluyo.autosave.v1</code>. That is local storage on your own machine, not a server: nobody else can read it, and it is erased when you clear site data in your browser.</p>
+
+<h3>Product analytics</h3>
+<p>The public site includes aggregate usage analytics, served by <a href="https://umami.is" target="_blank" rel="noopener">Umami Cloud</a>. <strong>No cookies and no fingerprinting</strong>, and no user identification.</p>
+<p>What is recorded is pageviews plus this closed list of events:</p>
+<table>
+  <tr><th>Event</th><th>What accompanies it</th></tr>
+  <tr><td><code>example_loaded</code></td><td>The example identifier (one of a fixed list)</td></tr>
+  <tr><td><code>file_imported</code></td><td>Nothing</td></tr>
+  <tr><td><code>diagram_exported</code></td><td>The format: <code>gif</code>, <code>png</code>, <code>jpg</code> or <code>svg</code></td></tr>
+  <tr><td><code>gif_animation_added</code></td><td>The animation key (one of eight)</td></tr>
+  <tr><td><code>present_started</code></td><td>The document's page count</td></tr>
+</table>
+<p><strong>The content of your diagrams is never sent</strong>, neither whole nor in fragments: events carry only values from a closed vocabulary plus one number. There is no free-text field anywhere that one of your labels could slip into.</p>
+<p>The analytics script loads <strong>only</strong> when the domain is <code>fluyo.space</code> or <code>www.fluyo.space</code>. If you clone the repository, open it locally or self-host it, that code never runs and no network call is made. Preview domains are deliberately excluded. The condition lives in <code>js/analytics.js</code>, in a single block, so you can verify it yourself.</p>
+<p>If you want zero analytics: run the project locally or self-hosted, or block the <code>cloud.umami.is</code> domain. Fluyo works the same — the analytics code is written to fail silently.</p>
+
+<h3>The only external request</h3>
+<p>The editor loads <a href="https://github.com/jnordberg/gif.js" target="_blank" rel="noopener">gif.js</a> from the <strong>cdnjs (Cloudflare)</strong> CDN; that is the library that encodes the GIF. It is a code download: <strong>nothing of yours is sent to it</strong>. As with any HTTP request, Cloudflare sees your IP address and user agent while serving the file. It is precached on first visit, so on later visits it is usually not even requested.</p>
+
+<h2>B. The MCP server at mcp.fluyo.space</h2>
+
+<p>Here is the part that needs saying plainly: <strong>the MCP server does receive the content of your diagrams over the network.</strong> This is unavoidable — it cannot edit or export a diagram it has not received — and it is the substantive difference from the editor.</p>
+<p>This applies <strong>only</strong> if you have added <code>https://mcp.fluyo.space/mcp</code> as a remote connector in your AI assistant. If you run the server locally over stdio (<code>npx fluyo-mcp</code>), nothing leaves your machine and this section does not apply either.</p>
+
+<h3>What is received</h3>
+<ul>
+  <li><strong>The diagram document</strong> your assistant sends: nodes, labels, colours, coordinates and, where present, images you embedded as data URIs.</li>
+  <li><strong>The arguments</strong> of the invoked tool — for example the label text when creating a diagram.</li>
+  <li><strong>Network metadata</strong> inherent to any HTTP request: your IP address (that of the calling client, which is normally your assistant's server rather than your own machine), request headers and the path.</li>
+</ul>
+
+<h3>How it is used and for how long</h3>
+<p><strong>It is processed in memory and discarded.</strong> Each HTTP request builds a fresh server, handles the message and throws it away. There is no database, no disk, no cache and no sessions: the server is <em>stateless</em> by design, not by configuration. The document exists in the process's memory for as long as the request takes — milliseconds — and disappears with it.</p>
+<p><strong>Nothing is persisted. Nothing is shared. Nothing is used to train anything.</strong></p>
+
+<h3>What is logged</h3>
+<p>One line per request, in exactly this shape and nothing more:</p>
+<pre><code>{"ts":"2026-08-03T16:20:11.437Z","route":"/mcp","method":"POST",
+ "status":200,"outcome":"ok","durationMs":7,
+ "requestBytes":220,"responseBytes":472,"tools":["create_diagram"]}</code></pre>
+<p><strong>No user data — document, labels, tool arguments, error messages, IP address — is written to the log.</strong> The <em>name</em> of the invoked tool is recorded, never its arguments; and if something fails, the log records that it failed and what class of error it was, never the value that caused it.</p>
+<p>This does not rest on the discipline of whoever edits the code: the type describing a log line is a closed structure with no field that free text could occupy, and automated tests plant unrepeatable markers in a diagram's labels and fail if those markers appear in any log line. There is no <em>debug</em> mode that lifts these restrictions.</p>
+
+<h3>IP addresses and rate limiting</h3>
+<p>The server limits requests per IP address so that an open endpoint does not become an abuse or billing problem. For that purpose, and only that purpose, it keeps in <strong>RAM</strong> a record of the IP address and the timestamps of its recent requests.</p>
+<ul>
+  <li>It is kept for the <strong>60-second window</strong> of the limit, and expires on its own.</li>
+  <li>There is a cap of <strong>20,000 addresses</strong> held in memory at once; beyond that, the oldest are dropped.</li>
+  <li><strong>It is never written to disk. It is never written to the log.</strong> It dies when the instance is recycled.</li>
+  <li>The IP address is read from the <code>x-forwarded-for</code> header, which the hosting platform rewrites.</li>
+  <li>It is used for nothing else: it does not identify, does not profile and does not decide permissions.</li>
+</ul>
+
+<h3>Authentication</h3>
+<p>The server asks for no credentials, creates no accounts and issues no tokens. <strong>There is nothing of yours on file because there is no sign-up.</strong></p>
+
+<h3>Dependencies involved</h3>
+<p><strong>No dependency was added</strong> for the HTTP transport: it uses Node's standard library. The dependency tree is the one already pulled in by the official Model Context Protocol SDK.</p>
+<p>Of that whole tree, six packages actually load at runtime: <code>@modelcontextprotocol/sdk</code>, <code>zod</code>, <code>@hono/node-server</code>, <code>ajv</code>, <code>ajv-formats</code> and <code>zod-to-json-schema</code>. <strong>None of them persists anything and none of them makes outbound network requests.</strong> Their role is limited to routing the message, validating its shape and converting between request representations.</p>
+<p>One honest detail: <code>@hono/node-server</code>, the component that adapts the HTTP request, may write connection errors to the console — <code>ECONNRESET</code> and similar, typical of a client that disconnects mid-response. <strong>Those messages are socket errors and contain no user data</strong>: they carry no document, no labels and no tool arguments.</p>
+
+<h2>Hosting platform logs</h2>
+<p>Both domains — <code>fluyo.space</code> and <code>mcp.fluyo.space</code> — are hosted on <strong>Vercel</strong>, as separate projects under the same account.</p>
+<p>Like any hosting provider, Vercel keeps <strong>its own platform logs</strong>, separate from the MCP server's and outside the control of this project's code. Those logs typically include:</p>
+<ul>
+  <li>The client <strong>IP address</strong>.</li>
+  <li>The requested <strong>path</strong> and HTTP method.</li>
+  <li>The response <strong>status code</strong> and its duration.</li>
+  <li>The <strong>user agent</strong> and other request headers.</li>
+</ul>
+<p><strong>Retention: [RETENCIÓN: PENDIENTE]</strong>, per the Vercel plan in use.</p>
+<p>They do not contain request bodies, so <strong>the content of your diagrams does not appear in them</strong>. For how Vercel handles that data as an infrastructure provider, see their <a href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noopener">privacy policy</a>.</p>
+
+<h2>Who the data is shared with</h2>
+<p><strong>Nobody.</strong> It is not sold, not transferred, not used for advertising and not used to train models. There is no profiling and no automated decision-making about people.</p>
+<p>The only third parties involved are infrastructure providers, each with a narrow role:</p>
+<table>
+  <tr><th>Provider</th><th>What it sees</th><th>Why</th></tr>
+  <tr><td><strong>Vercel</strong></td><td>Platform logs for both domains (IP, path, status, user agent)</td><td>Hosting</td></tr>
+  <tr><td><strong>Umami Cloud</strong></td><td>Pageviews and the events listed above, without cookies or identifiers</td><td>Editor analytics</td></tr>
+  <tr><td><strong>Cloudflare (cdnjs)</strong></td><td>The request for the <code>gif.js</code> file: IP and user agent</td><td>Delivery of the GIF library</td></tr>
+</table>
+<p>None of the three receives the content of your diagrams.</p>
+
+<h2>Children</h2>
+<p>Fluyo is not directed at children under 13 and does not knowingly collect data from them. Since there are no accounts and no sign-up, there is also no profile that could belong to a child.</p>
+
+<h2>Your rights</h2>
+<p>The practical situation is unusual and worth stating as it is: <strong>there is no account, no profile and no record of yours to access, rectify or erase</strong>, because nothing identifying you is stored.</p>
+<ul>
+  <li>Your diagrams are on your machine. To delete them, delete the files and clear site data in your browser.</li>
+  <li>The data that does exist outside your machine — the platform logs — expires on its own under the retention stated above.</li>
+  <li>Even so, if you wish to exercise any right of access, rectification, erasure, objection or portability, write to <strong>[CORREO: PENDIENTE]</strong> and it will be handled.</li>
+</ul>
+
+<h2>Verify it yourself</h2>
+<p>All of the above is checkable: the source of both parts is public and MIT-licensed.</p>
+<ul>
+  <li><a href="https://github.com/itsnect/fluyo" target="_blank" rel="noopener">github.com/itsnect/fluyo</a> — the editor. Analytics is isolated in <code>js/analytics.js</code>.</li>
+  <li><a href="https://github.com/itsnect/fluyo-mcp" target="_blank" rel="noopener">github.com/itsnect/fluyo-mcp</a> — the MCP server. What is and is not logged lives in <code>src/http-logging.ts</code>; the per-IP limit, in <code>src/http-security.ts</code>.</li>
+</ul>
+
+<h2>Changes to this policy</h2>
+<p>If it changes, the date in the header is updated and the change is recorded in the repository's public history, commit by commit. A change that materially affects what data is received will additionally be announced in the <a href="https://github.com/itsnect/fluyo" target="_blank" rel="noopener">repository</a>.</p>
+
+<p class="lead">In case of discrepancy between translations, the <a href="../privacidad/">Spanish version</a> prevails.</p>
+
+<footer class="pagefoot">
+  <p>Fluyo is free software under the MIT licence · <a href="../">Editor</a> · <a href="../docs/">Docs</a> · <a href="../terminos/">Terms</a> · <a href="../soporte/">Support</a> · <a href="../privacidad/">Español</a> · <a href="https://github.com/itsnect/fluyo" target="_blank" rel="noopener">GitHub</a></p>
+</footer>
+
+</main>
+</body>
+</html>

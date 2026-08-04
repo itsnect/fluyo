@@ -98,6 +98,96 @@ function parallelLane(e){
   if(i<0) return none;
   return {off:(i-(sib.length-1)/2)*PARALLEL_SEP, half:(sib.length-1)/2*PARALLEL_SEP};
 }
+/* ===================== Puertos compartidos =====================
+   Cuando dos aristas fijan el mismo lado de un nodo con fromSide/toSide,
+   sidePoint les devuelve EL MISMO PUNTO. Si una entra y la otra sale, el flujo
+   parece darse la vuelta sobre sí mismo: en oauth2, «4. code → token» sube por
+   x=1560 hasta el hex y «5. Bearer» baja por esa misma x — 147px dibujados uno
+   encima del otro, que se leen como una sola línea con dos puntas de flecha.
+
+   Se reparten a lo largo del lado, con el mismo mecanismo que los carriles de un
+   par paralelo. Tres condiciones, y las tres hacen falta:
+
+   · Las anclas COINCIDEN. Si autoAnchor ya las separó no hay nada que arreglar,
+     y moverlas solo empeoraría lo que ya estaba bien.
+
+   · El lado lleva tráfico en los DOS sentidos. Un abanico de tres aristas que
+     salen del mismo punto —kafka-event-pipeline— se lee como un bus que se
+     bifurca, y separarlo solo añade ruido; medido, comparten 171px y están
+     perfectas. Lo que confunde no es compartir tramo, es que el flujo vuelva
+     sobre sus pasos: los tramos compartidos en sentido opuesto son 3 en todo el
+     corpus, y los 11 en el mismo sentido están todos en diagramas que se ven
+     bien.
+
+   · Ninguna es de un par paralelo, que ya tiene su propio reparto y lo aplica a
+     los dos extremos más el canal central. Aplicar los dos sería desplazar dos
+     veces.
+
+   Sobre los 7 documentos del corpus esto reparte exactamente un grupo: el de
+   oauth2. Los tres diagramas que ya estaban bien no lo activan por construcción.
+
+   Lo que NO arregla: los otros dos tramos compartidos en sentido opuesto
+   (microservicios 154px, serverless 108px) no vienen de un ancla común sino de
+   que los nodos están alineados en la misma columna, así que sus tramos largos
+   coinciden sin compartir punto. Eso pide mover un tramo a otro canal, que es
+   ruteo con evasión y no está aquí. */
+function baseAnchors(e){
+  const A=nodeById(e.from), B=nodeById(e.to);
+  if(!A||!B) return null;
+  const wps=e.waypoints||[];
+  const tA=wps[0]||{x:B.x,y:B.y}, tB=wps[wps.length-1]||{x:A.x,y:A.y};
+  const p1=anchorPt(A,e.fromSide,tA.x,tA.y);
+  const p2=anchorPt(B,e.toSide,tB.x,tB.y);
+  return {p1, p2, s1:e.fromSide||inferSide(A,p1), s2:e.toSide||inferSide(B,p2)};
+}
+function portKey(nodeId,side,p){ return nodeId+":"+side+":"+Math.round(p.x)+","+Math.round(p.y); }
+/* Cuántas aristas unen el mismo par que `e`. Comparación de enteros y sin
+   construir claves: esto corre dentro del bucle de render. */
+function siblingCount(e){
+  let n=0;
+  for(const o of P().edges){
+    if((o.waypoints||[]).length) continue;
+    if((o.from===e.from&&o.to===e.to)||(o.from===e.to&&o.to===e.from)) n++;
+  }
+  return n;
+}
+/* `which` es "from" o "to": el reparto es por extremo, no por arista, porque una
+   arista puede compartir puerto en un lado y no en el otro.
+
+   El orden de los filtros importa para el coste. Esto se ejecuta por arista y
+   por extremo dentro del bucle de render, así que primero se descarta con
+   comparaciones de enteros —solo las aristas que TOCAN este nodo pueden
+   compartir puerto con él— y la geometría, que es lo caro, se calcula únicamente
+   para esas. Sin ese orden, una página de 90 aristas se comía el 75 % del
+   presupuesto de fotograma. */
+function portLane(e,which){
+  const none={off:0, half:0};
+  if((e.waypoints||[]).length) return none;
+  const nodeId = which==="from"? e.from : e.to;
+  const vecinas=[];
+  for(const o of P().edges){
+    if(o.from!==nodeId && o.to!==nodeId) continue;
+    if((o.waypoints||[]).length) continue;
+    vecinas.push(o);
+  }
+  if(vecinas.length<2) return none;
+  if(siblingCount(e)>1) return none;
+  const me=baseAnchors(e); if(!me) return none;
+  const key = portKey(nodeId, which==="from"? me.s1 : me.s2, which==="from"? me.p1 : me.p2);
+  const grupo=[];
+  for(const o of vecinas){
+    if(siblingCount(o)>1) continue;
+    const b=baseAnchors(o); if(!b) continue;
+    if(o.from===nodeId && portKey(nodeId,b.s1,b.p1)===key) grupo.push({id:o.id, sent:"sale"});
+    if(o.to===nodeId   && portKey(nodeId,b.s2,b.p2)===key) grupo.push({id:o.id, sent:"entra"});
+  }
+  if(grupo.length<2) return none;
+  if(!(grupo.some(x=>x.sent==="entra") && grupo.some(x=>x.sent==="sale"))) return none;
+  const yo = which==="from"? "sale" : "entra";
+  const i = grupo.findIndex(x=>x.id===e.id && x.sent===yo);
+  if(i<0) return none;
+  return {off:(i-(grupo.length-1)/2)*PARALLEL_SEP, half:(grupo.length-1)/2*PARALLEL_SEP};
+}
 /* Corre el ancla a lo largo del lado por el que sale, sin salirse de él: el
    extremo tiene que seguir tocando el borde del nodo pase lo que pase.
 
@@ -147,6 +237,13 @@ function edgePoints(e){
   const s1=e.fromSide||inferSide(A,p1), s2=e.toSide||inferSide(B,p2);
   const {off,half}=parallelLane(e);
   if(off){ p1=slideAnchor(A,s1,p1,off,half); p2=slideAnchor(B,s2,p2,off,half); }
+  else{
+    /* el reparto por puerto es por extremo y no toca el canal central: en el
+       caso ortogonal el canal ya sale de las anclas, así que se mueve solo */
+    const o1=portLane(e,"from"), o2=portLane(e,"to");
+    if(o1.off) p1=slideAnchor(A,s1,p1,o1.off,o1.half);
+    if(o2.off) p2=slideAnchor(B,s2,p2,o2.off,o2.half);
+  }
   if(e.route==="ortho" && wps.length===0){
     return orthoRoute(p1,DIR[s1],p2,DIR[s2],off);
   }

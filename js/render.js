@@ -265,6 +265,15 @@ function drawNode(c,n,t,theme,isExport){
     c.restore();
   }
 }
+/* Medidor de etiquetas para el lienzo. Toca c.font, que drawEdge vuelve a fijar
+   antes de escribir nada, así que el efecto secundario no se ve. */
+function measureCanvasLabel(c){
+  return e=>{
+    const efs=e.fs||13;
+    c.font=objFont(e,efs);
+    return {w:c.measureText(e.label).width, h:efs*1.7};
+  };
+}
 function arrowHead(c,x,y,ang,col){
   c.save(); c.translate(x,y); c.rotate(ang);
   c.fillStyle=col; c.beginPath();
@@ -439,7 +448,7 @@ function drawEdge(c,e,t,theme,isExport){
     }
   }
   if(e.label){
-    const m=pointAt(pts,.5);
+    const m=labelPointFor(e,pts);
     const efs=e.fs||13;
     c.font=objFont(e,efs); c.textAlign="center"; c.textBaseline="middle";
     const w=c.measureText(e.label).width;
@@ -500,6 +509,7 @@ function render(c,t,opts={}){
       for(let y=startY; y<b.y+b.h; y+=GRID){c.moveTo(b.x,y);c.lineTo(b.x+b.w,y);}
       c.stroke();
     }
+    edgeLabelPos=placeEdgeLabels(measureCanvasLabel(c));
     for(const e of P().edges) drawEdge(c,e,t,theme,isExport);
     drawFlowBalls(c,t);
     for(const n of P().nodes) drawNode(c,n,t,theme,isExport);
@@ -529,6 +539,7 @@ function render(c,t,opts={}){
     c.stroke();
   }
 
+  edgeLabelPos=placeEdgeLabels(measureCanvasLabel(c));
   for(const e of P().edges) drawEdge(c,e,t,theme,isExport);
   drawFlowBalls(c,t);
   for(const n of P().nodes) drawNode(c,n,t,theme,isExport);

@@ -266,7 +266,7 @@ function renderConnectorToSVG(e, theme){
   const ptsStr=pts.map(p=>`${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(" ");
   const parts=[`<polyline points="${ptsStr}" fill="none" stroke="${lineCol}" stroke-width="2" stroke-linejoin="round"${dash}${markers}/>`];
   if(e.label){
-    const m=pointAt(pts,.5), efs=e.fs||13;
+    const m=labelPointFor(e,pts), efs=e.fs||13;
     const family=e.font||settings.font||DEFAULT_FONT, bold=!!e.bold;
     const tw=svgTextWidth(e.label, efs, family, bold);
     const rx=(m.x-tw/2-6).toFixed(2), ry=(m.y-efs*.85).toFixed(2);
@@ -284,6 +284,13 @@ function buildSVGDocument(scale=1){
     `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${width}" height="${height}" viewBox="0 0 ${W} ${H}">`,
     buildSVGDefs()
   ];
+  /* La misma colocación que en el lienzo, pero midiendo con getBBox en vez de
+     con measureText: el SVG exportado tiene que enseñar las etiquetas donde el
+     usuario las vio. */
+  edgeLabelPos=placeEdgeLabels(e=>{
+    const efs=e.fs||13;
+    return {w:svgTextWidth(e.label, efs, e.font||settings.font||DEFAULT_FONT, !!e.bold), h:efs*1.7};
+  });
   for(const e of page.edges||[]) parts.push(renderConnectorToSVG(e,theme));
   for(const n of page.nodes||[]) parts.push(renderNodeToSVG(n,theme));
   parts.push("</svg>");

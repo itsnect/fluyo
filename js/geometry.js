@@ -126,6 +126,66 @@ function edgePoints(e){
   }
   return [p1,...wps,p2];
 }
+/* ===================== Colocación de etiquetas =====================
+   La etiqueta iba siempre al punto medio exacto de la ruta, sin mirar qué había
+   debajo. En cuanto el diagrama se aprieta un poco, ese punto cae encima de un
+   nodo («chunks relevantes» sobre «Usuario») o encima de otra etiqueta.
+
+   Ahora se prueban posiciones a lo largo de la propia arista —empezando por el
+   medio y abriéndose por igual hacia los dos extremos— y se coge la primera que
+   no choque con ningún nodo ni con ninguna etiqueta ya colocada. Si ninguna está
+   libre se coge la que menos área solape, que sigue siendo mejor que el medio a
+   ciegas.
+
+   No se desplaza perpendicularmente a la arista a propósito: la etiqueta tiene
+   que seguir leyéndose como perteneciente a SU flecha, y separarla de la línea
+   la vuelve ambigua en cuanto hay dos flechas cerca.
+
+   El orden de colocación es el de la página, y cada etiqueta solo esquiva a las
+   que ya se colocaron, no a las que vendrán. Eso es lo que hace el resultado
+   estable y reproducible: si todas se esquivaran entre sí no habría una solución
+   única, y la elección podría oscilar entre fotogramas.
+
+   El rango llega hasta 0.14/0.86 y no hasta los extremos: pegada al final, la
+   etiqueta se confunde con la punta de flecha y con el nodo de destino. */
+const LBL_FRACS=(()=>{ const out=[.5]; for(let d=.04; d<=.36; d+=.04) out.push(.5-d, .5+d); return out; })();
+function rectOverlapArea(a,b){
+  const ox=Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x);
+  const oy=Math.min(a.y+a.h,b.y+b.h)-Math.max(a.y,b.y);
+  return (ox>0&&oy>0)? ox*oy : 0;
+}
+function labelRectAt(pts,f,w,h){
+  const p=pointAt(pts,f);
+  return {x:p.x-w/2-6, y:p.y-h/2, w:w+12, h:h, cx:p.x, cy:p.y};
+}
+/* Mapa id-de-arista -> {x,y} donde va su etiqueta. `measure` devuelve {w,h} en
+   píxeles de lienzo; lo inyecta quien llama porque medir texto se hace distinto
+   en el lienzo (measureText), en el SVG de la app (getBBox) y en el MCP. */
+let edgeLabelPos=new Map();
+function placeEdgeLabels(measure){
+  const pg=P(), out=new Map(), placed=[];
+  const nodeBoxes=pg.nodes.map(n=>({x:n.x-n.w/2, y:n.y-n.h/2, w:n.w, h:n.h}));
+  for(const e of pg.edges){
+    if(!e.label) continue;
+    const pts=edgePoints(e); if(pts.length<2) continue;
+    const m=measure(e); if(!m || !(m.w>0)) continue;
+    let best=null, bestCost=Infinity;
+    for(const f of LBL_FRACS){
+      const r=labelRectAt(pts,f,m.w,m.h);
+      let cost=0;
+      for(const b of nodeBoxes) cost+=rectOverlapArea(r,b);
+      for(const b of placed) cost+=rectOverlapArea(r,b);
+      if(cost===0){ best=r; bestCost=0; break; }
+      if(cost<bestCost){ best=r; bestCost=cost; }
+    }
+    if(best){ out.set(e.id,{x:best.cx, y:best.cy}); placed.push(best); }
+  }
+  return out;
+}
+/* Punto donde se dibuja la etiqueta de una arista. Cae al medio geométrico si
+   todavía no se ha calculado la colocación de la página. */
+function labelPointFor(e,pts){ return edgeLabelPos.get(e.id) || pointAt(pts,.5); }
+
 function polyLen(pts){ let L=0; for(let i=1;i<pts.length;i++) L+=Math.hypot(pts[i].x-pts[i-1].x,pts[i].y-pts[i-1].y); return L; }
 function pointAt(pts,f){
   const L=polyLen(pts); if(L===0) return {x:pts[0].x,y:pts[0].y,ang:0};

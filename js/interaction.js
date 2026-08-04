@@ -400,7 +400,9 @@ function openEditorAt(p){
   if(!tgt) return;
   editing=tgt;
   let cx,cyy,w;
-  if(tgt.from!==undefined){ const m=pointAt(edgePoints(tgt),.5); cx=m.x; cyy=m.y; w=170; }
+  /* sobre la etiqueta donde de verdad se dibuja, no sobre el medio geométrico:
+     si no, se escribe en una caja que no está donde está el texto */
+  if(tgt.from!==undefined){ const m=labelPointFor(tgt,edgePoints(tgt)); cx=m.x; cyy=m.y; w=170; }
   else { cx=tgt.x; cyy=tgt.shape==="image"? tgt.y+tgt.h/2+14 : tgt.y; w=Math.max(120,tgt.w); }
   const screenCX = cx * viewZoom + viewX;
   const screenCY = cyy * viewZoom + viewY;

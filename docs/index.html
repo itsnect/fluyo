@@ -70,7 +70,8 @@ python -m http.server 8000</code></pre>
 
 <h3>Formas y contenido</h3>
 <ul>
-  <li><strong>Formas</strong> — caja, cilindro (base de datos), rombo (decisión), círculo, hexágono y texto suelto.</li>
+  <li><strong>Formas</strong> — caja, cilindro (base de datos), rombo (decisión), círculo, hexágono, texto suelto y <strong>bloque de código</strong>.</li>
+  <li><strong>Bloque de código</strong> — un panel monoespaciado con las palabras clave resaltadas. Trae un preset de SQL/ksqlDB; se puede desactivar el resaltado o dar una lista propia de palabras. Son configurables el fondo del panel, el del bloque, el color del texto y los dos colores del resaltado.</li>
   <li><strong>Iconos cloud</strong> — más de 40: GCP, AWS y Azure, más Kafka, Kubernetes, Docker, colas, cachés, balanceadores y estados.</li>
   <li><strong>Imágenes</strong> — pega con <kbd>Ctrl+V</kbd> o arrastra un archivo al lienzo. Se incrustan en el documento como data URI, así que el <code>.fluyo.json</code> sigue siendo autocontenido.</li>
 </ul>
@@ -157,7 +158,9 @@ python -m http.server 8000</code></pre>
   <li>Los <code>id</code> son únicos <em>por página</em> y <code>nextId</code> es el siguiente a repartir. Nodos y flechas comparten el mismo contador.</li>
   <li>Las flechas referencian nodos por <code>from</code> y <code>to</code>. Si apuntan a un id inexistente, simplemente no se dibujan.</li>
   <li><code>x</code> e <code>y</code> son el <strong>centro</strong> del nodo, no su esquina.</li>
-  <li><code>shape</code> puede ser <code>rect</code>, <code>cylinder</code>, <code>diamond</code>, <code>circle</code>, <code>hex</code>, <code>text</code>, <code>icon</code>, <code>image</code> o <code>anim</code>. Los tres últimos usan además <code>icon</code>, <code>img</code> o <code>anim</code> como clave.</li>
+  <li><code>shape</code> puede ser <code>rect</code>, <code>cylinder</code>, <code>diamond</code>, <code>circle</code>, <code>hex</code>, <code>text</code>, <code>icon</code>, <code>image</code>, <code>anim</code> o <code>code</code>. <code>icon</code>, <code>image</code> y <code>anim</code> usan además <code>icon</code>, <code>img</code> o <code>anim</code> como clave.</li>
+  <li>En <code>shape:"code"</code> el <code>label</code> es el código, con <code>
+</code> entre líneas. Cuatro campos propios: <code>lang</code> (<code>"sql"</code> o <code>"none"</code>), <code>keywords</code> (lista propia que sustituye al preset), <code>kwBg</code> y <code>kwColor</code> (los dos colores del resaltado). Reutiliza los campos de siempre para el resto: <code>fill</code> pinta el panel, <code>textBg</code> el fondo del bloque, <code>textColor</code> el código y <code>font</code> la tipografía, que por defecto es <code>Mono</code>.</li>
   <li>Al abrir un archivo antiguo, los campos que falten se rellenan con valores por defecto: no hace falta escribir todas las claves a mano.</li>
 </ul>
 <p>Los <a href="../ejemplos/">diagramas de ejemplo</a> son archivos <code>.fluyo.json</code> reales, así que sirven de referencia viva del formato.</p>

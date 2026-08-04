@@ -2,7 +2,7 @@
    archivos servidos. El fetch handler es cache-first, así que sin el cambio de
    versión quien ya tenga el service worker instalado seguirá viendo la versión
    anterior de index.html — y pedirá scripts que ya no existen. */
-const CACHE = "fluyo-static-v8";
+const CACHE = "fluyo-static-v9";
 /* Núcleo: si algo de aquí falla, la instalación falla (cache.addAll es atómico)
    y es lo correcto, porque sin estos archivos la app no funciona. */
 const ASSETS = [
@@ -31,7 +31,9 @@ const PAGE_ASSETS = [
   "./privacidad/",
   "./privacy/",
   "./terminos/",
+  "./terms/",
   "./soporte/",
+  "./support/",
   "./ejemplos/data/kafka-event-pipeline.fluyo.json",
   "./ejemplos/data/microservicios-api-gateway.fluyo.json",
   "./ejemplos/data/oauth2-flujo-autenticacion.fluyo.json",

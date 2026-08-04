@@ -175,7 +175,10 @@ python -m http.server 8000</code></pre>
 <h4 style="font-size:14px;text-transform:none;letter-spacing:0;color:var(--text);margin-top:20px">Como conector remoto</h4>
 <p>Lo más rápido: no hay nada que instalar. Pega esta URL donde tu cliente MCP pida un servidor remoto.</p>
 <pre><code>https://mcp.fluyo.space/mcp</code></pre>
-<p>Sin autenticación y sin cuenta. Tiene topes que la versión local no tiene: 1 MB por petición, 200 KB por respuesta de herramienta y 30 peticiones por minuto y por IP. Un diagrama con imágenes incrustadas puede pasarse de los dos primeros.</p>
+<p><strong>Sin autenticación y sin cuenta:</strong> no hay que registrarse, ni pedir una clave, ni autorizar nada por OAuth. Pegas la URL y ya está.</p>
+<p>En <strong>Claude</strong>, la ruta es <strong>Settings → Connectors → Add custom connector</strong>: pon <code>Fluyo</code> como nombre y esa URL como endpoint. Las nueve tools aparecen en la conversación en cuanto se conecta.</p>
+<p>En <strong>ChatGPT</strong> el conector está <strong>en proceso de revisión</strong>. Hasta que se apruebe, la vía que funciona ahí es el proceso local por stdio, que se explica justo debajo.</p>
+<p>El endpoint remoto tiene topes que la versión local no tiene: 1 MB por petición, 200 KB por respuesta de herramienta y 30 peticiones por minuto y por IP. Un diagrama con imágenes incrustadas puede pasarse de los dos primeros.</p>
 
 <h4 style="font-size:14px;text-transform:none;letter-spacing:0;color:var(--text);margin-top:20px">Como proceso local</h4>
 <p>Sin red de por medio y sin ningún tope. El servidor sí tiene paso de compilación — la restricción de «cero build» es del editor, no de esta herramienta:</p>

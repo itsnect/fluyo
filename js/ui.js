@@ -24,7 +24,7 @@ function refreshPanel(){
   $("fsIn").value=obj.fs||"";
   $("fontSel").value=obj.font||"";
   $("boldChk").checked=!!obj.bold;
-  const nodeRows=["rowColor","rowFill","rowBorder","rowLblPos","rowTextBg","rowTextColor","rowZ","rowShape","rowPulse","rowOrder"];
+  const nodeRows=["rowColor","rowFill","rowBorder","rowLblPos","rowTextBg","rowTextColor","rowZ","rowShape","rowPulse","rowOrder","rowLang","rowKeywords","rowKwBg","rowKwColor"];
   const edgeRows=["rowRoute","rowFrom","rowTo","rowAnim","rowSpeedF","rowDotsGlobal","rowDots","rowDash","rowArrS","rowArrE","rowFlow","rowLineC","rowDotC"];
   nodeRows.forEach(r=>$(r).style.display=isNode?"flex":"none");
   edgeRows.forEach(r=>$(r).style.display=isNode?"none":"flex");
@@ -33,10 +33,22 @@ function refreshPanel(){
     const hasBox=["rect","cylinder","diamond","circle","hex"].includes(obj.shape);
     if(obj.shape==="image"||obj.shape==="icon"||obj.shape==="anim") $("rowShape").style.display="none";
     if(obj.shape==="image") $("rowColor").style.display="none";
-    $("rowFill").style.display=hasBox?"flex":"none";
-    $("rowBorder").style.display=hasBox?"flex":"none";
+    const esCode=obj.shape==="code";
+    /* En `code` los campos genéricos cambian de significado, así que la etiqueta
+       del control lo dice: `fill` pinta el panel y `textBg` el papel del bloque. */
+    $("rowFill").style.display=(hasBox||esCode)?"flex":"none";
+    $("rowBorder").style.display=(hasBox||esCode)?"flex":"none";
     $("rowLblPos").style.display=(hasBox||obj.shape==="text")?"flex":"none";
-    $("rowTextBg").style.display=(obj.shape==="text")?"flex":"none";
+    $("rowTextBg").style.display=(obj.shape==="text"||esCode)?"flex":"none";
+    $("rowFill").querySelector("label").textContent=esCode?"Fondo del panel":"Relleno de la forma";
+    $("rowTextBg").querySelector("label").textContent=esCode?"Fondo del bloque de código":"Fondo del texto";
+    ["rowLang","rowKwBg","rowKwColor"].forEach(r=>$(r).style.display=esCode?"flex":"none");
+    if(esCode){
+      const propia=Array.isArray(obj.keywords)&&obj.keywords.length;
+      $("langSel").value=propia?"custom":(obj.lang||DEFAULT_LANG);
+      $("rowKeywords").style.display=propia?"flex":"none";
+      $("kwEdit").value=propia?obj.keywords.join(" "):"";
+    } else $("rowKeywords").style.display="none";
     $("shapeSel").value=["image","icon","anim"].includes(obj.shape)?"rect":obj.shape;
     $("pulseChk").checked=!!obj.pulse;
     $("orderIn").value=obj.order;
@@ -47,10 +59,14 @@ function refreshPanel(){
     if(hx(obj.fill)) $("fillCustom").value=hx(obj.fill);
     if(hx(obj.textBg)) $("textBgCustom").value=hx(obj.textBg);
     if(hx(obj.textColor)) $("textColorCustom").value=hx(obj.textColor);
+    if(hx(obj.kwBg)) $("kwBgCustom").value=hx(obj.kwBg);
+    if(hx(obj.kwColor)) $("kwColorCustom").value=hx(obj.kwColor);
     markSw("swatches",obj.color);
     markSw("fillSw",obj.fill===undefined?null:obj.fill);
     markSw("textBgSw",obj.textBg??null);
     markSw("textColorSw",obj.textColor??null);
+    markSw("kwBgSw",obj.kwBg??null);
+    markSw("kwColorSw",obj.kwColor??null);
   } else {
     const hx=v=>(typeof v==="string"&&/^#[0-9a-f]{6}$/i.test(v))?v:null;
     if(hx(obj.lineColor)) $("lineCustom").value=hx(obj.lineColor);
@@ -154,6 +170,29 @@ enableSwatchKeyboard("swatches","Color de línea o borde");
 enableSwatchKeyboard("fillSw","Relleno de la forma");
 enableSwatchKeyboard("textBgSw","Fondo del texto");
 enableSwatchKeyboard("textColorSw","Color del texto");
+buildNodeSwatches("kwBgSw","kwBg",[{label:"Del tema", value:null, pattern:DASH_PAT}]);
+buildNodeSwatches("kwColorSw","kwColor",[{label:"Del tema", value:null, pattern:DASH_PAT}]);
+enableSwatchKeyboard("kwBgSw","Fondo del resaltado");
+enableSwatchKeyboard("kwColorSw","Texto del resaltado");
+function parseKeywords(txt){
+  return String(txt||"").split(/[\s,]+/).map(w=>w.trim()).filter(Boolean);
+}
+/* `custom` no es un lenguaje: es la señal de que manda la lista escrita a mano.
+   Mientras `keywords` tenga contenido, `lang` deja de consultarse. */
+$("langSel").onchange=()=>{
+  const v=$("langSel").value, sel=singleSel();
+  if(!sel||!sel.obj) return;
+  pushUndo();
+  if(v==="custom"){
+    if(!Array.isArray(sel.obj.keywords)||!sel.obj.keywords.length) sel.obj.keywords=parseKeywords($("kwEdit").value);
+  } else { sel.obj.lang=v; sel.obj.keywords=null; }
+  refreshPanel(); scheduleAutosave();
+};
+$("kwEdit").oninput=()=>{
+  const sel=singleSel(); if(!sel||!sel.obj) return;
+  sel.obj.keywords=parseKeywords($("kwEdit").value);
+  scheduleAutosave();
+};
 function applyNodeVal(field,val){
   if(!selN.size) return;
   pushUndo();
@@ -164,6 +203,8 @@ $("strokeCustom").onchange=()=>applyNodeVal("color",$("strokeCustom").value);
 $("fillCustom").onchange=()=>applyNodeVal("fill",$("fillCustom").value);
 $("textBgCustom").onchange=()=>applyNodeVal("textBg",$("textBgCustom").value);
 $("textColorCustom").onchange=()=>applyNodeVal("textColor",$("textColorCustom").value);
+$("kwBgCustom").onchange=()=>applyNodeVal("kwBg",$("kwBgCustom").value);
+$("kwColorCustom").onchange=()=>applyNodeVal("kwColor",$("kwColorCustom").value);
 $("borderSel").onchange=()=>applyNodeVal("border",$("borderSel").value);
 $("lblPosSel").onchange=()=>applyNodeVal("lblPos",$("lblPosSel").value);
 $("btnFront").onclick=bringToFront;

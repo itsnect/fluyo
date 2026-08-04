@@ -31,11 +31,49 @@ const SWATCH_COLORS=[
   "#b3a3f2","#9b7fb5","#7a5fb0","#5a3f8f","#3a2860",
   "#e8a3d8","#c96fb5","#a83f96","#7d2870","#521a4a",
 ];
+/* Los cuatro tokens `code*` los usa la forma `code`. Están en el tema y no como
+   constantes del renderer porque los consumen TRES renderers —lienzo, exportador
+   SVG de la app y svg.ts del MCP—: un ternario sobre el nombre del tema
+   triplicado es la forma exacta en que se abrió el drift anterior. */
 const THEMES={
-  dark : {bg:"#161616", grid:"rgba(255,255,255,.045)", text:"#ededed", edge:"#777", edgeLbl:"#bdbdbd", lblBg:"#161616"},
-  crema: {bg:"#f4eee1", grid:"rgba(0,0,0,.06)",        text:"#2b2620", edge:"#8a8275", edgeLbl:"#6b6457", lblBg:"#f4eee1"},
-  claro: {bg:"#ffffff", grid:"rgba(0,0,0,.05)",        text:"#111111", edge:"#888888", edgeLbl:"#444444", lblBg:"#ffffff"},
+  dark : {bg:"#161616", grid:"rgba(255,255,255,.045)", text:"#ededed", edge:"#777", edgeLbl:"#bdbdbd", lblBg:"#161616",
+          codeBg:"#101010", codeText:"#e8e8e8", codeKwBg:"#a8b34a", codeKwText:"#0c0a09"},
+  crema: {bg:"#f4eee1", grid:"rgba(0,0,0,.06)",        text:"#2b2620", edge:"#8a8275", edgeLbl:"#6b6457", lblBg:"#f4eee1",
+          codeBg:"#e7ddc9", codeText:"#1a1a1a", codeKwBg:"#a8b34a", codeKwText:"#0c0a09"},
+  claro: {bg:"#ffffff", grid:"rgba(0,0,0,.05)",        text:"#111111", edge:"#888888", edgeLbl:"#444444", lblBg:"#ffffff",
+          codeBg:"#101010", codeText:"#e8e8e8", codeKwBg:"#a8b34a", codeKwText:"#0c0a09"},
 };
+
+/* ===================== Bloques de código =====================
+   La forma `code` no mide texto: coloca cada carácter en una rejilla de ancho
+   fijo. En una monoespaciada el carácter k está en x0 + k*avance, así que la
+   geometría de un token sale de ÍNDICES DE CARÁCTER y es aritmética pura,
+   idéntica en los tres renderers sin que ninguno tenga que medir nada.
+
+   CODE_ADV no es una estimación del avance real de la fuente: es NORMATIVO. El
+   texto se obliga a la rejilla —`textLength` en SVG, carácter a carácter en el
+   lienzo—, así que si la fuente que resuelve tiene otro avance el renderer ajusta
+   el espaciado en vez de descuadrarse. Medido en Chrome/Windows, donde
+   `monospace` resuelve a Consolas (avance real 0.55): sin forzar, un token de 4
+   caracteres a 16px mide 35.19px en vez de 38.40 y el resaltado se corre; con
+   `textLength` mide 38.40 exactos.
+
+   Ese descuadre es el defecto que traía el fork original, donde el lienzo medía
+   con measureText y el exportador SVG con `longitud*fs*0.6`. */
+const CODE_ADV=0.6;
+/* Presets de palabras clave. Deliberadamente dos: cada preset hay que mantenerlo
+   sincronizado por codegen entre dos repos, y el campo `keywords` del nodo cubre
+   cualquier otro lenguaje sin coste. `sql` son las 29 palabras exactas del fork
+   —un híbrido SQL/ksqlDB— para que un diagrama portado salga igual. */
+const CODE_LANGS={
+  sql:["CREATE","STREAM","TABLE","SELECT","FROM","WHERE","EMIT","CHANGES","AS","INSERT",
+       "INTO","JOIN","LEFT","RIGHT","GROUP","BY","ORDER","HAVING","WITH","WINDOW",
+       "PARTITION","KEY","VALUES","UPDATE","SET","DELETE","AND","OR","ON"],
+  none:[],
+};
+const DEFAULT_LANG="sql";
+/* El bloque con el que nace un nodo `code`, el mismo del fork original. */
+const CODE_DEFAULT_LABEL="CREATE STREAM x AS\nSELECT *\nFROM stream";
 const DIR={n:{x:0,y:-1}, s:{x:0,y:1}, e:{x:1,y:0}, w:{x:-1,y:0}};
 const SIDES=["n","e","s","w"];
 /* Tipografías disponibles (el primer valor es la fuente global por defecto) */
@@ -51,6 +89,10 @@ const FONTS=[
   {n:"Courier",     f:"'Courier New', Courier, monospace"},
   {n:"Impact",      f:"Impact, Haettenschweiler, sans-serif"},
   {n:"Comic Sans",  f:"'Comic Sans MS', 'Comic Sans', cursive"},
+  /* Pila de sistema, sin webfont ni CDN: no introduce ningún tercero y por tanto
+     no toca la política de privacidad publicada. Es la fuente por defecto de la
+     forma `code`. */
+  {n:"Mono",        f:'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace'},
 ];
 const DEFAULT_FONT=FONTS[0].f;
 

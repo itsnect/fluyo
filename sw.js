@@ -2,7 +2,7 @@
    archivos servidos. El fetch handler es cache-first, así que sin el cambio de
    versión quien ya tenga el service worker instalado seguirá viendo la versión
    anterior de index.html — y pedirá scripts que ya no existen. */
-const CACHE = "fluyo-static-v9";
+const CACHE = "fluyo-static-v10";
 /* Núcleo: si algo de aquí falla, la instalación falla (cache.addAll es atómico)
    y es lo correcto, porque sin estos archivos la app no funciona. */
 const ASSETS = [

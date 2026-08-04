@@ -227,6 +227,29 @@ function renderNodeToSVG(n, theme){
     case "text":
       parts.push(svgLabelLines(n,theme,22,n.y));
       break;
+    case "code":{
+      /* `textLength` + `lengthAdjust="spacing"` es la pieza que hace que esto
+         funcione: el SVG lo pinta después otro motor con otra fuente, así que sin
+         forzar el ancho el resaltado se corre respecto a la palabra. Verificado
+         en Chrome/Windows, donde `monospace` es Consolas: un token de 4
+         caracteres a 16px mide 35.19px natural y 38.40 exactos con textLength. */
+      const L=codeBlockLayout(n), col=codeColors(n,theme);
+      const x=n.x-n.w/2, y=n.y-n.h/2;
+      const fam=escapeAttribute(codeFont(n)), peso=n.bold===false?"":' font-weight="700"';
+      const clip=`code-clip-${n.id}`;
+      parts.push(`<clipPath id="${clip}"><rect x="${(x+2).toFixed(2)}" y="${(y+2).toFixed(2)}" width="${(n.w-4).toFixed(2)}" height="${(n.h-4).toFixed(2)}" rx="9" ry="9"/></clipPath>`);
+      parts.push(`<rect x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${n.w}" height="${n.h}" rx="10" ry="10" fill="${escapeAttribute(col.panel)}" stroke="${stroke}" stroke-width="2.5"${dash}/>`);
+      parts.push(`<g clip-path="url(#${clip})">`);
+      parts.push(`<rect x="${L.bx.toFixed(2)}" y="${L.by.toFixed(2)}" width="${L.bw.toFixed(2)}" height="${L.blockH.toFixed(2)}" rx="6" ry="6" fill="${escapeAttribute(col.paper)}"/>`);
+      for(const row of L.rows){
+        for(const tk of row.tokens){
+          if(tk.kw) parts.push(`<rect x="${(tk.x-2).toFixed(2)}" y="${(row.ly-L.fs/2-2).toFixed(2)}" width="${(tk.w+4).toFixed(2)}" height="${(L.fs+6).toFixed(2)}" fill="${escapeAttribute(col.kwBg)}"/>`);
+          parts.push(`<text x="${tk.x.toFixed(2)}" y="${row.ly.toFixed(2)}" font-family="${fam}" font-size="${L.fs.toFixed(2)}"${peso} fill="${escapeAttribute(tk.kw?col.kwText:col.text)}" dominant-baseline="middle" textLength="${tk.w.toFixed(3)}" lengthAdjust="spacing">${escapeXML(tk.t)}</text>`);
+        }
+      }
+      parts.push("</g>");
+      break;
+    }
     case "anim":{
       const src=animURL[n.anim]||"";
       const s=Math.max(10, Math.min(n.w,n.h-(n.label?26:8)));

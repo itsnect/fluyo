@@ -249,6 +249,76 @@ function edgePoints(e){
   }
   return [p1,...wps,p2];
 }
+/* ===================== Bloques de código =====================
+   Toda la maquetación de un nodo `code` sale de aquí, y sale como DATOS: nada de
+   dibujar. Los tres renderers —lienzo, exportador SVG de la app y svg.ts del
+   MCP— consumen la misma estructura, así que el test de paridad puede compararla
+   entera en vez de comparar píxeles.
+
+   No se mide texto en ningún punto. El carácter k de una línea está en
+   x0 + k*adv, con adv = fs*CODE_ADV, así que la posición y el ancho de cada
+   token son aritmética sobre índices de carácter. Ver la nota de CODE_ADV en
+   config.js: la rejilla es normativa y el texto se obliga a ella. */
+function codeKeywords(n){
+  if(Array.isArray(n.keywords) && n.keywords.length) return n.keywords;
+  return CODE_LANGS[n.lang||DEFAULT_LANG] || CODE_LANGS[DEFAULT_LANG];
+}
+/* Los espacios no se emiten: la rejilla ya los deja implícitos. Además un <text>
+   con solo espacios se colapsa a ancho cero en SVG, así que emitirlos sería
+   pedirle al renderer algo que no puede cumplir.
+
+   La división es por espacios, como en el fork: `.map(parse)` es UN token, así
+   que una palabra clave solo resalta cuando aparece suelta. Partir también por
+   signos de puntuación resaltaría dentro de las llamadas, pero cambia el
+   comportamiento del original y no se ha pedido.
+
+   Nota sobre tokens de UN carácter en SVG: `lengthAdjust="spacing"` reparte la
+   diferencia ENTRE caracteres, y con uno solo no hay hueco que repartir, así que
+   el glifo conserva su avance natural (medido: 0.9px de menos con Consolas a
+   18px). No se acumula —la x de cada token es absoluta— y el rectángulo sí va a
+   la medida de la rejilla. Usar `spacingAndGlyphs` lo cuadraría deformando los
+   glifos, que es peor. */
+function codeTokens(line){
+  const out=[]; let k=0;
+  for(const t of line.split(/(\s+)/)){ if(t && t.trim()) out.push({t,k}); k+=t.length; }
+  return out;
+}
+function codeBlockLayout(n){
+  const lines=String(n.label==null?"":n.label).split("\n");
+  const pad=12, inset=10;
+  const bw=Math.max(1, n.w-pad*2);
+  const maxChars=Math.max(1, ...lines.map(l=>l.length));
+  /* El tamaño lo limitan las DOS dimensiones. El fork solo miraba el alto, así
+     que una línea larga se salía de la caja; con la rejilla el ancho que hace
+     falta se sabe sin medir: maxChars*adv. */
+  const porAlto=(n.h-pad*2)/lines.length-4;
+  const porAncho=(bw-inset*2)/(maxChars*CODE_ADV);
+  const fs=n.fs || clamp(Math.min(porAlto,porAncho), 9, 18);
+  const adv=fs*CODE_ADV, lh=fs+6;
+  const blockH=lines.length*lh+8;
+  const bx=n.x-n.w/2+pad, by=n.y-n.h/2+(n.h-blockH)/2, x0=bx+inset;
+  const kws=new Set(codeKeywords(n).map(w=>String(w).toUpperCase()));
+  const rows=lines.map((ln,i)=>({
+    ly: by+8+i*lh+lh/2-3,
+    tokens: codeTokens(ln).map(({t,k})=>({
+      t, k, kw:kws.has(t.toUpperCase()), x:x0+k*adv, w:t.length*adv
+    })),
+  }));
+  return {lines, fs, adv, lh, blockH, bx, by, bw, x0, rows};
+}
+/* Los cinco colores, con el tema como respaldo de cada uno. */
+function codeColors(n,theme){
+  const T=THEMES[theme];
+  return {
+    panel: n.fill && n.fill!=="none" ? n.fill : (T.lblBg||"#161616"),
+    paper: n.textBg || T.codeBg,
+    text:  n.textColor || T.codeText,
+    kwBg:  n.kwBg || T.codeKwBg,
+    kwText:n.kwColor || T.codeKwText,
+  };
+}
+function codeFont(n){ return n.font || FONTS[FONTS.length-1].f; }
+
 /* ===================== Colocación de etiquetas =====================
    La etiqueta iba siempre al punto medio exacto de la ruta, sin mirar qué había
    debajo. En cuanto el diagrama se aprieta un poco, ese punto cae encima de un

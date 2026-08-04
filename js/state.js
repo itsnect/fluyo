@@ -76,12 +76,15 @@ function hexA(col,a){ const v=parseInt(col.slice(1),16);
   return `rgba(${v>>16&255},${v>>8&255},${v&255},${a})`; }
 
 function newNode(shape,x,y,extra={}){
-  const sizes={rect:[180,70], cylinder:[150,90], diamond:[160,100], circle:[110,110], hex:[170,80], text:[200,40], icon:[120,92], image:[220,160], anim:[120,100]};
+  const sizes={rect:[180,70], cylinder:[150,90], diamond:[160,100], circle:[110,110], hex:[170,80], text:[200,40], icon:[120,92], image:[220,160], anim:[120,100], code:[300,150]};
   const [w,h]=sizes[shape]||[160,70];
   const n=Object.assign({ id:P().nextId++, shape, x:snapV(x), y:snapV(y), w, h,
-    label: shape==="text"?"Texto":(shape==="icon"||shape==="image"||shape==="anim")?"":"Nodo",
+    label: shape==="text"?"Texto":shape==="code"?CODE_DEFAULT_LABEL:(shape==="icon"||shape==="image"||shape==="anim")?"":"Nodo",
     color:PALETTE[0].c, fill:null, border:"solid", lblPos:"center", textBg:null, textColor:null,
     font:null, bold:false, pulse:false, order:P().nodes.length }, extra);
+  /* Los campos de `code` solo se ponen en nodos `code`, igual que `icon` solo va
+     en los de icono: no tiene sentido cargar todos los nodos con ellos. */
+  if(shape==="code" && !("lang" in n)) Object.assign(n,{lang:DEFAULT_LANG, keywords:null, kwBg:null, kwColor:null});
   P().nodes.push(n); return n;
 }
 function newEdge(a,b,opts={}){

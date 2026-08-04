@@ -188,6 +188,47 @@ function drawAnim(c,n,t,theme,glow){
   }
   c.restore();
 }
+/* ===================== Nodo de código =====================
+   Se dibuja CARÁCTER A CARÁCTER sobre la rejilla de codeBlockLayout. No es
+   derroche: es lo que garantiza que el resaltado caiga exactamente detrás de su
+   palabra aunque la fuente que resuelva tenga otro avance (en Chrome/Windows
+   `monospace` es Consolas, avance 0.55 frente a la rejilla de 0.6). Dibujar la
+   línea entera de una vez deja el texto corrido respecto a los rectángulos, que
+   es el defecto que traía el fork.
+
+   En monoespaciada no se pierde nada por hacerlo así: sin kerning ni ligaduras,
+   el resultado es idéntico a dibujar la cadena de golpe.
+
+   Coste medido en Chrome con 4 nodos y 544 fillText por fotograma: 0.63 ms, el
+   3.8 % del presupuesto a 60fps. */
+function drawCodeNode(c,n,theme,glow){
+  const L=codeBlockLayout(n), col=codeColors(n,theme);
+  const x=n.x-n.w/2, y=n.y-n.h/2;
+  c.save();
+  c.fillStyle=col.panel;
+  c.strokeStyle=n.color; c.lineWidth=2.5+glow*1.5;
+  if(glow>0){ c.shadowColor=n.color; c.shadowBlur=18*glow; }
+  c.beginPath(); roundRect(c,x,y,n.w,n.h,10); c.fill();
+  borderDash(n,c); c.stroke(); c.setLineDash([]);
+  c.shadowBlur=0;
+  /* el bloque no puede desbordar el panel aunque el texto sea más ancho */
+  c.beginPath(); roundRect(c,x+2,y+2,n.w-4,n.h-4,9); c.clip();
+  c.fillStyle=col.paper;
+  c.beginPath(); roundRect(c,L.bx,L.by,L.bw,L.blockH,6); c.fill();
+  c.font=`${n.bold===false?"":"700 "}${L.fs}px ${codeFont(n)}`;
+  c.textBaseline="middle"; c.textAlign="left";
+  for(const row of L.rows){
+    for(const tk of row.tokens){
+      if(tk.kw){
+        c.fillStyle=col.kwBg;
+        c.fillRect(tk.x-2, row.ly-L.fs/2-2, tk.w+4, L.fs+6);
+      }
+      c.fillStyle = tk.kw ? col.kwText : col.text;
+      for(let j=0;j<tk.t.length;j++) c.fillText(tk.t[j], tk.x+j*L.adv, row.ly);
+    }
+  }
+  c.restore();
+}
 function colHex(c){ return (typeof c==="string" && c[0]==="#")? c : "#3aa7e8"; }
 function drawNode(c,n,t,theme,isExport){
   const a=nodeAlpha(n,t); if(a<=0) return;
@@ -238,6 +279,9 @@ function drawNode(c,n,t,theme,isExport){
   else if(n.shape==="anim"){
     drawAnim(c,n,t,theme,glow);
     if(n.label) drawLabelLines(c,n,theme,14,n.y+n.h/2-8);
+  }
+  else if(n.shape==="code"){
+    drawCodeNode(c,n,theme,glow);
   }
   else{
     const fc=fillFor(n,theme);

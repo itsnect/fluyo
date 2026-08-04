@@ -123,6 +123,7 @@
     <button data-shape="circle" title="Círculo"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/></svg>Círculo</button>
     <button data-shape="hex" title="Hexágono"><svg viewBox="0 0 24 24"><path d="M7 4h10l4 8-4 8H7l-4-8z"/></svg>Hex</button>
     <button data-shape="text" title="Solo texto"><svg viewBox="0 0 24 24"><path d="M5 6h14M12 6v13"/></svg>Texto</button>
+    <button data-shape="code" title="Bloque de código con palabras clave resaltadas"><svg viewBox="0 0 24 24"><path d="M9 8l-4 4 4 4M15 8l4 4-4 4"/></svg>Código</button>
     <hr>
     <button id="btnIcons" title="Iconos cloud (GCP, AWS, Azure…)" aria-expanded="false" aria-controls="iconDrawer">
       <svg viewBox="0 0 24 24"><path d="M7 17a4 4 0 0 1 0-8 5.5 5.5 0 0 1 10.6 1.4A3.5 3.5 0 0 1 17 17z"/></svg>Iconos
@@ -231,6 +232,35 @@
             </label>
           </div>
         </div>
+        <div class="row" id="rowLang"><label>Palabras clave</label>
+          <select id="langSel">
+            <option value="sql">SQL / ksqlDB</option>
+            <option value="none">Ninguna</option>
+            <option value="custom">Lista propia…</option>
+          </select>
+        </div>
+        <div class="row" id="rowKeywords" style="flex-direction:column; align-items:stretch;">
+          <label for="kwEdit">Lista propia (separadas por espacios o comas)</label>
+          <textarea id="kwEdit" rows="2" placeholder="SELECT FROM WHERE"></textarea>
+        </div>
+        <div class="row" id="rowKwBg" style="flex-direction:column; align-items:stretch;">
+          <label>Fondo del resaltado</label>
+          <div class="swatches" id="kwBgSw"></div>
+          <div class="colorTools">
+            <label class="pickLbl" title="Fondo de resaltado personalizado">
+              <input type="color" id="kwBgCustom"><span>Personalizado</span>
+            </label>
+          </div>
+        </div>
+        <div class="row" id="rowKwColor" style="flex-direction:column; align-items:stretch;">
+          <label>Texto del resaltado</label>
+          <div class="swatches" id="kwColorSw"></div>
+          <div class="colorTools">
+            <label class="pickLbl" title="Color de texto del resaltado personalizado">
+              <input type="color" id="kwColorCustom"><span>Personalizado</span>
+            </label>
+          </div>
+        </div>
         <div class="row" id="rowZ" style="flex-direction:column; align-items:stretch;">
           <label>Orden (capas)</label>
           <div class="btnGrid">
@@ -245,6 +275,7 @@
             <option value="rect">Caja</option><option value="cylinder">BD</option>
             <option value="diamond">Rombo</option><option value="circle">Círculo</option>
             <option value="hex">Hexágono</option><option value="text">Texto</option>
+            <option value="code">Código</option>
           </select>
         </div>
         <div class="row" id="rowPulse"><label>Pulso (resaltar)</label><input type="checkbox" id="pulseChk"></div>

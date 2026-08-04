@@ -2,13 +2,37 @@
 /* Anclas, rutas y geometría de flechas */
 
 /* ---- anclas y rutas ---- */
-function sidePoint(n,s){
+/* ===================== Caja de anclaje =====================
+   La caja a la que se enganchan las flechas no siempre es w×h.
+
+   En shape:"icon" el glifo se dibuja con s = min(w, h-26)*0.78 —51px sobre una
+   caja de 120— y el resto del ancho es aire: 34px vacíos a cada lado. Anclando
+   en el borde lógico, la punta de flecha quedaba flotando a 34px del icono, sin
+   nada debajo. Es el defecto que se ve como «la flecha no llega al nodo», y no
+   tiene que ver con flowDir: flowDir solo invierte el sentido de los puntos
+   animados y no toca la geometría.
+
+   La ALTURA sí se conserva. Un icono es un dibujo con un pie: arriba el glifo,
+   abajo la etiqueta. La caja alta describe bien lo que ocupa; la ancha no.
+
+   Se usa el ancho del glifo y no el del texto del pie a propósito: medir texto
+   se hace distinto en el lienzo, en el exportador SVG y en el MCP, y meter esa
+   medida en la geometría haría que los tres calculasen rutas distintas. La
+   geometría tiene que salir del documento y de nada más. */
+function anchorBox(n){
+  if(n.shape!=="icon") return n;
+  const s=Math.min(n.w, n.h-26)*.78;
+  return {x:n.x, y:n.y, w:Math.min(n.w, Math.max(1,s)), h:n.h, shape:n.shape};
+}
+function sidePoint(n0,s){
+  const n=anchorBox(n0);
   switch(s){ case "n": return {x:n.x, y:n.y-n.h/2};
     case "s": return {x:n.x, y:n.y+n.h/2};
     case "e": return {x:n.x+n.w/2, y:n.y};
     case "w": return {x:n.x-n.w/2, y:n.y}; }
 }
-function autoAnchor(n,tx,ty){
+function autoAnchor(n0,tx,ty){
+  const n=anchorBox(n0);
   const dx=tx-n.x, dy=ty-n.y;
   if(dx===0&&dy===0) return {x:n.x,y:n.y};
   if(n.shape==="circle"){ const r=n.w/2, L=Math.hypot(dx,dy);
@@ -19,7 +43,8 @@ function autoAnchor(n,tx,ty){
   return {x:n.x+dx*s, y:n.y+dy*s};
 }
 function anchorPt(n,side,tx,ty){ return side? sidePoint(n,side) : autoAnchor(n,tx,ty); }
-function inferSide(n,p){
+function inferSide(n0,p){
+  const n=anchorBox(n0);
   const dx=(p.x-n.x)/(n.w/2||1), dy=(p.y-n.y)/(n.h/2||1);
   return Math.abs(dx)>Math.abs(dy)? (dx>0?"e":"w") : (dy>0?"s":"n");
 }
@@ -81,8 +106,9 @@ function parallelLane(e){
    tiene hueco para apartarse, el clamp se come el desplazamiento y las dos
    aristas vuelven a juntarse — que es exactamente lo que pasaba con Pinecone,
    cuya ancla caía a 1px del borde inferior de su lado oeste. */
-function slideAnchor(n,side,p,off,half){
+function slideAnchor(n0,side,p,off,half){
   if(!off) return p;
+  const n=anchorBox(n0);
   const inset=10;
   const horiz=(side==="n"||side==="s");
   const c=horiz? n.x : n.y;

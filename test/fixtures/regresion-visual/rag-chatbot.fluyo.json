@@ -1,0 +1,173 @@
+{
+  "version": 3,
+  "app": "fluyo",
+  "doc": {
+    "theme": "dark",
+    "pages": [
+      {
+        "name": "RAG Chatbot",
+        "nodes": [
+          {
+            "id": 1,
+            "shape": "icon",
+            "x": 460,
+            "y": 655,
+            "w": 120,
+            "h": 92,
+            "label": "Usuario",
+            "color": "#8f8f8f",
+            "pulse": false,
+            "order": 0,
+            "icon": "user",
+            "fs": null
+          },
+          {
+            "id": 2,
+            "shape": "rect",
+            "x": 460,
+            "y": 796,
+            "w": 180,
+            "h": 70,
+            "label": "API /\nOrquestador",
+            "color": "#6a9fb5",
+            "pulse": false,
+            "order": 1,
+            "fs": null
+          },
+          {
+            "id": 3,
+            "shape": "cylinder",
+            "x": 720,
+            "y": 644,
+            "w": 150,
+            "h": 90,
+            "label": "Pinecone",
+            "color": "#7fa66b",
+            "pulse": false,
+            "order": 2,
+            "fs": null
+          },
+          {
+            "id": 4,
+            "shape": "icon",
+            "x": 720,
+            "y": 795,
+            "w": 120,
+            "h": 92,
+            "label": "Claude Opus 4",
+            "color": "#9b7fb5",
+            "pulse": true,
+            "order": 3,
+            "icon": "ai",
+            "fs": null
+          }
+        ],
+        "edges": [
+          {
+            "id": 5,
+            "from": 1,
+            "to": 2,
+            "fromSide": null,
+            "toSide": null,
+            "route": "ortho",
+            "waypoints": [],
+            "label": "pregunta",
+            "animated": true,
+            "dashed": false,
+            "startArrow": false,
+            "endArrow": true,
+            "flowDir": "normal",
+            "lineColor": null,
+            "dotColor": null,
+            "fs": null
+          },
+          {
+            "id": 6,
+            "from": 2,
+            "to": 3,
+            "fromSide": null,
+            "toSide": null,
+            "route": "ortho",
+            "waypoints": [],
+            "label": "busca contexto",
+            "animated": true,
+            "dashed": false,
+            "startArrow": false,
+            "endArrow": true,
+            "flowDir": "normal",
+            "lineColor": null,
+            "dotColor": null,
+            "fs": null
+          },
+          {
+            "id": 7,
+            "from": 3,
+            "to": 2,
+            "fromSide": null,
+            "toSide": null,
+            "route": "ortho",
+            "waypoints": [],
+            "label": "chunks relevantes",
+            "animated": true,
+            "dashed": false,
+            "startArrow": false,
+            "endArrow": true,
+            "flowDir": "reverse",
+            "lineColor": null,
+            "dotColor": null,
+            "fs": null
+          },
+          {
+            "id": 8,
+            "from": 2,
+            "to": 4,
+            "fromSide": null,
+            "toSide": null,
+            "route": "ortho",
+            "waypoints": [],
+            "label": "contexto + pregunta",
+            "animated": true,
+            "dashed": false,
+            "startArrow": false,
+            "endArrow": true,
+            "flowDir": "normal",
+            "lineColor": null,
+            "dotColor": null,
+            "fs": null
+          },
+          {
+            "id": 9,
+            "from": 4,
+            "to": 1,
+            "fromSide": null,
+            "toSide": null,
+            "route": "ortho",
+            "waypoints": [],
+            "label": "respuesta",
+            "animated": true,
+            "dashed": false,
+            "startArrow": false,
+            "endArrow": true,
+            "flowDir": "reverse",
+            "lineColor": null,
+            "dotColor": null,
+            "fs": null
+          }
+        ],
+        "nextId": 10
+      }
+    ],
+    "cur": 0,
+    "customBg": ""
+  },
+  "settings": {
+    "speed": 0.5,
+    "dots": 3,
+    "build": false,
+    "stagger": 0.45,
+    "grid": true,
+    "snap": false,
+    "font": "Georgia, serif",
+    "single": false
+  }
+}

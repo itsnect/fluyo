@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ejemplos de diagramas de arquitectura — Kafka, microservicios, OAuth, ETL y serverless</title>
+<meta name="description" content="Diagramas de arquitectura listos para usar y editar: pipeline de eventos con Kafka, microservicios con API Gateway, flujo OAuth 2.0, pipeline ETL y serverless en AWS.">
+<link rel="canonical" href="https://fluyo.space/ejemplos/">
+<meta property="og:title" content="Ejemplos de diagramas de arquitectura para copiar y editar">
+<meta property="og:description" content="Kafka, microservicios con API Gateway, OAuth 2.0, ETL y serverless en AWS. Se abren en el editor con un clic, gratis y sin cuenta.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://fluyo.space/ejemplos/">
+<meta property="og:site_name" content="Fluyo">
+<meta property="og:image" content="https://fluyo.space/assets/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Ejemplos de diagramas de arquitectura para copiar y editar">
+<meta name="twitter:description" content="Kafka, microservicios, OAuth 2.0, ETL y serverless. Se abren en el editor con un clic.">
+<meta name="twitter:image" content="https://fluyo.space/assets/og-image.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23161616'/%3E%3Ccircle cx='18' cy='32' r='7' fill='%23d08b5b'/%3E%3Ccircle cx='40' cy='32' r='5' fill='%23d08b5b' opacity='.65'/%3E%3Ccircle cx='54' cy='32' r='3.4' fill='%23d08b5b' opacity='.35'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#111213">
+<link rel="stylesheet" href="../css/pages.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  "name": "Ejemplos de diagramas de arquitectura",
+  "description": "Diagramas de arquitectura de software listos para abrir y editar en Fluyo.",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Pipeline de eventos con Apache Kafka", "url": "https://fluyo.space/?ejemplo=kafka-event-pipeline" },
+    { "@type": "ListItem", "position": 2, "name": "Arquitectura de microservicios con API Gateway", "url": "https://fluyo.space/?ejemplo=microservicios-api-gateway" },
+    { "@type": "ListItem", "position": 3, "name": "Flujo de autenticación OAuth 2.0", "url": "https://fluyo.space/?ejemplo=oauth2-flujo-autenticacion" },
+    { "@type": "ListItem", "position": 4, "name": "Pipeline ETL de datos", "url": "https://fluyo.space/?ejemplo=pipeline-etl-datos" },
+    { "@type": "ListItem", "position": 5, "name": "Arquitectura serverless en AWS", "url": "https://fluyo.space/?ejemplo=arquitectura-serverless-aws" }
+  ]
+}
+</script>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="inner">
+    <a class="logo" href="../">flu<b>yo</b><span class="dots" aria-hidden="true"><span></span><span></span><span></span></span></a>
+    <nav>
+      <a href="../">Editor</a>
+      <a href="./" aria-current="page">Ejemplos</a>
+      <a href="../docs/">Docs</a>
+      <a href="https://github.com/itsnect/fluyo" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+<h1>Ejemplos de diagramas de arquitectura</h1>
+<p class="lead">Arquitecturas reales, listas para abrir y editar. Cada una se carga en el editor con un clic: cambia los nombres, añade tus servicios y expórtala como GIF animado. Sin cuenta y sin límites.</p>
+<div class="note">
+  <p>Los archivos son <code>.fluyo.json</code> normales. Puedes descargarlos, versionarlos en git junto a tu código y abrirlos después con el botón <strong>Abrir</strong> del editor.</p>
+</div>
+
+<div class="gallery">
+
+  <article class="card">
+    <span class="preview">
+      <img src="previews/kafka-event-pipeline.svg" alt="Diagrama: apps productoras envían eventos por un API Gateway a Kafka, que reparte a servicios de pagos y envíos, con dead letter queue, PostgreSQL y un data warehouse" loading="lazy">
+    </span>
+    <div class="body">
+      <h2>Pipeline de eventos con Apache Kafka</h2>
+      <p>Arquitectura orientada a eventos: los productores publican en Kafka a través de un API Gateway y varios consumidores independientes leen de sus propios topics. Incluye la pieza que casi siempre falta en estos diagramas, la <strong>dead letter queue</strong> para los mensajes que fallan, y separa la ruta transaccional a PostgreSQL de la ruta analítica al data warehouse. Útil para explicar por qué desacoplar productores y consumidores, o para documentar qué servicio consume cada topic.</p>
+      <div class="actions">
+        <a class="btn" href="../?ejemplo=kafka-event-pipeline">Abrir en el editor</a>
+        <a class="btn ghost" href="data/kafka-event-pipeline.fluyo.json" download>Descargar JSON</a>
+        <span class="meta">9 nodos · 7 conexiones</span>
+      </div>
+    </div>
+  </article>
+
+  <article class="card">
+    <span class="preview">
+      <img src="previews/microservicios-api-gateway.svg" alt="Diagrama: clientes web y móvil entran por un API Gateway que enruta a servicios de auth, usuarios y pedidos, cada uno con su base de datos, más Redis y un event bus" loading="lazy">
+    </span>
+    <div class="body">
+      <h2>Arquitectura de microservicios con API Gateway</h2>
+      <p>El patrón clásico: un único punto de entrada que autentica y enruta hacia servicios pequeños e independientes. Cada servicio tiene <strong>su propia base de datos</strong> — la regla que distingue microservicios de un monolito repartido — con Redis cacheando la validación de tokens y un event bus para la comunicación asíncrona entre pedidos y usuarios. Buen punto de partida para una propuesta de diseño o para dibujar los límites de contexto de tu sistema.</p>
+      <div class="actions">
+        <a class="btn" href="../?ejemplo=microservicios-api-gateway">Abrir en el editor</a>
+        <a class="btn ghost" href="data/microservicios-api-gateway.fluyo.json" download>Descargar JSON</a>
+        <span class="meta">11 nodos · 10 conexiones</span>
+      </div>
+    </div>
+  </article>
+
+  <article class="card">
+    <span class="preview">
+      <img src="previews/oauth2-flujo-autenticacion.svg" alt="Diagrama numerado del flujo OAuth 2.0: usuario, aplicación cliente, servidor de autorización, consentimiento, intercambio de código por token y llamada a la API protegida" loading="lazy">
+    </span>
+    <div class="body">
+      <h2>Flujo de autenticación OAuth 2.0</h2>
+      <p>Los seis pasos del <em>authorization code flow</em>, numerados en orden: el usuario inicia sesión, la aplicación redirige a <code>/authorize</code>, el usuario da su consentimiento, el código se intercambia por un access token y un refresh token, y con ese token se llama a la API protegida. Es el ejemplo donde más se nota la animación de flujo: <strong>se ve el orden de los pasos</strong> en lugar de tener que deducirlo de las etiquetas. Ideal para onboarding de nuevos integrantes del equipo.</p>
+      <div class="actions">
+        <a class="btn" href="../?ejemplo=oauth2-flujo-autenticacion">Abrir en el editor</a>
+        <a class="btn ghost" href="data/oauth2-flujo-autenticacion.fluyo.json" download>Descargar JSON</a>
+        <span class="meta">8 nodos · 6 conexiones</span>
+      </div>
+    </div>
+  </article>
+
+  <article class="card">
+    <span class="preview">
+      <img src="previews/pipeline-etl-datos.svg" alt="Diagrama: MySQL, archivos CSV en S3 y APIs externas se extraen, se transforman, se validan y van al data warehouse o a cuarentena, con dashboards de BI al final" loading="lazy">
+    </span>
+    <div class="body">
+      <h2>Pipeline ETL de datos</h2>
+      <p>Extracción desde tres orígenes heterogéneos (una base de datos de producción, archivos en almacenamiento de objetos y APIs de terceros), transformación por lotes y un <strong>paso de validación explícito</strong> que bifurca: lo correcto va al data warehouse y de ahí a los dashboards, lo defectuoso a cuarentena en lugar de contaminar silenciosamente los datos. Incluye un GIF de progreso animado en el paso de transformación.</p>
+      <div class="actions">
+        <a class="btn" href="../?ejemplo=pipeline-etl-datos">Abrir en el editor</a>
+        <a class="btn ghost" href="data/pipeline-etl-datos.fluyo.json" download>Descargar JSON</a>
+        <span class="meta">10 nodos · 8 conexiones</span>
+      </div>
+    </div>
+  </article>
+
+  <article class="card">
+    <span class="preview">
+      <img src="previews/arquitectura-serverless-aws.svg" alt="Diagrama: usuario a CloudFront, estáticos en S3, API Gateway a Lambda, DynamoDB, SQS con Lambda worker y métricas en CloudWatch" loading="lazy">
+    </span>
+    <div class="body">
+      <h2>Arquitectura serverless en AWS</h2>
+      <p>Una aplicación completa sin un solo servidor que administrar: CloudFront sirve el frontend estático desde S3 y enruta <code>/api/*</code> al API Gateway, que invoca funciones Lambda contra DynamoDB. El trabajo pesado se desacopla con <strong>SQS y una Lambda worker</strong>, para que la petición del usuario no espere, y CloudWatch recoge las métricas. Sirve tanto para estimar costes como para explicar dónde están los límites de concurrencia.</p>
+      <div class="actions">
+        <a class="btn" href="../?ejemplo=arquitectura-serverless-aws">Abrir en el editor</a>
+        <a class="btn ghost" href="data/arquitectura-serverless-aws.fluyo.json" download>Descargar JSON</a>
+        <span class="meta">10 nodos · 8 conexiones</span>
+      </div>
+    </div>
+  </article>
+
+</div>
+
+<h2>¿No está el que buscas?</h2>
+<p>Empieza en blanco: <a href="../">abre el editor</a> y coloca la primera forma. La <a href="../docs/">documentación</a> explica el lienzo, la animación de flujo y la exportación a GIF en una sola página.</p>
+<p>Si dibujas una arquitectura que crees que le sirve a más gente, mándala como Pull Request a <a href="https://github.com/itsnect/fluyo" target="_blank" rel="noopener">itsnect/fluyo</a>. Añadir un ejemplo es un archivo <code>.fluyo.json</code> y una línea en la lista blanca.</p>
+
+<footer class="pagefoot">
+  <p>Fluyo es software libre con licencia MIT · <a href="../">Editor</a> · <a href="../docs/">Docs</a> · <a href="../privacidad/">Privacidad</a> · <a href="../terminos/">Términos</a> · <a href="../soporte/">Soporte</a> · <a href="https://github.com/itsnect/fluyo" target="_blank" rel="noopener">GitHub</a> · <a href="https://github.com/itsnect/fluyo-mcp" target="_blank" rel="noopener">MCP</a></p>
+</footer>
+
+</main>
+</body>
+</html>

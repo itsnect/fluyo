@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Support — Fluyo</title>
+<meta name="description" content="How to reach the Fluyo project: support email, GitHub issues for the editor and for the MCP server, and what response time to expect.">
+<link rel="canonical" href="https://fluyo.space/support/">
+<link rel="alternate" hreflang="es" href="https://fluyo.space/soporte/">
+<link rel="alternate" hreflang="en" href="https://fluyo.space/support/">
+<link rel="alternate" hreflang="x-default" href="https://fluyo.space/soporte/">
+<meta property="og:title" content="Fluyo Support">
+<meta property="og:description" content="Support email, GitHub issues and expected response time.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://fluyo.space/support/">
+<meta property="og:site_name" content="Fluyo">
+<meta property="og:image" content="https://fluyo.space/assets/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Fluyo Support">
+<meta name="twitter:description" content="Support email, GitHub issues and expected response time.">
+<meta name="twitter:image" content="https://fluyo.space/assets/og-image.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23161616'/%3E%3Ccircle cx='18' cy='32' r='7' fill='%23d08b5b'/%3E%3Ccircle cx='40' cy='32' r='5' fill='%23d08b5b' opacity='.65'/%3E%3Ccircle cx='54' cy='32' r='3.4' fill='%23d08b5b' opacity='.35'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#111213">
+<link rel="stylesheet" href="../css/pages.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="inner">
+    <a class="logo" href="../">flu<b>yo</b><span class="dots" aria-hidden="true"><span></span><span></span><span></span></span></a>
+    <nav>
+      <a href="../">Editor</a>
+      <a href="../docs/">Docs</a>
+      <a href="../privacy/">Privacy</a>
+      <a href="../terms/">Terms</a>
+      <a href="./" aria-current="page">Support</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+<h1>Support</h1>
+<p class="lead">Fluyo is maintained by one person. That shapes both the right channel to reach it and what you can expect from it. <a href="../soporte/">Versión en español</a>.</p>
+
+<h2>Before writing</h2>
+<p>The <a href="../docs/">documentation</a> reads end to end in one sitting and covers the editor, the <code>.fluyo.json</code> format and the MCP server. If your question is "how do I do X?", it is very likely in there.</p>
+
+<h2>Where to write</h2>
+
+<table>
+  <tr><th>If your matter is…</th><th>Write to…</th></tr>
+  <tr>
+    <td>A bug or a feature request <strong>for the editor</strong></td>
+    <td><a href="https://github.com/itsnect/fluyo/issues" target="_blank" rel="noopener"><code>fluyo</code> issues</a></td>
+  </tr>
+  <tr>
+    <td>A bug or a feature request <strong>for the MCP server</strong></td>
+    <td><a href="https://github.com/itsnect/fluyo-mcp/issues" target="_blank" rel="noopener"><code>fluyo-mcp</code> issues</a></td>
+  </tr>
+  <tr>
+    <td>An <strong>idea</strong> you are not going to implement right now</td>
+    <td><a href="https://github.com/itsnect/fluyo/blob/main/ideas.md" target="_blank" rel="noopener"><code>ideas.md</code></a>, via issue or pull request</td>
+  </tr>
+  <tr>
+    <td><strong>Privacy</strong>, data or legal matters</td>
+    <td>Email (below)</td>
+  </tr>
+  <tr>
+    <td>A <strong>security vulnerability</strong></td>
+    <td>Email, privately. <strong>Do not open a public issue</strong></td>
+  </tr>
+  <tr>
+    <td>Anything else</td>
+    <td>Email</td>
+  </tr>
+</table>
+
+<div class="note">
+  <p><strong>Public issues are the preferred channel for bugs and improvements.</strong> It is not about offloading work: in an issue the conversation stays archived, the next person who hits the same thing finds it, and anyone can contribute. An email is read by two people only.</p>
+</div>
+
+<h2>Support email</h2>
+<p><strong><a href="mailto:nectdnb@gmail.com">nectdnb@gmail.com</a></strong></p>
+<p>Write in <strong>English or Spanish</strong>, whichever suits you.</p>
+
+<h2>Response time</h2>
+<p>Fluyo is a free, MIT-licensed project maintained in spare time and without a service level agreement. That said, the realistic commitment is this:</p>
+<table>
+  <tr><th>Type of matter</th><th>First response</th></tr>
+  <tr><td>Privacy, data or legal matters</td><td>Within <strong>72 hours</strong></td></tr>
+  <tr><td>Security vulnerability</td><td>Within <strong>72 hours</strong></td></tr>
+  <tr><td>Everything else — bugs, usage questions, MCP server down</td><td>Within <strong>a week</strong></td></tr>
+  <tr><td>Feature requests and ideas</td><td>No deadline. All of them get read</td></tr>
+</table>
+<p>"First response" means someone has read your message and replied, not that the problem is solved. A reproducible bug is usually fixed quickly; one that cannot be reproduced may stay open for a long time.</p>
+
+<h2>How to write a good report</h2>
+<p>What speeds up a fix the most, in order:</p>
+<ul>
+  <li><strong>The <code>.fluyo.json</code> file</strong> it fails with, if you can share it. It is the only thing that allows the problem to be reproduced exactly. If the diagram is confidential, a minimal example that fails the same way works perfectly.</li>
+  <li><strong>What you expected and what happened.</strong> "The GIF jumps when it loops" says far more than "export is not working properly".</li>
+  <li><strong>Browser and operating system.</strong> Several editor features — the eyedropper, the clipboard, fullscreen — depend on APIs that are not in every browser.</li>
+  <li><strong>Console errors</strong>, if you know how to open it (<kbd>F12</kbd>).</li>
+  <li>For the MCP server: <strong>which client you use</strong> and whether you go through the remote connector or locally over stdio.</li>
+</ul>
+
+<h2>Security</h2>
+<p>If you find a vulnerability, write to the address above <strong>privately</strong> and allow a reasonable period for it to be fixed before disclosing it. The full policy is in <a href="https://github.com/itsnect/fluyo/blob/main/SECURITY.md" target="_blank" rel="noopener">SECURITY.md</a>.</p>
+
+<h2>Contributing</h2>
+<p>Pull requests are welcome and require installing nothing: the editor is HTML, CSS and JavaScript with no dependencies and no build step. <a href="https://github.com/itsnect/fluyo/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener">CONTRIBUTING.md</a> explains the structure and includes step-by-step guides for adding an icon and an animation.</p>
+<p>For small fixes, send the pull request directly. For large changes, open an issue first: agreeing on the approach is faster than redoing the work.</p>
+
+<h2>If you need more than this project can give</h2>
+<p>If you depend on Fluyo for something critical and need availability guarantees or committed response times, the honest answer is that <strong>this service cannot give them to you</strong>. What you can do, without asking anyone's permission:</p>
+<ul>
+  <li><strong>Host your own editor.</strong> They are static files: any server will do.</li>
+  <li><strong>Deploy your own instance of the MCP server</strong>, without the limits of the public endpoint.</li>
+  <li><strong>Run the MCP server locally over stdio</strong>, with no network in between and no caps at all.</li>
+</ul>
+<p>Everything is MIT-licensed and documented in the repositories. That is the concrete advantage of the project being free software.</p>
+
+<footer class="pagefoot">
+  <p>Fluyo is free software under the MIT licence · <a href="../">Editor</a> · <a href="../docs/">Docs</a> · <a href="../privacy/">Privacy</a> · <a href="../terms/">Terms</a> · <a href="../soporte/">Español</a> · <a href="https://github.com/itsnect/fluyo" target="_blank" rel="noopener">GitHub</a></p>
+</footer>
+
+</main>
+</body>
+</html>

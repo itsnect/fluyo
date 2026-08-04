@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1615" height="738" viewBox="345 260 1615 738">
+<defs>
+  <marker id="fluyo-arrow-end" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="strokeWidth">
+    <path d="M 0 0 L 10 4 L 0 8 z" fill="context-stroke"/>
+  </marker>
+  <marker id="fluyo-arrow-start" markerWidth="10" markerHeight="8" refX="1" refY="4" orient="auto-start-reverse" markerUnits="strokeWidth">
+    <path d="M 0 0 L 10 4 L 0 8 z" fill="context-stroke"/>
+  </marker>
+</defs>
+<polyline points="535.00,480.00 563.00,480.00 647.50,480.00 647.50,680.00 732.00,680.00 760.00,680.00" fill="none" stroke="#777" stroke-width="2" stroke-linejoin="round" marker-end="url(#fluyo-arrow-end)"/>
+<polyline points="520.00,680.00 548.00,680.00 640.00,680.00 732.00,680.00 760.00,680.00" fill="none" stroke="#777" stroke-width="2" stroke-linejoin="round" marker-end="url(#fluyo-arrow-end)"/>
+<polyline points="520.00,880.00 548.00,880.00 640.00,880.00 640.00,680.00 732.00,680.00 760.00,680.00" fill="none" stroke="#777" stroke-width="2" stroke-linejoin="round" marker-end="url(#fluyo-arrow-end)"/>
+<polyline points="880.00,680.00 908.00,680.00 962.50,680.00 1017.00,680.00 1045.00,680.00" fill="none" stroke="#777" stroke-width="2" stroke-linejoin="round" marker-end="url(#fluyo-arrow-end)"/>
+<rect x="940.06" y="668.95" width="44.89" height="22.10" fill="#161616"/>
+<text x="962.50" y="680.00" font-family="Georgia, serif" font-size="13" fill="#bdbdbd" text-anchor="middle" dominant-baseline="middle">batch</text>
+<polyline points="1120.00,740.00 1120.00,768.00 1120.00,791.25 1120.00,814.50 1120.00,842.50" fill="none" stroke="#777" stroke-width="2" stroke-linejoin="round" marker-end="url(#fluyo-arrow-end)"/>
+<polyline points="1210.00,900.00 1238.00,900.00 1500.00,900.00 1500.00,634.00 1500.00,606.00" fill="none" stroke="#777" stroke-width="2" stroke-linejoin="round" marker-end="url(#fluyo-arrow-end)"/>
+<rect x="1489.19" y="886.95" width="21.62" height="22.10" fill="#161616"/>
+<text x="1500.00" y="898.00" font-family="Georgia, serif" font-size="13" fill="#bdbdbd" text-anchor="middle" dominant-baseline="middle">sí</text>
+<polyline points="1210.00,900.00 1238.00,900.00 1325.00,900.00 1412.00,900.00 1440.00,900.00" fill="none" stroke="#777" stroke-width="2" stroke-linejoin="round" stroke-dasharray="8 7" marker-end="url(#fluyo-arrow-end)"/>
+<rect x="1311.49" y="888.95" width="27.01" height="22.10" fill="#161616"/>
+<text x="1325.00" y="900.00" font-family="Georgia, serif" font-size="13" fill="#bdbdbd" text-anchor="middle" dominant-baseline="middle">no</text>
+<polyline points="1560.00,560.00 1588.00,560.00 1680.00,560.00 1772.00,560.00 1800.00,560.00" fill="none" stroke="#777" stroke-width="2" stroke-linejoin="round" marker-end="url(#fluyo-arrow-end)"/>
+<g id="node-1">
+<text x="1280.00" y="320.00" font-family="Georgia, serif" font-size="30.0" fill="#7fa66b" text-anchor="middle" dominant-baseline="middle">Pipeline ETL de datos</text>
+</g>
+<g id="node-2">
+<path d="M 385.00 451.00 L 385.00 509.00 C 385.00 537.80 535.00 537.80 535.00 509.00 L 535.00 451.00 C 535.00 422.20 385.00 422.20 385.00 451.00 Z" fill="rgba(127,166,107,0.18)" stroke="#7fa66b" stroke-width="2.5"/>
+<ellipse cx="460" cy="451.00" rx="75.00" ry="16.00" fill="none" stroke="#7fa66b" stroke-width="2.5"/>
+<text x="460.00" y="475.38" font-family="Georgia, serif" font-size="17.0" fill="#ededed" text-anchor="middle" dominant-baseline="middle">MySQL</text>
+<text x="460.00" y="496.63" font-family="Georgia, serif" font-size="17.0" fill="#ededed" text-anchor="middle" dominant-baseline="middle">(producción)</text>
+</g>
+<g id="node-3">
+<image x="434.26" y="638.00" width="51.48" height="51.48" href="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20x%3D%222%22%20y%3D%222%22%20width%3D%2260%22%20height%3D%2260%22%20rx%3D%2214%22%20fill%3D%22%23455060%22%2F%3E%3Cpath%20d%3D%22M22%2014%20h14%20l8%208%20v28%20h-22z%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%223.4%22%20stroke-linejoin%3D%22round%22%2F%3E%3Cpath%20d%3D%22M36%2014%20v8%20h8%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%223.4%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E" preserveAspectRatio="xMidYMid meet"/>
+<text x="460.00" y="716.00" font-family="Georgia, serif" font-size="14.0" fill="#ededed" text-anchor="middle" dominant-baseline="middle">CSV / S3</text>
+</g>
+<g id="node-4">
+<image x="434.26" y="838.00" width="51.48" height="51.48" href="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20x%3D%222%22%20y%3D%222%22%20width%3D%2260%22%20height%3D%2260%22%20rx%3D%2214%22%20fill%3D%22%232f4858%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2233%22%20font-size%3D%2222%22%20font-family%3D%22Georgia%2Cserif%22%20fill%3D%22%23fff%22%20text-anchor%3D%22middle%22%20dominant-baseline%3D%22central%22%3E%26lt%3B%2F%26gt%3B%3C%2Ftext%3E%3C%2Fsvg%3E" preserveAspectRatio="xMidYMid meet"/>
+<text x="460.00" y="916.00" font-family="Georgia, serif" font-size="14.0" fill="#ededed" text-anchor="middle" dominant-baseline="middle">APIs externas</text>
+</g>
+<g id="node-5">
+<image x="794.26" y="638.00" width="51.48" height="51.48" href="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20x%3D%222%22%20y%3D%222%22%20width%3D%2260%22%20height%3D%2260%22%20rx%3D%2214%22%20fill%3D%22%234285f4%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2233%22%20font-size%3D%2234%22%20font-family%3D%22Georgia%2Cserif%22%20fill%3D%22%23fff%22%20text-anchor%3D%22middle%22%20dominant-baseline%3D%22central%22%3E%C6%92%3C%2Ftext%3E%3C%2Fsvg%3E" preserveAspectRatio="xMidYMid meet"/>
+<text x="820.00" y="716.00" font-family="Georgia, serif" font-size="14.0" fill="#ededed" text-anchor="middle" dominant-baseline="middle">Extracción</text>
+</g>
+<g id="node-6">
+<image x="1073.00" y="625.00" width="94.00" height="94.00" href="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20x%3D%222%22%20y%3D%222%22%20width%3D%2260%22%20height%3D%2260%22%20rx%3D%2214%22%20fill%3D%22%2320242a%22%2F%3E%3Crect%20x%3D%2214%22%20y%3D%2228%22%20width%3D%2236%22%20height%3D%228%22%20rx%3D%224%22%20fill%3D%22none%22%20stroke%3D%22%23e8e6e1%22%20stroke-width%3D%222.6%22%2F%3E%3Crect%20x%3D%2214%22%20y%3D%2228%22%20width%3D%2222%22%20height%3D%228%22%20rx%3D%224%22%20fill%3D%22%233aa7e8%22%2F%3E%3C%2Fsvg%3E" preserveAspectRatio="xMidYMid meet"/>
+<text x="1120.00" y="732.00" font-family="Georgia, serif" font-size="14.0" fill="#5b9bd0" text-anchor="middle" dominant-baseline="middle">Transformación</text>
+</g>
+<g id="node-7">
+<polygon points="1120,842.50 1210.00,900 1120,957.50 1030.00,900" fill="rgba(201,180,88,0.18)" stroke="#c9b458" stroke-width="2.5"/>
+<text x="1120.00" y="900.00" font-family="Georgia, serif" font-size="17.0" fill="#ededed" text-anchor="middle" dominant-baseline="middle">¿Válido?</text>
+</g>
+<g id="node-8">
+<image x="1474.26" y="518.00" width="51.48" height="51.48" href="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20x%3D%222%22%20y%3D%222%22%20width%3D%2260%22%20height%3D%2260%22%20rx%3D%2214%22%20fill%3D%22%234285f4%22%2F%3E%3Ccircle%20cx%3D%2229%22%20cy%3D%2229%22%20r%3D%2213%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%223.6%22%2F%3E%3Cline%20x1%3D%2238%22%20y1%3D%2238%22%20x2%3D%2249%22%20y2%3D%2249%22%20stroke%3D%22%23fff%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22round%22%2F%3E%3Cline%20x1%3D%2224%22%20y1%3D%2231%22%20x2%3D%2224%22%20y2%3D%2234%22%20stroke%3D%22%23fff%22%20stroke-width%3D%223%22%2F%3E%3Cline%20x1%3D%2229%22%20y1%3D%2226%22%20x2%3D%2229%22%20y2%3D%2234%22%20stroke%3D%22%23fff%22%20stroke-width%3D%223%22%2F%3E%3Cline%20x1%3D%2234%22%20y1%3D%2229%22%20x2%3D%2234%22%20y2%3D%2234%22%20stroke%3D%22%23fff%22%20stroke-width%3D%223%22%2F%3E%3C%2Fsvg%3E" preserveAspectRatio="xMidYMid meet"/>
+<text x="1500.00" y="596.00" font-family="Georgia, serif" font-size="14.0" fill="#ededed" text-anchor="middle" dominant-baseline="middle">Data warehouse</text>
+</g>
+<g id="node-9">
+<image x="1474.26" y="858.00" width="51.48" height="51.48" href="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20x%3D%222%22%20y%3D%222%22%20width%3D%2260%22%20height%3D%2260%22%20rx%3D%2214%22%20fill%3D%22%23d99a1f%22%2F%3E%3Cpath%20d%3D%22M32%2014%20l20%2034%20h-40z%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%224%22%20stroke-linejoin%3D%22round%22%2F%3E%3Cline%20x1%3D%2232%22%20y1%3D%2228%22%20x2%3D%2232%22%20y2%3D%2238%22%20stroke%3D%22%23fff%22%20stroke-width%3D%224%22%20stroke-linecap%3D%22round%22%2F%3E%3Ccircle%20cx%3D%2232%22%20cy%3D%2244%22%20r%3D%222.6%22%20fill%3D%22%23fff%22%2F%3E%3C%2Fsvg%3E" preserveAspectRatio="xMidYMid meet"/>
+<text x="1500.00" y="936.00" font-family="Georgia, serif" font-size="14.0" fill="#ededed" text-anchor="middle" dominant-baseline="middle">Cuarentena</text>
+</g>
+<g id="node-10">
+<image x="1834.26" y="518.00" width="51.48" height="51.48" href="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20x%3D%222%22%20y%3D%222%22%20width%3D%2260%22%20height%3D%2260%22%20rx%3D%2214%22%20fill%3D%22%233c5a3c%22%2F%3E%3Cpath%20d%3D%22M16%2046%20v-28%20M16%2046%20h32%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%223.2%22%20stroke-linecap%3D%22round%22%2F%3E%3Cpath%20d%3D%22M20%2040%20l8%20-10%206%206%2012%20-16%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%223.2%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E" preserveAspectRatio="xMidYMid meet"/>
+<text x="1860.00" y="596.00" font-family="Georgia, serif" font-size="14.0" fill="#ededed" text-anchor="middle" dominant-baseline="middle">Dashboards BI</text>
+</g>
+</svg>

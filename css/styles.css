@@ -78,6 +78,10 @@ aside h3{font-size:11px; text-transform:uppercase; letter-spacing:1.2px; color:v
 .swatches{display:flex; flex-wrap:wrap; gap:5px; max-height:132px; overflow-y:auto; padding:2px;}
 .swatch{width:21px; height:21px; border-radius:5px; border:2px solid transparent; cursor:pointer; flex-shrink:0;}
 .swatch:hover{outline:1px solid var(--muted); outline-offset:1px;}
+/* los swatches son <div>, así que la regla de :focus-visible de arriba (button,
+   select, input) no los alcanza: sin esto la navegación con flechas sería
+   invisible y por tanto inservible */
+.swatch:focus-visible{outline:2px solid var(--accent2); outline-offset:2px;}
 .swatch.sel{border-color:#fff; box-shadow:0 0 0 1px #000;}
 .swatch.special{border-color:var(--line);}
 /* ---- color tools (custom picker + eyedropper) ---- */
@@ -102,6 +106,24 @@ textarea#lblEdit{width:100%; background:var(--panel2); color:var(--text); border
 .wfull{width:100%; margin-top:6px;}
 .btnGrid{display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:8px;}
 /* ---- pages bar ---- */
+/* El borde superior vive en #bottomBar para que la franja se lea como una sola
+   pieza: el footer scrollea en horizontal y los enlaces se quedan fijos. */
+#bottomBar{
+  display:flex; align-items:stretch; gap:10px;
+  background:var(--panel); border-top:1px solid var(--line);
+}
+#bottomBar > footer{flex:1; min-width:0; border-top:none;}
+/* Enlaces del proyecto: discretos a propósito, no deben competir con el lienzo
+   ni con las pestañas. Se hacen visibles al pasar por encima o al enfocarlos. */
+#siteLinks{
+  display:flex; align-items:center; gap:14px;
+  padding:5px 14px 5px 4px; flex-shrink:0;
+}
+#siteLinks a{
+  color:var(--muted); text-decoration:none; font-size:11.5px; white-space:nowrap;
+  padding:2px 1px; border-bottom:1px solid transparent;
+}
+#siteLinks a:hover{color:var(--accent); border-bottom-color:var(--accent);}
 footer{
   display:flex; align-items:center; gap:4px; padding:5px 10px;
   background:var(--panel); border-top:1px solid var(--line); overflow-x:auto;
@@ -125,6 +147,29 @@ footer .tab .x:hover{opacity:1; color:#c97070;}
 @media (prefers-reduced-motion: reduce){ #barFill{transition:none;} }
 .card .actions{display:flex; justify-content:flex-end; gap:8px; margin-top:16px;}
 kbd{background:var(--panel2); border:1px solid var(--line); border-radius:4px; padding:0 4px; font-size:11px;}
+
+/* ---- modo presentación ----
+   El diagrama se queda solo en pantalla: fuera cabecera, rail, panel y pestañas.
+   El mando se aparta visualmente (opacidad baja) para no salir en la foto, pero
+   sigue ahí y se recupera al acercar el puntero o al enfocarlo con el teclado. */
+#btnPanel{display:none;}
+#presentBar{
+  display:none; position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
+  align-items:center; gap:8px; z-index:60;
+  background:#000000bb; border:1px solid var(--line); border-radius:999px;
+  padding:6px 10px; opacity:.35; transition:opacity .2s;
+}
+#presentBar:hover, #presentBar:focus-within{opacity:1;}
+#presentBar button{min-width:44px; height:38px; border-radius:999px; font-size:14px;}
+#presentBar #prPos{color:var(--muted); font-size:12px; padding:0 6px; min-width:70px; text-align:center;}
+body.presenting header,
+body.presenting .rail,
+body.presenting aside,
+body.presenting #bottomBar,
+body.presenting #iconDrawer,
+body.presenting #animDrawer{display:none !important;}
+body.presenting #presentBar{display:flex;}
+@media (prefers-reduced-motion: reduce){ #presentBar{transition:none;} }
 
 /* ============ Responsive ============ */
 @media (max-width: 700px) {
@@ -156,12 +201,30 @@ kbd{background:var(--panel2); border:1px solid var(--line); border-radius:4px; p
   .stage { padding: 0; }
   #wrap { width: 100%; height: 100%; }
 
-  aside { display: none; }
+  /* El panel de propiedades ya no se oculta en móvil: era la única vía a los
+     colores, la tipografía y el resto de ajustes de la selección, así que
+     ocultarlo dejaba media aplicación fuera del alcance del dedo. Pasa a ser un
+     cajón lateral que abre y cierra el botón ⚙ de la cabecera. */
+  #btnPanel { display: inline-flex; align-items: center; justify-content: center; }
+  aside {
+    display: flex; position: fixed; top: 0; right: 0; bottom: 0;
+    width: min(310px, 88vw); z-index: 45;
+    transform: translateX(102%); transition: transform .2s ease;
+    box-shadow: -10px 0 28px #0009;
+  }
+  body.panelOpen aside { transform: none; }
+
+  /* en móvil los enlaces del pie son la vía visible a /docs y /ejemplos:
+     se aprietan, pero no se ocultan */
+  #siteLinks { gap: 9px; padding: 5px 8px 5px 2px; }
+  #siteLinks a { font-size: 10.5px; }
 
   #iconDrawer, #animDrawer {
     left: 4px; right: 4px; width: auto;
     top: auto; bottom: 46px;
   }
+
+  @media (prefers-reduced-motion: reduce){ aside { transition: none; } }
 }
 
 @media (min-width: 701px) and (max-width: 1024px) {

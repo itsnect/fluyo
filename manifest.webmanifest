@@ -1,10 +1,29 @@
 {
-  "name": "Fluyo",
+  "id": "/",
+  "name": "Fluyo — diagramas de arquitectura animados",
   "short_name": "Fluyo",
-  "description": "Editor de diagramas animados de arquitectura, gratis y local-first.",
+  "description": "Editor de diagramas de arquitectura con animación de flujo y exportación a GIF, PNG, JPG y SVG. Funciona en el navegador, sin cuenta ni backend.",
+  "lang": "es",
+  "dir": "ltr",
   "start_url": ".",
+  "scope": ".",
   "display": "standalone",
+  "orientation": "any",
   "background_color": "#111213",
   "theme_color": "#111213",
-  "icons": []
+  "categories": ["productivity", "developer", "graphics"],
+  "icons": [
+    {
+      "src": "assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
 }

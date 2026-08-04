@@ -64,7 +64,10 @@ function drawLabelLines(c,n,theme,baseFs,cy){
     c.save(); c.fillStyle=n.textBg;
     c.beginPath(); roundRect(c,bx,by,bw,bh,8); c.fill(); c.restore();
   }
-  c.fillStyle = (n.shape==="text"||n.shape==="anim")? n.color : T.text;
+  /* textColor manda cuando está puesto. Sin él se conserva el comportamiento
+     anterior: el texto suelto y las etiquetas de GIF heredan el color del nodo,
+     y el texto dentro de una forma usa el color del tema. */
+  c.fillStyle = n.textColor || ((n.shape==="text"||n.shape==="anim")? n.color : T.text);
   c.textAlign=align; c.textBaseline="middle";
   lines.forEach((l,i)=>c.fillText(l,tx,baseY+i*lh));
 }
@@ -262,11 +265,145 @@ function drawNode(c,n,t,theme,isExport){
     c.restore();
   }
 }
+/* Medidor de etiquetas para el lienzo. Toca c.font, que drawEdge vuelve a fijar
+   antes de escribir nada, así que el efecto secundario no se ve. */
+function measureCanvasLabel(c){
+  return e=>{
+    const efs=e.fs||13;
+    c.font=objFont(e,efs);
+    return {w:c.measureText(e.label).width, h:efs*1.7};
+  };
+}
 function arrowHead(c,x,y,ang,col){
   c.save(); c.translate(x,y); c.rotate(ang);
   c.fillStyle=col; c.beginPath();
   c.moveTo(1,0); c.lineTo(-11,-6); c.lineTo(-11,6); c.closePath(); c.fill();
   c.restore();
+}
+/* ===================== Puntos por flecha =====================
+   Por defecto una flecha usa el número de puntos y la velocidad globales. Solo
+   si se desmarca «Puntos globales» pasa a mandar su propio valor. */
+function edgeDots(e){
+  if(e.dotsGlobal===false && e.dots) return clamp(Math.round(e.dots),1,6);
+  return settings.dots;
+}
+function edgeSpeedFac(e){ return clamp(+e.speedFac||1,1,4); }
+
+/* ===================== Pelota única por ruta =====================
+   Este modo no anima cada flecha por separado: manda UNA pelota desde cada nodo
+   de origen, que avanza por el diagrama en un solo ciclo de flujo y SE PARTE en
+   cada bifurcación — al llegar a un nodo con dos salidas, salen dos pelotas.
+
+   Que sea un ciclo para todo el recorrido, y no uno por flecha, es deliberado:
+   la exportación a GIF ajusta settings.speed para que el periodo (1/speed) quepa
+   un número entero de veces en la duración elegida. Si la pelota tardase un
+   ciclo por flecha, un recorrido de tres flechas rompería ese cuadre y el GIF no
+   cerraría el bucle.
+
+   Cómo se consigue el reparto: se enumeran todos los caminos completos de un
+   origen a un final, y todos los del mismo origen avanzan a la MISMA distancia
+   recorrida (no a la misma fracción de su camino). Así, mientras comparten
+   tramo, las pelotas caen en el mismo punto exacto —se ven como una sola— y se
+   separan justo en la bifurcación. Normalizar por fracción de cada camino, que
+   es lo natural, las desincronizaría en el tramo compartido.
+
+   Una cadena lineal —el caso normal— tiene un solo camino y sale idéntica a
+   antes: una pelota, un ciclo. */
+const FLOW_MAX_PATHS=200;   // topes para no colgarse en grafos muy ramificados
+const FLOW_MAX_DEPTH=60;
+/* Devuelve grupos de caminos: un grupo por nodo de origen, y dentro de él todos
+   los caminos completos que nacen ahí. El grupo es la unidad que comparte reloj. */
+function flowGroups(){
+  const edges=P().edges.filter(e=>e.animated!==false && nodeById(e.from) && nodeById(e.to));
+  if(!edges.length) return [];
+  const out=new Map(), hasIn=new Set();
+  for(const e of edges){
+    if(!out.has(e.from)) out.set(e.from,[]);
+    out.get(e.from).push(e);
+    hasIn.add(e.to);
+  }
+  const covered=new Set(), groups=[];
+  const expand=startId=>{
+    const paths=[], path=[], onPath=new Set();
+    /* onPath impide repetir una flecha dentro del mismo camino, que es lo que
+       evita colgarse en un ciclo (A→B→A) sin prohibir que dos caminos distintos
+       pasen los dos por la misma flecha */
+    const walk=nodeId=>{
+      if(paths.length>=FLOW_MAX_PATHS) return;
+      const next=(out.get(nodeId)||[]).filter(e=>!onPath.has(e.id));
+      if(!next.length || path.length>=FLOW_MAX_DEPTH){
+        if(path.length) paths.push(path.slice());
+        return;
+      }
+      for(const e of next){
+        onPath.add(e.id); path.push(e); covered.add(e.id);
+        walk(e.to);
+        path.pop(); onPath.delete(e.id);
+      }
+    };
+    walk(startId);
+    if(paths.length) groups.push(paths);
+  };
+  // orígenes reales: nodos de los que sale algo y a los que no entra nada
+  for(const n of P().nodes) if(out.has(n.id) && !hasIn.has(n.id)) expand(n.id);
+  // lo que quede sin cubrir son ciclos cerrados: se arranca donde se pueda
+  for(const e of edges) if(!covered.has(e.id)) expand(e.from);
+  return groups;
+}
+/* cache: los caminos de un mismo grupo comparten el tramo inicial, así que sin
+   esto la geometría de las primeras flechas se recalcula una vez por rama */
+function pathGeometry(path, cache){
+  const segs=[]; let total=0;
+  for(const e of path){
+    let pts=cache.get(e.id);
+    if(!pts){ pts=edgePoints(e); cache.set(e.id, pts); }
+    if(pts.length<2) continue;
+    const L=polyLen(pts);
+    if(L<=0) continue;
+    segs.push({e, pts, L, start:total});
+    total+=L;
+  }
+  return {segs, total};
+}
+function drawFlowBalls(c,t){
+  if(!settings.single) return;
+  let f=(t*settings.speed)%1; if(f<0) f+=1;
+  const cache=new Map();
+  for(const paths of flowGroups()){
+    const geos=paths.map(pt=>pathGeometry(pt,cache)).filter(g=>g.total>0);
+    if(!geos.length) continue;
+    /* el ciclo lo marca el camino más largo del grupo: las ramas cortas llegan
+       antes a su destino y se apagan ahí, en vez de frenar para cuadrar */
+    const D=Math.max(...geos.map(g=>g.total));
+    const d=f*D;
+    const seen=new Set();
+    for(const g of geos){
+      if(d>g.total) continue;                    // esta rama ya llegó al final
+      let seg=g.segs[g.segs.length-1];
+      for(const s of g.segs){ if(d<=s.start+s.L){ seg=s; break; } }
+      const p=pointAt(seg.pts, clamp((d-seg.start)/seg.L,0,1));
+      /* dos caminos que aún comparten tramo dan el mismo punto: se dibuja una
+         vez, si no el halo se sumaría consigo mismo y esa parte del recorrido
+         se vería más brillante que el resto */
+      const key=seg.e.id+"|"+Math.round(p.x)+","+Math.round(p.y);
+      if(seen.has(key)) continue;
+      seen.add(key);
+      const A=nodeById(seg.e.from), B=nodeById(seg.e.to);
+      /* la aparición gradual manda también aquí: una pelota sobre una flecha que
+         todavía no se ve quedaría flotando en el vacío */
+      const a=Math.min(nodeAlpha(A,t), nodeAlpha(B,t));
+      if(a<=0) continue;
+      // nace en el nodo de origen y se apaga al llegar al final de SU camino
+      const fade=clamp(Math.min(d, g.total-d)/(D*.125), 0, 1);
+      c.save();
+      c.fillStyle=seg.e.dotColor||A.color||"#d08b5b";
+      c.globalAlpha=a*fade;
+      c.beginPath(); c.arc(p.x,p.y,7,0,Math.PI*2); c.fill();
+      c.globalAlpha=a*fade*.28;
+      c.beginPath(); c.arc(p.x,p.y,13,0,Math.PI*2); c.fill();
+      c.restore();
+    }
+  }
 }
 function drawEdge(c,e,t,theme,isExport){
   const A=nodeById(e.from), B=nodeById(e.to); if(!A||!B) return;
@@ -290,11 +427,14 @@ function drawEdge(c,e,t,theme,isExport){
     const f0=pts[0], f1=pts[1];
     arrowHead(c,f0.x,f0.y,Math.atan2(f0.y-f1.y,f0.x-f1.x), seld?"#3aa7e8":lineCol);
   }
-  if(e.animated){
+  /* con la pelota única los puntos por flecha se apagan: si no, se verían las
+     dos animaciones a la vez sobre la misma línea */
+  if(e.animated && !settings.single){
     c.fillStyle=e.dotColor||A.color;
-    const n=settings.dots;
+    const n=edgeDots(e);
+    const sp=settings.speed*edgeSpeedFac(e);
     for(let i=0;i<n;i++){
-      let base=(t*settings.speed + i/n)%1; if(base<0)base+=1;
+      let base=(t*sp + i/n)%1; if(base<0)base+=1;
       let f=base;
       if(e.flowDir==="reverse") f=1-base;
       else if(e.flowDir==="alternate") f=1-Math.abs(1-2*base);
@@ -308,7 +448,7 @@ function drawEdge(c,e,t,theme,isExport){
     }
   }
   if(e.label){
-    const m=pointAt(pts,.5);
+    const m=labelPointFor(e,pts);
     const efs=e.fs||13;
     c.font=objFont(e,efs); c.textAlign="center"; c.textBaseline="middle";
     const w=c.measureText(e.label).width;
@@ -369,7 +509,9 @@ function render(c,t,opts={}){
       for(let y=startY; y<b.y+b.h; y+=GRID){c.moveTo(b.x,y);c.lineTo(b.x+b.w,y);}
       c.stroke();
     }
+    edgeLabelPos=placeEdgeLabels(measureCanvasLabel(c));
     for(const e of P().edges) drawEdge(c,e,t,theme,isExport);
+    drawFlowBalls(c,t);
     for(const n of P().nodes) drawNode(c,n,t,theme,isExport);
     return;
   }
@@ -397,11 +539,14 @@ function render(c,t,opts={}){
     c.stroke();
   }
 
+  edgeLabelPos=placeEdgeLabels(measureCanvasLabel(c));
   for(const e of P().edges) drawEdge(c,e,t,theme,isExport);
+  drawFlowBalls(c,t);
   for(const n of P().nodes) drawNode(c,n,t,theme,isExport);
 
-  if(mode==="select" && !drag && !resizing && !wpDrag && !connectDrag && !marquee && !pendingShape && !pendingIcon && !pendingAnim){
-    if(hoverNode) drawSideArrows(c,hoverNode);
+  if(!presenting && mode==="select" && !drag && !resizing && !wpDrag && !connectDrag && !marquee && !pendingShape && !pendingIcon && !pendingAnim){
+    const host=arrowHostNode();
+    if(host) drawSideArrows(c,host);
   }
   if(connectDrag){
     const A=nodeById(connectDrag.fromId);
@@ -441,7 +586,7 @@ function render(c,t,opts={}){
     c.fillRect(r.x,r.y,r.w,r.h); c.strokeRect(r.x,r.y,r.w,r.h);
     c.restore();
   }
-  if(P().nodes.length===0){
+  if(P().nodes.length===0 && !presenting){
     c.fillStyle=theme==="crema"?"#00000055":"#ffffff44";
     c.font=(20/viewZoom)+"px Georgia, serif"; c.textAlign="center";
     c.fillText("Elige una forma o icono a la izquierda y haz clic aquí — o pulsa «Ejemplo»", (cv.width/2 - viewX) / viewZoom, (cv.height/2 - viewY) / viewZoom);
@@ -450,4 +595,7 @@ function render(c,t,opts={}){
   c.restore();
 }
 function now(){ return playing? (performance.now()-t0)/1000 : pausedAt; }
-(function loop(){ render(ctx,now()); requestAnimationFrame(loop); })();
+/* pedir el siguiente fotograma ANTES de dibujar: si un fotograma falla, el error
+   sale por consola pero el bucle sigue vivo, en vez de dejar el lienzo en negro
+   para siempre por un único fallo. */
+(function loop(){ requestAnimationFrame(loop); render(ctx,now()); })();

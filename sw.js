@@ -1,10 +1,18 @@
-const CACHE = "fluyo-static-v4";
+/* IMPORTANTE: subir esta versión en cualquier PR que añada, quite o renombre
+   archivos servidos. El fetch handler es cache-first, así que sin el cambio de
+   versión quien ya tenga el service worker instalado seguirá viendo la versión
+   anterior de index.html — y pedirá scripts que ya no existen. */
+const CACHE = "fluyo-static-v9";
+/* Núcleo: si algo de aquí falla, la instalación falla (cache.addAll es atómico)
+   y es lo correcto, porque sin estos archivos la app no funciona. */
 const ASSETS = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
   "./sw.js",
   "./css/styles.css",
+  "./js/analytics.js",
+  "./js/examples.js",
   "./js/config.js",
   "./js/state.js",
   "./js/selection.js",
@@ -13,6 +21,24 @@ const ASSETS = [
   "./js/interaction.js",
   "./js/ui.js",
   "./js/export.js"
+];
+/* Páginas estáticas y ejemplos: se cachean si se puede, pero su fallo no debe
+   tumbar la instalación — el editor funciona perfectamente sin ellos. */
+const PAGE_ASSETS = [
+  "./css/pages.css",
+  "./docs/",
+  "./ejemplos/",
+  "./privacidad/",
+  "./privacy/",
+  "./terminos/",
+  "./terms/",
+  "./soporte/",
+  "./support/",
+  "./ejemplos/data/kafka-event-pipeline.fluyo.json",
+  "./ejemplos/data/microservicios-api-gateway.fluyo.json",
+  "./ejemplos/data/oauth2-flujo-autenticacion.fluyo.json",
+  "./ejemplos/data/pipeline-etl-datos.fluyo.json",
+  "./ejemplos/data/arquitectura-serverless-aws.fluyo.json"
 ];
 const GIF_CDN = "https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/";
 const CDN_ASSETS = [
@@ -25,6 +51,7 @@ self.addEventListener("install", (ev) => {
     caches.open(CACHE)
       .then((cache) => Promise.all([
         cache.addAll(ASSETS),
+        cache.addAll(PAGE_ASSETS).catch((err) => console.warn("pages precache:", err)),
         cache.addAll(CDN_ASSETS).catch((err) => console.warn("gif.js precache:", err))
       ]))
       .then(() => self.skipWaiting())

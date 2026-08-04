@@ -1,0 +1,6 @@
+# Estas fixtures tienen una copia gemela en fluyo-mcp/test/fixtures/regresion-visual/,
+# que fija LF en todo el repo. El README de aquí afirma que las dos copias son
+# idénticas byte a byte, y sin esto un checkout en Windows las convertiría a CRLF
+# y dejaría de ser cierto.
+*.fluyo.json text eol=lf
+*.md text eol=lf

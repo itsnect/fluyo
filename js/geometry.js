@@ -39,13 +39,68 @@ function sideOfPoint(n,p){
   if(Math.abs(p.x-(n.x+n.w/2))<t) return "e";
   return inferSide(n,p);
 }
-function orthoRoute(p1,d1,p2,d2){
+/* ===================== Aristas paralelas =====================
+   Dos aristas entre el mismo par de nodos daban EXACTAMENTE la misma ruta:
+   autoAnchor y orthoRoute son simétricos, así que un par bidireccional se
+   dibujaba una flecha encima de la otra y las dos etiquetas caían en el mismo
+   punto. El resultado era ilegible — de «check cache» + «hit» superpuestas solo
+   se leía «che hit che».
+
+   Cada arista del grupo recibe ahora un carril propio: se desplaza cada tramo
+   perpendicularmente a sí mismo, siempre la misma cantidad. El desplazamiento se
+   reparte centrado, así que con una sola arista (el caso normal) vale 0 y la
+   geometría no cambia ni un píxel.
+
+   El signo se decide en un marco canónico —el par ordenado por id, no el sentido
+   de la flecha—. Si dependiera del sentido, las dos mitades de un par
+   bidireccional recibirían desplazamientos opuestos que se anulan al invertir el
+   recorrido, y volverían a solaparse.
+
+   Una arista con waypoints queda fuera del reparto: ahí la ruta la puso alguien
+   a mano y mandan sus puntos. */
+const PARALLEL_SEP=28;
+function parallelKey(e){ return e.from<e.to? e.from+"-"+e.to : e.to+"-"+e.from; }
+/* Devuelve el carril de esta arista: `off` es su desplazamiento y `half` el
+   semiancho del abanico completo del grupo, que hace falta para reservarle sitio
+   en el lado del nodo antes de mover nada. */
+function parallelLane(e){
+  const none={off:0, half:0};
+  if((e.waypoints||[]).length) return none;
+  const key=parallelKey(e);
+  const sib=P().edges.filter(o=>!(o.waypoints||[]).length && parallelKey(o)===key);
+  if(sib.length<2) return none;
+  const i=sib.findIndex(o=>o.id===e.id);
+  if(i<0) return none;
+  return {off:(i-(sib.length-1)/2)*PARALLEL_SEP, half:(sib.length-1)/2*PARALLEL_SEP};
+}
+/* Corre el ancla a lo largo del lado por el que sale, sin salirse de él: el
+   extremo tiene que seguir tocando el borde del nodo pase lo que pase.
+
+   El ancla base se mete primero hacia dentro lo justo para que quepa el abanico
+   entero. Sin ese paso, un ancla que autoAnchor dejó pegada a una esquina no
+   tiene hueco para apartarse, el clamp se come el desplazamiento y las dos
+   aristas vuelven a juntarse — que es exactamente lo que pasaba con Pinecone,
+   cuya ancla caía a 1px del borde inferior de su lado oeste. */
+function slideAnchor(n,side,p,off,half){
+  if(!off) return p;
+  const inset=10;
+  const horiz=(side==="n"||side==="s");
+  const c=horiz? n.x : n.y;
+  const lim=Math.max(0,(horiz? n.w/2 : n.h/2)-inset);
+  const room=Math.max(0,lim-half);
+  const base=clamp(horiz? p.x : p.y, c-room, c+room);
+  const v=clamp(base+off, c-lim, c+lim);
+  return horiz? {x:v, y:p.y} : {x:p.x, y:v};
+}
+function orthoRoute(p1,d1,p2,d2,off){
   const pad=28;
   const s={x:p1.x+d1.x*pad, y:p1.y+d1.y*pad};
   const t={x:p2.x+d2.x*pad, y:p2.y+d2.y*pad};
   let mids;
-  if(d1.x!==0 && d2.x!==0){ const mx=(s.x+t.x)/2; mids=[{x:mx,y:s.y},{x:mx,y:t.y}]; }
-  else if(d1.y!==0 && d2.y!==0){ const my=(s.y+t.y)/2; mids=[{x:s.x,y:my},{x:t.x,y:my}]; }
+  /* el tramo central también se aparta: separar solo las anclas dejaría las dos
+     rutas compartiendo el canal largo del medio, que es donde va la etiqueta */
+  if(d1.x!==0 && d2.x!==0){ const mx=(s.x+t.x)/2+(off||0); mids=[{x:mx,y:s.y},{x:mx,y:t.y}]; }
+  else if(d1.y!==0 && d2.y!==0){ const my=(s.y+t.y)/2+(off||0); mids=[{x:s.x,y:my},{x:t.x,y:my}]; }
   else if(d1.x!==0){ mids=[{x:t.x,y:s.y}]; }
   else { mids=[{x:s.x,y:t.y}]; }
   const raw=[p1,s,...mids,t,p2], out=[raw[0]];
@@ -59,12 +114,15 @@ function edgePoints(e){
   const A=nodeById(e.from), B=nodeById(e.to); if(!A||!B) return [];
   const wps=e.waypoints||[];
   const tA=wps[0]||{x:B.x,y:B.y}, tB=wps[wps.length-1]||{x:A.x,y:A.y};
-  const p1=anchorPt(A,e.fromSide,tA.x,tA.y);
-  const p2=anchorPt(B,e.toSide,tB.x,tB.y);
+  let p1=anchorPt(A,e.fromSide,tA.x,tA.y);
+  let p2=anchorPt(B,e.toSide,tB.x,tB.y);
+  /* los lados se deciden con las anclas SIN correr: apartarse para no solaparse
+     no debe cambiar por qué cara sale la flecha */
+  const s1=e.fromSide||inferSide(A,p1), s2=e.toSide||inferSide(B,p2);
+  const {off,half}=parallelLane(e);
+  if(off){ p1=slideAnchor(A,s1,p1,off,half); p2=slideAnchor(B,s2,p2,off,half); }
   if(e.route==="ortho" && wps.length===0){
-    const d1=DIR[e.fromSide||inferSide(A,p1)];
-    const d2=DIR[e.toSide||inferSide(B,p2)];
-    return orthoRoute(p1,d1,p2,d2);
+    return orthoRoute(p1,DIR[s1],p2,DIR[s2],off);
   }
   return [p1,...wps,p2];
 }

@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Test — edición in-situ y autoescalado</title>
+<!--
+  Test del editor in-situ (A3) y del autoescalado de la etiqueta (A1).
+
+  Sin runner, sin dependencias y sin paso de compilación: carga el index.html real
+  en un iframe y comprueba contra el DOM y el motor de verdad. Es la única forma
+  honesta de fijar lo que este test fija —que el textarea hereda tipografía,
+  tamaño y posición del nodo—, porque eso solo existe en el navegador: ni el MCP
+  ni un test en Node tienen textarea que medir.
+
+  Cómo se ejecuta: hace falta servirlo por HTTP, no abrirlo con file://. Un
+  iframe file:// dentro de otro file:// es origen opaco en Chrome y el test no
+  podría leer el documento de dentro.
+
+      npx serve .      (o cualquier servidor estático)
+      -> http://localhost:PUERTO/test/editor-inline.html
+
+  Este directorio no se publica: no está en sitemap.xml ni en la lista ASSETS del
+  service worker.
+-->
+<style>
+  body{background:#161616;color:#ededed;font:14px/1.5 system-ui;margin:0;padding:20px 24px}
+  h1{font-size:18px;margin:0 0 4px}
+  p.lead{color:#999;margin:0 0 16px;font-size:13px}
+  #res{border-collapse:collapse;width:100%;max-width:960px;font-size:13px}
+  #res td{padding:5px 10px;border-bottom:1px solid #2a2a2a;vertical-align:top}
+  #res td:first-child{width:26px;text-align:center;font-weight:700}
+  .ok{color:#7bb85b} .ko{color:#d0576a}
+  .det{color:#888;font-size:12px;font-family:ui-monospace,Consolas,monospace}
+  #sum{margin:14px 0 0;font-size:15px;font-weight:600}
+  iframe{position:fixed;left:-3000px;top:0;width:1200px;height:800px;border:0}
+</style>
+</head>
+<body>
+<h1>Edición in-situ y autoescalado</h1>
+<p class="lead">Carga <code>../index.html</code> real en un iframe y comprueba contra su DOM. Requiere servirlo por HTTP.</p>
+<table id="res"></table>
+<p id="sum">Ejecutando…</p>
+<iframe id="app"></iframe>
+
+<script>
+const tabla=document.getElementById("res");
+let ok=0, ko=0;
+function check(nombre, cond, detalle){
+  const tr=tabla.insertRow();
+  const c0=tr.insertCell(), c1=tr.insertCell();
+  c0.textContent = cond ? "✓" : "✗";
+  c0.className = cond ? "ok" : "ko";
+  c1.innerHTML = nombre + (detalle ? `<br><span class="det">${detalle}</span>` : "");
+  cond ? ok++ : ko++;
+  return cond;
+}
+const px=v=>Math.round(parseFloat(v)*100)/100;
+const cerca=(a,b,tol=0.6)=>Math.abs(a-b)<=tol;
+
+const iframe=document.getElementById("app");
+iframe.addEventListener("load", ()=>{
+  // El bucle de render arranca con requestAnimationFrame; se le deja un par de
+  // fotogramas para que el lienzo tenga tamaño antes de medir nada.
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{ try{ run(); }catch(e){
+    check("El test no llegó a ejecutarse", false, String(e && e.stack || e));
+    fin();
+  }}));
+});
+
+/* Fluyo es una PWA: index.html registra un service worker que precachea
+   js/*.js. Sin desregistrarlo antes, el iframe recibe la copia cacheada y el
+   test mide una versión del código que ya no existe en disco — que es
+   exactamente lo que pasó la primera vez que se ejecutó esto: un fallo de Escape
+   que en el archivo ya estaba arreglado. Un test que puede dar rojo sobre código
+   viejo no vale para nada, así que la limpieza va antes de cargar el iframe. */
+(async ()=>{
+  try{
+    if(navigator.serviceWorker){
+      const regs=await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r=>r.unregister()));
+    }
+    if(window.caches){
+      const keys=await caches.keys();
+      await Promise.all(keys.map(k=>caches.delete(k)));
+    }
+  }catch(e){ /* sin SW ni Cache API el test sigue siendo válido */ }
+  iframe.src="../index.html?test="+Date.now();
+})();
+
+function run(){
+  const W=document.getElementById("app").contentWindow;
+  const D=W.document;
+  const box=D.getElementById("editBox");
+
+  /* Los `const`/`let` de nivel superior de un script clásico NO se cuelgan de
+     `window`: viven en el ámbito léxico global, que desde fuera solo se alcanza
+     evaluando dentro. `ctx`, `viewZoom`, `viewX`, `viewY` y `editing` son de
+     esos. Las `function` sí son propiedades de window y se llaman directamente. */
+  const G = expr => W.eval(expr);
+  const set = (nombre, valor) => W.eval(nombre + " = " + JSON.stringify(valor));
+
+  /* ---------- A1 · el tamaño sale de las DOS dimensiones de la caja ---------- */
+
+  const base=W.newNode("rect", 600, 400, {label:"Hola"});
+  const medir=n=>W.measureNodeLabel(G("ctx"), n);
+  const fsDe=n=>W.labelFontSize(n, medir(n));
+
+  check("Un nodo sin redimensionar conserva el tamaño base (retrocompatibilidad)",
+        cerca(fsDe(base), 17, 0.01), `rect 180x70 → fs ${fsDe(base).toFixed(2)}, esperado 17`);
+
+  const doble=W.newNode("rect", 600, 700, {label:"Hola"});
+  doble.w=360; doble.h=140;
+  check("Al doblar la caja, la fuente dobla",
+        cerca(fsDe(doble), 34, 0.01), `rect 360x140 → fs ${fsDe(doble).toFixed(2)}, esperado 34`);
+
+  const anchoSolo=W.newNode("rect", 1200, 400, {label:"Hola"});
+  anchoSolo.w=360; anchoSolo.h=70;
+  check("Ensanchar sin subir el alto NO agranda la fuente: manda la dimensión menor",
+        cerca(fsDe(anchoSolo), 17, 0.01),
+        `rect 360x70 → fs ${fsDe(anchoSolo).toFixed(2)} · min(360/180, 70/70) = 1`);
+
+  const chico=W.newNode("rect", 1200, 700, {label:"Hola"});
+  chico.w=90; chico.h=35;
+  check("Al reducir la caja, la fuente encoge",
+        fsDe(chico) < 17, `rect 90x35 → fs ${fsDe(chico).toFixed(2)}`);
+
+  // El encogimiento por ancho tiene suelo en 10px, igual que antes de A1: por
+  // debajo de eso el texto deja de leerse y se prefiere que desborde.
+  const largo=W.newNode("rect", 1800, 400, {label:"Una etiqueta bastante larga que no cabe"});
+  check("El texto que no cabe a lo ancho sigue encogiendo, hasta el suelo de 10px",
+        medir(largo)(fsDe(largo)) <= largo.w-18+0.5 || cerca(fsDe(largo), 10, 0.01),
+        `fs ${fsDe(largo).toFixed(2)} · ancho del texto ${medir(largo)(fsDe(largo)).toFixed(1)} · disponible ${largo.w-18}`);
+
+  const largoAncho=W.newNode("rect", 1800, 1900, {label:"Una etiqueta bastante larga que no cabe"});
+  largoAncho.w=520; largoAncho.h=70;
+  check("Con sitio de sobra, ese mismo texto cabe sin tocar el suelo",
+        medir(largoAncho)(fsDe(largoAncho)) <= largoAncho.w-18+0.5 && fsDe(largoAncho) > 10,
+        `fs ${fsDe(largoAncho).toFixed(2)} · ancho ${medir(largoAncho)(fsDe(largoAncho)).toFixed(1)} ≤ ${largoAncho.w-18}`);
+
+  const altas=W.newNode("rect", 1800, 700, {label:"a\nb\nc\nd\ne"});
+  check("Cinco líneas en una caja baja caben en alto (el límite que antes no existía)",
+        5*fsDe(altas)*1.25 <= altas.h+0.5,
+        `5 líneas x ${fsDe(altas).toFixed(1)}px x 1.25 = ${(5*fsDe(altas)*1.25).toFixed(1)} ≤ ${altas.h}`);
+
+  const manual=W.newNode("rect", 2200, 400, {label:"Hola", fs:29});
+  manual.w=360; manual.h=140;
+  check("`fs` explícito sigue siendo la salida manual: no se calcula nada",
+        fsDe(manual)===29, `fs declarado 29 → ${fsDe(manual)}`);
+
+  const ico=W.newNode("icon", 2200, 700, {icon:"kafka", label:"Kafka"});
+  ico.w=480; ico.h=368;   // x4
+  check("La etiqueta de un icono no se come el glifo al agrandarlo",
+        fsDe(ico) <= 26/1.25+0.01,
+        `icon x4 → fs ${fsDe(ico).toFixed(2)}, tope de su franja ${(26/1.25).toFixed(2)}`);
+
+  /* ---------- A3 · el textarea hereda del nodo ---------- */
+
+  const n=W.newNode("rect", 600, 1100, {label:"Café", font:"Verdana, Geneva, sans-serif", bold:true});
+  n.w=270; n.h=105;                       // x1.5 → fs 25.5
+  W.openEditorAt({x:n.x, y:n.y});
+
+  check("Editar abre el textarea", box.style.display==="block", `display: ${box.style.display}`);
+  check("El textarea es el objeto en edición", G("editing")===n);
+
+  const L=W.labelLayout(n, medir(n));
+  const z=G("viewZoom");
+
+  check("Hereda el TAMAÑO de fuente calculado, no un valor fijo",
+        cerca(px(box.style.fontSize), L.fs*z),
+        `textarea ${px(box.style.fontSize)}px · labelLayout ${(L.fs*z).toFixed(2)}px · antes eran 15px fijos`);
+
+  check("Hereda la FAMILIA tipográfica del nodo",
+        box.style.fontFamily.replace(/["']/g,"")===n.font.replace(/["']/g,""),
+        `${box.style.fontFamily}`);
+
+  check("Hereda el PESO del nodo",
+        box.style.fontWeight==="bold", `font-weight: ${box.style.fontWeight}`);
+
+  check("Hereda el INTERLINEADO de la maquetación",
+        cerca(px(box.style.lineHeight), L.lh*z),
+        `textarea ${px(box.style.lineHeight)}px · labelLayout ${(L.lh*z).toFixed(2)}px`);
+
+  check("Se coloca en la POSICIÓN del texto, no en el centro del nodo",
+        cerca(px(box.style.left), L.boxX*z+G("viewX")) && cerca(px(box.style.top), L.boxY*z+G("viewY")),
+        `left ${px(box.style.left)} / esperado ${(L.boxX*z+G("viewX")).toFixed(2)} · ` +
+        `top ${px(box.style.top)} / esperado ${(L.boxY*z+G("viewY")).toFixed(2)} · antes el top era un offset fijo de 16px`);
+
+  check("Toma el ANCHO ÚTIL de la caja, el mismo que limita la fuente",
+        cerca(px(box.style.width), L.boxW*z),
+        `${px(box.style.width)}px · n.w-18 = ${L.boxW} x zoom`);
+
+  const cs=W.getComputedStyle(box);
+  check("Es TRANSPARENTE y sin borde: no tapa el diagrama",
+        /rgba\(0, 0, 0, 0\)|transparent/.test(cs.backgroundColor) && (cs.borderStyle==="none"||px(cs.borderTopWidth)===0),
+        `background ${cs.backgroundColor} · border ${cs.borderStyle} ${cs.borderTopWidth}`);
+
+  check("Mientras se edita, el lienzo NO pinta esa etiqueta (si no, se ve doble)",
+        G("editing")===n, "drawLabelLines() sale antes cuando editing === n");
+
+  /* ---------- A3 · sigue al nodo cuando cambia ---------- */
+
+  const fsAntes=px(box.style.fontSize);
+  n.w=540; n.h=210;                        // x3
+  W.syncEditBox();
+  const L2=W.labelLayout(n, medir(n));
+  check("Al redimensionar el nodo, el textarea se reajusta",
+        px(box.style.fontSize)>fsAntes && cerca(px(box.style.fontSize), L2.fs*z),
+        `${fsAntes}px → ${px(box.style.fontSize)}px al pasar de 270x105 a 540x210`);
+
+  const zAntes=G("viewZoom");
+  set("viewZoom", zAntes*2); W.syncEditBox();
+  check("Al hacer zoom, el textarea sigue al texto",
+        cerca(px(box.style.fontSize), L2.fs*G("viewZoom")),
+        `zoom x2 → ${px(box.style.fontSize)}px`);
+  set("viewZoom", zAntes); W.syncEditBox();
+
+  /* ---------- A3 · acentos y ñ escribiendo en vivo ---------- */
+
+  // Un acento con tecla muerta y un teclado CJK llegan como una COMPOSICIÓN: el
+  // navegador manda compositionstart, va actualizando, y solo al final llega el
+  // carácter compuesto. Escribir "n" + "~" no produce keydown de "ñ" en ningún
+  // momento, así que un editor que se fíe de keydown se pierde el carácter.
+  function escribirCompuesto(texto, pasos){
+    box.dispatchEvent(new W.CompositionEvent("compositionstart", {bubbles:true}));
+    for(const p of pasos){
+      box.value = texto + p;
+      box.dispatchEvent(new W.CompositionEvent("compositionupdate", {bubbles:true, data:p}));
+      box.dispatchEvent(new W.InputEvent("input", {bubbles:true, isComposing:true, data:p}));
+    }
+    box.dispatchEvent(new W.CompositionEvent("compositionend", {bubbles:true, data:pasos[pasos.length-1]}));
+    box.dispatchEvent(new W.InputEvent("input", {bubbles:true, isComposing:false}));
+  }
+
+  box.value=""; escribirCompuesto("", ["n","ñ"]);
+  check("Una ñ compuesta con tecla muerta llega al nodo",
+        n.label==="ñ", `label del nodo: ${JSON.stringify(n.label)}`);
+
+  box.value="Cami"; escribirCompuesto("Cami", ["o","ó"]);
+  check("Un acento compuesto llega al nodo",
+        n.label==="Camió", `label del nodo: ${JSON.stringify(n.label)}`);
+
+  // Enter durante una composición es del compositor: confirma el candidato, no
+  // el texto. Robárselo es lo que rompe los acentos y los teclados CJK.
+  box.value="Señor";
+  box.dispatchEvent(new W.InputEvent("input", {bubbles:true}));
+  const evComp=new W.KeyboardEvent("keydown", {key:"Enter", bubbles:true, cancelable:true, isComposing:true});
+  box.dispatchEvent(evComp);
+  check("Enter DURANTE una composición no cierra el editor: es del compositor",
+        G("editing")===n && !evComp.defaultPrevented, `editing sigue abierto: ${G("editing")===n}`);
+
+  box.dispatchEvent(new W.KeyboardEvent("keydown", {key:"Enter", bubbles:true, cancelable:true}));
+  check("Enter FUERA de una composición confirma y cierra",
+        G("editing")===null && n.label==="Señor" && box.style.display==="none",
+        `label ${JSON.stringify(n.label)} · display ${box.style.display}`);
+
+  /* ---------- A3 · Escape restaura ---------- */
+
+  const m=W.newNode("rect", 1400, 1100, {label:"Original"});
+  W.openEditorAt({x:m.x, y:m.y});
+  box.value="Manchado";
+  box.dispatchEvent(new W.InputEvent("input", {bubbles:true}));
+  const antesDeEsc=m.label;
+  box.dispatchEvent(new W.KeyboardEvent("keydown", {key:"Escape", bubbles:true, cancelable:true}));
+  check("El texto se aplica en vivo (se ve el reajuste mientras escribes)",
+        antesDeEsc==="Manchado", `durante la edición: ${JSON.stringify(antesDeEsc)}`);
+  check("Escape restaura el texto original",
+        m.label==="Original" && G("editing")===null, `label ${JSON.stringify(m.label)}`);
+
+  /* ---------- A3 · aristas ---------- */
+
+  const a=W.newNode("rect", 300, 1500, {label:"A"}), b=W.newNode("rect", 900, 1500, {label:"B"});
+  const e=W.newEdge(a.id, b.id); e.label="evento";
+  W.openEditorAt(W.labelPointFor(e, W.edgePoints(e)));
+  check("Una etiqueta de arista también se edita in-situ",
+        G("editing")===e && box.style.display==="block", `editing es la arista: ${G("editing")===e}`);
+  check("Y usa el tamaño de la arista, que no escala con ninguna caja",
+        cerca(px(box.style.fontSize), W.edgeLabelFs(e)*G("viewZoom")),
+        `${px(box.style.fontSize)}px · edgeLabelFs ${W.edgeLabelFs(e)} x zoom`);
+  box.dispatchEvent(new W.KeyboardEvent("keydown", {key:"Escape", bubbles:true, cancelable:true}));
+
+  fin();
+}
+
+function fin(){
+  const s=document.getElementById("sum");
+  s.textContent = ko===0 ? `${ok}/${ok} en verde` : `${ok} en verde, ${ko} en rojo`;
+  s.className = ko===0 ? "ok" : "ko";
+  document.title = (ko===0 ? "OK " : "FALLA ") + ok + "/" + (ok+ko);
+}
+</script>
+</body>
+</html>

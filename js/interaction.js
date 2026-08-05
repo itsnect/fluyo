@@ -386,10 +386,84 @@ function handleTouchTap(ev){
   if(!hitNode(p.x,p.y) && !hitEdge(p.x,p.y)) clearSel();
 }
 
-/* doble clic: editar texto / borrar codo */
+/* ===================== Edición in-situ =====================
+   El textarea es TRANSPARENTE y se coloca exactamente encima del texto: misma
+   familia, mismo tamaño, mismo peso, mismo interlineado, mismo ancho útil y misma
+   alineación. Mientras está abierto, drawLabelLines() no pinta esa etiqueta, así
+   que lo único que se ve es el textarea — y se ve idéntico al texto que sustituye.
+
+   Por qué un textarea y no dibujar la edición sobre el lienzo: el cursor, la
+   selección, la navegación con teclas, el portapapeles, el deshacer del campo, el
+   teclado de un móvil, los lectores de pantalla y —sobre todo— el IME de los
+   acentos y de los teclados CJK los da el navegador, correctos y gratis. Hacerlos
+   a mano sobre canvas son cuatro cifras de líneas y una fuente permanente de
+   fallos en composición. Ver INFORME-TEXTO.md §2.
+
+   Y hay una propiedad que no es casualidad: el textarea reparte las líneas con el
+   MISMO motor de fuentes que measureText(). Si la familia, el tamaño y el ancho
+   coinciden, los saltos coinciden. Cuando llegue el reflow (A2) esto deja de ser
+   un detalle y pasa a ser lo que hace que editar y ver sean lo mismo.
+
+   El tamaño ya no es fijo: sale de labelLayout(), igual que el texto pintado. Con
+   el autoescalado (A1) la fuente cambia al redimensionar el nodo Y al escribir
+   —una línea más larga encoge la fuente—, así que hay que recolocar en cada
+   pulsación, no solo al abrir. */
 const editBox=$("editBox");
-let editing=null;
 cv.addEventListener("dblclick", ev=>{ if(!presenting) openEditorAt(toWorld(ev)); });
+
+/* Geometría del textarea en coordenadas de MUNDO, derivada de la misma
+   maquetación que usa el renderer. Es la única función que sabe convertir un
+   objeto editable en una caja de texto; nodos y aristas difieren solo aquí. */
+function editBoxGeometry(o){
+  const fam=o.font||settings.font||DEFAULT_FONT;
+  const peso=o.bold?"bold":"normal";
+  if(o.from!==undefined){
+    /* Una arista no tiene caja de la que derivar nada: su etiqueta flota sobre la
+       línea, centrada en el punto que eligió placeEdgeLabels. El ancho es holgura
+       para poder escribir, no un límite del documento. */
+    const fs=edgeLabelFs(o), lh=fs*LABEL_LH;
+    const m=labelPointFor(o, edgePoints(o));
+    const nLines=String(o.label||"").split("\n").length;
+    ctx.font=objFont(o,fs);
+    const w=Math.max(140, ctx.measureText(String(o.label||"")).width+60);
+    return {fs, lh, fam, peso, align:"center",
+            x:m.x-w/2, y:m.y-lh/2, w, h:nLines*lh,
+            color:THEMES[doc.theme].edgeLbl};
+  }
+  const L=labelLayout(o, measureNodeLabel(ctx,o));
+  const color=o.textColor || ((o.shape==="text"||o.shape==="anim")? o.color : THEMES[doc.theme].text);
+  return {fs:L.fs, lh:L.lh, fam, peso, align:L.align,
+          x:L.boxX, y:L.boxY, w:L.boxW, h:L.boxH, color};
+}
+/* Escribe la geometría en el elemento. Se llama al abrir, en cada `input` y
+   cuando cambia la vista: si el usuario hace zoom con el editor abierto, el
+   textarea tiene que seguir al texto. */
+function syncEditBox(){
+  if(!editing) return;
+  const g=editBoxGeometry(editing);
+  const s=editBox.style;
+  s.left=(g.x*viewZoom+viewX)+"px";
+  s.top=(g.y*viewZoom+viewY)+"px";
+  s.width=(g.w*viewZoom)+"px";
+  s.height=(g.h*viewZoom)+"px";
+  s.fontSize=(g.fs*viewZoom)+"px";
+  s.lineHeight=(g.lh*viewZoom)+"px";
+  s.fontFamily=g.fam;
+  s.fontWeight=g.peso;
+  s.textAlign=g.align;
+  s.color=g.color;
+  s.caretColor=g.color;
+}
+/* Firma de lo que obliga a recolocar. Se comprueba una vez por fotograma, que es
+   mucho más barato que escribir nueve propiedades de estilo 60 veces por segundo
+   para nada. */
+let editSig="";
+function syncEditBoxIfMoved(){
+  if(!editing) return;
+  const sig=viewX+"|"+viewY+"|"+viewZoom+"|"+editing.x+"|"+editing.y+"|"+editing.w+"|"+editing.h;
+  if(sig===editSig) return;
+  editSig=sig; syncEditBox();
+}
 function openEditorAt(p){
   const single=singleSel();
   if(single && single.type==="edge" && single.obj){
@@ -399,34 +473,53 @@ function openEditorAt(p){
   const tgt=hitNode(p.x,p.y)||hitEdge(p.x,p.y);
   if(!tgt) return;
   editing=tgt;
-  let cx,cyy,w;
-  /* sobre la etiqueta donde de verdad se dibuja, no sobre el medio geométrico:
-     si no, se escribe en una caja que no está donde está el texto */
-  if(tgt.from!==undefined){ const m=labelPointFor(tgt,edgePoints(tgt)); cx=m.x; cyy=m.y; w=170; }
-  else { cx=tgt.x; cyy=tgt.shape==="image"? tgt.y+tgt.h/2+14 : tgt.y; w=Math.max(120,tgt.w); }
-  const screenCX = cx * viewZoom + viewX;
-  const screenCY = cyy * viewZoom + viewY;
+  /* El texto se aplica en vivo, así que el valor de partida hay que guardarlo:
+     es lo que decide si hay algo que deshacer, y lo que restaura Escape. */
+  editOriginal=tgt.label||"";
+  editBox.value=editOriginal;
   editBox.style.display="block";
-  editBox.style.left = (screenCX - (w/2)*viewZoom) + "px";
-  editBox.style.top = (screenCY - 16*viewZoom) + "px";
-  editBox.style.width = (w * viewZoom) + "px";
-  editBox.style.fontSize = Math.max(12, 15 * viewZoom) + "px";
-  editBox.style.fontFamily = tgt.font || settings.font || "Georgia, serif";
-  editBox.style.fontWeight = tgt.bold ? "bold" : "normal";
-  editBox.value=tgt.label||"";
-  editBox.rows=(editBox.value.split("\n").length)||1;
+  editSig="";
+  syncEditBox();
   editBox.focus(); editBox.select();
 }
-function commitEditBox(){
-  if(!editing) return;
-  if(editing.label!==editBox.value) pushUndo();
-  editing.label=editBox.value;
+let editOriginal="";
+function closeEditBox(label){
+  const o=editing;
   editing=null; editBox.style.display="none";
+  if(!o) return;
+  /* Volver SIEMPRE al punto de partida es lo que hace que Escape funcione: el
+     texto se aplicó en vivo tecla a tecla, así que cancelar no es «no hacer
+     nada», es deshacer lo ya escrito. */
+  o.label=editOriginal;
+  if(label!==editOriginal){
+    /* pushUndo() apila el estado ACTUAL. Por eso se apila aquí, con el original
+       ya restaurado, y solo después se pone el texto nuevo: así deshacer vuelve
+       al texto de antes de abrir el editor y no al de la penúltima tecla. */
+    pushUndo();
+    o.label=label;
+  }
   refreshPanel();
 }
+function commitEditBox(){ if(editing) closeEditBox(editBox.value); }
+function cancelEditBox(){ if(editing) closeEditBox(editOriginal); }
+/* `input` cubre el texto que llega por IME: en una composición de acento o de
+   teclado CJK, `keydown` no trae el carácter compuesto pero `input` sí. Fijarse
+   en keydown para recolocar dejaría el textarea con el tamaño anterior justo
+   mientras se escribe un acento. */
+editBox.addEventListener("input", ()=>{
+  if(!editing) return;
+  /* El texto se aplica en vivo para que el nodo se reajuste según se escribe: con
+     el autoescalado, ver el resultado al confirmar y no antes sería adivinar. El
+     undo se apila una sola vez, en commit. */
+  editing.label=editBox.value;
+  syncEditBox();
+});
 editBox.addEventListener("keydown", ev=>{
+  /* Durante una composición IME, Enter y Escape son del compositor: confirman o
+     descartan el candidato. Robárselos rompe los acentos y los teclados CJK. */
+  if(ev.isComposing || ev.keyCode===229){ ev.stopPropagation(); return; }
   if(ev.key==="Enter"&&!ev.shiftKey){ ev.preventDefault(); commitEditBox(); }
-  if(ev.key==="Escape"){ editing=null; editBox.style.display="none"; }
+  if(ev.key==="Escape"){ cancelEditBox(); }
   ev.stopPropagation();
 });
 editBox.addEventListener("blur", commitEditBox);

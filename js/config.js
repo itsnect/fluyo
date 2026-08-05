@@ -76,6 +76,19 @@ const DEFAULT_LANG="sql";
 const CODE_DEFAULT_LABEL="CREATE STREAM x AS\nSELECT *\nFROM stream";
 const DIR={n:{x:0,y:-1}, s:{x:0,y:1}, e:{x:1,y:0}, w:{x:-1,y:0}};
 const SIDES=["n","e","s","w"];
+/* ===================== Tamaño con el que nace cada forma =====================
+   Vivía dentro de newNode(), en js/state.js. Está aquí por dos razones:
+
+   · lo necesita el escalado de la etiqueta, que deriva la fuente de la caja
+     RELATIVA a este tamaño (ver labelBoxScale en js/geometry.js);
+   · el codegen del MCP lo sacaba de js/state.js con una expresión regular,
+     porque ese archivo toca el DOM y no se puede evaluar fuera del navegador.
+     Era la única extracción frágil de todo el codegen; desde aquí se lee
+     evaluando el archivo, como el resto. */
+const DEFAULT_SIZES={
+  rect:[180,70], cylinder:[150,90], diamond:[160,100], circle:[110,110], hex:[170,80],
+  text:[200,40], icon:[120,92], image:[220,160], anim:[120,100], code:[300,150],
+};
 /* Tipografías disponibles (el primer valor es la fuente global por defecto) */
 const FONTS=[
   {n:"Georgia",     f:"Georgia, serif"},

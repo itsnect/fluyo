@@ -31,28 +31,21 @@ function objFont(o,fs){
   const fam=(o&&o.font)||settings.font||"Georgia, serif";
   return `${o&&o.bold?"bold ":""}${fs}px ${fam}`;
 }
-function drawLabelLines(c,n,theme,baseFs,cy){
+/* Medidor para el lienzo. Toca c.font, que quien dibuja vuelve a fijar antes de
+   escribir nada, así que el efecto secundario no se ve. */
+function measureNodeLabel(c,n){
+  const lines=String(n.label==null?"":n.label).split("\n");
+  return fs=>{ c.font=objFont(n,fs); return Math.max(...lines.map(l=>c.measureText(l).width),1); };
+}
+function drawLabelLines(c,n,theme){
   const T=THEMES[theme];
-  const lines=String(n.label).split("\n");
-  let fs=n.fs||baseFs;
+  /* Mientras se edita, el texto lo pinta el textarea transparente que hay encima.
+     Dibujarlo también aquí deja dos copias desplazadas medio píxel, que se ve
+     peor que el recuadro opaco que esto viene a quitar. */
+  if(editing===n) return;
+  const L=labelLayout(n, measureNodeLabel(c,n));
+  const {lines, fs, lh, tx, align, baseY}=L;
   c.font=objFont(n,fs);
-  // posición del texto dentro/junto a la forma
-  const pos=n.lblPos||"center";
-  const inset=Math.min(14, n.w*.12, n.h*.18);
-  let tx=n.x, align="center";
-  if(pos==="left"){ tx=n.x-n.w/2+inset; align="left"; }
-  else if(pos==="right"){ tx=n.x+n.w/2-inset; align="right"; }
-  const avail=n.w-18;
-  if(!n.fs){
-    const maxW=Math.max(...lines.map(l=>c.measureText(l).width),1);
-    if(maxW>avail){ fs=Math.max(10, fs*avail/maxW); c.font=objFont(n,fs); }
-  }
-  const lh=fs*1.25;
-  // base vertical según posición
-  let baseY;
-  if(pos==="top") baseY = n.y-n.h/2 + inset + fs*.7;
-  else if(pos==="bottom") baseY = n.y+n.h/2 - inset - (lines.length-1)*lh - fs*.1;
-  else baseY = cy - (lines.length-1)*lh/2;
   // fondo del texto (rectángulo tipo caja)
   if(n.textBg){
     const maxW=Math.max(...lines.map(l=>c.measureText(l).width),1);
@@ -246,7 +239,7 @@ function drawNode(c,n,t,theme,isExport){
       c.drawImage(im, n.x-n.w/2, n.y-n.h/2, n.w, n.h);
       c.shadowBlur=0;
     }
-    if(n.label) drawLabelLines(c,n,theme,14,n.y+n.h/2+14);
+    if(n.label) drawLabelLines(c,n,theme);
   }
   else if(n.shape==="icon"){
     const im=getImg(iconURLFor(n.icon, nodeIconTint(n)));
@@ -254,7 +247,7 @@ function drawNode(c,n,t,theme,isExport){
     if(glow>0){c.shadowColor=n.color; c.shadowBlur=18*glow;}
     if(im.complete && im.naturalWidth) c.drawImage(im, n.x-s/2, n.y-n.h/2+4, s, s);
     c.shadowBlur=0;
-    if(n.label) drawLabelLines(c,n,theme,14,n.y+n.h/2-10);
+    if(n.label) drawLabelLines(c,n,theme);
   }
   else if(n.shape==="cylinder"){
     const {x,y,w,h}=n, ry=Math.min(16,h*.18), top=y-h/2, bot=y+h/2;
@@ -271,14 +264,14 @@ function drawNode(c,n,t,theme,isExport){
     c.beginPath(); c.ellipse(x,top+ry,w/2,ry,0,0,Math.PI*2); c.stroke();
     c.setLineDash([]);
     c.shadowBlur=0;
-    drawLabelLines(c,n,theme,17,n.y+6);
+    drawLabelLines(c,n,theme);
   }
   else if(n.shape==="text"){
-    drawLabelLines(c,n,theme,22,n.y);
+    drawLabelLines(c,n,theme);
   }
   else if(n.shape==="anim"){
     drawAnim(c,n,t,theme,glow);
-    if(n.label) drawLabelLines(c,n,theme,14,n.y+n.h/2-8);
+    if(n.label) drawLabelLines(c,n,theme);
   }
   else if(n.shape==="code"){
     drawCodeNode(c,n,theme,glow);
@@ -291,7 +284,7 @@ function drawNode(c,n,t,theme,isExport){
     if(fc){ c.fillStyle=fc; c.fill(); }
     borderDash(n,c); c.stroke(); c.setLineDash([]);
     c.shadowBlur=0;
-    drawLabelLines(c,n,theme,17,n.y);
+    drawLabelLines(c,n,theme);
   }
   c.restore();
 
@@ -313,7 +306,7 @@ function drawNode(c,n,t,theme,isExport){
    antes de escribir nada, así que el efecto secundario no se ve. */
 function measureCanvasLabel(c){
   return e=>{
-    const efs=e.fs||13;
+    const efs=edgeLabelFs(e);
     c.font=objFont(e,efs);
     return {w:c.measureText(e.label).width, h:efs*1.7};
   };
@@ -493,11 +486,14 @@ function drawEdge(c,e,t,theme,isExport){
   }
   if(e.label){
     const m=labelPointFor(e,pts);
-    const efs=e.fs||13;
+    const efs=edgeLabelFs(e);
     c.font=objFont(e,efs); c.textAlign="center"; c.textBaseline="middle";
     const w=c.measureText(e.label).width;
+    /* El fondo se dibuja también mientras se edita: es el respaldo que hace
+       legible la etiqueta sobre la línea, y el textarea transparente lo necesita
+       igual que el texto pintado. Lo que no se dibuja es el texto. */
     c.fillStyle=T.lblBg; c.fillRect(m.x-w/2-6,m.y-efs*.85,w+12,efs*1.7);
-    c.fillStyle=T.edgeLbl; c.fillText(e.label,m.x,m.y);
+    if(editing!==e){ c.fillStyle=T.edgeLbl; c.fillText(e.label,m.x,m.y); }
   }
   if(single){
     c.lineWidth=1.6;
@@ -642,4 +638,11 @@ function now(){ return playing? (performance.now()-t0)/1000 : pausedAt; }
 /* pedir el siguiente fotograma ANTES de dibujar: si un fotograma falla, el error
    sale por consola pero el bucle sigue vivo, en vez de dejar el lienzo en negro
    para siempre por un único fallo. */
-(function loop(){ requestAnimationFrame(loop); render(ctx,now()); })();
+(function loop(){
+  requestAnimationFrame(loop);
+  render(ctx,now());
+  /* El textarea de edición in-situ vive en el DOM, fuera del lienzo, así que no
+     lo mueve el zoom ni el paneo. Se recoloca aquí, después de dibujar, y solo
+     cuando algo de lo que depende ha cambiado. */
+  if(typeof syncEditBoxIfMoved==="function") syncEditBoxIfMoved();
+})();

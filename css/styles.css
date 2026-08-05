@@ -48,10 +48,28 @@ main{flex:1; display:flex; min-height:0;}
 .stage{flex:1; display:flex; position:relative; background: #111; overflow:hidden;}
 #wrap{position:relative; width:100%; height:100%; overflow:hidden;}
 #cv{width:100%; height:100%; display:block; cursor:default; touch-action:none;}
+/* Edición in-situ: el textarea se coloca ENCIMA del texto del lienzo y no se ve.
+   Todo lo que aquí se pone a cero —fondo, borde, relleno, sombra— es lo que antes
+   convertía la caja de edición en un recuadro opaco que tapaba el diagrama.
+
+   La tipografía NO se declara aquí: familia, tamaño, interlineado, peso,
+   alineación y color los escribe syncEditBox() desde labelLayout(), que es la
+   misma maquetación con la que se pinta el texto. Fijar cualquiera de esos seis
+   valores en el CSS sería una segunda fuente de verdad, y el descuadre volvería.
+
+   `white-space:pre` porque el lienzo todavía no reparte líneas: hasta que exista
+   el reflow, el textarea tampoco debe repartirlas o editar y ver dejarían de
+   coincidir. Cuando llegue A2, esta línea es lo único que hay que quitar. */
 #editBox{
-  position:absolute; display:none; background:#000c; color:#fff; border:1px solid var(--accent);
-  border-radius:6px; padding:4px 8px; font:15px Georgia,serif; text-align:center; resize:none; overflow:hidden; z-index:5;
+  position:absolute; display:none; z-index:5;
+  background:transparent; border:none; outline:none; box-shadow:none;
+  padding:0; margin:0; box-sizing:border-box; resize:none;
+  white-space:pre; overflow:hidden; scrollbar-width:none;
 }
+#editBox::-webkit-scrollbar{ display:none; }
+/* La selección sí se ve: es la única señal de que estás dentro del texto y no
+   mirando el diagrama. */
+#editBox::selection{ background:rgba(58,167,232,.35); }
 /* ---- icon drawer ---- */
 #iconDrawer, #animDrawer{
   position:absolute; left:74px; top:60px; bottom:46px; width:236px; z-index:20;

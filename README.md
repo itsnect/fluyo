@@ -62,6 +62,8 @@ Dos cosas concretas necesitan HTTP, porque el navegador las bloquea en `file://`
 - el **modo offline** (los service workers exigen un contexto seguro);
 - los **enlaces a ejemplos** del tipo `?ejemplo=<slug>`, que hacen `fetch` de un JSON.
 
+> Que los scripts sean clásicos y no módulos ES **es la condición que hace cierto lo de arriba**, no un detalle de estilo: un `<script type="module">` lo bloquea el navegador en `file://` por CORS, y con un solo `import` la app deja de abrirse con doble clic. Está escrito como regla dura en [CONTRIBUTING.md](CONTRIBUTING.md) y hay un test en CI que falla si alguien lo introduce.
+
 Si quieres eso también, cualquier servidor de estáticos sirve:
 
 ```bash

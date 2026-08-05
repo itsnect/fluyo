@@ -16,7 +16,25 @@ Los scripts son clásicos (no módulos ES), así que cargan desde `file://` sin 
 python -m http.server 8000     # o:  npx serve -l 8000
 ```
 
-> **Al probar en local, ojo con el service worker.** El `fetch` handler es *cache-first*, así que puedes quedarte viendo una versión antigua de tus propios cambios. Si algo no se actualiza: DevTools → Application → Service Workers → **Unregister**, y borra las cachés en Application → Storage. Si añades, quitas o renombras archivos servidos, **sube la constante `CACHE` en `sw.js`**.
+> **Al probar en local, ojo con el service worker.** El `fetch` handler es *cache-first*, así que puedes quedarte viendo una versión antigua de tus propios cambios. Si algo no se actualiza: DevTools → Application → Service Workers → **Unregister**, y borra las cachés en Application → Storage. **Sube la constante `CACHE` en `sw.js` en cualquier PR que toque un archivo servido** — añadirlo, quitarlo, renombrarlo *o cambiar su contenido*. Mientras el nombre de la caché no cambie, nada se revalida.
+
+## Regla dura: scripts clásicos, nunca módulos ES
+
+**No conviertas ningún `js/*.js` en módulo ES, ni añadas `<script type="module">`, ni uses `import`/`export` de nivel superior.** No es preferencia de estilo: es lo que sostiene una propiedad publicada del producto.
+
+`file://` es un caso de uso soportado y anunciado — [`README.md:58`](README.md) promete que *«cargan perfectamente desde `file://`»* y esta misma página lo repite arriba. Medido en Chrome, desde un origen `file:` real:
+
+| Mecanismo | Desde `file://` |
+|---|---|
+| `<script src>` clásico, estático o inyectado a demanda | ✅ funciona |
+| `fetch()` | ❌ bloqueado |
+| **`<script type="module">` / `import`** | ❌ **bloqueado por CORS** |
+
+Un solo `import` en un `js/*.js` obliga a cargarlo como módulo y **rompe la app entera al abrirla con doble clic**, sin ningún aviso salvo un error de CORS en consola.
+
+Esto además condiciona lo que viene: el catálogo de iconos de proveedor (AWS/GCP/Azure) va a cargarse **por paquetes a demanda**, y esos paquetes tienen que ser scripts clásicos inyectados dinámicamente por la misma razón. Ver `INFORME-ICONOS-MARCA.md` §6.1.
+
+Hay un test que falla si esto se rompe: `fluyo-mcp/test/no-esm.test.ts`, que corre en CI.
 
 ## Estructura de archivos
 

@@ -1,0 +1,25 @@
+# Fluyo no tiene build ni dependencias, así que aquí casi no hay nada que ignorar.
+# Lo que sí hay que impedir es que entre por descuido material de terceros con la
+# licencia sin aclarar.
+
+# ─── Material de proveedor con licencia indeterminada ───────────────────────
+# Los sets de iconos oficiales de AWS, Google Cloud y Azure se descargan como
+# .zip y no traen licencia dentro: comprobado, ninguno de los tres zips oficiales
+# de Google incluye LICENSE, NOTICE ni términos, y ninguno de sus 261 SVG lleva
+# aviso de copyright (INFORME-ICONOS-MARCA.md §7).
+#
+# Hasta que haya un permiso por escrito, ese material NO entra en un repositorio
+# público — tampoco en un commit que luego se revierta, porque seguiría en el
+# historial. Se trabaja con él fuera del repo.
+*.zip
+*.pptx
+icons-vendor/
+*-icons/*.svg
+*-icons/*.png
+
+# ─── Ruido del sistema y del editor ─────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.log
+.vscode/
+.idea/

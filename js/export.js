@@ -124,6 +124,45 @@ function buildSVGDefs(){
   </marker>
 </defs>`;
 }
+/* ===================== Símbolos reutilizables =====================
+   Un icono se incrustaba como data URI COMPLETO dentro de cada nodo que lo usaba.
+   En una arquitectura real eso es lo normal —varios Cloud Run, varias Cloud SQL,
+   tres colas—, así que el mismo bloque de bytes viajaba repetido tantas veces
+   como nodos.
+
+   Con los 72 iconos dibujados a mano de Fluyo (430 B de media) apenas se notaba.
+   Con los sets oficiales de proveedor, que son trazados reales de 1,5–4 KB, deja
+   de ser una optimización: medido sobre un diagrama de 30 nodos con 10 iconos
+   distintos a 4 KB, el SVG sale de 223 KB y REVIENTA el tope de 200 KB del
+   transporte del MCP. Con <defs>/<use> el mismo diagrama son 79,5 KB — un 64 %
+   menos. Ver INFORME-ICONOS-MARCA.md §6.2.
+
+   Se agrupan iconos y GIFs, que son catálogo y siempre miden 64×64. Las imágenes
+   que pega el usuario no: no se conoce su tamaño intrínseco —haría falta un
+   viewBox que no tenemos— y además rara vez se repiten.
+
+   Por qué <symbol> y no un <image> con id: un <use> que apunta a un <image> NO le
+   propaga width/height, y aquí cada nodo dibuja el mismo icono a un tamaño
+   distinto. Apuntando a un <symbol> con viewBox, el <use> sí manda.
+
+   Los ids se asignan por orden de primera aparición recorriendo la página, que es
+   el mismo orden en la app y en el MCP: los dos SVG salen idénticos. */
+function svgSymbols(){
+  const ids=new Map(), defs=[];
+  return {
+    use(src, x, y, s){
+      if(!src) return "";
+      let id=ids.get(src);
+      if(id===undefined){
+        id="fluyo-sym-"+ids.size;
+        ids.set(src, id);
+        defs.push(`<symbol id="${id}" viewBox="0 0 64 64" preserveAspectRatio="xMidYMid meet"><image width="64" height="64" href="${escapeAttribute(src)}"/></symbol>`);
+      }
+      return `<use href="#${id}" xlink:href="#${id}" x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${s.toFixed(2)}" height="${s.toFixed(2)}"/>`;
+    },
+    defs(){ return defs.length? `<defs>\n${defs.join("\n")}\n</defs>` : ""; },
+  };
+}
 const SVG_NS="http://www.w3.org/2000/svg";
 let _svgMeasure=null;
 function svgTextWidth(text, fs, family, bold){
@@ -191,7 +230,7 @@ function renderImageToSVG(n){
   if(!n.img) return "";
   return `<image x="${(n.x-n.w/2).toFixed(2)}" y="${(n.y-n.h/2).toFixed(2)}" width="${n.w}" height="${n.h}" href="${escapeAttribute(n.img)}" preserveAspectRatio="xMidYMid meet"/>`;
 }
-function renderNodeToSVG(n, theme){
+function renderNodeToSVG(n, theme, syms){
   const fill=svgNodeFill(n, theme), stroke=escapeAttribute(n.color), dash=svgDash(n);
   const parts=[`<g id="node-${n.id}">`];
   switch(n.shape){
@@ -244,14 +283,14 @@ function renderNodeToSVG(n, theme){
     case "anim":{
       const src=animURL[n.anim]||"";
       const s=Math.max(10, Math.min(n.w,n.h-(n.label?26:8)));
-      if(src) parts.push(`<image x="${(n.x-s/2).toFixed(2)}" y="${(n.y-(n.label?8:0)-s/2).toFixed(2)}" width="${s.toFixed(2)}" height="${s.toFixed(2)}" href="${escapeAttribute(src)}" preserveAspectRatio="xMidYMid meet"/>`);
+      parts.push(syms.use(src, n.x-s/2, n.y-(n.label?8:0)-s/2, s));
       parts.push(svgLabelLines(n,theme));
       break;
     }
     case "icon":{
       const src=iconURLFor(n.icon, nodeIconTint(n));
       const s=Math.min(n.w,n.h-26)*.78;
-      if(src) parts.push(`<image x="${(n.x-s/2).toFixed(2)}" y="${(n.y-n.h/2+4).toFixed(2)}" width="${s.toFixed(2)}" height="${s.toFixed(2)}" href="${escapeAttribute(src)}" preserveAspectRatio="xMidYMid meet"/>`);
+      parts.push(syms.use(src, n.x-s/2, n.y-n.h/2+4, s));
       parts.push(svgLabelLines(n,theme));
       break;
     }
@@ -306,8 +345,15 @@ function buildSVGDocument(scale=1){
     return {w:svgTextWidth(e.label, efs, e.font||settings.font||DEFAULT_FONT, !!e.bold), h:efs*1.7};
   });
   for(const e of page.edges||[]) parts.push(renderConnectorToSVG(e,theme));
-  for(const n of page.nodes||[]) parts.push(renderNodeToSVG(n,theme));
-  parts.push("</svg>");
+  /* Los símbolos se recogen dibujando, así que el <defs> con los iconos solo se
+     conoce al final. Se inserta después de las marcas de flecha en vez de al
+     final del documento: un id se resuelve igual esté donde esté, pero un SVG que
+     declara antes de usar es el que abren sin quejarse los editores externos. */
+  const syms=svgSymbols();
+  const nodos=(page.nodes||[]).map(n=>renderNodeToSVG(n,theme,syms));
+  const defs=syms.defs();
+  if(defs) parts.push(defs);
+  parts.push(...nodos, "</svg>");
   return parts.join("\n");
 }
 function exportSVG(scale=1){

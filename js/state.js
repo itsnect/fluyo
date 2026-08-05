@@ -17,6 +17,11 @@ let wpDrag=null;              // {edgeId, idx}
 let connectDrag=null;         // {fromId, fromSide}
 let marquee=null;             // {x0,y0,x1,y1,add}
 let hoverNode=null;
+/* Nodo o arista que se está editando in-situ. Vive aquí y no en interaction.js
+   porque lo LEE render.js —que se carga antes— para no dibujar dos veces el texto
+   que ya pinta el textarea. Un `let` de otro script estaría en zona muerta
+   temporal en el primer fotograma, y ni siquiera `typeof` lo salva. */
+let editing=null;
 let clip=null;                // portapapeles interno
 let pasteTimer=null;
 let t0=performance.now(), playing=true, pausedAt=0;
@@ -76,8 +81,7 @@ function hexA(col,a){ const v=parseInt(col.slice(1),16);
   return `rgba(${v>>16&255},${v>>8&255},${v&255},${a})`; }
 
 function newNode(shape,x,y,extra={}){
-  const sizes={rect:[180,70], cylinder:[150,90], diamond:[160,100], circle:[110,110], hex:[170,80], text:[200,40], icon:[120,92], image:[220,160], anim:[120,100], code:[300,150]};
-  const [w,h]=sizes[shape]||[160,70];
+  const [w,h]=DEFAULT_SIZES[shape]||[160,70];
   const n=Object.assign({ id:P().nextId++, shape, x:snapV(x), y:snapV(y), w, h,
     label: shape==="text"?"Texto":shape==="code"?CODE_DEFAULT_LABEL:(shape==="icon"||shape==="image"||shape==="anim")?"":"Nodo",
     color:PALETTE[0].c, fill:null, border:"solid", lblPos:"center", textBg:null, textColor:null,
@@ -85,6 +89,9 @@ function newNode(shape,x,y,extra={}){
   /* Los campos de `code` solo se ponen en nodos `code`, igual que `icon` solo va
      en los de icono: no tiene sentido cargar todos los nodos con ellos. */
   if(shape==="code" && !("lang" in n)) Object.assign(n,{lang:DEFAULT_LANG, keywords:null, kwBg:null, kwColor:null});
+  /* `tint` nace apagado también en los iconos nuevos: el interruptor tiene que
+     significar lo mismo en un diagrama de hoy y en uno de hace un mes. */
+  if(shape==="icon" && !("tint" in n)) n.tint=false;
   P().nodes.push(n); return n;
 }
 function newEdge(a,b,opts={}){

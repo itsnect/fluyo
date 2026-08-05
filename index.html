@@ -139,7 +139,7 @@
   <div class="stage">
     <div id="wrap">
       <canvas id="cv" width="2560" height="1440"></canvas>
-      <textarea id="editBox" rows="1"></textarea>
+      <textarea id="editBox" rows="1" wrap="off" spellcheck="false" aria-label="Editar texto"></textarea>
     </div>
     <div id="iconDrawer" role="dialog" aria-label="Iconos"></div>
     <div id="animDrawer" role="dialog" aria-label="GIFs animados"></div>
@@ -198,6 +198,7 @@
             <button id="btnEyedrop" class="mini" title="Cuentagotas: tomar un color del lienzo">🎯 Picker</button>
           </div>
         </div>
+        <div class="row" id="rowTint"><label for="tintChk">Teñir el icono con el color</label><input type="checkbox" id="tintChk"></div>
         <div class="row" id="rowFill" style="flex-direction:column; align-items:stretch;">
           <label>Relleno de la forma</label>
           <div class="swatches" id="fillSw"></div>

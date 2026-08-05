@@ -1,8 +1,17 @@
-/* IMPORTANTE: subir esta versión en cualquier PR que añada, quite o renombre
-   archivos servidos. El fetch handler es cache-first, así que sin el cambio de
-   versión quien ya tenga el service worker instalado seguirá viendo la versión
-   anterior de index.html — y pedirá scripts que ya no existen. */
-const CACHE = "fluyo-static-v10";
+/* IMPORTANTE: subir esta versión en cualquier PR que toque un archivo servido.
+   CUALQUIERA: añadirlo, quitarlo, renombrarlo O CAMBIAR SU CONTENIDO.
+
+   El fetch handler es cache-first y `activate` solo borra las cachés cuyo nombre
+   no coincide con CACHE, así que mientras el nombre no cambie NADA se revalida:
+   quien ya tenga el service worker instalado seguirá ejecutando los js/*.js de la
+   versión anterior indefinidamente, aunque en el servidor estén los nuevos.
+
+   No es hipotético. `test/editor-inline.html` dio rojo en su primera ejecución
+   sobre un bug de Escape que en disco YA estaba arreglado: el service worker le
+   estaba sirviendo al iframe una copia vieja de js/interaction.js. Por eso ese
+   test ahora desregistra el SW antes de cargar nada — y por eso esta versión
+   sube también cuando solo cambia el contenido. */
+const CACHE = "fluyo-static-v11";
 /* Núcleo: si algo de aquí falla, la instalación falla (cache.addAll es atómico)
    y es lo correcto, porque sin estos archivos la app no funciona. */
 const ASSETS = [

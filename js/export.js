@@ -142,13 +142,12 @@ function svgTextWidth(text, fs, family, bold){
   _svgMeasure.appendChild(el);
   return el.getBBox().width;
 }
-function fitSvgFontSize(lines, baseFs, maxWidth, explicitFs, family, bold){
-  if(explicitFs) return explicitFs;
-  let fs=baseFs;
-  const avail=maxWidth;
-  let maxW=Math.max(...lines.map(l=>svgTextWidth(l,fs,family,bold)),1);
-  if(maxW>avail) fs=Math.max(10, fs*avail/maxW);
-  return fs;
+/* Medidor para el exportador: getBBox() en un <svg> oculto, que es medición real
+   del mismo motor de fuentes que usa el lienzo. */
+function measureSvgLabel(n){
+  const lines=String(n.label==null?"":n.label).split("\n");
+  const family=n.font||settings.font||DEFAULT_FONT, bold=!!n.bold;
+  return fs=>Math.max(...lines.map(l=>svgTextWidth(l,fs,family,bold)),1);
 }
 function svgNodeFill(n, theme){
   if(n.fill==="none") return "none";
@@ -160,21 +159,13 @@ function svgDash(n){
   if(n.border==="dotted") return ' stroke-dasharray="2 5"';
   return "";
 }
-function svgLabelLines(n, theme, baseFs, cy){
+const SVG_ANCHOR={left:"start", right:"end", center:"middle"};
+function svgLabelLines(n, theme){
   if(!n.label) return "";
   const T=THEMES[theme];
-  const lines=String(n.label).split("\n");
   const family=n.font||settings.font||DEFAULT_FONT, bold=!!n.bold;
-  const fs=fitSvgFontSize(lines, baseFs, n.w-18, n.fs||null, family, bold);
-  const lh=fs*1.25;
-  const pos=n.lblPos||"center";
-  const inset=Math.min(14, n.w*.12, n.h*.18);
-  let baseY, anchor="middle", tx=n.x;
-  if(pos==="top") baseY=n.y-n.h/2+inset+fs*.7;
-  else if(pos==="bottom") baseY=n.y+n.h/2-inset-(lines.length-1)*lh-fs*.1;
-  else baseY=cy-(lines.length-1)*lh/2;
-  if(pos==="left"){ anchor="start"; tx=n.x-n.w/2+inset; }
-  else if(pos==="right"){ anchor="end"; tx=n.x+n.w/2-inset; }
+  const {lines, fs, lh, tx, align, baseY}=labelLayout(n, measureSvgLabel(n));
+  const anchor=SVG_ANCHOR[align];
   const fill=n.textColor || ((n.shape==="text"||n.shape==="anim")? n.color : T.text);
   const parts=[];
   if(n.textBg){
@@ -206,26 +197,26 @@ function renderNodeToSVG(n, theme){
   switch(n.shape){
     case "circle":
       parts.push(`<ellipse cx="${n.x}" cy="${n.y}" rx="${(n.w/2).toFixed(2)}" ry="${(n.h/2).toFixed(2)}" fill="${fill}" stroke="${stroke}" stroke-width="2.5"${dash}/>`);
-      parts.push(svgLabelLines(n,theme,17,n.y));
+      parts.push(svgLabelLines(n,theme));
       break;
     case "diamond":
       parts.push(`<polygon points="${n.x},${(n.y-n.h/2).toFixed(2)} ${(n.x+n.w/2).toFixed(2)},${n.y} ${n.x},${(n.y+n.h/2).toFixed(2)} ${(n.x-n.w/2).toFixed(2)},${n.y}" fill="${fill}" stroke="${stroke}" stroke-width="2.5"${dash}/>`);
-      parts.push(svgLabelLines(n,theme,17,n.y));
+      parts.push(svgLabelLines(n,theme));
       break;
     case "hex":
       parts.push(`<polygon points="${hexPointsSVG(n)}" fill="${fill}" stroke="${stroke}" stroke-width="2.5"${dash}/>`);
-      parts.push(svgLabelLines(n,theme,17,n.y));
+      parts.push(svgLabelLines(n,theme));
       break;
     case "cylinder":{
       const {x,y,w,h}=n, ry=Math.min(16,h*.18), top=y-h/2, bot=y+h/2;
       const d=`M ${(x-w/2).toFixed(2)} ${(top+ry).toFixed(2)} L ${(x-w/2).toFixed(2)} ${(bot-ry).toFixed(2)} C ${(x-w/2).toFixed(2)} ${(bot+ry*.8).toFixed(2)} ${(x+w/2).toFixed(2)} ${(bot+ry*.8).toFixed(2)} ${(x+w/2).toFixed(2)} ${(bot-ry).toFixed(2)} L ${(x+w/2).toFixed(2)} ${(top+ry).toFixed(2)} C ${(x+w/2).toFixed(2)} ${(top-ry*.8).toFixed(2)} ${(x-w/2).toFixed(2)} ${(top-ry*.8).toFixed(2)} ${(x-w/2).toFixed(2)} ${(top+ry).toFixed(2)} Z`;
       parts.push(`<path d="${d}" fill="${fill}" stroke="${stroke}" stroke-width="2.5"${dash}/>`);
       parts.push(`<ellipse cx="${x}" cy="${(top+ry).toFixed(2)}" rx="${(w/2).toFixed(2)}" ry="${ry.toFixed(2)}" fill="none" stroke="${stroke}" stroke-width="2.5"/>`);
-      parts.push(svgLabelLines(n,theme,17,y+6));
+      parts.push(svgLabelLines(n,theme));
       break;
     }
     case "text":
-      parts.push(svgLabelLines(n,theme,22,n.y));
+      parts.push(svgLabelLines(n,theme));
       break;
     case "code":{
       /* `textLength` + `lengthAdjust="spacing"` es la pieza que hace que esto
@@ -254,23 +245,23 @@ function renderNodeToSVG(n, theme){
       const src=animURL[n.anim]||"";
       const s=Math.max(10, Math.min(n.w,n.h-(n.label?26:8)));
       if(src) parts.push(`<image x="${(n.x-s/2).toFixed(2)}" y="${(n.y-(n.label?8:0)-s/2).toFixed(2)}" width="${s.toFixed(2)}" height="${s.toFixed(2)}" href="${escapeAttribute(src)}" preserveAspectRatio="xMidYMid meet"/>`);
-      parts.push(svgLabelLines(n,theme,14,n.y+n.h/2-8));
+      parts.push(svgLabelLines(n,theme));
       break;
     }
     case "icon":{
-      const src=iconURL[n.icon]||"";
+      const src=iconURLFor(n.icon, nodeIconTint(n));
       const s=Math.min(n.w,n.h-26)*.78;
       if(src) parts.push(`<image x="${(n.x-s/2).toFixed(2)}" y="${(n.y-n.h/2+4).toFixed(2)}" width="${s.toFixed(2)}" height="${s.toFixed(2)}" href="${escapeAttribute(src)}" preserveAspectRatio="xMidYMid meet"/>`);
-      parts.push(svgLabelLines(n,theme,14,n.y+n.h/2-10));
+      parts.push(svgLabelLines(n,theme));
       break;
     }
     case "image":
       parts.push(renderImageToSVG(n));
-      parts.push(svgLabelLines(n,theme,14,n.y+n.h/2+14));
+      parts.push(svgLabelLines(n,theme));
       break;
     default:
       parts.push(`<rect x="${(n.x-n.w/2).toFixed(2)}" y="${(n.y-n.h/2).toFixed(2)}" width="${n.w}" height="${n.h}" rx="10" ry="10" fill="${fill}" stroke="${stroke}" stroke-width="2.5"${dash}/>`);
-      parts.push(svgLabelLines(n,theme,17,n.y));
+      parts.push(svgLabelLines(n,theme));
   }
   parts.push("</g>");
   return parts.filter(Boolean).join("\n");
@@ -289,7 +280,7 @@ function renderConnectorToSVG(e, theme){
   const ptsStr=pts.map(p=>`${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(" ");
   const parts=[`<polyline points="${ptsStr}" fill="none" stroke="${lineCol}" stroke-width="2" stroke-linejoin="round"${dash}${markers}/>`];
   if(e.label){
-    const m=labelPointFor(e,pts), efs=e.fs||13;
+    const m=labelPointFor(e,pts), efs=edgeLabelFs(e);
     const family=e.font||settings.font||DEFAULT_FONT, bold=!!e.bold;
     const tw=svgTextWidth(e.label, efs, family, bold);
     const rx=(m.x-tw/2-6).toFixed(2), ry=(m.y-efs*.85).toFixed(2);
@@ -311,7 +302,7 @@ function buildSVGDocument(scale=1){
      con measureText: el SVG exportado tiene que enseñar las etiquetas donde el
      usuario las vio. */
   edgeLabelPos=placeEdgeLabels(e=>{
-    const efs=e.fs||13;
+    const efs=edgeLabelFs(e);
     return {w:svgTextWidth(e.label, efs, e.font||settings.font||DEFAULT_FONT, !!e.bold), h:efs*1.7};
   });
   for(const e of page.edges||[]) parts.push(renderConnectorToSVG(e,theme));

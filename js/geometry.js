@@ -319,6 +319,119 @@ function codeColors(n,theme){
 }
 function codeFont(n){ return n.font || FONTS[FONTS.length-1].f; }
 
+/* ===================== Escalado y maquetación de la etiqueta =====================
+   UNA regla para todas las formas con texto, y es la MISMA que ya usaba `code`:
+   el tamaño de fuente sale de las DOS dimensiones de la caja. Antes solo salía
+   del ancho, y solo hacia abajo —encogía si no cabía, nunca crecía—, así que al
+   agrandar un nodo el texto se quedaba perdido y al bajarlo se salía por arriba
+   y por abajo sin que nada lo notara.
+
+   Tres límites, y manda el menor:
+
+     · ESCALA DE CAJA — cuánto se ha redimensionado el nodo respecto al tamaño
+       con el que nace su forma: min(w/w0, h/h0). Es lo que hace que la fuente
+       acompañe a la esquina que arrastras.
+     · ANCHO — la línea más larga tiene que caber en n.w-18.
+     · ALTO  — todas las líneas juntas tienen que caber en su franja.
+
+   Que la escala sea RELATIVA al tamaño por defecto, y no un ajuste al ancho
+   disponible, es la decisión que hace esto retrocompatible: un nodo que nadie ha
+   tocado da factor 1 y sale idéntico. Medido sobre los 5 ejemplos oficiales: 37
+   de 43 etiquetas no se mueven, y de las 6 que crecen ninguna pasa de x1.25.
+   Ajustar al ancho a secas —la otra lectura de «la fuente crece con la caja»—
+   cambiaba 34 de 48 con factores de hasta x3.85. Ver INFORME-TEXTO.md §5.
+
+   `n.fs` sigue siendo la salida manual: si está puesto, aquí no se calcula nada.
+
+   Por qué esto vive en geometry.js y no en cada renderer: lo consumen CUATRO
+   sitios —el lienzo, el exportador SVG de la app, svg.ts del MCP y el editor
+   in-situ—, y el editor tiene que colocar el textarea exactamente encima del
+   texto. Con la maquetación duplicada, el textarea se descuadra en cuanto
+   alguien toca una constante en uno solo de los sitios. Es el mismo motivo por
+   el que codeBlockLayout() devuelve datos en vez de dibujar. */
+const LABEL_LH=1.25;      // interlineado, en múltiplos del tamaño de fuente
+const LABEL_PAD_X=18;     // aire horizontal total dentro de la caja
+const LABEL_MIN_FS=10;
+
+/* Tamaño base y línea central por forma. Estaban sueltos en cada llamada de
+   drawNode()/renderNodeToSVG(); están aquí porque ahora los necesita también el
+   editor, y dos copias es exactamente como se descuadra el textarea. */
+function labelBaseFs(n){
+  if(n.shape==="text") return 22;
+  if(n.shape==="icon"||n.shape==="anim"||n.shape==="image") return 14;
+  return 17;
+}
+function labelCenterY(n){
+  switch(n.shape){
+    case "image": return n.y+n.h/2+14;
+    case "icon":  return n.y+n.h/2-10;
+    case "anim":  return n.y+n.h/2-8;
+    case "cylinder": return n.y+6;
+    default: return n.y;
+  }
+}
+function labelBoxScale(n){
+  const d=DEFAULT_SIZES[n.shape];
+  if(!d || !(d[0]>0) || !(d[1]>0)) return 1;
+  return Math.min(n.w/d[0], n.h/d[1]);
+}
+/* Franja vertical de la que dispone el texto. En las formas con caja es la caja
+   entera. En icon/anim/image la etiqueta vive FUERA del dibujo, en la banda de
+   abajo —los mismos 26 px que drawNode() le resta al glifo—, así que dejarla
+   crecer hasta el alto del nodo sería dejar que se comiera el icono. */
+function labelBandH(n){
+  if(n.shape==="icon"||n.shape==="anim") return 26;
+  if(n.shape==="image") return 28;
+  return n.h;
+}
+/* `measure(fs)` devuelve el ancho de la línea más larga a ese tamaño. Lo inyecta
+   quien llama porque medir se hace distinto en el lienzo (measureText), en el SVG
+   de la app (getBBox) y en el MCP (heurística por anchos de carácter). */
+function labelFontSize(n, measure){
+  if(n.fs) return n.fs;
+  const nLines=String(n.label==null?"":n.label).split("\n").length;
+  let fs=labelBaseFs(n)*labelBoxScale(n);
+  const avail=n.w-LABEL_PAD_X;
+  if(avail>0){
+    const maxW=Math.max(measure(fs),1);
+    if(maxW>avail) fs=fs*avail/maxW;
+  }
+  const porAlto=labelBandH(n)/(nLines*LABEL_LH);
+  if(fs>porAlto) fs=porAlto;
+  return Math.max(LABEL_MIN_FS, fs);
+}
+/* Las etiquetas de arista no tienen caja de la que derivar un tamaño, así que no
+   escalan: flotan sobre la línea. La constante estaba escrita tres veces —lienzo,
+   exportador y svg.ts— y ahora que el editor in-situ también la necesita, cuatro
+   copias del mismo 13 era pedir que se descuadren. */
+function edgeLabelFs(e){ return e.fs||13; }
+/* Maquetación completa, como DATOS. Los tres renderers dibujan a partir de esto
+   y el editor in-situ coloca el textarea a partir de esto mismo. */
+function labelLayout(n, measure){
+  const lines=String(n.label==null?"":n.label).split("\n");
+  const fs=labelFontSize(n, measure), lh=fs*LABEL_LH;
+  const pos=n.lblPos||"center";
+  const inset=Math.min(14, n.w*.12, n.h*.18);
+  let tx=n.x, align="center";
+  if(pos==="left"){ tx=n.x-n.w/2+inset; align="left"; }
+  else if(pos==="right"){ tx=n.x+n.w/2-inset; align="right"; }
+  let baseY;
+  if(pos==="top") baseY=n.y-n.h/2+inset+fs*.7;
+  else if(pos==="bottom") baseY=n.y+n.h/2-inset-(lines.length-1)*lh-fs*.1;
+  else baseY=labelCenterY(n)-(lines.length-1)*lh/2;
+  /* Caja que ocupa el texto en coordenadas de mundo. Es lo que el editor usa para
+     colocar el textarea: mismo ancho útil que el que limita la fuente, y el borde
+     superior de la PRIMERA línea, no su centro —el lienzo escribe con
+     textBaseline="middle" y un textarea alinea por arriba. */
+  const boxW=Math.max(1, n.w-LABEL_PAD_X);
+  let boxX;
+  if(align==="left") boxX=tx;
+  else if(align==="right") boxX=tx-boxW;
+  else boxX=n.x-boxW/2;
+  return {lines, fs, lh, tx, align, baseY, pos,
+          boxX, boxY:baseY-lh/2, boxW, boxH:lines.length*lh};
+}
+
 /* ===================== Colocación de etiquetas =====================
    La etiqueta iba siempre al punto medio exacto de la ruta, sin mirar qué había
    debajo. En cuanto el diagrama se aprieta un poco, ese punto cae encima de un

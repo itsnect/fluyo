@@ -24,7 +24,7 @@ function refreshPanel(){
   $("fsIn").value=obj.fs||"";
   $("fontSel").value=obj.font||"";
   $("boldChk").checked=!!obj.bold;
-  const nodeRows=["rowColor","rowFill","rowBorder","rowLblPos","rowTextBg","rowTextColor","rowZ","rowShape","rowPulse","rowOrder","rowLang","rowKeywords","rowKwBg","rowKwColor"];
+  const nodeRows=["rowColor","rowTint","rowFill","rowBorder","rowLblPos","rowTextBg","rowTextColor","rowZ","rowShape","rowPulse","rowOrder","rowLang","rowKeywords","rowKwBg","rowKwColor"];
   const edgeRows=["rowRoute","rowFrom","rowTo","rowAnim","rowSpeedF","rowDotsGlobal","rowDots","rowDash","rowArrS","rowArrE","rowFlow","rowLineC","rowDotC"];
   nodeRows.forEach(r=>$(r).style.display=isNode?"flex":"none");
   edgeRows.forEach(r=>$(r).style.display=isNode?"none":"flex");
@@ -36,6 +36,8 @@ function refreshPanel(){
     const esCode=obj.shape==="code";
     /* En `code` los campos genéricos cambian de significado, así que la etiqueta
        del control lo dice: `fill` pinta el panel y `textBg` el papel del bloque. */
+    $("rowTint").style.display=obj.shape==="icon"?"flex":"none";
+    $("tintChk").checked=!!obj.tint;
     $("rowFill").style.display=(hasBox||esCode)?"flex":"none";
     $("rowBorder").style.display=(hasBox||esCode)?"flex":"none";
     $("rowLblPos").style.display=(hasBox||obj.shape==="text")?"flex":"none";
@@ -274,6 +276,7 @@ $("fsIn").addEventListener("input", ()=>{
 });
 $("shapeSel").onchange=()=>{ const n=singleNode(); if(n&&n.shape!=="image"&&n.shape!=="icon"){ pushUndo(); n.shape=$("shapeSel").value; scheduleAutosave(); } };
 $("pulseChk").onchange=()=>{ const n=singleNode(); if(n){ pushUndo(); n.pulse=$("pulseChk").checked; scheduleAutosave(); } };
+$("tintChk").onchange=()=>{ const n=singleNode(); if(n){ pushUndo(); n.tint=$("tintChk").checked; scheduleAutosave(); } };
 $("orderIn").onchange=()=>{ const n=singleNode(); if(n){ pushUndo(); n.order=+$("orderIn").value||0; scheduleAutosave(); } };
 $("routeSel").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); e.route=$("routeSel").value; scheduleAutosave(); } };
 $("fromSel").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); e.fromSide=$("fromSel").value||null; e.waypoints=[]; refreshPanel(); scheduleAutosave(); } };

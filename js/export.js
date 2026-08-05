@@ -258,7 +258,7 @@ function renderNodeToSVG(n, theme){
       break;
     }
     case "icon":{
-      const src=iconURL[n.icon]||"";
+      const src=iconURLFor(n.icon, nodeIconTint(n));
       const s=Math.min(n.w,n.h-26)*.78;
       if(src) parts.push(`<image x="${(n.x-s/2).toFixed(2)}" y="${(n.y-n.h/2+4).toFixed(2)}" width="${s.toFixed(2)}" height="${s.toFixed(2)}" href="${escapeAttribute(src)}" preserveAspectRatio="xMidYMid meet"/>`);
       parts.push(svgLabelLines(n,theme,14,n.y+n.h/2-10));

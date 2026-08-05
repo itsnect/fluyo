@@ -249,7 +249,7 @@ function drawNode(c,n,t,theme,isExport){
     if(n.label) drawLabelLines(c,n,theme,14,n.y+n.h/2+14);
   }
   else if(n.shape==="icon"){
-    const im=getImg(iconURL[n.icon]||"");
+    const im=getImg(iconURLFor(n.icon, nodeIconTint(n)));
     const s=Math.min(n.w,n.h-26)*.78;
     if(glow>0){c.shadowColor=n.color; c.shadowBlur=18*glow;}
     if(im.complete && im.naturalWidth) c.drawImage(im, n.x-s/2, n.y-n.h/2+4, s, s);

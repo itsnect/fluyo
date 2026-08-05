@@ -55,7 +55,7 @@ Clona y abre `index.html` en el navegador. Ya está: no hay que instalar nada, n
 git clone https://github.com/itsnect/fluyo.git
 ```
 
-Los scripts son clásicos, así que **cargan perfectamente desde `file://`**: el editor completo, los más de 40 iconos, la animación y la exportación funcionan abriendo el archivo con doble clic.
+Los scripts son clásicos, así que **cargan perfectamente desde `file://`**: el editor completo, los más de 70 iconos, la animación y la exportación funcionan abriendo el archivo con doble clic.
 
 Dos cosas concretas necesitan HTTP, porque el navegador las bloquea en `file://` por seguridad:
 

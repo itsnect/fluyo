@@ -85,6 +85,9 @@ function newNode(shape,x,y,extra={}){
   /* Los campos de `code` solo se ponen en nodos `code`, igual que `icon` solo va
      en los de icono: no tiene sentido cargar todos los nodos con ellos. */
   if(shape==="code" && !("lang" in n)) Object.assign(n,{lang:DEFAULT_LANG, keywords:null, kwBg:null, kwColor:null});
+  /* `tint` nace apagado también en los iconos nuevos: el interruptor tiene que
+     significar lo mismo en un diagrama de hoy y en uno de hace un mes. */
+  if(shape==="icon" && !("tint" in n)) n.tint=false;
   P().nodes.push(n); return n;
 }
 function newEdge(a,b,opts={}){

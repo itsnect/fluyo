@@ -208,23 +208,134 @@ function slideAnchor(n0,side,p,off,half){
   const v=clamp(base+off, c-lim, c+lim);
   return horiz? {x:v, y:p.y} : {x:p.x, y:v};
 }
-function orthoRoute(p1,d1,p2,d2,off){
+/* ===================== Llegar por el lado contrario =====================
+   El pasillo de aproximación de `pad` px delante de cada extremo es correcto y
+   no se toca: es lo que hace que la flecha entre perpendicular al borde.
+
+   Lo que estaba mal era el CONECTOR entre los dos puntos de pasillo. Se elegía
+   con una tabla fija de cuatro casos que nunca miraba por dónde pasaba. Cuando
+   el otro nodo queda del lado contrario al lado anclado, el codo caía dentro del
+   nodo: la ruta lo atravesaba, se pasaba `pad` px de largo y volvía al borde.
+   Como los nodos nacen con fill:null —semitransparente— se veía el trazo por
+   dentro y un muñón de 28 px asomando por fuera. Medido antes de arreglarlo:
+
+     · 16 de las 25 combinaciones de fromSide × toSide en un par de cajas
+     · 3 aristas del corpus publicado (serverless e16, microservicios e20 y e21)
+     · 10 aristas de ese mismo corpus recolocado con el auto-layout
+
+   Y en la capa de manejadores se veía como otra cosa: el tramo que vuelve sobre
+   sí mismo deja su manejador de codo a 17 px del manejador de extremo, con
+   radios de acierto de 9 cada uno. Dos objetivos que se pisan sobre el borde.
+
+   Entre dos puntos siempre hay DOS maneras de doblar en ortogonal, y casi
+   siempre una de las dos está limpia: el arreglo no es rodear el nodo con
+   vértices nuevos, es doblar antes en vez de después. Las tres aristas del
+   corpus se arreglan sin ganar un solo vértice.
+
+   La cláusula que protege lo demás es la salida temprana: si la ruta de hoy no
+   entra en ninguna de las dos cajas de anclaje, se devuelve TAL CUAL y no se
+   evalúa ningún candidato. Una arista sana no puede cambiar ni un píxel por
+   esto. Medido: de las 54 aristas del corpus cambian 3, y son las 3 defectuosas.
+
+   Se mide contra anchorBox() y no contra la caja del nodo. Con la caja completa
+   el mismo medidor da 26 casos, de los que 24 son falsos positivos: en un nodo
+   `icon` la caja de anclaje es más estrecha que el nodo y el extremo cae
+   legítimamente dentro de la grande. */
+const OBST_TOL=1.5;   // roce del borde que no cuenta como entrar
+const OBST_MIN=4;     // px dentro de la caja para considerarlo un defecto
+function obstBox(n){
+  const a=anchorBox(n);
+  return {x0:a.x-a.w/2, x1:a.x+a.w/2, y0:a.y-a.h/2, y1:a.y+a.h/2};
+}
+/* Longitud del tramo que cae dentro de la caja, por recorte exacto
+   (Liang-Barsky) y no por muestreo.
+   Tiene que valer para tramos NO ortogonales: el dedup de más abajo descarta
+   puntos a ≤1px, así que cuando dos anclas de nodos distintos difieren en 1px
+   queda un tramo con 1px de inclinación. Un test que solo mirase tramos
+   exactamente ortogonales daría ese caso por bueno —pasó, con microservicios
+   e20 recolocado— y el defecto se colaría. */
+function segInBox(a,b,B){
+  const x0=B.x0+OBST_TOL, x1=B.x1-OBST_TOL, y0=B.y0+OBST_TOL, y1=B.y1-OBST_TOL;
+  if(x1<=x0 || y1<=y0) return 0;
+  const dx=b.x-a.x, dy=b.y-a.y;
+  let t0=0, t1=1;
+  const lados=[[-dx, a.x-x0],[dx, x1-a.x],[-dy, a.y-y0],[dy, y1-a.y]];
+  for(const [p,q] of lados){
+    if(p===0){ if(q<0) return 0; continue; }   // paralelo al lado y fuera
+    const r=q/p;
+    if(p<0){ if(r>t1) return 0; if(r>t0) t0=r; }
+    else   { if(r<t0) return 0; if(r<t1) t1=r; }
+  }
+  return Math.max(0,t1-t0)*Math.hypot(dx,dy);
+}
+function pathInBoxes(pts,cajas){
+  let L=0;
+  for(let i=1;i<pts.length;i++) for(const b of cajas) L+=segInBox(pts[i-1],pts[i],b);
+  return L;
+}
+function pathLen(pts){
+  let L=0;
+  for(let i=1;i<pts.length;i++) L+=Math.abs(pts[i].x-pts[i-1].x)+Math.abs(pts[i].y-pts[i-1].y);
+  return L;
+}
+function orthoRoute(p1,d1,p2,d2,off,A,B){
   const pad=28;
   const s={x:p1.x+d1.x*pad, y:p1.y+d1.y*pad};
   const t={x:p2.x+d2.x*pad, y:p2.y+d2.y*pad};
+  const armar=(mids)=>{
+    const raw=[p1,s,...mids,t,p2], out=[raw[0]];
+    for(let i=1;i<raw.length;i++){
+      const a=out[out.length-1], b=raw[i];
+      if(Math.hypot(a.x-b.x,a.y-b.y)>1) out.push(b);
+    }
+    return out;
+  };
+  /* Un canal vertical en x=c, o uno horizontal en y=c. Los dos degeneran en el
+     codo simple cuando c coincide con s o con t, así que esta pareja de
+     funciones cubre las cuatro formas de la tabla de antes. */
+  const zx=(c)=>[{x:c,y:s.y},{x:c,y:t.y}];
+  const zy=(c)=>[{x:s.x,y:c},{x:t.x,y:c}];
   let mids;
   /* el tramo central también se aparta: separar solo las anclas dejaría las dos
      rutas compartiendo el canal largo del medio, que es donde va la etiqueta */
-  if(d1.x!==0 && d2.x!==0){ const mx=(s.x+t.x)/2+(off||0); mids=[{x:mx,y:s.y},{x:mx,y:t.y}]; }
-  else if(d1.y!==0 && d2.y!==0){ const my=(s.y+t.y)/2+(off||0); mids=[{x:s.x,y:my},{x:t.x,y:my}]; }
+  if(d1.x!==0 && d2.x!==0){ mids=zx((s.x+t.x)/2+(off||0)); }
+  else if(d1.y!==0 && d2.y!==0){ mids=zy((s.y+t.y)/2+(off||0)); }
   else if(d1.x!==0){ mids=[{x:t.x,y:s.y}]; }
   else { mids=[{x:s.x,y:t.y}]; }
-  const raw=[p1,s,...mids,t,p2], out=[raw[0]];
-  for(let i=1;i<raw.length;i++){
-    const a=out[out.length-1], b=raw[i];
-    if(Math.hypot(a.x-b.x,a.y-b.y)>1) out.push(b);
+  const actual=armar(mids);
+  if(!A || !B) return actual;
+  const cajas=[obstBox(A), obstBox(B)];
+  let mejorPen=pathInBoxes(actual,cajas);
+  if(mejorPen<OBST_MIN) return actual;          // la ruta de hoy está limpia: no se toca
+  let mejor=actual, mejorCod=actual.length, mejorLar=pathLen(actual);
+  const o=off||0;
+  /* EL ORDEN DE ESTA LISTA ES NORMATIVO, no estético. Los canales pegados a una
+     caja van ANTES que el canal del punto medio, y los empates los gana el
+     primero. Con el orden inverso, `estáticos` de arquitectura-serverless-aws
+     recolocado empata en penetración y en codos, se lleva el canal medio y
+     comparte 74 px de trazo en sentido opuesto con `/api/*`: un hallazgo E
+     nuevo, cambiar un defecto por otro. Con los canales pegados delante el
+     corpus entero sale sin un solo hallazgo nuevo. Quien reordene esto tiene que
+     volver a medir los chequeos A-F sobre los 8 documentos, guardados Y
+     recolocados con layeredLayout. */
+  const cx=[s.x, t.x], cy=[s.y, t.y];
+  for(const b of cajas){
+    cx.push(b.x0-pad+o, b.x1+pad+o);
+    cy.push(b.y0-pad+o, b.y1+pad+o);
   }
-  return out;
+  cx.push((s.x+t.x)/2+o); cy.push((s.y+t.y)/2+o);
+  /* El `off` del carril paralelo viaja con el canal elegido, igual que viajaba
+     con el canal medio: dos hermanas de un par paralelo tienen que seguir
+     separadas aunque las dos acaben aquí. */
+  const probar=(cand)=>{
+    const pen=pathInBoxes(cand,cajas), cod=cand.length, lar=pathLen(cand);
+    if(pen<mejorPen-0.01 || (pen<mejorPen+0.01 && (cod<mejorCod || (cod===mejorCod && lar<mejorLar-0.01)))){
+      mejor=cand; mejorPen=pen; mejorCod=cod; mejorLar=lar;
+    }
+  };
+  for(const c of cx) probar(armar(zx(c)));
+  for(const c of cy) probar(armar(zy(c)));
+  return mejor;
 }
 function edgePoints(e){
   const A=nodeById(e.from), B=nodeById(e.to); if(!A||!B) return [];
@@ -245,9 +356,42 @@ function edgePoints(e){
     if(o2.off) p2=slideAnchor(B,s2,p2,o2.off,o2.half);
   }
   if(e.route==="ortho" && wps.length===0){
-    return orthoRoute(p1,DIR[s1],p2,DIR[s2],off);
+    return orthoRoute(p1,DIR[s1],p2,DIR[s2],off,A,B);
   }
   return [p1,...wps,p2];
+}
+/* ===================== Tramos con manejador =====================
+   El manejador de un tramo hace dos cosas distintas según la ruta, y de ahí sale
+   qué tramos lo llevan:
+
+   · En una ruta ORTOGONAL, desliza el tramo entero por su eje perpendicular,
+     como un escalón. Para eso hacen falta los DOS extremos del tramo, así que
+     solo lo llevan los tramos interiores: los del principio y el final tienen un
+     ancla por extremo, y un ancla no se desliza —vive en el borde del nodo—.
+     Nunca hubo un codo en diagonal que mereciera la pena en una ruta ortogonal;
+     lo que había era un vértice insertado en la posición del cursor, que partía
+     la ruta en dos diagonales. Medido sobre 25 combinaciones de lado: de 57
+     arrastres posibles, 39 producían un pico y 5 un muñón.
+
+   · En una ruta RECTA sigue insertando un codo en el punto donde agarras, que es
+     justo lo que hace falta ahí: una recta no tiene canales que deslizar y su
+     único tramo es el manejador útil.
+
+   Los tramos primero y último de una ruta ortogonal auto-ruteada tampoco eran
+   tramos de verdad: son el pasillo de aproximación de `pad` px que añade
+   orthoRoute() para que la flecha entre perpendicular al borde. Su punto medio
+   caía a pad/2 = 14 px por fuera del nodo, sin tocar nada, y ocupaba la franja
+   donde viven los manejadores de extremo y las flechas de conexión.
+
+   Devuelve índices de TRAMO: el tramo i va de pts[i] a pts[i+1]. Sus dos
+   extremos son, en una ruta ortogonal, los waypoints i-1 e i. */
+function bendableSegs(e,pts){
+  const n=pts.length-1;                       // nº de tramos
+  if(n<=0) return [];
+  if(e.route!=="ortho") return Array.from({length:n},(_,i)=>i);
+  if(n<=2) return [];                         // sin tramos interiores no hay nada que deslizar
+  const out=[]; for(let i=1;i<=n-2;i++) out.push(i);
+  return out;
 }
 /* ===================== Bloques de código =====================
    Toda la maquetación de un nodo `code` sale de aquí, y sale como DATOS: nada de
@@ -468,6 +612,26 @@ function labelRectAt(pts,f,w,h){
    píxeles de lienzo; lo inyecta quien llama porque medir texto se hace distinto
    en el lienzo (measureText), en el SVG de la app (getBBox) y en el MCP. */
 let edgeLabelPos=new Map();
+/* ===================== Congelación de la colocación =====================
+   placeEdgeLabels() es acumulativo: cada etiqueta esquiva a las YA colocadas,
+   así que mover una arista puede reubicar la suya y la de todas las que vengan
+   detrás. Recalculado a 60 fps mientras se arrastra un extremo, eso son
+   etiquetas saltando por el lienzo en cada fotograma.
+
+   Durante el arrastre se congela el mapa y se recalcula una sola vez al soltar.
+   Es el mismo criterio que syncEditBoxIfMoved() en js/interaction.js, que no
+   reescribe la geometría del textarea sesenta veces por segundo para nada.
+
+   Solo afecta al lienzo interactivo: el exportador asigna edgeLabelPos por su
+   cuenta y siempre recalcula, que es lo correcto — un export nunca ocurre a
+   mitad de un gesto. */
+let edgeLabelsFrozen=false;
+function freezeEdgeLabels(){ edgeLabelsFrozen=true; }
+function thawEdgeLabels(){ edgeLabelsFrozen=false; }
+function refreshEdgeLabels(measure){
+  if(!edgeLabelsFrozen) edgeLabelPos=placeEdgeLabels(measure);
+  return edgeLabelPos;
+}
 function placeEdgeLabels(measure){
   const pg=P(), out=new Map(), placed=[];
   const nodeBoxes=pg.nodes.map(n=>({x:n.x-n.w/2, y:n.y-n.h/2, w:n.w, h:n.h}));

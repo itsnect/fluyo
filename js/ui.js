@@ -8,6 +8,7 @@ function refreshPanel(){
   selN.forEach(id=>{ if(!nodeById(id)) selN.delete(id); });
   selE.forEach(id=>{ if(!edgeById(id)) selE.delete(id); });
   const total=selN.size+selE.size;
+  syncTouchDelete();
   const s=singleSel();
   $("noSel").style.display = total===0 ? "block":"none";
   $("multiSel").style.display = total>1 ? "block":"none";
@@ -302,12 +303,48 @@ $("dashChk").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); e.dashed=$(
 $("arrSChk").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); e.startArrow=$("arrSChk").checked; scheduleAutosave(); } };
 $("arrEChk").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); e.endArrow=$("arrEChk").checked; scheduleAutosave(); } };
 $("flowSel").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); e.flowDir=$("flowSel").value; scheduleAutosave(); } };
-$("btnWps").onclick=()=>{ const e=singleEdge(); if(e){ pushUndo(); e.waypoints=[]; refreshPanel(); scheduleAutosave(); } };
+/* Devuelve la flecha seleccionada a su ruta automática. Es la salida cuando una
+   ruta hecha a mano deja de servir, y desde que esas rutas se CONSERVAN al mover
+   los nodos es un gesto habitual, no un rincón: por eso tiene botón arriba del
+   panel y atajo de teclado (R, en interaction.js). Devuelve si hizo algo, para
+   que el atajo no consuma la tecla cuando no había nada que deshacer. */
+function rutaAuto(){
+  const e=singleEdge();
+  if(!e || !(e.waypoints||[]).length) return false;
+  pushUndo();
+  e.waypoints=[];
+  refreshPanel();
+  scheduleAutosave();
+  return true;
+}
+$("btnWps").onclick=rutaAuto;
 $("btnDel").onclick=deleteSel;
 $("mCopy").onclick=copySel;
 $("mCut").onclick=cutSel;
 $("mDup").onclick=dupSel;
 $("mDel").onclick=deleteSel;
+
+/* ===================== Papelera flotante (táctil) =====================
+   Borrar tenía tres vías —la tecla Supr, el botón «Eliminar» del panel y
+   «Eliminar» de la selección múltiple— y las dos últimas viven al fondo de un
+   cajón que hay que abrir a propósito. Con el dedo, y sin tecla Supr, borrar
+   una caja eran cuatro acciones.
+
+   La condición es el TIPO DE PUNTERO, no el ancho de la ventana: un portátil
+   con pantalla estrecha tiene teclado y no necesita esto, y una tableta ancha
+   sí. isTouch() vive en js/interaction.js, que se carga antes que este archivo.
+
+   Se comprueba con typeof porque refreshPanel() puede llegar a llamarse desde
+   selection.js —que se carga ANTES que interaction.js— y una ReferenceError
+   aquí se llevaría por delante el panel entero. */
+function syncTouchDelete(){
+  const hay = selN.size>0 || selE.size>0;
+  const tactil = typeof isTouch==="function" && isTouch();
+  document.body.classList.toggle("touchSel", hay && tactil);
+}
+/* deleteSel() termina en clearSel() -> refreshPanel() -> syncTouchDelete(), así
+   que el botón se apaga solo al vaciarse la selección. */
+$("btnDelTouch").onclick=deleteSel;
 
 /* ===================== Rail / barra superior ===================== */
 function setMode(m){ mode=m; pendingShape=null; pendingIcon=null; pendingAnim=null; connecting=null; syncRail(); }

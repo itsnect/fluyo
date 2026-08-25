@@ -22,6 +22,57 @@ Cosas que se estudiaron, tienen sentido, y se decidió no hacerlas ahora.
   que trabaje en local. Si se añade validación de HTML, hace falta un `npx` en el
   runner: descarga solo en CI, nada comiteado.
 
+- **Waypoints como pistas del router, no como vértices literales.** Es el arreglo
+  correcto de fondo para las rutas hechas a mano, y la diferencia real con
+  draw.io. Hoy `edgePoints()` con waypoints devuelve `[p1, ...wps, p2]`: rectas
+  entre puntos, sin pasar por `orthoRoute()`. Consecuencias medidas:
+
+  - **El guardián anti-muñón deja de proteger a esa arista.** `orthoRoute()`
+    comprueba que la ruta no entre en la caja de anclaje de sus propios nodos,
+    pero una arista con waypoints no llega a llamarlo. Medido sobre 162
+    desplazamientos de un nodo en una rejilla de ±600px con una ruta hecha a
+    mano: **77 acaban con la ruta metida por dentro de un nodo** — el 21 % ya con
+    movimientos de ≤100px, ~52 % con los grandes.
+  - **La ortogonalidad hay que sostenerla a mano en cada gesto.** Es lo que hacen
+    hoy la regla del quiebro al deslizar un tramo y `realinearExtremos()` al
+    mover un nodo. Funcionan —0 diagonales y 0 inversiones en los 162
+    desplazamientos— pero son parches en la capa de interacción para algo que
+    debería salir del motor.
+
+  Con waypoints como pistas, `orthoRoute()` correría entre puntos fijos
+  consecutivos: la ruta volvería a ser ortogonal por construcción, el guardián
+  volvería a aplicarse, y al mover un nodo la ruta se recalcularía rodeando los
+  puntos que el usuario fijó en vez de deformarse. Es lo que hace el conector
+  ortogonal de draw.io, y por eso allí conservar los waypoints en absolutas no
+  produce diagonales.
+
+  Coste: cambia `edgePoints()` en los **dos** renderers —`js/geometry.js` y
+  `fluyo-mcp/src/svg.ts`, que la suite de paridad compara vértice a vértice— y
+  mueve la geometría de cualquier documento guardado con waypoints. Pide su
+  propia tanda con medición antes/después, como la del muñón.
+
+- **Extremos de arista posicionales** (la «variante B»: fijar el extremo a un
+  punto cualquiera del perímetro, tipo `exitX`/`exitY` de draw.io). Hoy un extremo
+  se fija a un LADO —`fromSide`/`toSide`, cuatro valores más flotante— y eso ya se
+  arrastra y se reengancha. Lo posicional es una tanda aparte, y estas cuatro
+  cosas están medidas y conviene no volver a medirlas:
+
+  - **Cruza al MCP.** `fromSide`/`toSide` ya son `SideSchema.nullable()` en
+    `model.ts`, así que el anclaje por lado no tocó el servidor. Una fracción de
+    perímetro es un campo nuevo: schema, los tres renderers y la migración de los
+    documentos ya guardados.
+  - **La fracción hay que expresarla contra `anchorBox(n)`, no contra `n`.** En un
+    nodo `icon` la caja de anclaje es más estrecha que el nodo: medido, hasta
+    **34 px** de desfase por lado. Con la caja lógica, «el 50 % del lado oeste»
+    cae en el aire, que es exactamente el defecto que `anchorBox` arregló.
+  - **Obliga a una exención de carril explícita.** `parallelLane` aplica el mismo
+    `off` a los dos extremos **y al canal central**: fijar un extremo y dejar el
+    otro en su carril descuadra el canal. Con el anclaje por lado no hace falta
+    exención ninguna —no genera waypoints—, y por eso se eligió primero.
+  - **Y hereda el hueco de los carriles paralelos** documentado en la nota (4) de
+    `fluyo-mcp/test/visual-regression.test.ts`: el reparto separa las hermanas a
+    lo largo del lado, así que la coordenada perpendicular es común a las dos.
+
 - **Modal de atajos de teclado con `?`.** Los atajos ya están en el panel `#noSel`
   del `aside`, pero ese panel es `display:none` por debajo de 700 px, así que en
   móvil no hay forma de verlos. Si se añade el modal, **debe ser la única fuente

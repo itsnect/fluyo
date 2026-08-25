@@ -69,11 +69,13 @@ function hitWaypoint(e,x,y){
   for(let i=0;i<wps.length;i++) if(Math.hypot(x-wps[i].x,y-wps[i].y)<10) return i;
   return -1;
 }
+/* Devuelve el índice de TRAMO donde insertar un codo, o -1. Los pasillos de
+   aproximación quedan fuera: ver bendableSegs() en js/geometry.js. */
 function hitMidpoint(e,x,y){
   const pts=edgePoints(e);
-  for(let i=1;i<pts.length;i++){
-    const mx=(pts[i-1].x+pts[i].x)/2, my=(pts[i-1].y+pts[i].y)/2;
-    if(Math.hypot(x-mx,y-my)<9) return i-1;
+  for(const i of bendableSegs(e,pts)){
+    const mx=(pts[i].x+pts[i+1].x)/2, my=(pts[i].y+pts[i+1].y)/2;
+    if(Math.hypot(x-mx,y-my)<9) return i;
   }
   return -1;
 }

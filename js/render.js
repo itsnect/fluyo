@@ -501,8 +501,11 @@ function drawEdge(c,e,t,theme,isExport){
       c.fillStyle="#3aa7e8"; c.beginPath(); c.arc(wp.x,wp.y,6,0,Math.PI*2); c.fill();
       c.strokeStyle="#fff"; c.stroke();
     });
-    for(let i=1;i<pts.length;i++){
-      const mx=(pts[i-1].x+pts[i].x)/2, my=(pts[i-1].y+pts[i].y)/2;
+    /* Un manejador por tramo que admita un codo. Los pasillos de aproximación
+       de la ruta ortogonal no llevan: su punto medio flota a 14 px del borde,
+       sin tocar nada. Ver bendableSegs() en js/geometry.js. */
+    for(const i of bendableSegs(e,pts)){
+      const mx=(pts[i].x+pts[i+1].x)/2, my=(pts[i].y+pts[i+1].y)/2;
       c.fillStyle=theme==="crema"?"#f4eee1":"#161616";
       c.strokeStyle="#3aa7e8";
       c.beginPath(); c.arc(mx,my,5,0,Math.PI*2); c.fill(); c.stroke();

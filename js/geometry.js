@@ -249,6 +249,42 @@ function edgePoints(e){
   }
   return [p1,...wps,p2];
 }
+/* ===================== Tramos que admiten un codo =====================
+   El manejador de «doblar aquí» va en el punto medio de un tramo, y hasta ahora
+   se ponía en TODOS. En una ruta ortogonal los tramos primero y último no son
+   tramos de verdad: son el pasillo de aproximación de `pad` px que añade
+   orthoRoute() para que la flecha entre perpendicular al borde. Su punto medio
+   cae a pad/2 = 14 px por fuera del nodo, sin tocar ningún borde.
+
+   Eso producía tres efectos, todos malos:
+
+   · un manejador flotando en el vacío junto a cada extremo, que no corresponde a
+     nada que el usuario haya puesto ni pueda razonar;
+   · agarrarlo materializaba la ruta entera en waypoints explícitos y le insertaba
+     uno más, con lo que la arista perdía el auto-ruteo para siempre;
+   · ocupaba la franja de 0-28 px por fuera del borde, que es donde tienen que
+     vivir los manejadores de extremo y donde ya estaban las flechas de conexión.
+     Medido: entre 6 y 22 px del borde ganaba el manejador de pasillo, porque
+     hitMidpoint se prueba antes que hitSideArrow.
+
+   Solo se excluyen cuando la ruta la calculó orthoRoute, que es el único caso en
+   que existen pasillos. Una arista recta tiene un único tramo y su punto medio es
+   el manejador útil; una con waypoints ya no pasa por orthoRoute y todos sus
+   tramos los puso alguien a mano.
+
+   Devuelve índices de TRAMO: el tramo i va de pts[i] a pts[i+1]. Es el mismo
+   índice que espera waypoints.splice() al insertar un codo ahí. */
+function bendableSegs(e,pts){
+  const n=pts.length-1;                       // nº de tramos
+  const todos=()=>Array.from({length:Math.max(0,n)},(_,i)=>i);
+  if(n<=0) return [];
+  const pasillos = e.route==="ortho" && !(e.waypoints||[]).length;
+  /* Con dos tramos o menos, quitar los dos extremos no deja ninguno. Antes que
+     dejar la arista sin forma de doblarse, se devuelven todos. */
+  if(!pasillos || n<=2) return todos();
+  const out=[]; for(let i=1;i<=n-2;i++) out.push(i);
+  return out;
+}
 /* ===================== Bloques de código =====================
    Toda la maquetación de un nodo `code` sale de aquí, y sale como DATOS: nada de
    dibujar. Los tres renderers —lienzo, exportador SVG de la app y svg.ts del

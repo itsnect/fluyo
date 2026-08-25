@@ -278,6 +278,116 @@ function run(){
         `${px(box.style.fontSize)}px · edgeLabelFs ${W.edgeLabelFs(e)} x zoom`);
   box.dispatchEvent(new W.KeyboardEvent("keydown", {key:"Escape", bubbles:true, cancelable:true}));
 
+  /* ---------- U2 · manejadores de extremo ----------
+
+     getBoundingClientRect() sobre un elemento del iframe devuelve coordenadas
+     del viewport de ESE documento, no del de fuera, así que sirve tal cual para
+     construir los clientX/clientY que el handler de dentro va a leer — aunque
+     el iframe esté aparcado en left:-3000px. */
+  const cvA=D.getElementById("cv");
+  const aPantalla=p=>{
+    const r=cvA.getBoundingClientRect();
+    return {clientX:p.x*G("viewZoom")+G("viewX")+r.left, clientY:p.y*G("viewZoom")+G("viewY")+r.top};
+  };
+  const gesto=(ed,cual,destino)=>{
+    const pp=W.edgePoints(ed), origen = cual==="from" ? pp[0] : pp[pp.length-1];
+    for(const [tipo,punto] of [["pointerdown",origen],["pointermove",destino],["pointerup",destino]]){
+      cvA.dispatchEvent(new W.PointerEvent(tipo, Object.assign(
+        {pointerType:"mouse", button:0, bubbles:true, cancelable:true, isPrimary:true, pointerId:1},
+        aPantalla(punto))));
+    }
+  };
+  const limpiar=()=>{ G("P()").nodes.length=0; G("P()").edges.length=0; G("P()").nextId=1; W.clearSel(); };
+
+  limpiar();
+  const uA=W.newNode("rect",400,400,{label:"A"}), uB=W.newNode("rect",800,300,{label:"B"});
+  const ar=W.newEdge(uA.id,uB.id,{fromSide:"e",toSide:"n",route:"ortho"});
+  W.selectOnly("edge",ar.id);
+  const ptsAr=W.edgePoints(ar), ultimo=ptsAr.length-2;
+
+  check("Los extremos de una arista tienen manejador propio, sobre el borde",
+        W.hitEdgeEnd(ar,ptsAr[0].x,ptsAr[0].y)==="from" &&
+        W.hitEdgeEnd(ar,ptsAr[ptsAr.length-1].x,ptsAr[ptsAr.length-1].y)==="to");
+
+  check("El pasillo de aproximación ya no lleva manejador de codo",
+        W.bendableSegs(ar,ptsAr).indexOf(0)===-1 && W.bendableSegs(ar,ptsAr).indexOf(ultimo)===-1,
+        `tramos con codo [${W.bendableSegs(ar,ptsAr).join(",")}] de 0..${ultimo}`);
+
+  check("Y ahí ya no hay nada que agarrar: ni codo ni extremo",
+        W.hitMidpoint(ar, ptsAr[0].x+14, ptsAr[0].y)===-1 &&
+        W.hitEdgeEnd(ar, ptsAr[0].x+14, ptsAr[0].y)===null,
+        "el punto que antes flotaba a 14px del borde");
+
+  const oesteB=W.sidePoint(uB,"w");
+  gesto(ar,"to",{x:oesteB.x-4, y:oesteB.y});
+  check("Arrastrar un extremo cambia el lado y NO genera waypoints",
+        ar.toSide==="w" && (ar.waypoints||[]).length===0,
+        `toSide ${JSON.stringify(ar.toSide)} · waypoints ${(ar.waypoints||[]).length}`);
+
+  const uC=W.newNode("rect",800,700,{label:"C"});
+  gesto(ar,"to",{x:W.sidePoint(uC,"w").x-4, y:W.sidePoint(uC,"w").y});
+  check("Soltarlo sobre otra forma reengancha la arista",
+        ar.to===uC.id && (ar.waypoints||[]).length===0,
+        `to=${ar.to}, esperado ${uC.id}`);
+
+  const lazo={from:ar.from, to:ar.to};
+  gesto(ar,"from",{x:W.sidePoint(uC,"e").x+4, y:W.sidePoint(uC,"e").y});
+  check("Soltar un extremo sobre el nodo del otro se rechaza (from === to)",
+        ar.from===lazo.from && ar.to===lazo.to,
+        `from=${ar.from} to=${ar.to}, sin cambio respecto a from=${lazo.from} to=${lazo.to}`);
+
+  gesto(ar,"to",{x:uC.x, y:uC.y});
+  check("Soltar lejos de un lado deja la conexión flotante",
+        ar.toSide===null, `toSide ${JSON.stringify(ar.toSide)}`);
+
+  const intacto={from:ar.from, to:ar.to, fromSide:ar.fromSide, toSide:ar.toSide};
+  gesto(ar,"to",{x:2100, y:1250});
+  check("Soltar en el vacío no cambia nada: abandonar no es desconectar",
+        ar.from===intacto.from && ar.to===intacto.to &&
+        ar.fromSide===intacto.fromSide && ar.toSide===intacto.toSide &&
+        (ar.waypoints||[]).length===0);
+
+  /* La razón de que el arrastre no pueda generar waypoints: con ellos la arista
+     sale del reparto de carriles, y al quedar `sib.length<2` su hermana también
+     — que se movía 14px sin que nadie la tocara. */
+  limpiar();
+  const pA=W.newNode("rect",300,400,{label:"A"}), pB=W.newNode("rect",800,400,{label:"B"});
+  const g1=W.newEdge(pA.id,pB.id), g2=W.newEdge(pA.id,pB.id);
+  const yHermana=W.edgePoints(g1)[0].y;
+  W.selectOnly("edge",g2.id);
+  gesto(g2,"to",{x:W.sidePoint(pB,"n").x, y:W.sidePoint(pB,"n").y-2});
+  check("Mover un extremo no descoloca a la hermana de un par paralelo",
+        cerca(W.edgePoints(g1)[0].y, yHermana, 0.01) && (g2.waypoints||[]).length===0,
+        `hermana y=${W.edgePoints(g1)[0].y.toFixed(1)}, antes ${yHermana.toFixed(1)}`);
+
+  /* ---------- U3 · flechas de conexión con nodos superpuestos ---------- */
+
+  limpiar();
+  const contenedor=W.newNode("rect",800,400,{label:"contenedor"}); contenedor.w=600; contenedor.h=400;
+  const interior=W.newNode("rect",800,400,{label:"dentro"});      interior.w=140;  interior.h=60;
+  const flecha=W.sidePoint(interior,"n");
+  const pf={x:flecha.x, y:flecha.y-24};   // ARROW_OFF por encima del borde del pequeño
+  check("Con dos cajas superpuestas, la flecha del nodo de dentro es alcanzable",
+        W.hitSideArrowHost(pf.x,pf.y)===interior && W.hitNode(pf.x,pf.y)===contenedor,
+        `arrowHost «${(W.hitSideArrowHost(pf.x,pf.y)||{}).label}» aunque hitNode dé «${(W.hitNode(pf.x,pf.y)||{}).label}»`);
+
+  /* ---------- U1 · papelera táctil ---------- */
+
+  const papelera=D.getElementById("btnDelTouch");
+  W.selectOnly("node",interior.id);
+  set("lastPointerType","mouse"); W.syncTouchDelete();
+  const conRaton=W.getComputedStyle(papelera).display;
+  set("lastPointerType","touch"); W.syncTouchDelete();
+  const conDedo=W.getComputedStyle(papelera).display;
+  check("La papelera flotante sale con el dedo y no con el ratón",
+        conRaton==="none" && conDedo!=="none", `ratón: ${conRaton} · dedo: ${conDedo}`);
+
+  const nAntes=G("P()").nodes.length;
+  papelera.click();
+  check("Y borra la selección al pulsarla, y se apaga sola",
+        G("P()").nodes.length===nAntes-1 && W.getComputedStyle(papelera).display==="none",
+        `${nAntes} → ${G("P()").nodes.length} nodos`);
+
   fin();
 }
 

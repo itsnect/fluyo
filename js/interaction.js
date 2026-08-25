@@ -47,6 +47,17 @@ function hitSideArrow(n,x,y,r){
 /* El radio va en unidades de mundo, así que con zoom bajo un objetivo de 14
    queda por debajo del tamaño de un dedo. */
 function arrowHitRadius(){ return isTouch()? Math.max(18, 24/viewZoom) : 14; }
+/* Qué nodo tiene una flecha de conexión bajo el punto, en el MISMO orden Z que
+   hitNode() —del que está encima hacia abajo—.
+
+   El orden importa: antes esto era un bucle hacia adelante que se quedaba con el
+   primer acierto, o sea con el nodo del FONDO. Con dos zonas de flecha que se
+   rozan, ganaba el de abajo. */
+function hitSideArrowHost(x,y){
+  const ns=P().nodes, rad=arrowHitRadius();
+  for(let i=ns.length-1;i>=0;i--) if(hitSideArrow(ns[i],x,y,rad)) return ns[i];
+  return null;
+}
 function hitCorner(n,x,y){
   if(!n) return -1;
   const cs=nodeCorners(n);
@@ -287,10 +298,16 @@ cv.addEventListener("pointermove", ev=>{
     }
     return;
   }
-  hoverNode=hitNode(p.x,p.y);
-  if(!hoverNode){
-    for(const nd of P().nodes){ if(hitSideArrow(nd,p.x,p.y)){ hoverNode=nd; break; } }
-  }
+  /* Una flecha de conexión GANA al nodo que tenga debajo.
+     Antes esto era un respaldo condicionado a `!hoverNode`, así que solo corría
+     sobre lienzo vacío. Las flechas se dibujan a ARROW_OFF=24 px POR FUERA del
+     borde, así que las de un nodo metido dentro de otro caen dentro de la caja
+     del de fuera: hitNode devolvía el de fuera, el respaldo no llegaba a
+     ejecutarse y los puntos de conexión del de dentro eran inalcanzables.
+
+     No aplica mientras se arrastra una conexión: ahí no hay flechas dibujadas y
+     hoverNode es el nodo de destino que se va a resaltar. */
+  hoverNode = (connectDrag? null : hitSideArrowHost(p.x,p.y)) || hitNode(p.x,p.y);
   const single=singleSel();
   let cur="default";
   if(pendingShape||pendingIcon||pendingAnim||mode==="connect"||connectDrag) cur="crosshair";

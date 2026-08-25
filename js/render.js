@@ -501,6 +501,17 @@ function drawEdge(c,e,t,theme,isExport){
       c.fillStyle="#3aa7e8"; c.beginPath(); c.arc(wp.x,wp.y,6,0,Math.PI*2); c.fill();
       c.strokeStyle="#fff"; c.stroke();
     });
+    /* Manejadores de EXTREMO, sobre el borde del nodo. Relleno = el extremo está
+       fijado a un lado (fromSide/toSide con valor); hueco = conexión flotante,
+       el motor elige el punto. La distinción es la que el usuario necesita para
+       saber por qué una flecha se mueve sola al desplazar un nodo y otra no. */
+    for(const [q,fijo] of [[pts[0], !!e.fromSide], [pts[pts.length-1], !!e.toSide]]){
+      c.beginPath(); c.arc(q.x,q.y,6,0,Math.PI*2);
+      c.fillStyle = fijo ? "#5ac47d" : (theme==="crema"?"#f4eee1":"#161616");
+      c.fill();
+      c.strokeStyle="#5ac47d"; c.lineWidth=2; c.stroke();
+    }
+    c.lineWidth=1.6;
     /* Un manejador por tramo que admita un codo. Los pasillos de aproximación
        de la ruta ortogonal no llevan: su punto medio flota a 14 px del borde,
        sin tocar nada. Ver bendableSegs() en js/geometry.js. */
@@ -509,6 +520,38 @@ function drawEdge(c,e,t,theme,isExport){
       c.fillStyle=theme==="crema"?"#f4eee1":"#161616";
       c.strokeStyle="#3aa7e8";
       c.beginPath(); c.arc(mx,my,5,0,Math.PI*2); c.fill(); c.stroke();
+    }
+  }
+  c.restore();
+}
+/* Vista previa de «suelta aquí», compartida por el arrastre que CREA una arista
+   (connectDrag) y por el que mueve un extremo de una existente (endDrag): línea
+   de puntos desde el ancla que no se mueve hasta el cursor, y el nodo bajo el
+   cursor resaltado con sus cuatro puertos, relleno el que se va a usar.
+
+   `excluirId` es el nodo que no puede ser destino: el origen al crear, y el otro
+   extremo al mover — soltar ahí dejaría la arista saliendo y entrando en el
+   mismo nodo. No resaltarlo es la mitad visual de esa guarda; la otra está en
+   el pointerup de js/interaction.js. */
+function drawDropPreview(c, theme, desde, excluirId){
+  c.save();
+  c.strokeStyle="#3aa7e8"; c.setLineDash([6,5]); c.lineWidth=2/viewZoom;
+  c.beginPath(); c.moveTo(desde.x,desde.y); c.lineTo(mouse.x,mouse.y); c.stroke();
+  c.setLineDash([]);
+  if(hoverNode && hoverNode.id!==excluirId){
+    c.strokeStyle="#3aa7e8"; c.lineWidth=2.5/viewZoom;
+    c.strokeRect(hoverNode.x-hoverNode.w/2-4,hoverNode.y-hoverNode.h/2-4,hoverNode.w+8,hoverNode.h+8);
+    const near=nearestAnchorSide(hoverNode,mouse,ANCHOR_SNAP);
+    for(const s of SIDES){
+      const q=sidePoint(hoverNode,s);
+      c.beginPath(); c.arc(q.x,q.y,6/viewZoom,0,Math.PI*2);
+      if(s===near){
+        c.fillStyle="#3aa7e8"; c.fill();
+        c.strokeStyle="#fff"; c.lineWidth=1.6/viewZoom; c.stroke();
+      } else {
+        c.fillStyle=theme==="crema"?"#f4eee1":"#161616"; c.fill();
+        c.strokeStyle="#3aa7e8"; c.lineWidth=1.6/viewZoom; c.stroke();
+      }
     }
   }
   c.restore();
@@ -582,38 +625,31 @@ function render(c,t,opts={}){
     c.stroke();
   }
 
-  edgeLabelPos=placeEdgeLabels(measureCanvasLabel(c));
+  /* refreshEdgeLabels y no una asignación directa: mientras se arrastra un
+     extremo el mapa está congelado. Ver js/geometry.js. */
+  refreshEdgeLabels(measureCanvasLabel(c));
   for(const e of P().edges) drawEdge(c,e,t,theme,isExport);
   drawFlowBalls(c,t);
   for(const n of P().nodes) drawNode(c,n,t,theme,isExport);
 
-  if(!presenting && mode==="select" && !drag && !resizing && !wpDrag && !connectDrag && !marquee && !pendingShape && !pendingIcon && !pendingAnim){
+  if(!presenting && mode==="select" && !drag && !resizing && !wpDrag && !connectDrag && !endDrag && !marquee && !pendingShape && !pendingIcon && !pendingAnim){
     const host=arrowHostNode();
     if(host) drawSideArrows(c,host);
   }
   if(connectDrag){
     const A=nodeById(connectDrag.fromId);
-    if(A){
-      const p=sidePoint(A,connectDrag.fromSide);
-      c.save(); c.strokeStyle="#3aa7e8"; c.setLineDash([6,5]); c.lineWidth=2/viewZoom;
-      c.beginPath(); c.moveTo(p.x,p.y); c.lineTo(mouse.x,mouse.y); c.stroke(); c.setLineDash([]);
-      if(hoverNode && hoverNode.id!==A.id){
-        c.strokeStyle="#3aa7e8"; c.lineWidth=2.5/viewZoom;
-        c.strokeRect(hoverNode.x-hoverNode.w/2-4,hoverNode.y-hoverNode.h/2-4,hoverNode.w+8,hoverNode.h+8);
-        const near=nearestAnchorSide(hoverNode,mouse,22);
-        for(const s of SIDES){
-          const q=sidePoint(hoverNode,s);
-          c.beginPath(); c.arc(q.x,q.y,6/viewZoom,0,Math.PI*2);
-          if(s===near){
-            c.fillStyle="#3aa7e8"; c.fill();
-            c.strokeStyle="#fff"; c.lineWidth=1.6/viewZoom; c.stroke();
-          } else {
-            c.fillStyle=theme==="crema"?"#f4eee1":"#161616"; c.fill();
-            c.strokeStyle="#3aa7e8"; c.lineWidth=1.6/viewZoom; c.stroke();
-          }
-        }
+    if(A) drawDropPreview(c, theme, sidePoint(A,connectDrag.fromSide), A.id);
+  }
+  /* Arrastrando un extremo: la línea de puntos sale del extremo que NO se mueve,
+     y el nodo excluido es el del otro extremo — soltar ahí sería un auto-lazo. */
+  if(endDrag){
+    const e=edgeById(endDrag.edgeId);
+    if(e){
+      const pts=edgePoints(e);
+      if(pts.length>=2){
+        const quieto = endDrag.which==="from" ? pts[pts.length-1] : pts[0];
+        drawDropPreview(c, theme, quieto, endDrag.which==="from" ? e.to : e.from);
       }
-      c.restore();
     }
   }
   if(connecting!==null){

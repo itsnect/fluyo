@@ -15,6 +15,10 @@ let drag=null;                // {offs:{id:{dx,dy}}, wps:[{w,dx,dy}]}
 let resizing=null;            // {id, fx, fy, aspect}
 let wpDrag=null;              // {edgeId, idx}
 let connectDrag=null;         // {fromId, fromSide}
+/* Arrastre de un extremo de arista. NO muta el documento mientras dura: solo
+   guarda qué extremo se está moviendo y se aplica al soltar, igual que
+   connectDrag. Es lo que garantiza que el gesto no genere waypoints. */
+let endDrag=null;             // {edgeId, which:"from"|"to"}
 let marquee=null;             // {x0,y0,x1,y1,add}
 let hoverNode=null;
 /* Nodo o arista que se está editando in-situ. Vive aquí y no en interaction.js

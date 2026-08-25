@@ -69,6 +69,23 @@ function hitWaypoint(e,x,y){
   for(let i=0;i<wps.length;i++) if(Math.hypot(x-wps[i].x,y-wps[i].y)<10) return i;
   return -1;
 }
+/* ===================== Extremos de arista =====================
+   Los extremos SÍ tienen manejador propio, y va sobre el borde del nodo (0 px),
+   no en la franja de fuera. Se prueba antes que los codos y que los puntos
+   medios, porque es el objetivo más específico de los tres.
+
+   El radio es menor que el de las flechas de conexión (14) para que en un nodo
+   con una arista enganchada las dos cosas sigan siendo alcanzables: el extremo
+   pegado al borde, la flecha a 24 px por fuera. */
+function endHitRadius(){ return isTouch()? Math.max(16, 22/viewZoom) : 9; }
+function hitEdgeEnd(e,x,y){
+  const pts=edgePoints(e); if(pts.length<2) return null;
+  const r=endHitRadius();
+  if(Math.hypot(x-pts[0].x, y-pts[0].y)<r) return "from";
+  const q=pts[pts.length-1];
+  if(Math.hypot(x-q.x, y-q.y)<r) return "to";
+  return null;
+}
 /* Devuelve el índice de TRAMO donde insertar un codo, o -1. Los pasillos de
    aproximación quedan fuera: ver bendableSegs() en js/geometry.js. */
 function hitMidpoint(e,x,y){
@@ -101,6 +118,9 @@ let pinch=null, lastPointerType="mouse", lastTap={t:0,x:0,y:0}, downPt=null;
 const isTouch=()=>lastPointerType==="touch";
 function cancelGestures(){
   drag=null; resizing=null; wpDrag=null; marquee=null; connectDrag=null; panDrag=null;
+  /* thaw incondicional: si el gesto se cancela a mitad, dejar el mapa congelado
+     dejaría las etiquetas clavadas para siempre. */
+  endDrag=null; thawEdgeLabels();
 }
 function startPinch(){
   cancelGestures();
@@ -180,9 +200,19 @@ cv.addEventListener("pointerdown", ev=>{
       return;
     }
   }
-  // 2) codos / puntos medios (solo con una flecha seleccionada)
+  // 2) extremos / codos / puntos medios (solo con una flecha seleccionada)
   if(single && single.type==="edge" && single.obj){
     const se=single.obj;
+    /* El extremo va primero: es el objetivo más específico y está sobre el
+       borde, donde no hay ningún otro manejador.
+
+       No se apila undo aquí ni se toca el documento: el gesto se resuelve
+       entero en pointerup. Mutar en vivo es lo que hacía el camino de los codos
+       —materializaba la ruta en waypoints y le insertaba uno más—, y con
+       waypoints la arista se sale del reparto de carriles y arrastra a su
+       hermana del par paralelo, que salta 14 px sin que nadie la toque. */
+    const end=hitEdgeEnd(se,p.x,p.y);
+    if(end){ endDrag={edgeId:se.id, which:end}; freezeEdgeLabels(); return; }
     const wi=hitWaypoint(se,p.x,p.y);
     if(wi>=0){ pushUndo(); wpDrag={edgeId:se.id, idx:wi}; return; }
     const mi=hitMidpoint(se,p.x,p.y);
@@ -311,12 +341,13 @@ cv.addEventListener("pointermove", ev=>{
      del de fuera: hitNode devolvía el de fuera, el respaldo no llegaba a
      ejecutarse y los puntos de conexión del de dentro eran inalcanzables.
 
-     No aplica mientras se arrastra una conexión: ahí no hay flechas dibujadas y
-     hoverNode es el nodo de destino que se va a resaltar. */
-  hoverNode = (connectDrag? null : hitSideArrowHost(p.x,p.y)) || hitNode(p.x,p.y);
+     No aplica mientras se arrastra una conexión ni un extremo: ahí no hay
+     flechas dibujadas y hoverNode es el nodo de destino que se va a resaltar. */
+  hoverNode = ((connectDrag||endDrag)? null : hitSideArrowHost(p.x,p.y)) || hitNode(p.x,p.y);
   const single=singleSel();
   let cur="default";
-  if(pendingShape||pendingIcon||pendingAnim||mode==="connect"||connectDrag) cur="crosshair";
+  if(pendingShape||pendingIcon||pendingAnim||mode==="connect"||connectDrag||endDrag) cur="crosshair";
+  else if(single&&single.type==="edge"&&single.obj&&hitEdgeEnd(single.obj,p.x,p.y)) cur="grab";
   else if(single&&single.type==="node"&&single.obj&&hitCorner(single.obj,p.x,p.y)>=0) cur="nwse-resize";
   else if(hitSideArrow(arrowHostNode(),p.x,p.y,arrowHitRadius())) cur="crosshair";
   else if(hoverNode) cur="grab";
@@ -360,7 +391,7 @@ cv.addEventListener("pointerup", ev=>{
     const tgt=hitNode(p.x,p.y);
     if(tgt && tgt.id!==connectDrag.fromId){
       pushUndo();
-      const snapSide=nearestAnchorSide(tgt,p,22);
+      const snapSide=nearestAnchorSide(tgt,p,ANCHOR_SNAP);
       const e=newEdge(connectDrag.fromId,tgt.id,{
         fromSide:connectDrag.fromSide,
         toSide:snapSide,
@@ -369,6 +400,44 @@ cv.addEventListener("pointerup", ev=>{
       if(e) selectOnly("edge",e.id);
     }
     connectDrag=null;
+  }
+  /* ===================== Soltar un extremo de arista =====================
+     Todo el gesto se resuelve aquí, y lo único que se escribe son cuatro
+     campos que ya existen en el documento y en el schema del MCP: `from`/`to`
+     y `fromSide`/`toSide`. Ni un waypoint.
+
+     · Se suelta sobre un nodo, cerca de un lado  -> se fija a ese lado.
+     · Se suelta sobre un nodo, lejos de un lado  -> `null`, conexión flotante:
+       el motor elige el punto según hacia dónde vaya la flecha.
+     · Se suelta en el vacío                      -> no se cambia nada. Soltar
+       fuera es abandonar el gesto, no desconectar la arista.
+
+     El undo se apila AQUÍ y solo si de verdad va a cambiar algo: como durante
+     el arrastre no se mutó nada, el estado en este punto sigue siendo el de
+     antes de empezar, que es exactamente lo que hay que guardar. */
+  if(endDrag){
+    const e=edgeById(endDrag.edgeId);
+    if(e){
+      const tgt=hitNode(p.x,p.y);
+      /* Una arista no puede salir y entrar en el mismo nodo. newEdge() rechaza
+         el auto-lazo al CREAR (state.js), pero aquí se muta una existente y ese
+         guard no interviene. */
+      const otro = endDrag.which==="from" ? e.to : e.from;
+      if(tgt && tgt.id!==otro){
+        const lado=nearestAnchorSide(tgt,p,ANCHOR_SNAP);
+        const nuevoId=tgt.id, nuevoLado=lado||null;
+        const actualId = endDrag.which==="from" ? e.from : e.to;
+        const actualLado = endDrag.which==="from" ? (e.fromSide||null) : (e.toSide||null);
+        if(nuevoId!==actualId || nuevoLado!==actualLado){
+          pushUndo();
+          if(endDrag.which==="from"){ e.from=nuevoId; e.fromSide=nuevoLado; }
+          else                      { e.to=nuevoId;   e.toSide=nuevoLado;   }
+          refreshPanel();
+        }
+      }
+    }
+    endDrag=null;
+    thawEdgeLabels();
   }
   if(marquee){
     const r=normRect(marquee);

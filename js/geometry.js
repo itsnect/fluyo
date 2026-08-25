@@ -504,6 +504,26 @@ function labelRectAt(pts,f,w,h){
    píxeles de lienzo; lo inyecta quien llama porque medir texto se hace distinto
    en el lienzo (measureText), en el SVG de la app (getBBox) y en el MCP. */
 let edgeLabelPos=new Map();
+/* ===================== Congelación de la colocación =====================
+   placeEdgeLabels() es acumulativo: cada etiqueta esquiva a las YA colocadas,
+   así que mover una arista puede reubicar la suya y la de todas las que vengan
+   detrás. Recalculado a 60 fps mientras se arrastra un extremo, eso son
+   etiquetas saltando por el lienzo en cada fotograma.
+
+   Durante el arrastre se congela el mapa y se recalcula una sola vez al soltar.
+   Es el mismo criterio que syncEditBoxIfMoved() en js/interaction.js, que no
+   reescribe la geometría del textarea sesenta veces por segundo para nada.
+
+   Solo afecta al lienzo interactivo: el exportador asigna edgeLabelPos por su
+   cuenta y siempre recalcula, que es lo correcto — un export nunca ocurre a
+   mitad de un gesto. */
+let edgeLabelsFrozen=false;
+function freezeEdgeLabels(){ edgeLabelsFrozen=true; }
+function thawEdgeLabels(){ edgeLabelsFrozen=false; }
+function refreshEdgeLabels(measure){
+  if(!edgeLabelsFrozen) edgeLabelPos=placeEdgeLabels(measure);
+  return edgeLabelPos;
+}
 function placeEdgeLabels(measure){
   const pg=P(), out=new Map(), placed=[];
   const nodeBoxes=pg.nodes.map(n=>({x:n.x-n.w/2, y:n.y-n.h/2, w:n.w, h:n.h}));

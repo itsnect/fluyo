@@ -3,6 +3,11 @@
 
 /* ===================== Constantes ===================== */
 const W=2560, H=1440, GRID=20, ARROW_OFF=24, HANDLE=7;
+/* A qué distancia de un punto de anclaje hay que soltar para que el extremo se
+   fije a ESE lado. Más lejos —el centro de la forma— significa «flotante»: que
+   el motor elija el lado según hacia dónde vaya la flecha. Es la frontera entre
+   las dos clases de conexión, así que vive aquí y no repetida en cada archivo. */
+const ANCHOR_SNAP=22;
 const PALETTE=[
   {c:"#6a9fb5", n:"Servicio"},
   {c:"#d08b5b", n:"Eventos / Kafka"},

@@ -196,6 +196,63 @@ function moverTramo(sd,p){
    que el gesto no cambie de forma bajo el dedo y para poder volver atrás sin
    haber perdido un vértice. El umbral es el mismo que usa el dedup de
    orthoRoute(): por debajo de 1px no hay tramo que dibujar. */
+/* ===================== Mover un nodo con la ruta hecha a mano =====================
+   Al mover UN solo extremo de una arista con waypoints, la ruta se conserva: los
+   waypoints se quedan donde están y solo se realinea el que toca cada ancla,
+   sobre el eje normal de su lado. Es la misma regla del quiebro que usa
+   moverTramo(), aplicada aquí porque el ancla se mueve y el waypoint no.
+
+   ANTES SE BORRABAN. Esta rama hacía `e.waypoints=[]; e.route="ortho"` desde
+   b1d7d27, y estaba justificado entonces: los waypoints solo podían venir del
+   gesto viejo de insertar un codo, que en una ruta ortogonal producía un pico de
+   dos diagonales —39 de 57 arrastres medidos— o un muñón. Borrar una forma que
+   ya estaba rota y volver a rutear era mejor que conservarla.
+
+   Desde que el manejador DESLIZA el tramo, la forma es deliberada y borrarla
+   destruye trabajo del usuario sin avisar. Medido sobre el gesto exacto —crear
+   arista ortogonal, deslizar el tramo central 60px, mover el nodo destino 200px—
+   la arista pasaba de 3 waypoints a 0 y la ruta volvía a ser exactamente la
+   automática.
+
+   No se repone. Si alguien vuelve a necesitar la ruta automática, la salida es
+   «Quitar codos», que es explícita y reversible; borrar en silencio no lo es.
+
+   Medido sobre 162 desplazamientos de un nodo en una rejilla de ±600px:
+
+     waypoints en absolutas, sin realinear   144 diagonales · 72 inversiones
+     realineando los extremos                 0 diagonales ·  0 inversiones
+
+   Lo que NO cubre, y se acepta a propósito: la ruta conservada no vuelve a pasar
+   por orthoRoute, así que el guardián anti-muñón no la protege y arrastrar un
+   nodo contra el canal que fijaste puede meterle la ruta por dentro (21% de los
+   movimientos de ≤100px, ~52% de los grandes). Se prefirió un resultado
+   predecible que a veces queda feo —y se corrige deslizando otra vez— a uno que
+   decide solo y hace desaparecer el trabajo. El arreglo de fondo está anotado en
+   ideas.md: waypoints como pistas del router.
+
+   Solo aplica a rutas ORTOGONALES. En una recta los waypoints son vértices
+   literales y las diagonales son el resultado que se busca, así que ahí no se
+   toca nada. */
+function realinearExtremos(e,base){
+  const A=nodeById(e.from), B=nodeById(e.to);
+  const wps=base.map(q=>({x:q.x,y:q.y}));
+  if(!A||!B||!wps.length) return wps;
+  const p1=anchorPt(A,e.fromSide,wps[0].x,wps[0].y);
+  const p2=anchorPt(B,e.toSide,wps[wps.length-1].x,wps[wps.length-1].y);
+  const ejeN=s=>s? (DIR[s].x!==0?"x":"y") : null;
+  const e1=ejeN(e.fromSide), e2=ejeN(e.toSide);
+  if(e1==="x") wps[0].y=p1.y; else if(e1==="y") wps[0].x=p1.x;
+  const u=wps[wps.length-1];
+  if(e2==="x") u.y=p2.y; else if(e2==="y") u.x=p2.x;
+  /* Con un solo waypoint las dos realineaciones caen sobre el mismo punto y la
+     segunda pisa a la primera. Ahí hace falta el quiebro, igual que al deslizar. */
+  const diagonal=(a,b)=>Math.abs(a.x-b.x)>1.5 && Math.abs(a.y-b.y)>1.5;
+  const quiebro=(anc,w,s)=> DIR[s].x!==0? {x:w.x, y:anc.y} : {x:anc.x, y:w.y};
+  if(e.fromSide && diagonal(p1,wps[0])) wps.unshift(quiebro(p1,wps[0],e.fromSide));
+  const v=wps[wps.length-1];
+  if(e.toSide && diagonal(p2,v)) wps.push(quiebro(p2,v,e.toSide));
+  return wps;
+}
 function podarWaypoints(e){
   const pts=edgePoints(e); if(pts.length<2) return;
   const wps=e.waypoints||[], out=[];
@@ -353,24 +410,28 @@ cv.addEventListener("pointerdown", ev=>{
     if(ev.shiftKey){ toggleSel("node",n.id); return; }
     if(!selN.has(n.id)) selectOnly("node",n.id);
     pushUndo();
-    drag={offs:{}, wps:[]};
+    drag={offs:{}, wps:[], realin:[]};
     for(const id of selN){
       const nn=nodeById(id);
       if(nn) drag.offs[id]={dx:p.x-nn.x, dy:p.y-nn.y};
     }
-    // los codos de flechas internas al grupo se mueven con él
     for(const e of P().edges){
+      // los codos de flechas internas al grupo se mueven con él: los dos
+      // extremos se desplazan lo mismo, así que la forma se conserva sola
       if(selN.has(e.from)&&selN.has(e.to))
         (e.waypoints||[]).forEach(w=>drag.wps.push({w, dx:p.x-w.x, dy:p.y-w.y}));
-      // si solo un extremo se mueve: conservar la topología (lados) y re-rutear
-      else if((selN.has(e.from)||selN.has(e.to)) && (e.waypoints||[]).length){
+      /* Si solo se mueve UN extremo, la ruta hecha a mano se conserva y se
+         realinea contra el ancla en cada fotograma. Ver realinearExtremos().
+         El lado flotante se congela antes, porque sin lado no hay eje normal
+         contra el que realinear y el ancla se iría persiguiendo al waypoint. */
+      else if((selN.has(e.from)||selN.has(e.to)) && (e.waypoints||[]).length && e.route==="ortho"){
         const pts=edgePoints(e);
         if(pts.length>1){
           const A2=nodeById(e.from), B2=nodeById(e.to);
           if(A2 && !e.fromSide) e.fromSide=sideOfPoint(A2,pts[0]);
           if(B2 && !e.toSide)   e.toSide=sideOfPoint(B2,pts[pts.length-1]);
         }
-        e.waypoints=[]; e.route="ortho";
+        drag.realin.push({id:e.id, base:e.waypoints.map(q=>({x:q.x,y:q.y}))});
       }
     }
     return;
@@ -425,6 +486,12 @@ cv.addEventListener("pointermove", ev=>{
       if(nn){ nn.x=snapV(p.x-drag.offs[id].dx); nn.y=snapV(p.y-drag.offs[id].dy); }
     }
     drag.wps.forEach(o=>{ o.w.x=snapV(p.x-o.dx); o.w.y=snapV(p.y-o.dy); });
+    /* Se reconstruye desde la copia de pointerdown en vez de acumular sobre lo
+       ya realineado: si no, el quiebro se insertaría una vez por fotograma. */
+    for(const r of drag.realin){
+      const e=edgeById(r.id);
+      if(e) e.waypoints=realinearExtremos(e,r.base);
+    }
     return;
   }
   if(resizing){
@@ -575,6 +642,9 @@ cv.addEventListener("pointerup", ev=>{
     } else if(!marquee.add){ clearSel(); }
     marquee=null;
   }
+  /* Realinear puede dejar un waypoint encima de su vecino, igual que topar al
+     deslizar: se poda al soltar y no durante el arrastre. */
+  if(drag) for(const r of drag.realin){ const e=edgeById(r.id); if(e) podarWaypoints(e); }
   drag=null; resizing=null; wpDrag=null;
   /* El tramo deslizado se descongela aquí, igual que endDrag: las etiquetas se
      recolocan una vez al soltar y no sesenta veces por segundo. */

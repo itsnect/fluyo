@@ -461,6 +461,56 @@ function run(){
         erTras && (erTras.waypoints||[]).length===0 && erTras.fromSide==="e" && erTras.toSide==="n",
         `waypoints ${erTras?(erTras.waypoints||[]).length:"arista perdida"}`);
 
+  /* Mover un nodo ya NO borra la ruta hecha a mano. Esa rama hacía
+     `e.waypoints=[]` desde b1d7d27; ahora los waypoints se quedan y solo se
+     realinea el que toca cada ancla. */
+  limpiar();
+  const mA=W.newNode("rect",400,500,{label:"A"}), mB=W.newNode("rect",800,300,{label:"B"});
+  mB.w=240; mB.h=110;
+  const mr=W.newEdge(mA.id,mB.id,{fromSide:"e",toSide:"n",route:"ortho"});
+  W.selectOnly("edge",mr.id);
+  const mSeg=W.bendableSegs(mr,W.edgePoints(mr))[1];
+  arrastraTramo(mr,mSeg,{x:518, y:157});
+  const escalonAntes=(mr.waypoints||[]).length>1 ? mr.waypoints[1].y : null;
+  const nWpsAntes=(mr.waypoints||[]).length;
+  // arrastrar el nodo DESTINO 200px a la derecha
+  for(const [tipo,punto] of [["pointerdown",{x:mB.x,y:mB.y}],["pointermove",{x:mB.x+200,y:mB.y}],["pointerup",{x:mB.x+200,y:mB.y}]]){
+    cvA.dispatchEvent(new W.PointerEvent(tipo, Object.assign(
+      {pointerType:"mouse", button:0, bubbles:true, cancelable:true, isPrimary:true, pointerId:1},
+      aPantalla(punto))));
+  }
+  const mrTras=G("P()").edges.find(x=>x.id===mr.id);
+  const ptsMr=W.edgePoints(mrTras);
+  check("Mover un nodo conserva la ruta hecha a mano en vez de borrarla",
+        (mrTras.waypoints||[]).length===nWpsAntes && nWpsAntes>0,
+        `waypoints ${nWpsAntes} → ${(mrTras.waypoints||[]).length}`);
+
+  check("Y la conserva sin romper la ortogonalidad: el escalón mantiene su altura",
+        diagonales(ptsMr)===0 && !invierte(ptsMr) &&
+        mrTras.waypoints[1] && cerca(mrTras.waypoints[1].y, escalonAntes, 0.01),
+        `escalón y=${mrTras.waypoints[1]?mrTras.waypoints[1].y:"?"}, antes ${escalonAntes} · ` +
+        ptsMr.map(q=>`(${q.x.toFixed(0)},${q.y.toFixed(0)})`).join(" "));
+
+  /* Mover los DOS nodos a la vez ya conservaba la forma, trasladando los
+     waypoints con el grupo. Esa rama no se ha tocado. */
+  limpiar();
+  const gA=W.newNode("rect",400,500,{label:"A"}), gB=W.newNode("rect",800,300,{label:"B"});
+  gB.w=240; gB.h=110;
+  const gr=W.newEdge(gA.id,gB.id,{fromSide:"e",toSide:"n",route:"ortho"});
+  W.selectOnly("edge",gr.id);
+  arrastraTramo(gr,W.bendableSegs(gr,W.edgePoints(gr))[1],{x:518, y:157});
+  const nGrupo=(gr.waypoints||[]).length;
+  W.selectOnly("node",gA.id); W.toggleSel("node",gB.id);
+  for(const [tipo,punto] of [["pointerdown",{x:gA.x,y:gA.y}],["pointermove",{x:gA.x+120,y:gA.y}],["pointerup",{x:gA.x+120,y:gA.y}]]){
+    cvA.dispatchEvent(new W.PointerEvent(tipo, Object.assign(
+      {pointerType:"mouse", button:0, bubbles:true, cancelable:true, isPrimary:true, pointerId:1},
+      aPantalla(punto))));
+  }
+  const grTras=G("P()").edges.find(x=>x.id===gr.id);
+  check("Mover los dos nodos a la vez sigue trasladando los codos con el grupo",
+        (grTras.waypoints||[]).length===nGrupo && diagonales(W.edgePoints(grTras))===0,
+        `waypoints ${nGrupo} → ${(grTras.waypoints||[]).length}`);
+
   /* En una ruta recta no hay canales que deslizar, y un codo en diagonal es
      justo lo que ahí se quiere. */
   limpiar();

@@ -8,6 +8,12 @@ const W=2560, H=1440, GRID=20, ARROW_OFF=24, HANDLE=7;
    el motor elija el lado según hacia dónde vaya la flecha. Es la frontera entre
    las dos clases de conexión, así que vive aquí y no repetida en cada archivo. */
 const ANCHOR_SNAP=22;
+/* Media longitud de la barra que agarra un tramo de ruta ortogonal para
+   deslizarlo. La usan render.js —que la dibuja— e interaction.js —que la
+   acierta—, y tienen que coincidir: una barra que se ve más larga de lo que se
+   agarra es peor que no tenerla. En tramos cortos manda la mitad del tramo, para
+   no invadir los vértices vecinos, que tienen manejador propio. */
+const SEG_GRIP=26;
 const PALETTE=[
   {c:"#6a9fb5", n:"Servicio"},
   {c:"#d08b5b", n:"Eventos / Kafka"},

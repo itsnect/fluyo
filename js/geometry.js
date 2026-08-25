@@ -360,39 +360,36 @@ function edgePoints(e){
   }
   return [p1,...wps,p2];
 }
-/* ===================== Tramos que admiten un codo =====================
-   El manejador de «doblar aquí» va en el punto medio de un tramo, y hasta ahora
-   se ponía en TODOS. En una ruta ortogonal los tramos primero y último no son
+/* ===================== Tramos con manejador =====================
+   El manejador de un tramo hace dos cosas distintas según la ruta, y de ahí sale
+   qué tramos lo llevan:
+
+   · En una ruta ORTOGONAL, desliza el tramo entero por su eje perpendicular,
+     como un escalón. Para eso hacen falta los DOS extremos del tramo, así que
+     solo lo llevan los tramos interiores: los del principio y el final tienen un
+     ancla por extremo, y un ancla no se desliza —vive en el borde del nodo—.
+     Nunca hubo un codo en diagonal que mereciera la pena en una ruta ortogonal;
+     lo que había era un vértice insertado en la posición del cursor, que partía
+     la ruta en dos diagonales. Medido sobre 25 combinaciones de lado: de 57
+     arrastres posibles, 39 producían un pico y 5 un muñón.
+
+   · En una ruta RECTA sigue insertando un codo en el punto donde agarras, que es
+     justo lo que hace falta ahí: una recta no tiene canales que deslizar y su
+     único tramo es el manejador útil.
+
+   Los tramos primero y último de una ruta ortogonal auto-ruteada tampoco eran
    tramos de verdad: son el pasillo de aproximación de `pad` px que añade
    orthoRoute() para que la flecha entre perpendicular al borde. Su punto medio
-   cae a pad/2 = 14 px por fuera del nodo, sin tocar ningún borde.
+   caía a pad/2 = 14 px por fuera del nodo, sin tocar nada, y ocupaba la franja
+   donde viven los manejadores de extremo y las flechas de conexión.
 
-   Eso producía tres efectos, todos malos:
-
-   · un manejador flotando en el vacío junto a cada extremo, que no corresponde a
-     nada que el usuario haya puesto ni pueda razonar;
-   · agarrarlo materializaba la ruta entera en waypoints explícitos y le insertaba
-     uno más, con lo que la arista perdía el auto-ruteo para siempre;
-   · ocupaba la franja de 0-28 px por fuera del borde, que es donde tienen que
-     vivir los manejadores de extremo y donde ya estaban las flechas de conexión.
-     Medido: entre 6 y 22 px del borde ganaba el manejador de pasillo, porque
-     hitMidpoint se prueba antes que hitSideArrow.
-
-   Solo se excluyen cuando la ruta la calculó orthoRoute, que es el único caso en
-   que existen pasillos. Una arista recta tiene un único tramo y su punto medio es
-   el manejador útil; una con waypoints ya no pasa por orthoRoute y todos sus
-   tramos los puso alguien a mano.
-
-   Devuelve índices de TRAMO: el tramo i va de pts[i] a pts[i+1]. Es el mismo
-   índice que espera waypoints.splice() al insertar un codo ahí. */
+   Devuelve índices de TRAMO: el tramo i va de pts[i] a pts[i+1]. Sus dos
+   extremos son, en una ruta ortogonal, los waypoints i-1 e i. */
 function bendableSegs(e,pts){
   const n=pts.length-1;                       // nº de tramos
-  const todos=()=>Array.from({length:Math.max(0,n)},(_,i)=>i);
   if(n<=0) return [];
-  const pasillos = e.route==="ortho" && !(e.waypoints||[]).length;
-  /* Con dos tramos o menos, quitar los dos extremos no deja ninguno. Antes que
-     dejar la arista sin forma de doblarse, se devuelven todos. */
-  if(!pasillos || n<=2) return todos();
+  if(e.route!=="ortho") return Array.from({length:n},(_,i)=>i);
+  if(n<=2) return [];                         // sin tramos interiores no hay nada que deslizar
   const out=[]; for(let i=1;i<=n-2;i++) out.push(i);
   return out;
 }

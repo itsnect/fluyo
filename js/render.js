@@ -512,14 +512,34 @@ function drawEdge(c,e,t,theme,isExport){
       c.strokeStyle="#5ac47d"; c.lineWidth=2; c.stroke();
     }
     c.lineWidth=1.6;
-    /* Un manejador por tramo que admita un codo. Los pasillos de aproximación
-       de la ruta ortogonal no llevan: su punto medio flota a 14 px del borde,
-       sin tocar nada. Ver bendableSegs() en js/geometry.js. */
+    /* Un manejador por tramo. La FORMA dice lo que va a pasar al agarrarlo, que
+       no es lo mismo en los dos casos:
+
+       · ruta ortogonal → BARRA sobre el tramo. El gesto desliza el tramo entero
+         por su perpendicular, así que el manejador tiene que parecer un tramo.
+         Un punto prometía «vas a arrastrar un vértice», que es justo lo que ya
+         no hace.
+       · ruta recta → punto. Ahí sí se inserta un codo donde agarras.
+
+       Ver bendableSegs() en js/geometry.js. */
     for(const i of bendableSegs(e,pts)){
-      const mx=(pts[i].x+pts[i+1].x)/2, my=(pts[i].y+pts[i+1].y)/2;
+      const a=pts[i], b=pts[i+1];
+      const mx=(a.x+b.x)/2, my=(a.y+b.y)/2;
       c.fillStyle=theme==="crema"?"#f4eee1":"#161616";
       c.strokeStyle="#3aa7e8";
-      c.beginPath(); c.arc(mx,my,5,0,Math.PI*2); c.fill(); c.stroke();
+      if(e.route!=="ortho"){
+        c.beginPath(); c.arc(mx,my,5,0,Math.PI*2); c.fill(); c.stroke();
+        continue;
+      }
+      const L=Math.hypot(b.x-a.x,b.y-a.y) || 1;
+      const ux=(b.x-a.x)/L, uy=(b.y-a.y)/L;
+      const half=Math.min(SEG_GRIP, L/2);
+      c.lineCap="round";
+      c.lineWidth=7; c.strokeStyle=theme==="crema"?"#f4eee1":"#161616";
+      c.beginPath(); c.moveTo(mx-ux*half,my-uy*half); c.lineTo(mx+ux*half,my+uy*half); c.stroke();
+      c.lineWidth=3.5; c.strokeStyle="#3aa7e8";
+      c.beginPath(); c.moveTo(mx-ux*half,my-uy*half); c.lineTo(mx+ux*half,my+uy*half); c.stroke();
+      c.lineCap="butt"; c.lineWidth=1.6;
     }
   }
   c.restore();

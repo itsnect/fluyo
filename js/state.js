@@ -19,6 +19,14 @@ let connectDrag=null;         // {fromId, fromSide}
    guarda qué extremo se está moviendo y se aplica al soltar, igual que
    connectDrag. Es lo que garantiza que el gesto no genere waypoints. */
 let endDrag=null;             // {edgeId, which:"from"|"to"}
+/* Arrastre de un TRAMO entero. El manejador de un tramo ortogonal ya no inserta
+   un vértice en la posición del cursor —eso partía la ruta en dos diagonales—
+   sino que desliza el tramo completo por su eje perpendicular, como un escalón.
+   `i0`/`i1` son los dos waypoints que forman el tramo, `eje` el que se mueve
+   ("x" para un tramo vertical, "y" para uno horizontal) y `lim` el tope que
+   impide cruzar el pasillo de aproximación de cualquiera de los dos extremos.
+   Ver moverTramo() en interaction.js. */
+let segDrag=null;             // {edgeId, i0, i1, eje, lim:{min,max}}
 let marquee=null;             // {x0,y0,x1,y1,add}
 let hoverNode=null;
 /* Nodo o arista que se está editando in-situ. Vive aquí y no en interaction.js

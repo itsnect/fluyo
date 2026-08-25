@@ -86,15 +86,126 @@ function hitEdgeEnd(e,x,y){
   if(Math.hypot(x-q.x, y-q.y)<r) return "to";
   return null;
 }
-/* Devuelve el índice de TRAMO donde insertar un codo, o -1. Los pasillos de
-   aproximación quedan fuera: ver bendableSegs() en js/geometry.js. */
-function hitMidpoint(e,x,y){
+/* Devuelve el índice del TRAMO bajo el cursor, o -1. Qué tramos ofrecen
+   manejador y qué hace ese manejador lo decide bendableSegs() en js/geometry.js.
+
+   El objetivo es el tramo, no su punto medio: el manejador se dibuja como una
+   barra sobre el tramo (render.js) y hay que poder agarrarlo en cualquier punto
+   de ella, no solo en el centro. Se recorta a SEG_GRIP px del centro (config.js)
+   para no invadir los vértices vecinos, que tienen manejador propio. */
+function hitSegment(e,x,y){
   const pts=edgePoints(e);
+  const r = isTouch()? Math.max(14, 18/viewZoom) : 9;
   for(const i of bendableSegs(e,pts)){
-    const mx=(pts[i].x+pts[i+1].x)/2, my=(pts[i].y+pts[i+1].y)/2;
-    if(Math.hypot(x-mx,y-my)<9) return i;
+    const a=pts[i], b=pts[i+1];
+    const mx=(a.x+b.x)/2, my=(a.y+b.y)/2;
+    const L=Math.hypot(b.x-a.x,b.y-a.y);
+    if(L<1){ if(Math.hypot(x-mx,y-my)<r) return i; continue; }
+    const ux=(b.x-a.x)/L, uy=(b.y-a.y)/L;
+    const t=(x-mx)*ux+(y-my)*uy;                 // distancia al centro, sobre el tramo
+    const media=Math.min(SEG_GRIP, L/2);
+    if(Math.abs(t)>media) continue;
+    if(Math.abs((x-mx)*-uy+(y-my)*ux)<r) return i;
   }
   return -1;
+}
+/* Sobre qué eje se mueve un tramo: el perpendicular al suyo. Se decide por la
+   extensión dominante y no por igualdad exacta, porque el dedup de orthoRoute
+   descarta puntos a ≤1px y puede dejar un tramo con 1px de inclinación. */
+function segEje(a,b){ return Math.abs(a.x-b.x)>=Math.abs(a.y-b.y)? "y" : "x"; }
+/* Cursor de «esto se desliza», o null si el puntero no está sobre un tramo. */
+function segHoverCur(e,p){
+  const i=hitSegment(e,p.x,p.y);
+  if(i<0) return null;
+  const pts=edgePoints(e);
+  return segEje(pts[i],pts[i+1])==="x"? "ew-resize" : "ns-resize";
+}
+/* ===================== Deslizar un tramo =====================
+   Empezar el gesto hace tres cosas, y las tres hacen falta:
+
+   1. MATERIALIZA la ruta en waypoints. Es inevitable: el documento no tiene
+      dónde guardar «este canal va 40px más arriba» si no es como puntos.
+   2. CONGELA el lado de un extremo flotante. Con fromSide/toSide en null,
+      autoAnchor recalcula el ancla apuntando al primer waypoint, así que el
+      extremo se mueve mientras arrastras y ninguna alineación aguanta. Medido:
+      de 57 arrastres, los 21 que seguían saliendo en diagonal tenían los 21 un
+      extremo flotante; congelando el lado, cero.
+   3. GUARDA una copia de los waypoints. Cada fotograma reconstruye desde esa
+      copia en vez de mutar lo ya movido: así el quiebro de más abajo se calcula
+      una vez por posición y no se acumula.
+
+   No se apila undo aquí sino en quien llama, junto al resto de gestos. */
+function iniciarTramo(e,mi){
+  const A=nodeById(e.from), B=nodeById(e.to);
+  if(!A||!B) return null;
+  let pts=edgePoints(e);
+  if(!e.fromSide) e.fromSide=sideOfPoint(A,pts[0]);
+  if(!e.toSide)   e.toSide  =sideOfPoint(B,pts[pts.length-1]);
+  if(!(e.waypoints||[]).length){
+    pts=edgePoints(e);                       // el lado congelado puede cambiar la ruta
+    e.waypoints=pts.slice(1,-1).map(q=>({x:q.x,y:q.y}));
+  }
+  pts=edgePoints(e);
+  const i0=mi-1, i1=mi, base=e.waypoints;
+  if(i0<0 || i1>=base.length) return null;   // un tramo con un ancla por extremo no desliza
+  const eje=segEje(pts[mi],pts[mi+1]);
+  const v0=base[i0][eje];
+  /* EL TOPE. Una arista con waypoints ya no pasa por orthoRoute, así que el
+     guardián anti-muñón de orthoRoute() deja de protegerla: sin tope, el propio
+     gesto reintroduce el defecto que ese guardián arregló. Medido: 4 de 57
+     arrastres cruzaban el pasillo del destino y dejaban la ruta bajando 28px
+     para volver a subir.
+
+     La regla es geométrica y no hay que ajustar ninguna constante: el tramo no
+     puede cruzar a ninguno de sus dos vértices vecinos sobre el eje por el que
+     se mueve. Cruzar a un vecino es exactamente invertir el sentido del tramo
+     que los une. */
+  const vecinos=[ i0>0? base[i0-1] : pts[0], i1<base.length-1? base[i1+1] : pts[pts.length-1] ];
+  let min=-Infinity, max=Infinity;
+  for(const q of vecinos){
+    if(v0>q[eje]+.5)      min=Math.max(min,q[eje]);
+    else if(v0<q[eje]-.5) max=Math.min(max,q[eje]);
+  }
+  return {edgeId:e.id, i0, i1, eje,
+          base:base.map(q=>({x:q.x,y:q.y})),
+          p1:{x:pts[0].x,y:pts[0].y}, p2:{x:pts[pts.length-1].x,y:pts[pts.length-1].y},
+          lim:{min,max}};
+}
+/* Reconstruye los waypoints con el tramo en `v`. El quiebro es lo que salva la
+   ortogonalidad en los extremos: el pasillo de aproximación es COLINEAL con el
+   tramo cuando éste toca un extremo, así que deslizarlo deja el ancla
+   descolgada y el tramo ancla→waypoint se vuelve diagonal. Se inserta entonces
+   un vértice que respeta el eje normal del lado anclado, que es por donde la
+   flecha tiene que salir del nodo. Con los dos lados fijados esto no falla
+   nunca; por eso iniciarTramo() congela los flotantes antes. */
+function moverTramo(sd,p){
+  const e=edgeById(sd.edgeId); if(!e) return;
+  const v=clamp(snapV(p[sd.eje]), sd.lim.min, sd.lim.max);
+  const wps=sd.base.map(q=>({x:q.x,y:q.y}));
+  wps[sd.i0][sd.eje]=v; wps[sd.i1][sd.eje]=v;
+  const diagonal=(a,b)=>Math.abs(a.x-b.x)>1.5 && Math.abs(a.y-b.y)>1.5;
+  const quiebro=(anc,w,side)=> DIR[side].x!==0? {x:w.x, y:anc.y} : {x:anc.x, y:w.y};
+  if(diagonal(sd.p1,wps[0]))                     wps.unshift(quiebro(sd.p1,wps[0],e.fromSide));
+  const u=wps[wps.length-1];
+  if(diagonal(sd.p2,u))                          wps.push(quiebro(sd.p2,u,e.toSide));
+  e.waypoints=wps;
+}
+/* Al llevar un tramo hasta su tope queda pegado a un vecino, y ahí el tramo que
+   los unía mide cero: dos vértices en el mismo sitio, con sus dos manejadores
+   dibujados uno encima de otro. Se podan al soltar, no durante el arrastre, para
+   que el gesto no cambie de forma bajo el dedo y para poder volver atrás sin
+   haber perdido un vértice. El umbral es el mismo que usa el dedup de
+   orthoRoute(): por debajo de 1px no hay tramo que dibujar. */
+function podarWaypoints(e){
+  const pts=edgePoints(e); if(pts.length<2) return;
+  const wps=e.waypoints||[], out=[];
+  let prev=pts[0];
+  for(const w of wps){
+    if(Math.hypot(w.x-prev.x, w.y-prev.y)>1){ out.push(w); prev=w; }
+  }
+  const fin=pts[pts.length-1];
+  while(out.length && Math.hypot(out[out.length-1].x-fin.x, out[out.length-1].y-fin.y)<=1) out.pop();
+  e.waypoints=out;
 }
 
 let wasRightDrag = false;
@@ -120,7 +231,7 @@ function cancelGestures(){
   drag=null; resizing=null; wpDrag=null; marquee=null; connectDrag=null; panDrag=null;
   /* thaw incondicional: si el gesto se cancela a mitad, dejar el mapa congelado
      dejaría las etiquetas clavadas para siempre. */
-  endDrag=null; thawEdgeLabels();
+  endDrag=null; segDrag=null; thawEdgeLabels();
 }
 function startPinch(){
   cancelGestures();
@@ -215,13 +326,16 @@ cv.addEventListener("pointerdown", ev=>{
     if(end){ endDrag={edgeId:se.id, which:end}; freezeEdgeLabels(); return; }
     const wi=hitWaypoint(se,p.x,p.y);
     if(wi>=0){ pushUndo(); wpDrag={edgeId:se.id, idx:wi}; return; }
-    const mi=hitMidpoint(se,p.x,p.y);
+    const mi=hitSegment(se,p.x,p.y);
     if(mi>=0){
       pushUndo();
-      if(se.route==="ortho" && (se.waypoints||[]).length===0){
-        const pts=edgePoints(se);
-        se.waypoints=pts.slice(1,-1).map(q=>({x:q.x,y:q.y}));
+      /* Ortogonal: el tramo se desliza entero. Recta: se inserta un codo donde
+         agarras, que ahí sí tiene sentido. Ver bendableSegs() en geometry.js. */
+      if(se.route==="ortho"){
+        const sd=iniciarTramo(se,mi);
+        if(sd){ segDrag=sd; freezeEdgeLabels(); return; }
       }
+      se.waypoints=se.waypoints||[];
       se.waypoints.splice(mi,0,{x:p.x,y:p.y});
       wpDrag={edgeId:se.id, idx:mi};
       return;
@@ -326,6 +440,7 @@ cv.addEventListener("pointermove", ev=>{
     }
     return;
   }
+  if(segDrag){ moverTramo(segDrag,p); return; }
   if(wpDrag){
     const e=edgeById(wpDrag.edgeId);
     if(e && e.waypoints[wpDrag.idx]){
@@ -347,7 +462,11 @@ cv.addEventListener("pointermove", ev=>{
   const single=singleSel();
   let cur="default";
   if(pendingShape||pendingIcon||pendingAnim||mode==="connect"||connectDrag||endDrag) cur="crosshair";
+  /* El cursor dice por dónde se mueve el tramo antes de agarrarlo: un tramo
+     vertical se desliza en horizontal y al revés. */
+  else if(segDrag) cur = segDrag.eje==="x"? "ew-resize" : "ns-resize";
   else if(single&&single.type==="edge"&&single.obj&&hitEdgeEnd(single.obj,p.x,p.y)) cur="grab";
+  else if(single&&single.type==="edge"&&single.obj&&single.obj.route==="ortho"&&segHoverCur(single.obj,p)) cur=segHoverCur(single.obj,p);
   else if(single&&single.type==="node"&&single.obj&&hitCorner(single.obj,p.x,p.y)>=0) cur="nwse-resize";
   else if(hitSideArrow(arrowHostNode(),p.x,p.y,arrowHitRadius())) cur="crosshair";
   else if(hoverNode) cur="grab";
@@ -386,7 +505,7 @@ cv.addEventListener("pointerup", ev=>{
   }
   if(presenting) return;
   const p=toWorld(ev);
-  const hadDrag=!!(drag||resizing||wpDrag);
+  const hadDrag=!!(drag||resizing||wpDrag||segDrag);
   if(connectDrag){
     const tgt=hitNode(p.x,p.y);
     if(tgt && tgt.id!==connectDrag.fromId){
@@ -457,6 +576,13 @@ cv.addEventListener("pointerup", ev=>{
     marquee=null;
   }
   drag=null; resizing=null; wpDrag=null;
+  /* El tramo deslizado se descongela aquí, igual que endDrag: las etiquetas se
+     recolocan una vez al soltar y no sesenta veces por segundo. */
+  if(segDrag){
+    const e=edgeById(segDrag.edgeId);
+    if(e) podarWaypoints(e);
+    segDrag=null; thawEdgeLabels();
+  }
   if(hadDrag) scheduleAutosave();
   if(ev.pointerType==="touch" && downPt && Math.hypot(ev.clientX-downPt.x, ev.clientY-downPt.y)<=6)
     handleTouchTap(ev);
@@ -645,8 +771,14 @@ document.addEventListener("keydown", ev=>{
   if(ev.key==="Delete"||ev.key==="Backspace") deleteSel();
   /* endDrag y thawEdgeLabels() van juntos y sin condición: abandonar con Escape
      a mitad de un arrastre de extremo no debe dejar el mapa de etiquetas
-     congelado, porque entonces no se recolocarían nunca más en esta sesión. */
-  if(ev.key==="Escape"){ pendingShape=null; pendingIcon=null; pendingAnim=null; connecting=null; connectDrag=null; endDrag=null; thawEdgeLabels(); marquee=null; $("iconDrawer").style.display="none"; $("animDrawer").style.display="none"; syncRail(); }
+     congelado, porque entonces no se recolocarían nunca más en esta sesión.
+
+     El tramo deslizado necesita además un undo(): a diferencia de endDrag, ese
+     gesto SÍ muta el documento mientras dura —materializa la ruta y congela los
+     lados flotantes—, así que soltar la variable no lo deshace. El pushUndo() de
+     pointerdown se apiló antes de tocar nada, o sea que esto devuelve la arista
+     a su ruta automática. */
+  if(ev.key==="Escape"){ if(segDrag){ segDrag=null; undo(); } pendingShape=null; pendingIcon=null; pendingAnim=null; connecting=null; connectDrag=null; endDrag=null; thawEdgeLabels(); marquee=null; $("iconDrawer").style.display="none"; $("animDrawer").style.display="none"; syncRail(); }
   if(k==="v") setMode("select");
   if(k==="c") setMode("connect");
   if(ev.key===" "){ ev.preventDefault(); togglePlay(); }

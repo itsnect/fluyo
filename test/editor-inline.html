@@ -491,6 +491,20 @@ function run(){
         `escalón y=${mrTras.waypoints[1]?mrTras.waypoints[1].y:"?"}, antes ${escalonAntes} · ` +
         ptsMr.map(q=>`(${q.x.toFixed(0)},${q.y.toFixed(0)})`).join(" "));
 
+  /* La salida cuando una ruta conservada ya no sirve. Desde que las rutas se
+     conservan al mover los nodos, esto dejó de ser un rincón del panel. */
+  check("Y R devuelve la flecha a su ruta automática, con undo",
+        (()=>{
+          // tras arrastrar el nodo, lo seleccionado es el NODO: hay que volver a
+          // elegir la flecha, igual que haría el usuario
+          W.selectOnly("edge",mr.id);
+          const antesUndo=G("undoStack").length;
+          D.dispatchEvent(new W.KeyboardEvent("keydown",{key:"r", bubbles:true, cancelable:true}));
+          const ed=G("P()").edges.find(x=>x.id===mr.id);
+          return (ed.waypoints||[]).length===0 && G("undoStack").length>antesUndo;
+        })(),
+        "el mismo camino que el botón del panel");
+
   /* Mover los DOS nodos a la vez ya conservaba la forma, trasladando los
      waypoints con el grupo. Esa rama no se ha tocado. */
   limpiar();

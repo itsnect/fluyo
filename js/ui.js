@@ -303,7 +303,21 @@ $("dashChk").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); e.dashed=$(
 $("arrSChk").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); e.startArrow=$("arrSChk").checked; scheduleAutosave(); } };
 $("arrEChk").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); e.endArrow=$("arrEChk").checked; scheduleAutosave(); } };
 $("flowSel").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); e.flowDir=$("flowSel").value; scheduleAutosave(); } };
-$("btnWps").onclick=()=>{ const e=singleEdge(); if(e){ pushUndo(); e.waypoints=[]; refreshPanel(); scheduleAutosave(); } };
+/* Devuelve la flecha seleccionada a su ruta automática. Es la salida cuando una
+   ruta hecha a mano deja de servir, y desde que esas rutas se CONSERVAN al mover
+   los nodos es un gesto habitual, no un rincón: por eso tiene botón arriba del
+   panel y atajo de teclado (R, en interaction.js). Devuelve si hizo algo, para
+   que el atajo no consuma la tecla cuando no había nada que deshacer. */
+function rutaAuto(){
+  const e=singleEdge();
+  if(!e || !(e.waypoints||[]).length) return false;
+  pushUndo();
+  e.waypoints=[];
+  refreshPanel();
+  scheduleAutosave();
+  return true;
+}
+$("btnWps").onclick=rutaAuto;
 $("btnDel").onclick=deleteSel;
 $("mCopy").onclick=copySel;
 $("mCut").onclick=cutSel;

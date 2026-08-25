@@ -215,7 +215,7 @@ function moverTramo(sd,p){
    automática.
 
    No se repone. Si alguien vuelve a necesitar la ruta automática, la salida es
-   «Quitar codos», que es explícita y reversible; borrar en silencio no lo es.
+   «Volver a la ruta automática», que es explícita y reversible; borrar en silencio no lo es.
 
    Medido sobre 162 desplazamientos de un nodo en una rejilla de ±600px:
 
@@ -851,6 +851,10 @@ document.addEventListener("keydown", ev=>{
   if(ev.key==="Escape"){ if(segDrag){ segDrag=null; undo(); } pendingShape=null; pendingIcon=null; pendingAnim=null; connecting=null; connectDrag=null; endDrag=null; thawEdgeLabels(); marquee=null; $("iconDrawer").style.display="none"; $("animDrawer").style.display="none"; syncRail(); }
   if(k==="v") setMode("select");
   if(k==="c") setMode("connect");
+  /* R: devuelve la flecha seleccionada a su ruta automática. Solo hace algo si
+     hay una única flecha seleccionada y tiene tramos movidos a mano, así que no
+     pisa nada cuando la selección es otra cosa. Ver rutaAuto() en js/ui.js. */
+  if(k==="r" && !ctl && !ev.altKey && rutaAuto()) ev.preventDefault();
   if(ev.key===" "){ ev.preventDefault(); togglePlay(); }
 });
 

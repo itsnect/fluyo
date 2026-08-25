@@ -514,7 +514,12 @@ function enterPresent(){
      fotograma, fitView mediría el lienzo con el tamaño viejo */
   requestAnimationFrame(()=>{ resizeCanvas(); fitView(); });
   updatePresentBar();
-  trackEvent("present_started",{pages:doc.pages.length});
+  /* Sin propiedades a propósito. Llevaba `pages`, el número de páginas del
+     documento: el único dato de toda la telemetría derivado del contenido del
+     usuario, y no se usaba para nada. Quitarlo deja la promesa de la política
+     más apretada —ningún evento lleva ya nada que salga de lo que dibujaste— y
+     el evento sigue respondiendo lo que se le pedía: si alguien presenta. */
+  trackEvent("present_started");
 }
 function exitPresent(){
   if(!presenting) return;

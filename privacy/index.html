@@ -94,9 +94,9 @@
   <tr><td><code>file_imported</code></td><td>Nothing</td></tr>
   <tr><td><code>diagram_exported</code></td><td>The format: <code>gif</code>, <code>png</code>, <code>jpg</code> or <code>svg</code></td></tr>
   <tr><td><code>gif_animation_added</code></td><td>The animation key (one of eight)</td></tr>
-  <tr><td><code>present_started</code></td><td>The document's page count</td></tr>
+  <tr><td><code>present_started</code></td><td>Nothing</td></tr>
 </table>
-<p><strong>The content of your diagrams is never sent</strong>, neither whole nor in fragments: events carry only values from a closed vocabulary plus one number. There is no free-text field anywhere that one of your labels could slip into.</p>
+<p><strong>The content of your diagrams is never sent</strong>, neither whole nor in fragments: events carry only values from a closed vocabulary — an example identifier, an export format, an animation key — and three of the six carry nothing at all. There is no free-text field anywhere that one of your labels could slip into, and no value derived from what you draw remains: <code>present_started</code> used to carry the document’s page count and it was removed.</p>
 <p>The analytics script loads <strong>only</strong> when the domain is <code>fluyo.space</code> or <code>www.fluyo.space</code>. If you clone the repository, open it locally or self-host it, that code never runs and no network call is made. Preview domains are deliberately excluded. The condition lives in <code>js/analytics.js</code>, in a single block, so you can verify it yourself.</p>
 <p>If you want zero analytics: run the project locally or self-hosted, or block the <code>cloud.umami.is</code> domain. Fluyo works the same — the analytics code is written to fail silently.</p>
 

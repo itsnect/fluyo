@@ -94,9 +94,9 @@
   <tr><td><code>file_imported</code></td><td>Nada</td></tr>
   <tr><td><code>diagram_exported</code></td><td>El formato: <code>gif</code>, <code>png</code>, <code>jpg</code> o <code>svg</code></td></tr>
   <tr><td><code>gif_animation_added</code></td><td>La clave de la animación (una de ocho)</td></tr>
-  <tr><td><code>present_started</code></td><td>El número de páginas del documento</td></tr>
+  <tr><td><code>present_started</code></td><td>Nada</td></tr>
 </table>
-<p><strong>El contenido de tus diagramas no se envía nunca</strong>, ni entero ni en fragmentos: los eventos solo llevan valores de un vocabulario cerrado y un número. No hay ningún campo de texto libre donde pudiera colarse una etiqueta tuya.</p>
+<p><strong>El contenido de tus diagramas no se envía nunca</strong>, ni entero ni en fragmentos: los eventos solo llevan valores de un vocabulario cerrado —el identificador de un ejemplo, un formato de exportación, una clave de animación— y tres de los seis no llevan nada en absoluto. No hay ningún campo de texto libre donde pudiera colarse una etiqueta tuya, y no queda ningún valor derivado de lo que dibujas: <code>present_started</code> llevaba el número de páginas del documento y se le quitó.</p>
 <p>El script de analítica se carga <strong>únicamente</strong> cuando el dominio es <code>fluyo.space</code> o <code>www.fluyo.space</code>. Si clonas el repositorio, lo abres en local o lo self-hosteas, ese código no llega a ejecutarse y no se hace ninguna llamada de red. Los dominios de preview quedan fuera a propósito. La condición está en <code>js/analytics.js</code>, en un solo bloque, para que puedas verificarlo tú.</p>
 <p>Si quieres cero telemetría: usa el proyecto en local o self-hosteado, o bloquea el dominio <code>cloud.umami.is</code>. Fluyo funciona igual — la analítica está escrita para fallar en silencio.</p>
 

@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1865" height="735" viewBox="360 240 1865 735">
+<defs>
+  <marker id="fluyo-arrow-end" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="strokeWidth">
+    <path d="M 0 0 L 10 4 L 0 8 z" fill="context-stroke"/>
+  </marker>
+  <marker id="fluyo-arrow-start" markerWidth="10" markerHeight="8" refX="1" refY="4" orient="auto-start-reverse" markerUnits="strokeWidth">
+    <path d="M 0 0 L 10 4 L 0 8 z" fill="context-stroke"/>
+  </marker>
+</defs>
+<polyline points="485.74,580.00 513.74,580.00 592.87,580.00 672.00,580.00 700.00,580.00" fill="none" stroke="#777" stroke-width="2" stroke-linejoin="round" marker-end="url(#fluyo-arrow-end)"/>
+<rect x="570.78" y="568.95" width="44.18" height="22.10" fill="#161616"/>
+<text x="592.87" y="580.00" font-family="Georgia, serif" font-size="13" fill="#bdbdbd" text-anchor="middle" dominant-baseline="middle">visita</text>
+<polyline points="880.00,580.00 908.00,580.00 960.00,580.00 1012.00,580.00 1040.00,580.00" fill="none" stroke="#777" stroke-width="2" stroke-linejoin="round" marker-end="url(#fluyo-arrow-end)"/>
+<rect x="922.55" y="568.95" width="74.91" height="22.10" fill="#161616"/>
+<text x="960.00" y="580.00" font-family="Georgia, serif" font-size="13" fill="#bdbdbd" text-anchor="middle" dominant-baseline="middle">formulario</text>
+<polyline points="1200.00,580.00 1228.00,580.00 1295.00,580.00 1362.00,580.00 1390.00,580.00" fill="none" stroke="#777" stroke-width="2" stroke-linejoin="round" marker-end="url(#fluyo-arrow-end)"/>
+<rect x="1284.19" y="568.95" width="21.62" height="22.10" fill="#161616"/>
+<text x="1295.00" y="580.00" font-family="Georgia, serif" font-size="13" fill="#bdbdbd" text-anchor="middle" dominant-baseline="middle">sí</text>
+<polyline points="1570.00,580.00 1598.00,580.00 1645.00,580.00 1692.00,580.00 1720.00,580.00" fill="none" stroke="#777" stroke-width="2" stroke-linejoin="round" marker-end="url(#fluyo-arrow-end)"/>
+<rect x="1622.89" y="568.95" width="44.22" height="22.10" fill="#161616"/>
+<text x="1645.00" y="580.00" font-family="Georgia, serif" font-size="13" fill="#bdbdbd" text-anchor="middle" dominant-baseline="middle">demo</text>
+<polyline points="1900.00,580.00 1928.00,580.00 1987.50,580.00 2047.00,580.00 2075.00,580.00" fill="none" stroke="#777" stroke-width="2" stroke-linejoin="round" marker-end="url(#fluyo-arrow-end)"/>
+<rect x="1965.09" y="568.95" width="44.81" height="22.10" fill="#161616"/>
+<text x="1987.50" y="580.00" font-family="Georgia, serif" font-size="13" fill="#bdbdbd" text-anchor="middle" dominant-baseline="middle">firma</text>
+<polyline points="1120.00,630.00 1120.00,658.00 1120.00,747.50 1120.00,837.00 1120.00,865.00" fill="none" stroke="#777" stroke-width="2" stroke-linejoin="round" stroke-dasharray="8 7" marker-end="url(#fluyo-arrow-end)"/>
+<rect x="1106.65" y="736.45" width="26.70" height="22.10" fill="#161616"/>
+<text x="1120.00" y="747.50" font-family="Georgia, serif" font-size="13" fill="#bdbdbd" text-anchor="middle" dominant-baseline="middle">no</text>
+<defs>
+<symbol id="fluyo-sym-0" viewBox="0 0 64 64" preserveAspectRatio="xMidYMid meet"><image width="64" height="64" href="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20x%3D%222%22%20y%3D%222%22%20width%3D%2260%22%20height%3D%2260%22%20rx%3D%2214%22%20fill%3D%22%235f6f80%22%2F%3E%3Ccircle%20cx%3D%2223%22%20cy%3D%2226%22%20r%3D%227%22%20fill%3D%22%23fff%22%2F%3E%3Cpath%20d%3D%22M10%2047%20c1.6-8.8%205.2-11.8%2013-11.8%20s11.4%203%2013%2011.8z%22%20fill%3D%22%23fff%22%2F%3E%3Ccircle%20cx%3D%2243%22%20cy%3D%2226%22%20r%3D%227%22%20fill%3D%22%23fff%22%2F%3E%3Cpath%20d%3D%22M30%2047%20c1.6-8.8%205.2-11.8%2013-11.8%20s11.4%203%2013%2011.8z%22%20fill%3D%22%23fff%22%2F%3E%3C%2Fsvg%3E"/></symbol>
+</defs>
+<g id="node-1">
+<text x="1180.00" y="300.00" font-family="Georgia, serif" font-size="22.0" fill="#d08b5b" text-anchor="middle" dominant-baseline="middle">Funnel de ventas</text>
+</g>
+<g id="node-2">
+<use href="#fluyo-sym-0" xlink:href="#fluyo-sym-0" x="434.26" y="538.00" width="51.48" height="51.48"/>
+<text x="460.00" y="616.00" font-family="Georgia, serif" font-size="14.0" fill="#ededed" text-anchor="middle" dominant-baseline="middle">Visitantes</text>
+</g>
+<g id="node-3">
+<rect x="700.00" y="545.00" width="180" height="70" rx="10" ry="10" fill="rgba(106,159,181,0.18)" stroke="#6a9fb5" stroke-width="2.5"/>
+<text x="790.00" y="569.38" font-family="Georgia, serif" font-size="17.0" fill="#ededed" text-anchor="middle" dominant-baseline="middle">Lead</text>
+<text x="790.00" y="590.63" font-family="Georgia, serif" font-size="17.0" fill="#ededed" text-anchor="middle" dominant-baseline="middle">registrado</text>
+</g>
+<g id="node-4">
+<polygon points="1120,530.00 1200.00,580 1120,630.00 1040.00,580" fill="rgba(201,180,88,0.18)" stroke="#c9b458" stroke-width="2.5"/>
+<text x="1120.00" y="580.00" font-family="Georgia, serif" font-size="17.0" fill="#ededed" text-anchor="middle" dominant-baseline="middle">¿Califica?</text>
+</g>
+<g id="node-5">
+<rect x="1390.00" y="545.00" width="180" height="70" rx="10" ry="10" fill="rgba(155,127,181,0.18)" stroke="#9b7fb5" stroke-width="2.5"/>
+<text x="1480.00" y="580.00" font-family="Georgia, serif" font-size="17.0" fill="#ededed" text-anchor="middle" dominant-baseline="middle">Oportunidad</text>
+</g>
+<g id="node-6">
+<rect x="1720.00" y="545.00" width="180" height="70" rx="10" ry="10" fill="rgba(155,127,181,0.18)" stroke="#9b7fb5" stroke-width="2.5"/>
+<text x="1810.00" y="569.38" font-family="Georgia, serif" font-size="17.0" fill="#ededed" text-anchor="middle" dominant-baseline="middle">Propuesta</text>
+<text x="1810.00" y="590.63" font-family="Georgia, serif" font-size="17.0" fill="#ededed" text-anchor="middle" dominant-baseline="middle">enviada</text>
+</g>
+<g id="node-7">
+<ellipse cx="2130" cy="580" rx="55.00" ry="55.00" fill="rgba(123,184,91,0.18)" stroke="#7bb85b" stroke-width="2.5"/>
+<text x="2130.00" y="580.00" font-family="Georgia, serif" font-size="17.0" fill="#ededed" text-anchor="middle" dominant-baseline="middle">Cliente</text>
+</g>
+<g id="node-8">
+<rect x="1030.00" y="865.00" width="180" height="70" rx="10" ry="10" fill="rgba(143,143,143,0.18)" stroke="#8f8f8f" stroke-width="2.5"/>
+<text x="1120.00" y="900.00" font-family="Georgia, serif" font-size="17.0" fill="#ededed" text-anchor="middle" dominant-baseline="middle">Descartado</text>
+</g>
+</svg>

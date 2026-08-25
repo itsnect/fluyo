@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1920" height="775" viewBox="330 200 1920 775">
+<defs>
+  <marker id="fluyo-arrow-end" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="strokeWidth">
+    <path d="M 0 0 L 10 4 L 0 8 z" fill="context-stroke"/>
+  </marker>
+  <marker id="fluyo-arrow-start" markerWidth="10" markerHeight="8" refX="1" refY="4" orient="auto-start-reverse" markerUnits="strokeWidth">
+    <path d="M 0 0 L 10 4 L 0 8 z" fill="context-stroke"/>
+  </marker>
+</defs>
+<polyline points="550.00,540.00 578.00,540.00 625.00,540.00 672.00,540.00 700.00,540.00" fill="none" stroke="#777" stroke-width="2" stroke-linejoin="round" marker-end="url(#fluyo-arrow-end)"/>
+<rect x="577.70" y="528.95" width="94.61" height="22.10" fill="#161616"/>
+<text x="625.00" y="540.00" font-family="Georgia, serif" font-size="13" fill="#bdbdbd" text-anchor="middle" dominant-baseline="middle">materia prima</text>
+<polyline points="880.00,540.00 908.00,540.00 962.50,540.00 1017.00,540.00 1045.00,540.00" fill="none" stroke="#777" stroke-width="2" stroke-linejoin="round" marker-end="url(#fluyo-arrow-end)"/>
+<rect x="932.70" y="528.95" width="59.61" height="22.10" fill="#161616"/>
+<text x="962.50" y="540.00" font-family="Georgia, serif" font-size="13" fill="#bdbdbd" text-anchor="middle" dominant-baseline="middle">produce</text>
+<polyline points="1195.00,540.00 1223.00,540.00 1292.50,540.00 1362.00,540.00 1390.00,540.00" fill="none" stroke="#777" stroke-width="2" stroke-linejoin="round" marker-end="url(#fluyo-arrow-end)"/>
+<rect x="1259.59" y="528.95" width="65.81" height="22.10" fill="#161616"/>
+<text x="1292.50" y="540.00" font-family="Georgia, serif" font-size="13" fill="#bdbdbd" text-anchor="middle" dominant-baseline="middle">despacha</text>
+<polyline points="1510.00,540.00 1538.00,540.00 1605.00,540.00 1672.00,540.00 1700.00,540.00" fill="none" stroke="#777" stroke-width="2" stroke-linejoin="round" marker-end="url(#fluyo-arrow-end)"/>
+<rect x="1581.20" y="528.95" width="47.60" height="22.10" fill="#161616"/>
+<text x="1605.00" y="540.00" font-family="Georgia, serif" font-size="13" fill="#bdbdbd" text-anchor="middle" dominant-baseline="middle">recibe</text>
+<polyline points="1880.00,540.00 1908.00,540.00 1955.00,540.00 2002.00,540.00 2030.00,540.00" fill="none" stroke="#777" stroke-width="2" stroke-linejoin="round" marker-end="url(#fluyo-arrow-end)"/>
+<rect x="1927.80" y="528.95" width="54.40" height="22.10" fill="#161616"/>
+<text x="1955.00" y="540.00" font-family="Georgia, serif" font-size="13" fill="#bdbdbd" text-anchor="middle" dominant-baseline="middle">reparte</text>
+<polyline points="2120.00,575.00 2120.00,603.00 2120.00,700.00 2120.00,797.00 2120.00,825.00" fill="none" stroke="#777" stroke-width="2" stroke-linejoin="round" marker-end="url(#fluyo-arrow-end)"/>
+<rect x="2091.94" y="688.95" width="56.11" height="22.10" fill="#161616"/>
+<text x="2120.00" y="700.00" font-family="Georgia, serif" font-size="13" fill="#bdbdbd" text-anchor="middle" dominant-baseline="middle">compra</text>
+<polyline points="1120.00,585.00 1120.00,613.00 1120.00,707.50 1120.00,802.00 1120.00,830.00" fill="none" stroke="#777" stroke-width="2" stroke-linejoin="round" marker-end="url(#fluyo-arrow-end)"/>
+<polyline points="1040.00,880.00 1012.00,880.00 945.00,880.00 878.00,880.00 850.00,880.00" fill="none" stroke="#777" stroke-width="2" stroke-linejoin="round" stroke-dasharray="8 7" marker-end="url(#fluyo-arrow-end)"/>
+<rect x="934.19" y="868.95" width="21.62" height="22.10" fill="#161616"/>
+<text x="945.00" y="880.00" font-family="Georgia, serif" font-size="13" fill="#bdbdbd" text-anchor="middle" dominant-baseline="middle">sí</text>
+<defs>
+<symbol id="fluyo-sym-0" viewBox="0 0 64 64" preserveAspectRatio="xMidYMid meet"><image width="64" height="64" href="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20x%3D%222%22%20y%3D%222%22%20width%3D%2260%22%20height%3D%2260%22%20rx%3D%2214%22%20fill%3D%22%2320242a%22%2F%3E%3Crect%20x%3D%2214%22%20y%3D%2228%22%20width%3D%2236%22%20height%3D%228%22%20rx%3D%224%22%20fill%3D%22none%22%20stroke%3D%22%23e8e6e1%22%20stroke-width%3D%222.6%22%2F%3E%3Crect%20x%3D%2214%22%20y%3D%2228%22%20width%3D%2222%22%20height%3D%228%22%20rx%3D%224%22%20fill%3D%22%233aa7e8%22%2F%3E%3C%2Fsvg%3E"/></symbol>
+</defs>
+<g id="node-1">
+<text x="1180.00" y="260.00" font-family="Georgia, serif" font-size="22.0" fill="#d08b5b" text-anchor="middle" dominant-baseline="middle">Cadena de suministro</text>
+</g>
+<g id="node-2">
+<rect x="370.00" y="505.00" width="180" height="70" rx="10" ry="10" fill="rgba(143,143,143,0.18)" stroke="#8f8f8f" stroke-width="2.5"/>
+<text x="460.00" y="540.00" font-family="Georgia, serif" font-size="17.0" fill="#ededed" text-anchor="middle" dominant-baseline="middle">Proveedor</text>
+</g>
+<g id="node-3">
+<rect x="700.00" y="505.00" width="180" height="70" rx="10" ry="10" fill="rgba(106,159,181,0.18)" stroke="#6a9fb5" stroke-width="2.5"/>
+<text x="790.00" y="540.00" font-family="Georgia, serif" font-size="17.0" fill="#ededed" text-anchor="middle" dominant-baseline="middle">Fábrica</text>
+</g>
+<g id="node-4">
+<path d="M 1045.00 511.00 L 1045.00 569.00 C 1045.00 597.80 1195.00 597.80 1195.00 569.00 L 1195.00 511.00 C 1195.00 482.20 1045.00 482.20 1045.00 511.00 Z" fill="rgba(201,143,91,0.18)" stroke="#c98f5b" stroke-width="2.5"/>
+<ellipse cx="1120" cy="511.00" rx="75.00" ry="16.00" fill="none" stroke="#c98f5b" stroke-width="2.5"/>
+<text x="1120.00" y="546.00" font-family="Georgia, serif" font-size="17.0" fill="#ededed" text-anchor="middle" dominant-baseline="middle">Almacén</text>
+</g>
+<g id="node-5">
+<use href="#fluyo-sym-0" xlink:href="#fluyo-sym-0" x="1413.00" y="495.00" width="74.00" height="74.00"/>
+<text x="1450.00" y="582.00" font-family="Georgia, serif" font-size="14.0" fill="#d08b5b" text-anchor="middle" dominant-baseline="middle">En tránsito</text>
+</g>
+<g id="node-6">
+<rect x="1700.00" y="505.00" width="180" height="70" rx="10" ry="10" fill="rgba(106,159,181,0.18)" stroke="#6a9fb5" stroke-width="2.5"/>
+<text x="1790.00" y="529.38" font-family="Georgia, serif" font-size="17.0" fill="#ededed" text-anchor="middle" dominant-baseline="middle">Centro de</text>
+<text x="1790.00" y="550.63" font-family="Georgia, serif" font-size="17.0" fill="#ededed" text-anchor="middle" dominant-baseline="middle">distribución</text>
+</g>
+<g id="node-7">
+<rect x="2030.00" y="505.00" width="180" height="70" rx="10" ry="10" fill="rgba(127,166,107,0.18)" stroke="#7fa66b" stroke-width="2.5"/>
+<text x="2120.00" y="540.00" font-family="Georgia, serif" font-size="17.0" fill="#ededed" text-anchor="middle" dominant-baseline="middle">Tienda</text>
+</g>
+<g id="node-8">
+<polygon points="1120,830.00 1200.00,880 1120,930.00 1040.00,880" fill="rgba(201,180,88,0.18)" stroke="#c9b458" stroke-width="2.5"/>
+<text x="1120.00" y="880.00" font-family="Georgia, serif" font-size="17.0" fill="#ededed" text-anchor="middle" dominant-baseline="middle">¿Stock bajo?</text>
+</g>
+<g id="node-9">
+<rect x="670.00" y="845.00" width="180" height="70" rx="10" ry="10" fill="rgba(143,143,143,0.18)" stroke="#8f8f8f" stroke-width="2.5"/>
+<text x="760.00" y="869.38" font-family="Georgia, serif" font-size="17.0" fill="#ededed" text-anchor="middle" dominant-baseline="middle">Orden de</text>
+<text x="760.00" y="890.63" font-family="Georgia, serif" font-size="17.0" fill="#ededed" text-anchor="middle" dominant-baseline="middle">compra</text>
+</g>
+<g id="node-10">
+<ellipse cx="2120" cy="880" rx="55.00" ry="55.00" fill="rgba(123,184,91,0.18)" stroke="#7bb85b" stroke-width="2.5"/>
+<text x="2120.00" y="869.38" font-family="Georgia, serif" font-size="17.0" fill="#ededed" text-anchor="middle" dominant-baseline="middle">Cliente</text>
+<text x="2120.00" y="890.63" font-family="Georgia, serif" font-size="17.0" fill="#ededed" text-anchor="middle" dominant-baseline="middle">final</text>
+</g>
+</svg>

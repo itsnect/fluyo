@@ -11,7 +11,7 @@
    estaba sirviendo al iframe una copia vieja de js/interaction.js. Por eso ese
    test ahora desregistra el SW antes de cargar nada — y por eso esta versión
    sube también cuando solo cambia el contenido. */
-const CACHE = "fluyo-static-v23";
+const CACHE = "fluyo-static-v24";
 /* Núcleo: si algo de aquí falla, la instalación falla (cache.addAll es atómico)
    y es lo correcto, porque sin estos archivos la app no funciona. */
 const ASSETS = [
@@ -43,6 +43,9 @@ const PAGE_ASSETS = [
   "./terms/",
   "./soporte/",
   "./support/",
+  "./ejemplos/data/funnel-de-ventas.fluyo.json",
+  "./ejemplos/data/onboarding-de-cliente.fluyo.json",
+  "./ejemplos/data/cadena-de-suministro.fluyo.json",
   "./ejemplos/data/kafka-event-pipeline.fluyo.json",
   "./ejemplos/data/microservicios-api-gateway.fluyo.json",
   "./ejemplos/data/oauth2-flujo-autenticacion.fluyo.json",

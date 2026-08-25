@@ -76,6 +76,22 @@ main{flex:1; display:flex; min-height:0;}
   background:var(--panel); border:1px solid var(--line); border-radius:10px;
   padding:12px; overflow-y:auto; display:none; box-shadow:0 10px 30px #000a;
 }
+/* Papelera flotante para táctil. Oculta por defecto en TODOS los tamaños: la
+   enciende js/ui.js con body.touchSel, que exige puntero táctil y selección.
+   No basta con una media query de ancho — un portátil con pantalla estrecha
+   tiene teclado y no la necesita, y una tableta ancha sí. */
+#btnDelTouch{
+  position:absolute; right:14px; bottom:14px; z-index:30; display:none;
+  width:52px; height:52px; padding:0; border-radius:50%;
+  align-items:center; justify-content:center;
+  background:var(--panel); border:1px solid #6b3b3b; color:#e08585;
+  box-shadow:0 6px 20px #000b;
+}
+#btnDelTouch svg{width:24px; height:24px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round;}
+#btnDelTouch:active{background:#3a2020;}
+body.touchSel #btnDelTouch{display:flex;}
+/* Presentando no se edita nada, así que tampoco se borra. */
+body.presenting #btnDelTouch{display:none;}
 #iconDrawer h4, #animDrawer h4{font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); margin:10px 0 6px;}
 #iconDrawer h4:first-child, #animDrawer h4:first-child{margin-top:0;}
 .iconGrid{display:grid; grid-template-columns:repeat(4,1fr); gap:5px;}

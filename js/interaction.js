@@ -111,6 +111,10 @@ function startPinch(){
 
 cv.addEventListener("pointerdown", ev=>{
   lastPointerType = ev.pointerType || "mouse";
+  /* En un equipo híbrido se alterna dedo y ratón con la misma selección puesta:
+     sin esto la papelera flotante se quedaría encendida al pasar al ratón hasta
+     el siguiente refreshPanel(). */
+  syncTouchDelete();
   downPt={x:ev.clientX, y:ev.clientY};
   if(ev.pointerType==="touch"){
     activeTouches.set(ev.pointerId,{x:ev.clientX,y:ev.clientY});

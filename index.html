@@ -143,6 +143,21 @@
     </div>
     <div id="iconDrawer" role="dialog" aria-label="Iconos"></div>
     <div id="animDrawer" role="dialog" aria-label="GIFs animados"></div>
+    <!--
+      Borrar con el dedo. El botón «Eliminar» del panel de propiedades funciona
+      en móvil desde que el panel dejó de ocultarse, pero está a cuatro pasos:
+      tocar la forma, abrir el panel con ⚙, desplazarlo hasta abajo del todo
+      —es el último hijo de #selBody, por debajo de una veintena de filas— y
+      pulsar. La única vía que la app enseña es <kbd>Supr</kbd>, que en un
+      teclado táctil no existe.
+
+      Solo aparece con puntero táctil y con algo seleccionado: con ratón la
+      tecla y el panel ya bastan, y un botón permanente sobre el lienzo sería
+      ruido. Ver js/ui.js, syncTouchDelete().
+    -->
+    <button id="btnDelTouch" type="button" title="Eliminar la selección" aria-label="Eliminar la selección">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V5h6v2M7 7l1 13h8l1-13M10 11v6M14 11v6"/></svg>
+    </button>
   </div>
 
   <aside id="propPanel">
@@ -157,7 +172,8 @@
         • <b>Arrastra en el vacío</b> para seleccionar varios; <kbd>Shift</kbd>+clic suma o quita.<br>
         • <kbd>Ctrl+C</kbd> copiar · <kbd>Ctrl+X</kbd> cortar · <kbd>Ctrl+V</kbd> pegar · <kbd>Ctrl+D</kbd> duplicar · <kbd>Ctrl+A</kbd> todo.<br>
         • <kbd>Ctrl+Z</kbd> deshacer · <kbd>Ctrl+Y</kbd> rehacer.<br>
-        • Doble clic = editar texto. <kbd>Supr</kbd> borra. <kbd>Esc</kbd> cancela.<br>
+        • Doble clic = editar texto. <kbd>Supr</kbd> borra, o el botón <b>Eliminar</b> de abajo. <kbd>Esc</kbd> cancela.<br>
+        • Táctil: con algo seleccionado sale un botón de <b>papelera</b> sobre el lienzo.<br>
         • <kbd>P</kbd> presenta a pantalla completa; <kbd>←</kbd> <kbd>→</kbd> cambian de página.<br>
         • Con una flecha seleccionada, arrastra los <b>puntos huecos</b> para doblarla; doble clic en un codo lo elimina.<br>
         • Pega imágenes con <kbd>Ctrl+V</kbd>.

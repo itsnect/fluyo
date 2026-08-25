@@ -27,7 +27,14 @@
 
 /* Lista blanca. Añadir un ejemplo = un archivo en ejemplos/data/ y una línea
    aquí. El texto es el que se usa como nombre visible del diagrama. */
+/* El orden es el de la galería: primero los procesos de negocio, que es lo que
+   busca quien no viene del mundo del software. Aquí es solo cosmética —este mapa
+   es una lista blanca de slugs y una fuente de nombres, no dibuja nada— pero
+   mantenerlo alineado con /ejemplos evita que diverjan. */
 const EXAMPLES = {
+  "funnel-de-ventas":            "Funnel de ventas",
+  "onboarding-de-cliente":       "Onboarding de cliente",
+  "cadena-de-suministro":        "Cadena de suministro",
   "kafka-event-pipeline":        "Pipeline de eventos con Apache Kafka",
   "microservicios-api-gateway":  "Arquitectura de microservicios con API Gateway",
   "oauth2-flujo-autenticacion":  "Flujo de autenticación OAuth 2.0",

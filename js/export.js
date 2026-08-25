@@ -66,23 +66,48 @@ $("autosaveDiscard").onclick=()=>{
 };
 
 /* ===================== Ejemplo ===================== */
+/* ===================== El botón «Ejemplo» =====================
+   Es la única muestra que ve quien aterriza en la portada, y el 94 % del tráfico
+   aterriza ahí: la galería de /ejemplos vive detrás de un enlace en el pie.
+
+   Por eso carga un FUNNEL DE VENTAS y no una arquitectura. Antes cargaba un
+   pipeline de pagos con Kafka —el artefacto más técnico de todo el producto—
+   detrás del único botón que alguien con curiosidad pulsa en los primeros diez
+   segundos. Alguien que quiere diagramar un proceso de negocio veía eso y
+   concluía, con razón, que la herramienta no era para él.
+
+   No le quita nada a los técnicos: este diagrama estaba cableado aquí, no es
+   ninguno de los ocho de la galería y no se puede enlazar. Sustituirlo no retira
+   nada del catálogo.
+
+   Se mantiene cableado en vez de hacer fetch del JSON a propósito: así el botón
+   funciona en la primera carga sin red, sin depender de que el service worker ya
+   haya precacheado el archivo.
+
+   Y se mantiene el slug "demo" en el evento para no partir la serie histórica.
+
+   Enciende `build`: la aparición escalonada es lo que hace que un funnel se lea
+   como un proceso y no como un dibujo, y es el diferenciador del producto. Es lo
+   mismo que traen los tres ejemplos de negocio en sus `settings`. */
 $("btnDemo").onclick=()=>{
   pushUndo();
   const pg=P(); pg.nodes=[]; pg.edges=[]; pg.nextId=1; clearSel();
-  const dx=640, dy=360;
-  const A=newNode("rect",200+dx,180+dy);  A.label="API\nGateway";   A.color="#6a9fb5"; A.order=0;
-  const B=newNode("icon",560+dx,180+dy,{icon:"kafka",label:"Kafka dispersiones"}); B.order=1; B.pulse=true; B.color="#d08b5b";
-  const C=newNode("rect",940+dx,120+dy);  C.label="Servicio\npagos";  C.color="#6a9fb5"; C.order=2;
-  const D=newNode("rect",940+dx,340+dy);  D.label="Servicio\nnotificaciones"; D.color="#9b7fb5"; D.order=3;
-  const E=newNode("icon",560+dx,500+dy,{icon:"cloudsql",label:"Cloud SQL"}); E.color="#7fa66b"; E.order=4;
-  const F=newNode("circle",200+dx,500+dy); F.label="Banco\ncentral"; F.color="#8f8f8f"; F.order=5;
-  const T=newNode("text",640+dx,55+dy);   T.label="Dispersión de pagos en tiempo real"; T.color="#d08b5b"; T.order=0; T.w=620;
+  const T=newNode("text",1180,300,{label:"Funnel de ventas"}); T.color="#d08b5b"; T.w=620; T.order=0;
+  const A=newNode("icon",460,580,{icon:"users",label:"Visitantes"}); A.color="#6a9fb5"; A.order=1;
+  const B=newNode("rect",790,580);  B.label="Lead\nregistrado";  B.color="#6a9fb5"; B.order=2;
+  const C=newNode("diamond",1120,580); C.label="¿Califica?";     C.color="#c9b458"; C.order=3;
+  const D=newNode("rect",1480,580); D.label="Oportunidad";       D.color="#9b7fb5"; D.order=4;
+  const E2=newNode("rect",1810,580);E2.label="Propuesta\nenviada";E2.color="#9b7fb5";E2.order=5;
+  const F=newNode("circle",2130,580); F.label="Cliente";         F.color="#7bb85b"; F.pulse=true; F.order=6;
+  const G=newNode("rect",1120,900); G.label="Descartado";        G.color="#8f8f8f"; G.order=7;
   let e;
-  e=newEdge(A.id,B.id); e.label="evento"; e.fromSide="e"; e.toSide="w"; e.route="ortho";
-  e=newEdge(B.id,C.id); e.label="topic: pagos"; e.fromSide="e"; e.toSide="w"; e.route="ortho";
-  e=newEdge(B.id,D.id); e.label="topic: avisos"; e.fromSide="e"; e.toSide="w"; e.route="ortho";
-  e=newEdge(C.id,E.id); e.dashed=true; e.label="persistencia";
-  e=newEdge(F.id,A.id); e.label="instrucción"; e.fromSide="n"; e.toSide="s"; e.route="ortho";
+  e=newEdge(A.id,B.id);  e.label="visita";     e.fromSide="e"; e.toSide="w"; e.route="ortho";
+  e=newEdge(B.id,C.id);  e.label="formulario"; e.fromSide="e"; e.toSide="w"; e.route="ortho";
+  e=newEdge(C.id,D.id);  e.label="sí";         e.fromSide="e"; e.toSide="w"; e.route="ortho";
+  e=newEdge(D.id,E2.id); e.label="demo";       e.fromSide="e"; e.toSide="w"; e.route="ortho";
+  e=newEdge(E2.id,F.id); e.label="firma";      e.fromSide="e"; e.toSide="w"; e.route="ortho";
+  e=newEdge(C.id,G.id);  e.label="no";         e.fromSide="s"; e.toSide="n"; e.route="ortho"; e.dashed=true;
+  settings.build=true; t0=performance.now(); pausedAt=0; syncProjectControls();
   centerView();
   trackEvent("example_loaded",{example:"demo"});
 };

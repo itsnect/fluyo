@@ -43,7 +43,7 @@
 <main class="wrap">
 
 <h1>Política de privacidad</h1>
-<p class="lead">Última actualización: 3 de agosto de 2026.</p>
+<p class="lead">Última actualización: 25 de agosto de 2026.</p>
 
 <p>Fluyo son <strong>dos cosas distintas</strong> con dos comportamientos de datos distintos, y esta política las trata por separado porque mezclarlas sería engañoso:</p>
 
@@ -89,6 +89,7 @@
 <p>Lo que se registra son pageviews y esta lista cerrada de eventos:</p>
 <table>
   <tr><th>Evento</th><th>Qué acompaña</th></tr>
+  <tr><td><code>diagram_created</code></td><td>Nada. Se envía una sola vez por sesión, la primera vez que colocas una forma</td></tr>
   <tr><td><code>example_loaded</code></td><td>El identificador del ejemplo (uno de una lista fija)</td></tr>
   <tr><td><code>file_imported</code></td><td>Nada</td></tr>
   <tr><td><code>diagram_exported</code></td><td>El formato: <code>gif</code>, <code>png</code>, <code>jpg</code> o <code>svg</code></td></tr>
@@ -99,8 +100,9 @@
 <p>El script de analítica se carga <strong>únicamente</strong> cuando el dominio es <code>fluyo.space</code> o <code>www.fluyo.space</code>. Si clonas el repositorio, lo abres en local o lo self-hosteas, ese código no llega a ejecutarse y no se hace ninguna llamada de red. Los dominios de preview quedan fuera a propósito. La condición está en <code>js/analytics.js</code>, en un solo bloque, para que puedas verificarlo tú.</p>
 <p>Si quieres cero telemetría: usa el proyecto en local o self-hosteado, o bloquea el dominio <code>cloud.umami.is</code>. Fluyo funciona igual — la analítica está escrita para fallar en silencio.</p>
 
-<h3>La única petición externa</h3>
-<p>El editor carga <a href="https://github.com/jnordberg/gif.js" target="_blank" rel="noopener">gif.js</a> desde el CDN de <strong>cdnjs (Cloudflare)</strong>, que es la librería que codifica el GIF. Es una descarga de código: <strong>no se le envía nada tuyo</strong>. Como en cualquier petición HTTP, Cloudflare ve tu IP y tu user-agent al servir el archivo. Se precachea en la primera visita, así que en visitas posteriores normalmente ni siquiera se pide.</p>
+<h3>La otra petición externa</h3>
+<p>Aparte del script de analítica de arriba, el editor hace una <strong>única</strong> petición a un tercero: carga <a href="https://github.com/jnordberg/gif.js" target="_blank" rel="noopener">gif.js</a> —y su <code>gif.worker.js</code>— desde el CDN de <strong>cdnjs (Cloudflare)</strong>, que es la librería que codifica el GIF. Es una descarga de código: <strong>no se le envía nada tuyo</strong>. Como en cualquier petición HTTP, Cloudflare ve tu IP y tu user-agent al servir el archivo. El service worker la precachea en la primera visita, así que en visitas posteriores normalmente ni siquiera se pide.</p>
+<p>Son los <strong>dos únicos dominios de terceros</strong> a los que el editor llama, y esta lista sí es completa: no hay fuentes, iconos ni hojas de estilo externas. Todo lo demás se sirve desde <code>fluyo.space</code>.</p>
 
 <h2>B. El servidor MCP en mcp.fluyo.space</h2>
 
@@ -119,10 +121,11 @@
 <p><strong>Nada se persiste. Nada se comparte. Nada se usa para entrenar nada.</strong></p>
 
 <h3>Qué se registra</h3>
-<p>Una línea por petición, con esta forma exacta y nada más:</p>
+<p>Una línea por petición. Una petición correcta tiene esta forma:</p>
 <pre><code>{"ts":"2026-08-03T16:20:11.437Z","route":"/mcp","method":"POST",
  "status":200,"outcome":"ok","durationMs":7,
  "requestBytes":220,"responseBytes":472,"tools":["create_diagram"]}</code></pre>
+<p>Cuando algo falla pueden aparecer dos campos más, y ninguno lleva contenido: <code>toolErrors</code>, que es <strong>cuántas</strong> herramientas devolvieron error —no cuál ni por qué—, y <code>errorType</code>, que es el <strong>nombre de la clase</strong> del error (<code>TypeError</code>, <code>ZodError</code>…), nunca su mensaje ni su traza. Esos nueve campos más la marca de tiempo son la estructura completa; no hay ningún otro.</p>
 <p><strong>Ningún dato del usuario —documento, etiquetas, argumentos de tool, mensajes de error, IP— se escribe al registro.</strong> Se anota el <em>nombre</em> de la herramienta invocada, nunca sus argumentos; y si algo falla, se anota que falló y de qué clase era el error, nunca el valor que lo provocó.</p>
 <p>Esto no depende de la disciplina de quien edite el código: el tipo que describe una línea de log es una estructura cerrada, sin ningún campo donde quepa texto libre, y hay pruebas automáticas que meten marcadores irrepetibles en las etiquetas de un diagrama y fallan si aparecen en alguna línea de registro. No existe un modo <em>debug</em> que levante estas restricciones.</p>
 

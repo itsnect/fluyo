@@ -43,7 +43,7 @@
 <main class="wrap">
 
 <h1>Privacy Policy</h1>
-<p class="lead">Last updated: 3 August 2026. <a href="../privacidad/">Versión en español</a>.</p>
+<p class="lead">Last updated: 25 August 2026. <a href="../privacidad/">Versión en español</a>.</p>
 
 <p>Fluyo is <strong>two different things</strong> with two different data behaviours, and this policy treats them separately because conflating them would be misleading:</p>
 
@@ -89,6 +89,7 @@
 <p>What is recorded is pageviews plus this closed list of events:</p>
 <table>
   <tr><th>Event</th><th>What accompanies it</th></tr>
+  <tr><td><code>diagram_created</code></td><td>Nothing. Sent once per session, the first time you place a shape</td></tr>
   <tr><td><code>example_loaded</code></td><td>The example identifier (one of a fixed list)</td></tr>
   <tr><td><code>file_imported</code></td><td>Nothing</td></tr>
   <tr><td><code>diagram_exported</code></td><td>The format: <code>gif</code>, <code>png</code>, <code>jpg</code> or <code>svg</code></td></tr>
@@ -99,8 +100,9 @@
 <p>The analytics script loads <strong>only</strong> when the domain is <code>fluyo.space</code> or <code>www.fluyo.space</code>. If you clone the repository, open it locally or self-host it, that code never runs and no network call is made. Preview domains are deliberately excluded. The condition lives in <code>js/analytics.js</code>, in a single block, so you can verify it yourself.</p>
 <p>If you want zero analytics: run the project locally or self-hosted, or block the <code>cloud.umami.is</code> domain. Fluyo works the same — the analytics code is written to fail silently.</p>
 
-<h3>The only external request</h3>
-<p>The editor loads <a href="https://github.com/jnordberg/gif.js" target="_blank" rel="noopener">gif.js</a> from the <strong>cdnjs (Cloudflare)</strong> CDN; that is the library that encodes the GIF. It is a code download: <strong>nothing of yours is sent to it</strong>. As with any HTTP request, Cloudflare sees your IP address and user agent while serving the file. It is precached on first visit, so on later visits it is usually not even requested.</p>
+<h3>The other external request</h3>
+<p>Besides the analytics script above, the editor makes a <strong>single</strong> request to a third party: it loads <a href="https://github.com/jnordberg/gif.js" target="_blank" rel="noopener">gif.js</a> — and its <code>gif.worker.js</code> — from the <strong>cdnjs (Cloudflare)</strong> CDN; that is the library that encodes the GIF. It is a code download: <strong>nothing of yours is sent to it</strong>. As with any HTTP request, Cloudflare sees your IP address and user agent while serving the file. The service worker precaches it on first visit, so on later visits it is usually not even requested.</p>
+<p>Those are the <strong>only two third-party domains</strong> the editor calls, and this list is complete: there are no external fonts, icons or stylesheets. Everything else is served from <code>fluyo.space</code>.</p>
 
 <h2>B. The MCP server at mcp.fluyo.space</h2>
 
@@ -119,10 +121,11 @@
 <p><strong>Nothing is persisted. Nothing is shared. Nothing is used to train anything.</strong></p>
 
 <h3>What is logged</h3>
-<p>One line per request, in exactly this shape and nothing more:</p>
+<p>One line per request. A successful request looks like this:</p>
 <pre><code>{"ts":"2026-08-03T16:20:11.437Z","route":"/mcp","method":"POST",
  "status":200,"outcome":"ok","durationMs":7,
  "requestBytes":220,"responseBytes":472,"tools":["create_diagram"]}</code></pre>
+<p>When something fails, two more fields can appear, and neither carries content: <code>toolErrors</code>, which is <strong>how many</strong> tools returned an error — not which one, not why — and <code>errorType</code>, which is the error's <strong>class name</strong> (<code>TypeError</code>, <code>ZodError</code>…), never its message or its stack trace. Those nine fields plus the timestamp are the complete structure; there is no other.</p>
 <p><strong>No user data — document, labels, tool arguments, error messages, IP address — is written to the log.</strong> The <em>name</em> of the invoked tool is recorded, never its arguments; and if something fails, the log records that it failed and what class of error it was, never the value that caused it.</p>
 <p>This does not rest on the discipline of whoever edits the code: the type describing a log line is a closed structure with no field that free text could occupy, and automated tests plant unrepeatable markers in a diagram's labels and fail if those markers appear in any log line. There is no <em>debug</em> mode that lifts these restrictions.</p>
 

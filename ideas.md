@@ -22,6 +22,28 @@ Cosas que se estudiaron, tienen sentido, y se decidió no hacerlas ahora.
   que trabaje en local. Si se añade validación de HTML, hace falta un `npx` en el
   runner: descarga solo en CI, nada comiteado.
 
+- **Extremos de arista posicionales** (la «variante B»: fijar el extremo a un
+  punto cualquiera del perímetro, tipo `exitX`/`exitY` de draw.io). Hoy un extremo
+  se fija a un LADO —`fromSide`/`toSide`, cuatro valores más flotante— y eso ya se
+  arrastra y se reengancha. Lo posicional es una tanda aparte, y estas cuatro
+  cosas están medidas y conviene no volver a medirlas:
+
+  - **Cruza al MCP.** `fromSide`/`toSide` ya son `SideSchema.nullable()` en
+    `model.ts`, así que el anclaje por lado no tocó el servidor. Una fracción de
+    perímetro es un campo nuevo: schema, los tres renderers y la migración de los
+    documentos ya guardados.
+  - **La fracción hay que expresarla contra `anchorBox(n)`, no contra `n`.** En un
+    nodo `icon` la caja de anclaje es más estrecha que el nodo: medido, hasta
+    **34 px** de desfase por lado. Con la caja lógica, «el 50 % del lado oeste»
+    cae en el aire, que es exactamente el defecto que `anchorBox` arregló.
+  - **Obliga a una exención de carril explícita.** `parallelLane` aplica el mismo
+    `off` a los dos extremos **y al canal central**: fijar un extremo y dejar el
+    otro en su carril descuadra el canal. Con el anclaje por lado no hace falta
+    exención ninguna —no genera waypoints—, y por eso se eligió primero.
+  - **Y hereda el hueco de los carriles paralelos** documentado en la nota (4) de
+    `fluyo-mcp/test/visual-regression.test.ts`: el reparto separa las hermanas a
+    lo largo del lado, así que la coordenada perpendicular es común a las dos.
+
 - **Modal de atajos de teclado con `?`.** Los atajos ya están en el panel `#noSel`
   del `aside`, pero ese panel es `display:none` por debajo de 700 px, así que en
   móvil no hay forma de verlos. Si se añade el modal, **debe ser la única fuente

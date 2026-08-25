@@ -643,7 +643,10 @@ document.addEventListener("keydown", ev=>{
     return;
   }
   if(ev.key==="Delete"||ev.key==="Backspace") deleteSel();
-  if(ev.key==="Escape"){ pendingShape=null; pendingIcon=null; pendingAnim=null; connecting=null; connectDrag=null; marquee=null; $("iconDrawer").style.display="none"; $("animDrawer").style.display="none"; syncRail(); }
+  /* endDrag y thawEdgeLabels() van juntos y sin condición: abandonar con Escape
+     a mitad de un arrastre de extremo no debe dejar el mapa de etiquetas
+     congelado, porque entonces no se recolocarían nunca más en esta sesión. */
+  if(ev.key==="Escape"){ pendingShape=null; pendingIcon=null; pendingAnim=null; connecting=null; connectDrag=null; endDrag=null; thawEdgeLabels(); marquee=null; $("iconDrawer").style.display="none"; $("animDrawer").style.display="none"; syncRail(); }
   if(k==="v") setMode("select");
   if(k==="c") setMode("connect");
   if(ev.key===" "){ ev.preventDefault(); togglePlay(); }

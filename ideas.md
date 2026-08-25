@@ -22,6 +22,45 @@ Cosas que se estudiaron, tienen sentido, y se decidió no hacerlas ahora.
   que trabaje en local. Si se añade validación de HTML, hace falta un `npx` en el
   runner: descarga solo en CI, nada comiteado.
 
+- **Internacionalización — el sitio está solo en español y es la mayor limitación
+  de alcance.** 24 % de las visitas vienen de Estados Unidos, más China y otros
+  países no hispanohablantes. Lo que hay hoy, auditado:
+
+  | Superficie | Español | Inglés |
+  |---|---|---|
+  | Editor (`index.html`, ~475 líneas + 19 cadenas en `js/`) | sí | **no** |
+  | `docs/` (~252 líneas) | sí | **no** |
+  | `ejemplos/` (~151 líneas) + los 5 documentos `.fluyo.json` | sí | **no** |
+  | Privacidad · Términos · Soporte | sí | **sí, ya traducidas** |
+
+  Una corrección sobre lo que se creía: **`terms/` y `support/` YA existen en
+  inglés**, igual que `privacy/`. Las tres páginas legales están completas en los
+  dos idiomas. Lo que falta es todo lo demás — que es, justamente, lo que un
+  visitante ve primero.
+
+  Lo que ya está resuelto y sirve de patrón: `privacidad/` y `privacy/` llevan
+  `hreflang` es / en / x-default más un enlace cruzado visible. Las tres páginas
+  sin traducir (`index.html`, `docs/`, `ejemplos/`) **no tienen ni un `hreflang`**,
+  así que hoy Google no tiene forma de saber que existe una alternativa — ni la
+  habrá aunque se traduzcan, si no se añaden.
+
+  Lo que costaría, sin proponer todavía cómo hacerlo:
+
+  - **Las etiquetas de los diagramas de ejemplo también son contenido.** «Servicio
+    de pagos», «¿Autoriza?», «Cuarentena» están dentro de los `.fluyo.json`, que
+    son a la vez fixtures del MCP (`contract.test.ts`, `sync:fixtures`) y goldens
+    de `render.test.ts`. Traducirlos duplica documentos y duplica goldens, o exige
+    separar contenido de geometría. Es la parte cara, y la menos evidente.
+  - **El editor no tiene ninguna capa de cadenas.** El texto vive incrustado en
+    el HTML y en 19 sitios de `js/`. Hoy no hay dónde enchufar un diccionario.
+  - **Decidir el modelo de URL antes de traducir nada**: sufijo por idioma como
+    las páginas legales (`/privacy/`), prefijo (`/en/`), o negociación por
+    `Accept-Language`. Cambiarlo después mueve URLs ya indexadas.
+
+  Nota de secuencia: no traducir mientras se reescriben los textos de `/ejemplos`
+  —h1, lead, meta, og, twitter y JSON-LD cambian con los ejemplos de negocio— o es
+  trabajo doble.
+
 - **Waypoints como pistas del router, no como vértices literales.** Es el arreglo
   correcto de fondo para las rutas hechas a mano, y la diferencia real con
   draw.io. Hoy `edgePoints()` con waypoints devuelve `[p1, ...wps, p2]`: rectas

@@ -14,9 +14,22 @@
      ?ejemplo=https://otro-sitio o un ?ejemplo=../../etc no llegan a generar
      ninguna petición, simplemente no coinciden con ninguna clave.
 
-   · Descartado meter el diagrama entero en el hash (#d=<base64>): funcionaría
-     incluso sin servidor, pero produce URLs enormes e ilegibles y no aporta
-     nada indexable.
+   · Para ESTA página se descartó meter el diagrama entero en el hash
+     (#d=<base64>). Sigue descartado, y conviene saber por qué, porque js/
+     deeplink.js hace exactamente eso: son dos problemas distintos.
+
+     Un ejemplo publicado tiene que ser una URL corta, legible, estable e
+     indexable — es una página de entrada, y ese es el único motivo por el que
+     /ejemplos existe. Un diagrama en el hash no es ninguna de las cuatro cosas:
+     son mil caracteres de base64, cambian cada vez que se retoca el ejemplo, y
+     Google no indexa fragmentos. Además el archivo servido aparte se puede
+     descargar y abrir con «Abrir», así que documenta el formato.
+
+     El enlace del MCP no tiene ninguno de esos requisitos y sí tiene uno que
+     aquí no existe: el diagrama no está en el servidor y no puede estarlo. No
+     hay archivo al que apuntar ni slug que dar de alta, y montar un backend
+     para eso es justo lo que este proyecto no hace. Por eso ahí el hash es la
+     respuesta correcta y aquí no.
 
    · Descartado traspasarlo por sessionStorage desde /ejemplos: rompe el enlace
      directo, que es el único motivo por el que esta página existe.
@@ -52,11 +65,9 @@ const EXAMPLE_SLUG = (()=>{
   }catch(e){ return null; }
 })();
 
-/* Lo que ui.js necesita saber en el arranque, y lo único que tiene que saber:
-   ¿va a llegar un documento por la URL? La respuesta tiene que ser SÍNCRONA
-   —ui.js decide en el momento en que se evalúa— aunque el documento en sí
-   tarde en llegar, o no llegue nunca. */
-function urlBringsDocument(){ return !!EXAMPLE_SLUG; }
+/* La respuesta a «¿va a llegar un documento por la URL?» la da
+   urlBringsDocument(), en js/deeplink.js: hay dos vías que traen documentos y
+   para quien arranca la pregunta es una sola. */
 
 function loadExampleFromURL(){
   if(!EXAMPLE_SLUG) return;

@@ -14,9 +14,22 @@
      ?ejemplo=https://otro-sitio o un ?ejemplo=../../etc no llegan a generar
      ninguna petición, simplemente no coinciden con ninguna clave.
 
-   · Descartado meter el diagrama entero en el hash (#d=<base64>): funcionaría
-     incluso sin servidor, pero produce URLs enormes e ilegibles y no aporta
-     nada indexable.
+   · Para ESTA página se descartó meter el diagrama entero en el hash
+     (#d=<base64>). Sigue descartado, y conviene saber por qué, porque js/
+     deeplink.js hace exactamente eso: son dos problemas distintos.
+
+     Un ejemplo publicado tiene que ser una URL corta, legible, estable e
+     indexable — es una página de entrada, y ese es el único motivo por el que
+     /ejemplos existe. Un diagrama en el hash no es ninguna de las cuatro cosas:
+     son mil caracteres de base64, cambian cada vez que se retoca el ejemplo, y
+     Google no indexa fragmentos. Además el archivo servido aparte se puede
+     descargar y abrir con «Abrir», así que documenta el formato.
+
+     El enlace del MCP no tiene ninguno de esos requisitos y sí tiene uno que
+     aquí no existe: el diagrama no está en el servidor y no puede estarlo. No
+     hay archivo al que apuntar ni slug que dar de alta, y montar un backend
+     para eso es justo lo que este proyecto no hace. Por eso ahí el hash es la
+     respuesta correcta y aquí no.
 
    · Descartado traspasarlo por sessionStorage desde /ejemplos: rompe el enlace
      directo, que es el único motivo por el que esta página existe.
@@ -43,9 +56,8 @@ const EXAMPLES = {
 };
 const EXAMPLES_DIR = "ejemplos/data/";
 
-/* Se resuelve al cargar el script, antes que ui.js, para que este pueda
-   saltarse el prompt de «sesión guardada»: si la URL pide un ejemplo concreto,
-   esa intención explícita gana sobre restaurar lo que hubiera antes. */
+/* Se resuelve al cargar el script, antes que ui.js, para que este sepa que hay
+   un documento en camino y no ofrezca restaurar la sesión por su cuenta. */
 const EXAMPLE_SLUG = (()=>{
   try{
     const s=new URLSearchParams(location.search).get("ejemplo");
@@ -53,20 +65,34 @@ const EXAMPLE_SLUG = (()=>{
   }catch(e){ return null; }
 })();
 
+/* La respuesta a «¿va a llegar un documento por la URL?» la da
+   urlBringsDocument(), en js/deeplink.js: hay dos vías que traen documentos y
+   para quien arranca la pregunta es una sola. */
+
 function loadExampleFromURL(){
   if(!EXAMPLE_SLUG) return;
   fetch(EXAMPLES_DIR+EXAMPLE_SLUG+".fluyo.json")
     .then(r=>{ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); })
     .then(d=>{
-      applyProjectData(d);
-      centerView();
-      /* el prompt de restauración no se mostró, así que hay que reactivar el
-         autoguardado a mano o las ediciones sobre el ejemplo no se guardarían */
-      enableAutosave();
-      trackEvent("example_loaded",{example:EXAMPLE_SLUG});
+      /* Ya no se aplica a lo bruto. Si hay una sesión guardada, esto abre el
+         modal de conflicto y la decisión es de quien está delante; si no la
+         hay, entra directo como antes. */
+      presentIncomingDocument(d, {
+        titulo:"Tienes trabajo sin guardar",
+        abrirLabel:"Abrir el ejemplo y descartar la sesión",
+        paginaLabel:"Añadir el ejemplo como página nueva",
+        /* El evento cuenta el ejemplo que se llegó a ver, no el que se pidió:
+           si la respuesta fue «seguir con lo mío», aquí no se cargó nada. */
+        onResuelto:eleccion=>{ if(eleccion!=="keep") trackEvent("example_loaded",{example:EXAMPLE_SLUG}); }
+      });
     })
     .catch(err=>{
       console.warn("No se pudo cargar el ejemplo «"+EXAMPLE_SLUG+"»:",err);
+      /* El ejemplo no llegó (típico: `file://`, donde el fetch está bloqueado).
+         ui.js se calló el prompt de restauración esperando a este documento, así
+         que ahora le toca a él ofrecerlo: un ejemplo que no carga no puede
+         costarle a nadie la sesión anterior. */
+      offerRestoreIfIdle();
     });
 }
 

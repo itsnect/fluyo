@@ -180,6 +180,11 @@ footer .tab .x:hover{opacity:1; color:#c97070;}
 #barFill{height:100%; width:0%; background:var(--accent); transition:width .15s;}
 @media (prefers-reduced-motion: reduce){ #barFill{transition:none;} }
 .card .actions{display:flex; justify-content:flex-end; gap:8px; margin-top:16px;}
+/* Tres salidas con etiquetas que dicen lo que hacen no caben en una fila sin
+   quedar ilegibles en móvil. En columna cada una se lee entera, que es el
+   requisito cuando la elección es irreversible. */
+.card .actions.stack{flex-direction:column; align-items:stretch;}
+#incomingModal .card{max-width:min(420px, calc(100vw - 32px));}
 kbd{background:var(--panel2); border:1px solid var(--line); border-radius:4px; padding:0 4px; font-size:11px;}
 
 /* ---- modo presentación ----

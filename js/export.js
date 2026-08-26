@@ -10,41 +10,16 @@ function saveJSON(){
 }
 $("btnJsonOut").onclick=saveJSON;
 $("btnJsonIn").onclick=()=>$("fileIn").click();
+/* Abrir un archivo NO pasa por el prompt de conflicto: quien pulsa «Abrir» y
+   elige un archivo en su disco ya ha dicho, con dos gestos deliberados, qué
+   quiere ver. El prompt es para lo que llega solo por una URL. */
 $("fileIn").onchange=ev=>{
   const f=ev.target.files[0]; if(!f) return;
   f.text().then(txt=>{
     try{
       applyProjectData(JSON.parse(txt));
+      centerView();
       saveAutosave(true);
-      const d=JSON.parse(txt);
-      if(d.doc&&Array.isArray(d.doc.pages)){ doc=d.doc; }
-      else if(d.state&&Array.isArray(d.state.nodes)){ // formato v1
-        doc={theme:d.state.theme||"dark", cur:0,
-             pages:[Object.assign(blankPage("Página 1"),{nodes:d.state.nodes,edges:(d.state.edges||[]).map(e=>Object.assign({fromSide:null,toSide:null,route:"straight",waypoints:[]},e)),nextId:d.state.nextId||999})]};
-      } else throw 0;
-      doc.pages.forEach(pg=>pg.edges.forEach(e=>{
-        if(e.endArrow===undefined){ e.endArrow=true; e.startArrow=!!e.bidir; }
-        if(!e.flowDir) e.flowDir="normal";
-        if(!e.waypoints) e.waypoints=[];
-        if(!e.route) e.route="straight";
-      }));
-      doc.pages.forEach(pg=>pg.nodes.forEach(n=>{
-        if(n.fill===undefined) n.fill=null;
-        if(!n.border) n.border="solid";
-        if(!n.lblPos) n.lblPos="center";
-        if(n.textBg===undefined) n.textBg=null;
-        if(n.textColor===undefined) n.textColor=null;
-        if(n.font===undefined) n.font=null;
-        if(n.bold===undefined) n.bold=false;
-      }));
-      if(doc.customBg===undefined) doc.customBg="";
-      if(!settings.font) settings.font=DEFAULT_FONT;
-      undoStack.length=0; redoStack.length=0;
-      if(d.settings) Object.assign(settings,d.settings);
-      if(settings.grid===undefined) settings.grid=true;
-      doc.cur=clamp(doc.cur||0,0,doc.pages.length-1);
-      syncProjectControls();
-      clearSel(); renderTabs(); centerView();
       trackEvent("file_imported");   // dentro del try: un archivo inválido no cuenta
     }catch(e){ alert("El archivo no es un diagrama Fluyo válido."); }
   });
@@ -64,6 +39,12 @@ $("autosaveDiscard").onclick=()=>{
   clearAutosave();
   closeRestorePrompt();
 };
+
+/* Las tres salidas del conflicto «la URL trae un diagrama y aquí ya había una
+   sesión». La lógica está en state.js, junto al autoguardado que manipula. */
+$("incomingPage").onclick=incomingAsNewPage;
+$("incomingOpen").onclick=incomingOpen;
+$("incomingKeep").onclick=incomingKeepMine;
 
 /* ===================== Ejemplo ===================== */
 /* ===================== El botón «Ejemplo» =====================

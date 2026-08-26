@@ -1,0 +1,458 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Test — documento entrante y sesión guardada</title>
+<!--
+  Qué fija este test: que un diagrama que llega por la URL NUNCA destruye el
+  trabajo en curso sin preguntar, y que las tres salidas del modal de conflicto
+  hacen exactamente lo que dicen.
+
+  Es la regresión que importa de verdad, porque el defecto que arregla no daba
+  la cara: `?ejemplo=` se saltaba el prompt de restauración, el localStorage
+  seguía intacto un rato más, y la sesión anterior desaparecía en cuanto la
+  persona tocaba algo. Un test que solo mire la pantalla al cargar no lo ve.
+
+  Sin runner y sin dependencias, igual que editor-inline.html: carga el
+  index.html real en un iframe, una vez por escenario, plantando antes el
+  localStorage del propio origen.
+
+  Cómo se ejecuta: hace falta servirlo por HTTP, no abrirlo con file://. Un
+  iframe file:// dentro de otro file:// es origen opaco en Chrome, y además
+  `?ejemplo=` usa fetch, que file:// bloquea.
+
+      npx serve .      (o cualquier servidor estático)
+      -> http://localhost:PUERTO/test/documento-entrante.html
+
+  Este directorio no se publica: no está en sitemap.xml ni en la lista ASSETS
+  del service worker.
+-->
+<style>
+  body{background:#161616;color:#ededed;font:14px/1.5 system-ui;margin:0;padding:20px 24px}
+  h1{font-size:18px;margin:0 0 4px}
+  p.lead{color:#999;margin:0 0 16px;font-size:13px}
+  #res{border-collapse:collapse;width:100%;max-width:960px;font-size:13px}
+  #res td{padding:5px 10px;border-bottom:1px solid #2a2a2a;vertical-align:top}
+  #res td:first-child{width:26px;text-align:center;font-weight:700}
+  #res tr.grupo td{border-bottom:0;padding-top:16px;color:#c9a227;font-weight:600}
+  .ok{color:#7bb85b} .ko{color:#d0576a}
+  .det{color:#888;font-size:12px;font-family:ui-monospace,Consolas,monospace}
+  #sum{margin:14px 0 0;font-size:15px;font-weight:600}
+  iframe{position:fixed;left:-3000px;top:0;width:1200px;height:800px;border:0}
+</style>
+</head>
+<body>
+<h1>Documento entrante y sesión guardada</h1>
+<p class="lead">Carga <code>../index.html</code> real en un iframe, un escenario por carga. Requiere servirlo por HTTP.</p>
+<table id="res"></table>
+<p id="sum">Ejecutando…</p>
+<iframe id="app"></iframe>
+
+<script>
+const tabla=document.getElementById("res");
+let ok=0, ko=0;
+function grupo(nombre){
+  const tr=tabla.insertRow(); tr.className="grupo";
+  const c=tr.insertCell(); c.colSpan=2; c.textContent=nombre;
+}
+function check(nombre, cond, detalle){
+  const tr=tabla.insertRow();
+  const c0=tr.insertCell(), c1=tr.insertCell();
+  c0.textContent = cond ? "✓" : "✗";
+  c0.className = cond ? "ok" : "ko";
+  c1.innerHTML = nombre + (detalle ? `<br><span class="det">${detalle}</span>` : "");
+  cond ? ok++ : ko++;
+  return cond;
+}
+
+const AUTOSAVE_KEY="fluyo.autosave.v1";
+const DEEPLINK_KEY="fluyo.deeplink.hecho";
+const iframe=document.getElementById("app");
+
+/* La sesión «mía»: una página con un nodo reconocible y, a propósito, un tema
+   que NO es el de ningún ejemplo. Así se puede comprobar que añadir un
+   documento entrante como página nueva no se lleva por delante los ajustes del
+   documento que ya estaba abierto. */
+const MIA={version:3,app:"fluyo",doc:{theme:"crema",customBg:"",cur:0,pages:[{name:"MI TRABAJO",nextId:2,
+  nodes:[{id:1,shape:"rect",x:600,y:400,w:180,h:70,label:"algo mío",color:"#6a9fb5",fill:null,
+          border:"solid",lblPos:"center",textBg:null,textColor:null,font:null,bold:false,pulse:false,order:0}],
+  edges:[]}]},
+  settings:{speed:0.5,dots:3,build:true,stagger:0.45,grid:true,snap:false,font:"Georgia, serif",single:false}};
+
+const EJEMPLO="funnel-de-ventas";
+const NOMBRE_EJEMPLO="Funnel de ventas";
+
+/* Cargas de `#d=` generadas CON NODE, a propósito. Podrían fabricarse aquí con
+   CompressionStream en tres líneas, pero entonces el test comprobaría que el
+   navegador se entiende consigo mismo, que no es el riesgo. El riesgo es que
+   `zlib.deflateRawSync` de Node —que es quien produce los enlaces en
+   fluyo-mcp— y `DecompressionStream("deflate-raw")` del navegador dejen de
+   entenderse. Estas cadenas salieron de Node y se leen aquí con el navegador:
+   si algún día el formato deja de ser compatible, esto se pone rojo.
+
+   Receta para regenerarlas, desde la raíz de fluyo/:
+
+     node -e '
+       const z=require("zlib"), fs=require("fs");
+       const b64=b=>b.toString("base64").replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+       const enlace=(o,v=1)=>b64(Buffer.concat([Buffer.from([v]),
+         v===1 ? z.deflateRawSync(Buffer.from(JSON.stringify(o)),{level:9})
+               : Buffer.from(JSON.stringify(o))]));
+       const d=JSON.parse(fs.readFileSync("ejemplos/data/funnel-de-ventas.fluyo.json","utf8"));
+       d.doc.pages[0].name="DEL ENLACE";
+       console.log(enlace(d,1));'
+
+   · COMPRIMIDO   funnel-de-ventas con la página renombrada, formato 1 (deflate-raw)
+   · PLANO        un diagrama mínimo en formato 0 (JSON sin comprimir)
+   · MINI         ese mismo diagrama mínimo en formato 1
+   · NO_DIAGRAMA  {"hola":"mundo"} en formato 1: JSON válido que no es un diagrama */
+const NOMBRE_ENLACE="DEL ENLACE";
+const NOMBRE_MINI="MINI DEL ENLACE";
+const COMPRIMIDO="Ac3X3WrbMBQA4FcpZ7ei2ImdOLoZXdqNQdkKg92svZCtY0dMlowkJy0lj7RnGGwvNhTFtRu6dZSAS26iH0vn05Fl-x7WaKzQCuiUAGsaoFDK9k4DAa4LoPfgVlgjUODMfAcCRWudrt9VQAEINKxCC_TbPSi263V-cXly8enybHkBBJTm-1bBgcYE7Io1vpfDWwcEboHGcRYRuAM6jSICG6CzSURgBTSJCEiWowQK71ulUJ5wPFmjcsz6MLTUBii84VGWpzkQKIWUQFUrJYFcG46-2WopOBCQubzSFigUqBwaILsQvCJc4EvLMGSoKLVy_WiSAy2ZtEigaaXFh9J-nmhLgnHSG0WhVTAms0BMs0CM98TFpCd-FVY4phw-ws3YoszTkXExCRYKrUXj43PCX7_r1cGnPdxgsU_ufHEAzwJ8PsjtJTJ-rQxWwjrDuH51_ElHTHoiF6zWindbeHLAnAVmHA2cv34umRSlKNjbIbFY5EmajUycdsT0qSzGSfZ8Gj832rhWCc74kLfI5-NnMOl4syd5Wfw878ropkXr2LVCtRaMs1enTDvlvFcWwhQSg3MSTw-c8X6bxgPoUgof3VA3z_NshBPWmbbHzTpc9mQKuztwEf09hedoC2bcwRGTlf43curm2xsCyKvBw3JBoDS63j1RnN6dr778RXBP9_lxel_YAAGjW-f_a-NW3rdhd40WyvkBb_o1WO-eMvCP-JgSNXPIu_XnzK6wb7aOGXdmjN48VKHi-4pwRSn15lz41VPa1ExClzq_zYJpGkzJUUylNnUrmRF6LFfcuZLgSo_isr9_jAWadKA0gGZHAXGsR0vRtBPNgmh-nK0nTD3a3ZQc7LrsEckOSer_SepFKQqlF3FuCCi8dR89KfWlog0v1GDROaEq6z9CbIN-nug09d8lPugpgbwVcjh5Ve3exU-TlEBlRN-kWPMQUbDBB9SmEoycWDTCn_9WqEp2J_N2-wc";
+const PLANO="AHsidmVyc2lvbiI6MywiYXBwIjoiZmx1eW8iLCJkb2MiOnsidGhlbWUiOiJjbGFybyIsImN1c3RvbUJnIjoiIiwiY3VyIjowLCJwYWdlcyI6W3sibmFtZSI6Ik1JTkkgREVMIEVOTEFDRSIsIm5leHRJZCI6Miwibm9kZXMiOlt7ImlkIjoxLCJzaGFwZSI6InJlY3QiLCJ4Ijo2MDAsInkiOjQwMCwidyI6MTgwLCJoIjo3MCwibGFiZWwiOiJkZWwgZW5sYWNlIiwiY29sb3IiOiIjNmE5ZmI1Iiwib3JkZXIiOjB9XSwiZWRnZXMiOltdfV19LCJzZXR0aW5ncyI6eyJzcGVlZCI6MC41LCJkb3RzIjozLCJidWlsZCI6dHJ1ZSwic3RhZ2dlciI6MC40NSwiZ3JpZCI6dHJ1ZSwic25hcCI6ZmFsc2UsImZvbnQiOiJHZW9yZ2lhLCBzZXJpZiIsInNpbmdsZSI6ZmFsc2V9fQ";
+const MINI="AUWQ3WrDMAyFXyWc3YqSbk236W4_YRS6vsDohRsrrsG1g-1sLSXvPpwVdiWkcyS-oyu-JSYbPPiBoIYBjN6NlwCCDh34inyUk4DRORXLuBtTDqdXA8bcRXBNGJSRBP66wqvZ_rnZbar3dlu1u-3LWwuCl3PeaPA9wQd9c1sNXhLSUQ1lK0qXQTiD13VNuIBXpf6Al0814Qh-rAlOHcSBocVV4p3qpJAEFyIYd2v13B8aEELUUuimPUH0H99-2k-EJDlbb1LJlwYRDa4XTYmc0_yJw2idBuc4CiFlZcx8abFqCCbaf8mrAdwrl4TQB5_B-JAQjVVUJYm2ByFZb5zcbNP0Cw";
+const NO_DIAGRAMA="AatWysjPSVSyUsotzUvJV6oFAA";
+
+/* Carga index.html en el iframe con el localStorage ya plantado y espera a que
+   el editor esté vivo. `?test=` rompe la caché entre escenarios.
+
+   La espera es con setTimeout y NO con requestAnimationFrame: una pestaña que
+   no está en primer plano tiene los fotogramas parados, y un arnés que solo
+   avanza cuando alguien lo está mirando no sirve para ejecutarlo desatendido.
+   Aquí no se mide nada del lienzo —solo el documento y qué modal está abierto—
+   así que no hace falta ningún fotograma pintado. */
+function cargar(query, sesion, hash, conservarMarca){
+  if(sesion) localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(sesion));
+  else localStorage.removeItem(AUTOSAVE_KEY);
+  /* La marca de «este enlace ya se resolvió» vive en sessionStorage, que un
+     iframe comparte con la pestaña que lo contiene. Se limpia entre escenarios
+     salvo cuando lo que se está probando es justamente que sobreviva. */
+  if(!conservarMarca) sessionStorage.removeItem(DEEPLINK_KEY);
+  return new Promise(resolve=>{
+    iframe.onload=()=>setTimeout(()=>resolve(iframe.contentWindow), 60);
+    iframe.src="../index.html?test="+Date.now()+(query?"&"+query:"")+(hash?"#d="+hash:"");
+  });
+}
+/* `?ejemplo=` carga por fetch. No hay evento que avise, así que se espera a que
+   el modal de conflicto aparezca o a que el documento cambie, con tope. */
+function esperar(cond, ms=3000){
+  return new Promise(resolve=>{
+    const t0=performance.now();
+    (function mirar(){
+      if(cond()) return resolve(true);
+      if(performance.now()-t0>ms) return resolve(false);
+      setTimeout(mirar, 25);
+    })();
+  });
+}
+/* Los `let` de nivel superior de un script clásico NO se cuelgan de `window`:
+   viven en el ámbito léxico global y desde fuera solo se alcanzan evaluando
+   dentro. `doc` es uno de esos. Las `function` sí son propiedades de window y
+   se llaman directamente. */
+const DOC = W => W.eval("doc");
+const visible = (W,id) => W.getComputedStyle(W.document.getElementById(id)).display!=="none";
+const guardado = () => { try{ return JSON.parse(localStorage.getItem(AUTOSAVE_KEY)); }catch(e){ return null; } };
+
+(async ()=>{
+  /* Fluyo es una PWA y precachea js/*.js. Sin desregistrar el service worker,
+     el iframe recibe la copia cacheada y el test mide código que ya no existe
+     en disco. La limpieza va antes de cargar nada. */
+  try{
+    if(navigator.serviceWorker){
+      const regs=await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r=>r.unregister()));
+    }
+    if(window.caches){
+      const keys=await caches.keys();
+      await Promise.all(keys.map(k=>caches.delete(k)));
+    }
+  }catch(e){ /* sin SW ni Cache API el test sigue siendo válido */ }
+
+  /* Y desregistrar el service worker no basta. Un servidor estático de andar
+     por casa no manda `Cache-Control`, así que Chrome aplica caché heurística
+     —una fracción de la antigüedad del archivo— sobre `js/*.js`. Los nombres no
+     llevan versión, de modo que `?test=` recarga el index.html pero el iframe
+     puede seguir recibiendo scripts anteriores al cambio que este test debería
+     estar midiendo, y dar verde o rojo sobre código que ya no existe.
+     Pasó la primera vez que se ejecutó esto. `cache:"reload"` fuerza la
+     revalidación y deja la caché HTTP al día antes de cargar nada. */
+  const FUENTES=["../index.html","../css/styles.css","../js/analytics.js","../js/config.js",
+                 "../js/examples.js","../js/deeplink.js","../js/state.js","../js/selection.js","../js/geometry.js",
+                 "../js/render.js","../js/interaction.js","../js/ui.js","../js/export.js"];
+  await Promise.all(FUENTES.map(u=>fetch(u,{cache:"reload"}).catch(()=>{})));
+
+  try{ await run(); }
+  catch(e){ check("El test no llegó a ejecutarse", false, String(e && e.stack || e)); }
+  fin();
+})();
+
+async function run(){
+  let W;
+
+  /* ---------- 1 · sin nada que perder, el ejemplo entra directo ---------- */
+  grupo("1 · Sin sesión guardada");
+
+  W=await cargar("ejemplo="+EJEMPLO, null);
+  await esperar(()=>DOC(W).pages[0].name===NOMBRE_EJEMPLO);
+  check("El ejemplo se carga sin preguntar nada",
+        DOC(W).pages[0].name===NOMBRE_EJEMPLO && !visible(W,"incomingModal") && !visible(W,"autosaveModal"),
+        `página «${DOC(W).pages[0].name}» · conflicto ${visible(W,"incomingModal")} · sesión ${visible(W,"autosaveModal")}`);
+
+  /* `newNode()` no guarda por sí solo —quien edita de verdad es interaction.js,
+     que llama a scheduleAutosave() después de cada gesto—, así que el test hace
+     lo mismo. Lo que se comprueba aquí es que el autoguardado esté PERMITIDO:
+     scheduleAutosave() respeta canAutosave() y no escribe nada si sigue pausado
+     por un prompt sin resolver. */
+  W.newNode("rect", 900, 900, {label:"editado"});
+  W.scheduleAutosave();
+  await esperar(()=>guardado()!==null);
+  check("Y el autoguardado queda activo: editar sobre el ejemplo se guarda",
+        guardado()!==null, "escribe en localStorage tras la primera edición");
+
+  /* ---------- 2 · con sesión guardada, pregunta ---------- */
+  grupo("2 · Con sesión guardada, el ejemplo NO entra solo");
+
+  W=await cargar("ejemplo="+EJEMPLO, MIA);
+  await esperar(()=>visible(W,"incomingModal"));
+  check("Sale el modal de conflicto, y no el de sesión guardada",
+        visible(W,"incomingModal") && !visible(W,"autosaveModal"),
+        `conflicto ${visible(W,"incomingModal")} · sesión ${visible(W,"autosaveModal")}`);
+  check("Mientras se decide, el documento sigue siendo el vacío de arranque: no se ha aplicado nada",
+        DOC(W).pages.length===1 && DOC(W).pages[0].nodes.length===0,
+        `${DOC(W).pages.length} página(s), ${DOC(W).pages[0].nodes.length} nodo(s)`);
+  check("Y la sesión guardada sigue intacta en localStorage",
+        guardado() && guardado().doc.pages[0].name==="MI TRABAJO", "clave sin tocar");
+
+  const etiquetas=["incomingPage","incomingOpen","incomingKeep"]
+    .map(id=>W.document.getElementById(id).textContent.trim());
+  check("Las tres salidas están, y la destacada es la que no pierde nada",
+        etiquetas.length===3 && etiquetas.every(t=>t.length>0) &&
+        W.document.getElementById("incomingPage").classList.contains("primary"),
+        etiquetas.join(" · "));
+
+  /* ---------- 3 · «añadir como página nueva» no destruye nada ---------- */
+  grupo("3 · Añadir como página nueva");
+
+  W=await cargar("ejemplo="+EJEMPLO, MIA);
+  await esperar(()=>visible(W,"incomingModal"));
+  W.document.getElementById("incomingPage").click();
+  await esperar(()=>DOC(W).pages.length===2);
+
+  check("Quedan las dos: mi trabajo primero, el ejemplo detrás",
+        DOC(W).pages.length===2 && DOC(W).pages[0].name==="MI TRABAJO" && DOC(W).pages[1].name===NOMBRE_EJEMPLO,
+        DOC(W).pages.map(p=>`«${p.name}»`).join(" + "));
+  check("Mi página llega entera, con su nodo",
+        DOC(W).pages[0].nodes.length===1 && DOC(W).pages[0].nodes[0].label==="algo mío",
+        `${DOC(W).pages[0].nodes.length} nodo(s)`);
+  check("Y se salta a la página nueva, que es lo que se venía a ver",
+        DOC(W).cur===1, `cur=${DOC(W).cur}`);
+  check("El tema sigue siendo el MÍO, no el del documento entrante",
+        DOC(W).theme==="crema", `tema «${DOC(W).theme}», el ejemplo trae «dark»`);
+  check("El modal se cierra y el localStorage se actualiza con el documento fusionado",
+        !visible(W,"incomingModal") && guardado() && guardado().doc.pages.length===2,
+        `páginas guardadas: ${guardado() ? guardado().doc.pages.length : "—"}`);
+
+  /* ---------- 4 · «abrir y descartar» descarta de verdad, y ya ---------- */
+  grupo("4 · Abrir el ejemplo descartando la sesión");
+
+  W=await cargar("ejemplo="+EJEMPLO, MIA);
+  await esperar(()=>visible(W,"incomingModal"));
+  W.document.getElementById("incomingOpen").click();
+  await esperar(()=>DOC(W).pages[0].name===NOMBRE_EJEMPLO);
+
+  check("Queda solo el ejemplo",
+        DOC(W).pages.length===1 && DOC(W).pages[0].name===NOMBRE_EJEMPLO,
+        DOC(W).pages.map(p=>`«${p.name}»`).join(" + "));
+  check("El descarte es inmediato: la sesión desaparece de localStorage sin esperar a ninguna edición",
+        guardado()===null,
+        "cerrar la pestaña aquí no puede dejar mañana una sesión que se dijo descartar");
+
+  /* `newNode()` no guarda por sí solo —quien edita de verdad es interaction.js,
+     que llama a scheduleAutosave() después de cada gesto—, así que el test hace
+     lo mismo. Lo que se comprueba aquí es que el autoguardado esté PERMITIDO:
+     scheduleAutosave() respeta canAutosave() y no escribe nada si sigue pausado
+     por un prompt sin resolver. */
+  W.newNode("rect", 900, 900, {label:"editado"});
+  W.scheduleAutosave();
+  await esperar(()=>guardado()!==null);
+  check("A partir de ahí el autoguardado vuelve a funcionar con el documento nuevo",
+        guardado() && guardado().doc.pages[0].name===NOMBRE_EJEMPLO, "guarda el ejemplo editado");
+
+  /* ---------- 5 · «seguir con lo mío» ignora la URL ---------- */
+  grupo("5 · Seguir con mi sesión");
+
+  W=await cargar("ejemplo="+EJEMPLO, MIA);
+  await esperar(()=>visible(W,"incomingModal"));
+  W.document.getElementById("incomingKeep").click();
+  await esperar(()=>DOC(W).pages[0].name==="MI TRABAJO");
+
+  check("Vuelve mi documento y el ejemplo no aparece por ningún lado",
+        DOC(W).pages.length===1 && DOC(W).pages[0].name==="MI TRABAJO" &&
+        DOC(W).pages[0].nodes.length===1,
+        DOC(W).pages.map(p=>`«${p.name}»`).join(" + "));
+  check("Con mi tema, mis ajustes y el modal cerrado",
+        DOC(W).theme==="crema" && !visible(W,"incomingModal"), `tema «${DOC(W).theme}»`);
+
+  /* ---------- 6 · sin documento entrante, el prompt de siempre ---------- */
+  grupo("6 · Sin documento en la URL");
+
+  W=await cargar("", MIA);
+  await esperar(()=>visible(W,"autosaveModal"));
+  check("Con sesión guardada y sin URL que traiga nada, sale el prompt clásico",
+        visible(W,"autosaveModal") && !visible(W,"incomingModal"),
+        `sesión ${visible(W,"autosaveModal")} · conflicto ${visible(W,"incomingModal")}`);
+
+  W=await cargar("ejemplo=no-existe-este-slug", MIA);
+  await esperar(()=>visible(W,"autosaveModal"));
+  check("Un slug que no está en la lista blanca se ignora y se cae al prompt clásico",
+        visible(W,"autosaveModal") && !visible(W,"incomingModal"),
+        "no se pide nada a la red y la sesión se ofrece igual");
+
+  /* ---------- 7 · si el documento entrante no llega, la sesión se ofrece ---------- */
+  grupo("7 · El documento entrante no llega");
+
+  /* No se puede provocar un 404 sobre un slug de la lista blanca sin tocar el
+     disco, así que se comprueba la pieza que usa ese camino: ui.js se calla el
+     prompt esperando al documento, y quien no consigue traerlo llama a esto.
+     Si esta función desaparece o deja de mostrar el prompt, el fallo de red
+     deja la sesión sin ofrecer, que es el defecto que se está evitando. */
+  W=await cargar("ejemplo="+EJEMPLO, MIA);
+  await esperar(()=>visible(W,"incomingModal"));
+  W.document.getElementById("incomingKeep").click();
+  await esperar(()=>!visible(W,"incomingModal"));
+  W.offerRestoreIfIdle();
+  check("offerRestoreIfIdle() ofrece la sesión guardada cuando se le llama tarde",
+        typeof W.offerRestoreIfIdle==="function" && visible(W,"autosaveModal"),
+        "es el camino de rescate del fallo de red");
+
+  /* ---------- 8 · el normalizador, que ahora lo usan dos caminos ---------- */
+  grupo("8 · Migración y validación del documento");
+
+  /* La normalización salió de applyProjectData() a documentFromProjectData()
+     para que «añadir como página nueva» pudiera reutilizarla. Estos tres
+     comprueban que al mudarla no se perdió nada: la migración del formato v1
+     que la app ha soportado siempre, y el rechazo de lo que no es un documento
+     —que a partir del enlace compartible deja de venir de un archivo elegido a
+     mano y pasa a venir de donde sea. */
+  W=await cargar("", null);
+
+  W.applyProjectData({version:1,app:"fluyo",state:{theme:"dark",nextId:9,
+    nodes:[{id:1,shape:"rect",x:500,y:400,w:180,h:70,label:"viejo",color:"#6a9fb5",order:0}],
+    edges:[{id:2,from:1,to:1,label:"x"}]}});
+  const v1=DOC(W).pages[0];
+  check("Un documento del formato v1 sigue migrando: una página, con sus nodos",
+        DOC(W).pages.length===1 && v1.nodes.length===1 && v1.nodes[0].label==="viejo",
+        `«${v1.name}» · ${v1.nodes.length} nodo(s)`);
+  check("Y sus nodos y aristas salen con los campos que el resto del editor da por hechos",
+        v1.nodes[0].border==="solid" && v1.nodes[0].lblPos==="center" && v1.nodes[0].fill===null &&
+        v1.edges[0].endArrow===true && v1.edges[0].route==="straight" && Array.isArray(v1.edges[0].waypoints),
+        "border · lblPos · fill · endArrow · route · waypoints");
+
+  const rechaza=d=>{ try{ W.applyProjectData(d); return false; }catch(e){ return true; } };
+  check("Lo que no es un documento Fluyo se rechaza en vez de instalarse a medias",
+        rechaza({hola:"mundo"}) && rechaza({doc:{pages:[]}}) &&
+        rechaza({doc:{pages:[{name:"rota"}]}}) && rechaza(null),
+        "objeto ajeno · sin páginas · página sin nodes/edges · null");
+  check("Y el documento que había abierto sobrevive intacto al rechazo",
+        DOC(W).pages.length===1 && DOC(W).pages[0].nodes.length===1,
+        `siguen ${DOC(W).pages.length} página(s) con ${DOC(W).pages[0].nodes.length} nodo(s)`);
+
+  /* ---------- 9 · el enlace #d= ---------- */
+  grupo("9 · Diagrama incrustado en el enlace");
+
+  W=await cargar("", null, COMPRIMIDO);
+  await esperar(()=>DOC(W).pages[0].name===NOMBRE_ENLACE);
+  check("Un enlace de Node se descomprime en el navegador y carga el diagrama",
+        DOC(W).pages[0].name===NOMBRE_ENLACE && DOC(W).pages[0].nodes.length===8,
+        `«${DOC(W).pages[0].name}» · ${DOC(W).pages[0].nodes.length} nodos · ${COMPRIMIDO.length} caracteres de carga`);
+  check("Sin preguntar nada, porque no había nada que perder",
+        !visible(W,"incomingModal") && !visible(W,"autosaveModal"),
+        "deflate-raw de zlib ↔ DecompressionStream del navegador");
+  check("Y el hash se queda en la URL: el enlace sigue siendo compartible",
+        W.location.hash.indexOf("#d=")===0, "recargar reproduce el diagrama");
+
+  W=await cargar("", null, PLANO);
+  await esperar(()=>DOC(W).pages[0].name===NOMBRE_MINI);
+  check("El formato 0 —JSON sin comprimir— también se lee",
+        DOC(W).pages[0].name===NOMBRE_MINI,
+        "es la puerta de salida si algún día hace falta otro algoritmo");
+
+  /* ---------- 10 · el enlace usa el mismo trato que el ejemplo ---------- */
+  grupo("10 · Enlace con sesión guardada");
+
+  W=await cargar("", MIA, MINI);
+  await esperar(()=>visible(W,"incomingModal"));
+  check("Con sesión guardada, el enlace tampoco entra solo",
+        visible(W,"incomingModal") && DOC(W).pages[0].nodes.length===0,
+        "mismo modal de tres salidas que el ejemplo");
+  check("Y la sesión sigue intacta mientras se decide",
+        guardado() && guardado().doc.pages[0].name==="MI TRABAJO", "clave sin tocar");
+
+  W.document.getElementById("incomingPage").click();
+  await esperar(()=>DOC(W).pages.length===2);
+  check("«Añadir como página nueva» funciona igual con un enlace",
+        DOC(W).pages.length===2 && DOC(W).pages[0].name==="MI TRABAJO" &&
+        DOC(W).pages[1].name===NOMBRE_MINI && DOC(W).theme==="crema",
+        `${DOC(W).pages.map(p=>`«${p.name}»`).join(" + ")} · tema «${DOC(W).theme}» (el enlace trae «claro»)`);
+
+  /* ---------- 11 · recargar el mismo enlace no vuelve a preguntar ---------- */
+  grupo("11 · Recargar una pestaña donde el enlace ya se abrió");
+
+  check("Al resolverlo se deja marca en sessionStorage, que es por pestaña",
+        sessionStorage.getItem(DEEPLINK_KEY)===MINI, "no persiste al cerrar la pestaña");
+
+  /* Misma carga, misma pestaña, marca conservada: es literalmente un F5 sobre
+     el enlace ya abierto. Si esto volviera a preguntar, la respuesta natural
+     —«abrir y descartar»— se llevaría por delante las ediciones que se acaban
+     de hacer sobre ese mismo diagrama, que a estas alturas ya está dentro de la
+     sesión guardada. */
+  W=await cargar("", guardado(), MINI, true);
+  await esperar(()=>visible(W,"autosaveModal"));
+  check("Recargar NO vuelve a ofrecer el enlace: sale el prompt de sesión de siempre",
+        visible(W,"autosaveModal") && !visible(W,"incomingModal"),
+        `sesión ${visible(W,"autosaveModal")} · conflicto ${visible(W,"incomingModal")}`);
+
+  W.document.getElementById("autosaveRestore").click();
+  await esperar(()=>DOC(W).pages.length===2);
+  check("Y restaurar devuelve las dos páginas, con el diagrama del enlace dentro",
+        DOC(W).pages.length===2 && DOC(W).pages[1].name===NOMBRE_MINI,
+        DOC(W).pages.map(p=>`«${p.name}»`).join(" + "));
+
+  /* ---------- 12 · cómo se clasifica un enlace que no sirve ---------- */
+  grupo("12 · Enlaces rotos");
+
+  /* Se prueba decodeDeepLink() en directo y no cargando la página con el hash
+     roto: ese camino termina en un alert(), que bloquearía el arnés entero.
+     Lo que importa aquí es la clasificación, porque es la que acaba en la
+     telemetría y la que dirá si los enlaces se están partiendo por el camino. */
+  W=await cargar("", null);
+  const motivo=async p=>{ try{ await W.decodeDeepLink(p); return "sin error"; }catch(e){ return e.motivo; } };
+
+  check("Una carga cortada a la mitad se clasifica como «decode»",
+        await motivo(COMPRIMIDO.slice(0, 400))==="decode",
+        "es el fallo probable: un cliente de correo parte la URL en dos");
+  check("Una carga que no es base64 válido, también",
+        await motivo("A")==="decode" && await motivo("")==="decode",
+        "longitud imposible · carga vacía");
+  check("Una versión de formato desconocida, también",
+        await motivo("BQrLzcxLLS7WS8lPzs_JzEsHAA")==="decode",
+        "byte 5: ni deflate-raw ni JSON plano");
+  check("JSON válido que no es un diagrama Fluyo se clasifica como «schema»",
+        await motivo(NO_DIAGRAMA)==="schema",
+        "reenviar el enlace no lo arregla, y por eso es otro motivo");
+  check("Y un enlace bueno no da error",
+        await motivo(MINI)==="sin error", "");
+
+  localStorage.removeItem(AUTOSAVE_KEY);
+  sessionStorage.removeItem(DEEPLINK_KEY);
+}
+
+function fin(){
+  const s=document.getElementById("sum");
+  s.textContent = ko===0 ? `${ok}/${ok} en verde` : `${ok} en verde, ${ko} en rojo`;
+  s.className = ko===0 ? "ok" : "ko";
+  document.title = (ko===0 ? "OK " : "FALLA ") + ok + "/" + (ok+ko);
+}
+</script>
+</body>
+</html>

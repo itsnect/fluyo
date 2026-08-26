@@ -43,9 +43,8 @@ const EXAMPLES = {
 };
 const EXAMPLES_DIR = "ejemplos/data/";
 
-/* Se resuelve al cargar el script, antes que ui.js, para que este pueda
-   saltarse el prompt de «sesión guardada»: si la URL pide un ejemplo concreto,
-   esa intención explícita gana sobre restaurar lo que hubiera antes. */
+/* Se resuelve al cargar el script, antes que ui.js, para que este sepa que hay
+   un documento en camino y no ofrezca restaurar la sesión por su cuenta. */
 const EXAMPLE_SLUG = (()=>{
   try{
     const s=new URLSearchParams(location.search).get("ejemplo");
@@ -53,20 +52,36 @@ const EXAMPLE_SLUG = (()=>{
   }catch(e){ return null; }
 })();
 
+/* Lo que ui.js necesita saber en el arranque, y lo único que tiene que saber:
+   ¿va a llegar un documento por la URL? La respuesta tiene que ser SÍNCRONA
+   —ui.js decide en el momento en que se evalúa— aunque el documento en sí
+   tarde en llegar, o no llegue nunca. */
+function urlBringsDocument(){ return !!EXAMPLE_SLUG; }
+
 function loadExampleFromURL(){
   if(!EXAMPLE_SLUG) return;
   fetch(EXAMPLES_DIR+EXAMPLE_SLUG+".fluyo.json")
     .then(r=>{ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); })
     .then(d=>{
-      applyProjectData(d);
-      centerView();
-      /* el prompt de restauración no se mostró, así que hay que reactivar el
-         autoguardado a mano o las ediciones sobre el ejemplo no se guardarían */
-      enableAutosave();
-      trackEvent("example_loaded",{example:EXAMPLE_SLUG});
+      /* Ya no se aplica a lo bruto. Si hay una sesión guardada, esto abre el
+         modal de conflicto y la decisión es de quien está delante; si no la
+         hay, entra directo como antes. */
+      presentIncomingDocument(d, {
+        titulo:"Tienes trabajo sin guardar",
+        abrirLabel:"Abrir el ejemplo y descartar la sesión",
+        paginaLabel:"Añadir el ejemplo como página nueva",
+        /* El evento cuenta el ejemplo que se llegó a ver, no el que se pidió:
+           si la respuesta fue «seguir con lo mío», aquí no se cargó nada. */
+        onResuelto:eleccion=>{ if(eleccion!=="keep") trackEvent("example_loaded",{example:EXAMPLE_SLUG}); }
+      });
     })
     .catch(err=>{
       console.warn("No se pudo cargar el ejemplo «"+EXAMPLE_SLUG+"»:",err);
+      /* El ejemplo no llegó (típico: `file://`, donde el fetch está bloqueado).
+         ui.js se calló el prompt de restauración esperando a este documento, así
+         que ahora le toca a él ofrecerlo: un ejemplo que no carga no puede
+         costarle a nadie la sesión anterior. */
+      offerRestoreIfIdle();
     });
 }
 

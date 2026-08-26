@@ -547,6 +547,18 @@ $("btnPanel").onclick=()=>{
 };
 
 renderTabs();
-/* si la URL pide un ejemplo concreto, esa intención explícita gana sobre
-   ofrecer restaurar la sesión anterior (lo carga js/examples.js) */
-if(hasAutosave() && !EXAMPLE_SLUG) showAutosaveRestorePrompt();
+
+/* Ofrece restaurar la sesión guardada, si la hay. Se llama desde el arranque y
+   también más tarde, desde quien traía un documento por la URL y no consiguió
+   traerlo: en ese caso el prompt se calló esperándole, y hay que ofrecerlo
+   igualmente. Es idempotente en la práctica porque solo un camino acaba aquí. */
+function offerRestoreIfIdle(){
+  if(hasAutosave()) showAutosaveRestorePrompt();
+}
+
+/* Si la URL trae un documento, la sesión guardada NO se resuelve aquí: la
+   resuelve quien lo traiga, que es el único que sabe si llegó, si era válido y
+   qué hay que preguntar. Puede acabar en el modal de conflicto de tres salidas,
+   en carga directa si no había nada que perder, o en este mismo prompt si el
+   documento no llegó a materializarse. */
+if(!urlBringsDocument()) offerRestoreIfIdle();

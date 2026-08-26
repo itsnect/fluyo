@@ -462,6 +462,23 @@
   </div>
 </div>
 
+<!-- Conflicto entre lo que trae la URL y lo que ya había en este navegador.
+     No se cierra con Escape ni pinchando fuera, igual que el de arriba: hay
+     trabajo sin guardar en juego y las tres salidas hacen cosas distintas, así
+     que un descarte accidental no puede ser el camino más fácil.
+     La opción destacada es la que no pierde nada. -->
+<div class="overlay" id="incomingModal" style="display:none;">
+  <div class="card">
+    <h2 id="incomingTitle">Tienes trabajo sin guardar</h2>
+    <p class="hint">Este enlace trae un diagrama y en este navegador hay una sesión guardada. ¿Qué hago con ella?</p>
+    <div class="actions stack">
+      <button id="incomingPage" class="primary">Añadirlo como página nueva</button>
+      <button id="incomingOpen">Abrir el diagrama y descartar la sesión</button>
+      <button id="incomingKeep">Seguir con mi sesión</button>
+    </div>
+  </div>
+</div>
+
 <script src="js/config.js"></script>
 <script src="js/examples.js"></script>
 <script src="js/state.js"></script>

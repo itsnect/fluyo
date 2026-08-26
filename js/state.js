@@ -165,36 +165,77 @@ function syncProjectControls(){
   if($("bgCustom") && doc.customBg) $("bgCustom").value=doc.customBg;
   if($("fontGlobalSel")) $("fontGlobalSel").value=settings.font||DEFAULT_FONT;
 }
+/* Migra y normaliza un `.fluyo.json` hasta dejarlo como documento válido, SIN
+   instalarlo en el editor. Está separado de applyProjectData() porque «abrir
+   como página nueva» necesita las páginas ya migradas para engancharlas a OTRO
+   documento, y duplicar esta normalización es exactamente cómo se acaba con dos
+   importadores que divergen.
+
+   Lanza si lo que llega no es un documento Fluyo. Comprueba que `nodes` y
+   `edges` sean arrays de verdad y no solo que exista `pages`: hasta ahora todo
+   lo que pasaba por aquí venía de un archivo que el usuario había elegido a
+   mano, y a partir del enlace compartible viene de donde sea. */
+function documentFromProjectData(d){
+  let nd;
+  if(d && d.doc && Array.isArray(d.doc.pages) && d.doc.pages.length) nd=d.doc;
+  else if(d && d.state && Array.isArray(d.state.nodes)){
+    nd={theme:d.state.theme||"dark", cur:0,
+        pages:[Object.assign(blankPage("Página 1"),{nodes:d.state.nodes,edges:(d.state.edges||[]).map(e=>Object.assign({fromSide:null,toSide:null,route:"straight",waypoints:[]},e)),nextId:d.state.nextId||999})]};
+  } else throw new Error("invalid");
+  nd.pages.forEach(pg=>{
+    if(!pg || !Array.isArray(pg.nodes) || !Array.isArray(pg.edges)) throw new Error("invalid");
+  });
+  nd.pages.forEach(pg=>pg.edges.forEach(e=>{
+    if(e.endArrow===undefined){ e.endArrow=true; e.startArrow=!!e.bidir; }
+    if(!e.flowDir) e.flowDir="normal";
+    if(!e.waypoints) e.waypoints=[];
+    if(!e.route) e.route="straight";
+    if(e.font===undefined) e.font=null;
+    if(e.bold===undefined) e.bold=false;
+  }));
+  nd.pages.forEach(pg=>pg.nodes.forEach(n=>{
+    if(n.fill===undefined) n.fill=null;
+    if(!n.border) n.border="solid";
+    if(!n.lblPos) n.lblPos="center";
+    if(n.textBg===undefined) n.textBg=null;
+    if(n.textColor===undefined) n.textColor=null;
+    if(n.font===undefined) n.font=null;
+    if(n.bold===undefined) n.bold=false;
+  }));
+  if(nd.customBg===undefined) nd.customBg="";
+  return nd;
+}
 function applyProjectData(d){
+  const nd=documentFromProjectData(d);
   runWithoutAutosave(()=>{
-    if(d.doc&&Array.isArray(d.doc.pages)) doc=d.doc;
-    else if(d.state&&Array.isArray(d.state.nodes)){
-      doc={theme:d.state.theme||"dark", cur:0,
-           pages:[Object.assign(blankPage("Página 1"),{nodes:d.state.nodes,edges:(d.state.edges||[]).map(e=>Object.assign({fromSide:null,toSide:null,route:"straight",waypoints:[]},e)),nextId:d.state.nextId||999})]};
-    } else throw new Error("invalid");
-    doc.pages.forEach(pg=>pg.edges.forEach(e=>{
-      if(e.endArrow===undefined){ e.endArrow=true; e.startArrow=!!e.bidir; }
-      if(!e.flowDir) e.flowDir="normal";
-      if(!e.waypoints) e.waypoints=[];
-      if(!e.route) e.route="straight";
-      if(e.font===undefined) e.font=null;
-      if(e.bold===undefined) e.bold=false;
-    }));
-    doc.pages.forEach(pg=>pg.nodes.forEach(n=>{
-      if(n.fill===undefined) n.fill=null;
-      if(!n.border) n.border="solid";
-      if(!n.lblPos) n.lblPos="center";
-      if(n.textBg===undefined) n.textBg=null;
-      if(n.textColor===undefined) n.textColor=null;
-      if(n.font===undefined) n.font=null;
-      if(n.bold===undefined) n.bold=false;
-    }));
-    if(doc.customBg===undefined) doc.customBg="";
+    doc=nd;
     if(!settings.font) settings.font=DEFAULT_FONT;
     undoStack.length=0; redoStack.length=0;
     if(d.settings) Object.assign(settings,d.settings);
+    if(settings.grid===undefined) settings.grid=true;
     doc.cur=clamp(doc.cur||0,0,doc.pages.length-1);
     syncProjectControls();
+    clearSel(); renderTabs();
+  });
+}
+/* Engancha las páginas de un documento entrante al final del que ya está
+   abierto, y salta a la primera de las nuevas.
+
+   Solo las páginas. El tema, la tipografía global y el resto de ajustes son del
+   documento que ya estaba abierto y NO se tocan: cambiarlos por los del
+   entrante sería justo el destrozo que esta opción existe para evitar. La
+   contrapartida es real y conviene saberla: el diagrama añadido puede verse
+   distinto de como lo dibujó quien lo compartió, porque el tema y la
+   tipografía son propiedades del documento, no de la página.
+
+   Los ids de nodo y arista son por página (`newNode` usa `P().nextId`), así que
+   pegar páginas enteras no puede colisionar con nada y no hay que renumerar. */
+function appendPagesFrom(d){
+  const nd=documentFromProjectData(d);
+  runWithoutAutosave(()=>{
+    const primeraNueva=doc.pages.length;
+    doc.pages.push(...nd.pages);
+    doc.cur=primeraNueva;
     clearSel(); renderTabs();
   });
 }
@@ -221,4 +262,90 @@ function enableAutosave(){
 function closeRestorePrompt(){
   hideAutosaveRestorePrompt();
   enableAutosave();
+}
+
+/* ===================== Documento que llega por la URL =====================
+
+   Un diagrama que llega por la URL —hoy `?ejemplo=<slug>`, y el enlace
+   compartible `#d=` — no puede pisar el trabajo en curso sin preguntar.
+
+   Antes sí lo hacía, y de la peor forma posible: el ejemplo se cargaba en
+   silencio saltándose el prompt de restauración, el `localStorage` seguía
+   intacto un rato más, y la sesión anterior desaparecía en cuanto la persona
+   tocaba cualquier cosa —o sea, después de que ya no hubiera nada que decidir.
+   Nadie llegaba a ver nunca que había trabajo guardado.
+
+   El trato ahora es explícito y tiene tres salidas, y solo aparece cuando hay
+   algo real que perder (`hasAutosave()` solo es cierto si alguien editó algo:
+   el autoguardado únicamente escribe desde una edición). Sin sesión guardada no
+   hay conflicto y el documento entra directo, como siempre. */
+let incoming=null;   // {data, meta:{titulo, abrirLabel, onResuelto}}
+
+function presentIncomingDocument(data, meta){
+  incoming={data, meta};
+  if(!hasAutosave()){ incomingOpen(); return; }
+  autosavePaused=true;
+  autosaveReady=false;
+  clearTimeout(autosaveTimer);
+  $("incomingTitle").textContent=meta.titulo;
+  $("incomingOpen").textContent=meta.abrirLabel;
+  $("incomingPage").textContent=meta.paginaLabel;
+  $("incomingModal").style.display="flex";
+}
+function closeIncomingPrompt(){
+  $("incomingModal").style.display="none";
+  enableAutosave();
+}
+/* Resuelve el conflicto y avisa a quien trajo el documento, para que la
+   telemetría cuente lo que de verdad pasó y no lo que se intentó. */
+function finishIncoming(eleccion){
+  const meta=incoming ? incoming.meta : null;
+  incoming=null;
+  closeIncomingPrompt();
+  if(meta && meta.onResuelto) meta.onResuelto(eleccion);
+}
+/* Abrir el entrante descartando lo guardado. El descarte se hace efectivo AQUÍ,
+   no «cuando toques algo»: si alguien elige descartar y cierra la pestaña sin
+   editar, la sesión que dijo descartar no puede seguir esperándole mañana. */
+function incomingOpen(){
+  if(!incoming) return;
+  const {data}=incoming;
+  clearAutosave();
+  applyProjectData(data);
+  centerView();
+  finishIncoming("open");
+}
+/* La salida no destructiva: se recupera lo guardado y el entrante se añade
+   detrás como páginas nuevas. Si lo guardado resulta ilegible no hay nada que
+   preservar, así que se abre el entrante y se dice. */
+function incomingAsNewPage(){
+  if(!incoming) return;
+  const {data}=incoming;
+  if(!restoreMineOrWarn()){ incomingOpen(); return; }
+  appendPagesFrom(data);
+  centerView();
+  finishIncoming("page");
+  /* Después de finishIncoming(), que es quien vuelve a habilitar el
+     autoguardado: el documento ya no es el que había en localStorage y hay que
+     escribirlo, pero scheduleAutosave() aquí arriba no haría nada porque el
+     prompt lo deja pausado hasta que se resuelve. */
+  saveAutosave(true);
+}
+/* Seguir con lo mío: se restaura la sesión y el entrante se descarta. La URL no
+   se toca — recargar vuelve a preguntar, que es lo correcto: la decisión fue
+   para esta vez, no para siempre. */
+function incomingKeepMine(){
+  if(!incoming) return;
+  restoreMineOrWarn();
+  finishIncoming("keep");
+}
+/* Devuelve false si no había sesión utilizable. El aviso es el mismo que ya
+   daba el botón «Restaurar», y el localStorage ilegible se limpia para no
+   volver a tropezar con él en cada carga. */
+function restoreMineOrWarn(){
+  try{ if(restoreAutosaveSession()) return true; }
+  catch(e){}
+  clearAutosave();
+  alert("No se pudo restaurar la sesión guardada.");
+  return false;
 }

@@ -47,6 +47,23 @@ const ANALYTICS_PROVIDER = {
     s.async=true;
     s.src="https://cloud.umami.is/script.js";
     s.dataset.websiteId=UMAMI_WEBSITE_ID;
+    /* El fragmento de la URL NO se manda. Sin esto, el script de Umami envía
+       `url: location.href` ENTERO —fragmento incluido— en el pageview y en cada
+       evento posterior. Su código, literalmente:
+
+           B = t => { const e = new URL(t, location.href);
+                      return j && (e.search=""), N && (e.hash=""), e.toString() }
+
+       donde N es este atributo. Hoy el editor no pone nada en el hash y no hay
+       fuga, pero el fragmento es el único trozo de la URL que el navegador NO
+       manda al servidor por sí solo: si algo del contenido del usuario acaba
+       ahí, este atributo es lo único que impide que un tercero lo reciba. Va
+       puesto antes de que exista el caso, no después.
+
+       `exclude-search` NO se pone: el query sí lleva información que queremos
+       —`?ejemplo=<slug>`, de lista blanca— y perderla dejaría los pageviews de
+       los ejemplos sin atribuir. */
+    s.dataset.excludeHash="true";
     document.head.appendChild(s);
     return true;
   },

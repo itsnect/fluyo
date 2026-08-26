@@ -43,7 +43,7 @@
 <main class="wrap">
 
 <h1>Privacy Policy</h1>
-<p class="lead">Last updated: 25 August 2026. <a href="../privacidad/">Versión en español</a>.</p>
+<p class="lead">Last updated: 26 August 2026. <a href="../privacidad/">Versión en español</a>.</p>
 
 <p>Fluyo is <strong>two different things</strong> with two different data behaviours, and this policy treats them separately because conflating them would be misleading:</p>
 
@@ -81,6 +81,11 @@
 <h3>Your diagrams</h3>
 <p><strong>They are not sent anywhere.</strong> There is no backend for them to go to. When you click <em>Save</em>, the browser downloads a <code>.fluyo.json</code> file to your disk; when you click <em>Open</em>, it reads one from your disk. Neither involves a network request.</p>
 
+<h3 id="link">Diagrams that arrive in a link</h3>
+<p>There is a third route: a URL of the form <code>fluyo.space/#d=&hellip;</code> carries the diagram <strong>inside the link itself</strong>, compressed and encoded. It is what the MCP server returns so you can see the animated diagram without saving any file.</p>
+<p><strong>That content does not reach any server either.</strong> It sits after the hash, and browsers do not send a URL fragment: not in the request, not in the <code>Referer</code> header. You can check this yourself &mdash; serve the project locally, open one of these links and look at the access log: the line reads <code>GET /index.html</code> and nothing more.</p>
+<p><strong>What you should know:</strong> the diagram is <strong>encoded, not encrypted</strong>. Anyone who receives the link can read it. It also stays in your browser history &mdash; which syncs across your devices if you have that turned on &mdash; and anywhere else you pass the link along. Share it with the same judgement you would apply to the file.</p>
+
 <h3>Autosave</h3>
 <p>The current session is saved to your browser's <code>localStorage</code>, under the key <code>fluyo.autosave.v1</code>. That is local storage on your own machine, not a server: nobody else can read it, and it is erased when you clear site data in your browser.</p>
 
@@ -91,12 +96,14 @@
   <tr><th>Event</th><th>What accompanies it</th></tr>
   <tr><td><code>diagram_created</code></td><td>Nothing. Sent once per session, the first time you place a shape</td></tr>
   <tr><td><code>example_loaded</code></td><td>The example identifier (one of a fixed list)</td></tr>
-  <tr><td><code>file_imported</code></td><td>Nothing</td></tr>
+  <tr><td><code>file_imported</code></td><td>How the diagram got in: <code>file</code> (you opened it from your disk) or <code>link</code> (it came in a link)</td></tr>
   <tr><td><code>diagram_exported</code></td><td>The format: <code>gif</code>, <code>png</code>, <code>jpg</code> or <code>svg</code></td></tr>
   <tr><td><code>gif_animation_added</code></td><td>The animation key (one of eight)</td></tr>
   <tr><td><code>present_started</code></td><td>Nothing</td></tr>
+  <tr><td><code>link_failed</code></td><td>Why a link could not be opened: <code>decode</code>, <code>schema</code>, <code>too_large</code> or <code>unsupported</code></td></tr>
 </table>
-<p><strong>The content of your diagrams is never sent</strong>, neither whole nor in fragments: events carry only values from a closed vocabulary — an example identifier, an export format, an animation key — and three of the six carry nothing at all. There is no free-text field anywhere that one of your labels could slip into, and no value derived from what you draw remains: <code>present_started</code> used to carry the document’s page count and it was removed.</p>
+<p><strong>The content of your diagrams is never sent</strong>, neither whole nor in fragments: events carry only values from a closed vocabulary &mdash; an example identifier, an export format, an animation key, how a file got in, why a link failed &mdash; and three of the seven carry nothing at all. There is no free-text field anywhere that one of your labels could slip into, and no value derived from what you draw remains: <code>present_started</code> used to carry the document&rsquo;s page count and it was removed.</p>
+<p><strong>And the URL fragment is excluded from analytics.</strong> This matters because the fragment is exactly where a link&rsquo;s diagram travels: the Umami script is given <code>data-exclude-hash</code>, which makes it strip the fragment before sending anything, on the pageview and on every event. Without that attribute the whole diagram would end up in the analytics <code>url</code> field. It is set, and you can see it in <code>js/analytics.js</code> next to the site identifier.</p>
 <p>The analytics script loads <strong>only</strong> when the domain is <code>fluyo.space</code> or <code>www.fluyo.space</code>. If you clone the repository, open it locally or self-host it, that code never runs and no network call is made. Preview domains are deliberately excluded. The condition lives in <code>js/analytics.js</code>, in a single block, so you can verify it yourself.</p>
 <p>If you want zero analytics: run the project locally or self-hosted, or block the <code>cloud.umami.is</code> domain. Fluyo works the same — the analytics code is written to fail silently.</p>
 
@@ -119,6 +126,7 @@
 <h3>How it is used and for how long</h3>
 <p><strong>It is processed in memory and discarded.</strong> Each HTTP request builds a fresh server, handles the message and throws it away. There is no database, no disk, no cache and no sessions: the server is <em>stateless</em> by design, not by configuration. The document exists in the process's memory for as long as the request takes — milliseconds — and disappears with it.</p>
 <p><strong>Nothing is persisted. Nothing is shared. Nothing is used to train anything.</strong></p>
+<p><strong>The link it returns.</strong> Alongside the diagram, the tools return a <code>fluyo.space/#d=&hellip;</code> URL that opens it in the editor. It is built inside the same process from the document just received: no new request to anywhere, nothing stored, nothing logged. What that link means for whoever shares it is explained above, under <a href="#link">Diagrams that arrive in a link</a>.</p>
 
 <h3>What is logged</h3>
 <p>One line per request. A successful request looks like this:</p>

@@ -43,7 +43,7 @@
 <main class="wrap">
 
 <h1>Política de privacidad</h1>
-<p class="lead">Última actualización: 25 de agosto de 2026.</p>
+<p class="lead">Última actualización: 26 de agosto de 2026.</p>
 
 <p>Fluyo son <strong>dos cosas distintas</strong> con dos comportamientos de datos distintos, y esta política las trata por separado porque mezclarlas sería engañoso:</p>
 
@@ -81,6 +81,11 @@
 <h3>Tus diagramas</h3>
 <p><strong>No se envían a ninguna parte.</strong> No hay backend al que puedan ir. Cuando pulsas <em>Guardar</em>, el navegador descarga un archivo <code>.fluyo.json</code> a tu disco; cuando pulsas <em>Abrir</em>, lo lee desde tu disco. En ninguno de los dos casos hay una petición de red.</p>
 
+<h3 id="enlace">Diagramas que llegan por un enlace</h3>
+<p>Hay un tercer camino: una URL de la forma <code>fluyo.space/#d=…</code> lleva el diagrama <strong>dentro del propio enlace</strong>, comprimido y codificado. Es lo que devuelve el servidor MCP para que puedas ver el diagrama animado sin guardar ningún archivo.</p>
+<p><strong>Ese contenido tampoco llega a ningún servidor.</strong> Va detrás de la almohadilla, y el navegador no envía el fragmento de una URL: ni en la petición ni en la cabecera <code>Referer</code>. Puedes comprobarlo tú — sirve el proyecto en local, abre uno de estos enlaces y mira el registro de acceso: la línea dice <code>GET /index.html</code> y nada más.</p>
+<p><strong>Lo que sí conviene que sepas:</strong> el diagrama va <strong>codificado, no cifrado</strong>. Cualquiera que reciba el enlace puede leerlo. Además queda en el historial de tu navegador —que se sincroniza entre tus dispositivos si tienes esa opción activada— y en cualquier sitio por el que pases el enlace. Compártelo con el mismo criterio con el que compartirías el archivo.</p>
+
 <h3>Autoguardado</h3>
 <p>La sesión en curso se guarda en el <code>localStorage</code> de tu navegador, bajo la clave <code>fluyo.autosave.v1</code>. Es almacenamiento local de tu equipo, no un servidor: nadie más puede leerlo, y se borra al limpiar los datos del sitio en tu navegador.</p>
 
@@ -91,12 +96,14 @@
   <tr><th>Evento</th><th>Qué acompaña</th></tr>
   <tr><td><code>diagram_created</code></td><td>Nada. Se envía una sola vez por sesión, la primera vez que colocas una forma</td></tr>
   <tr><td><code>example_loaded</code></td><td>El identificador del ejemplo (uno de una lista fija)</td></tr>
-  <tr><td><code>file_imported</code></td><td>Nada</td></tr>
+  <tr><td><code>file_imported</code></td><td>Por dónde entró el diagrama: <code>file</code> (lo abriste desde tu disco) o <code>link</code> (venía en un enlace)</td></tr>
   <tr><td><code>diagram_exported</code></td><td>El formato: <code>gif</code>, <code>png</code>, <code>jpg</code> o <code>svg</code></td></tr>
   <tr><td><code>gif_animation_added</code></td><td>La clave de la animación (una de ocho)</td></tr>
   <tr><td><code>present_started</code></td><td>Nada</td></tr>
+  <tr><td><code>link_failed</code></td><td>Por qué no se pudo abrir un enlace: <code>decode</code>, <code>schema</code>, <code>too_large</code> o <code>unsupported</code></td></tr>
 </table>
-<p><strong>El contenido de tus diagramas no se envía nunca</strong>, ni entero ni en fragmentos: los eventos solo llevan valores de un vocabulario cerrado —el identificador de un ejemplo, un formato de exportación, una clave de animación— y tres de los seis no llevan nada en absoluto. No hay ningún campo de texto libre donde pudiera colarse una etiqueta tuya, y no queda ningún valor derivado de lo que dibujas: <code>present_started</code> llevaba el número de páginas del documento y se le quitó.</p>
+<p><strong>El contenido de tus diagramas no se envía nunca</strong>, ni entero ni en fragmentos: los eventos solo llevan valores de un vocabulario cerrado —el identificador de un ejemplo, un formato de exportación, una clave de animación, por dónde entró un archivo, por qué falló un enlace— y tres de los siete no llevan nada en absoluto. No hay ningún campo de texto libre donde pudiera colarse una etiqueta tuya, y no queda ningún valor derivado de lo que dibujas: <code>present_started</code> llevaba el número de páginas del documento y se le quitó.</p>
+<p><strong>Y el fragmento de la URL se excluye de la analítica.</strong> Importa porque es justo donde viaja el diagrama de un enlace: al script de Umami se le pasa <code>data-exclude-hash</code>, que le hace recortar el fragmento antes de enviar nada, tanto en el pageview como en todos los eventos. Sin ese atributo el diagrama entero acabaría en el campo <code>url</code> de la analítica. Está puesto, y se ve en <code>js/analytics.js</code> al lado del identificador del sitio.</p>
 <p>El script de analítica se carga <strong>únicamente</strong> cuando el dominio es <code>fluyo.space</code> o <code>www.fluyo.space</code>. Si clonas el repositorio, lo abres en local o lo self-hosteas, ese código no llega a ejecutarse y no se hace ninguna llamada de red. Los dominios de preview quedan fuera a propósito. La condición está en <code>js/analytics.js</code>, en un solo bloque, para que puedas verificarlo tú.</p>
 <p>Si quieres cero telemetría: usa el proyecto en local o self-hosteado, o bloquea el dominio <code>cloud.umami.is</code>. Fluyo funciona igual — la analítica está escrita para fallar en silencio.</p>
 
@@ -119,6 +126,7 @@
 <h3>Cómo se usa y cuánto dura</h3>
 <p><strong>Se procesa en memoria y se descarta.</strong> Cada petición HTTP construye un servidor nuevo, atiende el mensaje y lo tira. No hay base de datos, no hay disco, no hay caché y no hay sesiones: el servidor es <em>stateless</em> por diseño, no por configuración. El documento existe en la memoria del proceso el tiempo que tarda la petición —milisegundos— y desaparece con ella.</p>
 <p><strong>Nada se persiste. Nada se comparte. Nada se usa para entrenar nada.</strong></p>
+<p><strong>El enlace que devuelve.</strong> Junto al diagrama, las herramientas devuelven una URL <code>fluyo.space/#d=&hellip;</code> que lo abre en el editor. Se construye dentro del mismo proceso, con el documento que acaba de recibir: no hay petici&oacute;n nueva a ning&uacute;n sitio, no se guarda en ninguna parte y no queda registrada. Lo que ese enlace significa para quien lo comparte est&aacute; explicado arriba, en <a href="#enlace">Diagramas que llegan por un enlace</a>.</p>
 
 <h3>Qué se registra</h3>
 <p>Una línea por petición. Una petición correcta tiene esta forma:</p>

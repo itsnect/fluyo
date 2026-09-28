@@ -513,7 +513,7 @@ function enterPresent(){
   if(settings.build){ t0=performance.now(); pausedAt=0; }
   /* el layout aún no se ha rehecho tras esconder la interfaz: sin esperar un
      fotograma, fitView mediría el lienzo con el tamaño viejo */
-  requestAnimationFrame(()=>{ resizeCanvas(); fitView(); });
+  scheduleEditorResize(fitView);
   updatePresentBar();
   /* Sin propiedades a propósito. Llevaba `pages`, el número de páginas del
      documento: el único dato de toda la telemetría derivado del contenido del
@@ -528,7 +528,7 @@ function exitPresent(){
   document.body.classList.remove("presenting");
   if(document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(()=>{});
   if(preView){ viewX=preView.x; viewY=preView.y; viewZoom=preView.z; preView=null; }
-  requestAnimationFrame(resizeCanvas);
+  scheduleEditorResize();
 }
 $("btnPresent").onclick=enterPresent;
 $("prNext").onclick=nextSlide;

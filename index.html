@@ -47,7 +47,14 @@
 }
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23161616'/%3E%3Ccircle cx='18' cy='32' r='7' fill='%23d08b5b'/%3E%3Ccircle cx='40' cy='32' r='5' fill='%23d08b5b' opacity='.65'/%3E%3Ccircle cx='54' cy='32' r='3.4' fill='%23d08b5b' opacity='.35'/%3E%3C/svg%3E">
-<link rel="manifest" href="./manifest.webmanifest">
+<script>
+if(location.protocol==="http:" || location.protocol==="https:"){
+  const manifest=document.createElement("link");
+  manifest.rel="manifest";
+  manifest.href="./manifest.webmanifest";
+  document.head.appendChild(manifest);
+}
+</script>
 <meta name="theme-color" content="#111213">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js"></script>
 <!--
@@ -480,6 +487,7 @@
 </div>
 
 <script src="js/config.js"></script>
+<script src="js/model.js"></script>
 <script src="js/examples.js"></script>
 <script src="js/deeplink.js"></script>
 <script src="js/state.js"></script>
@@ -487,6 +495,7 @@
 <script src="js/geometry.js"></script>
 <script src="js/render.js"></script>
 <script src="js/interaction.js"></script>
+<script src="js/editor-runtime.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/export.js"></script>
 </body>

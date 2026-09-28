@@ -24,9 +24,10 @@ function editor(host='fluyo.space'){
     clearTimeout:id=>timers.delete(id),URL:{createObjectURL:()=> 'blob:local',revokeObjectURL(){}},
     alert(){},DEFAULT_FONT:'sans-serif',DEFAULT_SIZES:{},PALETTE:[{c:'#000'}],GRID:20,
     CODE_DEFAULT_LABEL:'',DEFAULT_LANG:'',navigator:{clipboard:{writeText:()=>Promise.resolve()}},
-    refreshPanel(){},renderTabs(){},edgePoints:()=>[],render(){},now:()=>0});
+    refreshPanel(){},renderTabs(){},edgePoints:()=>[],render(){},now:()=>0,
+    makeReadOnlyRenderState:()=>({}),t0:0,pausedAt:0});
   const run=code=>vm.runInContext(code,context);
-  run(fuente('analytics.js'));run(fuente('state.js'));run(fuente('selection.js'));
+  run(fuente('analytics.js'));run(fuente('model.js'));run(fuente('state.js'));run(fuente('selection.js'));
   run('resetAnalyticsBaseline()');
   const flush=()=>{
     for(const [id,t] of [...timers]) if(t.delay===0){timers.delete(id);t.fn();}

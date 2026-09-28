@@ -15,14 +15,13 @@ function singleSel(){
    conectar dos cajas con el dedo. Por eso el nodo seleccionado también las
    muestra — que además es lo que hacen draw.io o Figma.
 
-   Vive aquí, y no en js/interaction.js, porque render.js también la llama y se
-   carga antes: definida allí, el primer fotograma reventaba con ReferenceError
-   y el bucle de dibujo moría antes de pedir el siguiente. */
+   Vive aquí porque los gestos y el runtime del editor comparten esta única
+   resolución; el modelo y el renderer read-only no conocen esta regla. */
 function arrowHostNode(){
   const s=singleSel();
   const n=hoverNode || ((s && s.type==="node") ? s.obj : null);
   /* hoverNode sobrevive a un cambio de página o a cargar un ejemplo: sin esta
-     comprobación se pintan las flechas de un nodo que ya no está en el lienzo */
+     comprobación se pintarían flechas de un nodo que ya no está en el lienzo. */
   return (n && P().nodes.includes(n)) ? n : null;
 }
 function selectAll(){

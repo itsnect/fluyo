@@ -43,7 +43,7 @@ function hitSideArrow(n,x,y,r){
   }
   return null;
 }
-/* arrowHostNode() vive en js/selection.js: render.js también la usa y se carga antes. */
+/* arrowHostNode() vive en js/selection.js y se comparte entre los gestos del editor. */
 /* El radio va en unidades de mundo, así que con zoom bajo un objetivo de 14
    queda por debajo del tamaño de un dedo. */
 function arrowHitRadius(){ return isTouch()? Math.max(18, 24/viewZoom) : 14; }

@@ -88,7 +88,7 @@ const CODE_DEFAULT_LABEL="CREATE STREAM x AS\nSELECT *\nFROM stream";
 const DIR={n:{x:0,y:-1}, s:{x:0,y:1}, e:{x:1,y:0}, w:{x:-1,y:0}};
 const SIDES=["n","e","s","w"];
 /* ===================== Tamaño con el que nace cada forma =====================
-   Vivía dentro de newNode(), en js/state.js. Está aquí por dos razones:
+   Vivía dentro de newNode(), ahora en js/model.js. Está aquí por dos razones:
 
    · lo necesita el escalado de la etiqueta, que deriva la fuente de la caja
      RELATIVA a este tamaño (ver labelBoxScale en js/geometry.js);

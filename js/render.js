@@ -1,5 +1,20 @@
 "use strict";
-/* Render del lienzo y bucle de animación */
+/* Renderer compartido del lienzo. No inicia runtime ni bucles de animación. */
+
+/* Estado neutro compartido para consumidores read-only y exportación. No lee
+   ni crea estado del editor. */
+function makeReadOnlyRenderState(viewport={}){
+  return {
+    viewport:Object.assign({x:0,y:0,zoom:1,width:0,height:0,presenting:false},viewport),
+    interaction:{
+      mode:"select", pendingShape:false, pendingIcon:false, pendingAnim:false,
+      connecting:null, drag:false, resizing:false, wpDrag:false,
+      connectDrag:null, endDrag:null, marquee:null,
+      hoverNode:null, editing:null, mouse:{x:0,y:0}
+    },
+    selection:{nodes:new Set(),edges:new Set(),single:null,arrowHost:null}
+  };
+}
 
 /* ===================== Render ===================== */
 function nodeAlpha(n,t){
@@ -37,7 +52,7 @@ function measureNodeLabel(c,n){
   const lines=String(n.label==null?"":n.label).split("\n");
   return fs=>{ c.font=objFont(n,fs); return Math.max(...lines.map(l=>c.measureText(l).width),1); };
 }
-function drawLabelLines(c,n,theme){
+function drawLabelLines(c,n,theme,editing){
   const T=THEMES[theme];
   /* Mientras se edita, el texto lo pinta el textarea transparente que hay encima.
      Dibujarlo también aquí deja dos copias desplazadas medio píxel, que se ve
@@ -223,7 +238,7 @@ function drawCodeNode(c,n,theme,glow){
   c.restore();
 }
 function colHex(c){ return (typeof c==="string" && c[0]==="#")? c : "#3aa7e8"; }
-function drawNode(c,n,t,theme,isExport){
+function drawNode(c,n,t,theme,isExport,rs){
   const a=nodeAlpha(n,t); if(a<=0) return;
   c.save(); c.globalAlpha=a;
   const grow=settings.build? lerp(.85,1,a):1;
@@ -239,7 +254,7 @@ function drawNode(c,n,t,theme,isExport){
       c.drawImage(im, n.x-n.w/2, n.y-n.h/2, n.w, n.h);
       c.shadowBlur=0;
     }
-    if(n.label) drawLabelLines(c,n,theme);
+    if(n.label) drawLabelLines(c,n,theme,rs.interaction.editing);
   }
   else if(n.shape==="icon"){
     const im=getImg(iconURLFor(n.icon, nodeIconTint(n)));
@@ -247,7 +262,7 @@ function drawNode(c,n,t,theme,isExport){
     if(glow>0){c.shadowColor=n.color; c.shadowBlur=18*glow;}
     if(im.complete && im.naturalWidth) c.drawImage(im, n.x-s/2, n.y-n.h/2+4, s, s);
     c.shadowBlur=0;
-    if(n.label) drawLabelLines(c,n,theme);
+    if(n.label) drawLabelLines(c,n,theme,rs.interaction.editing);
   }
   else if(n.shape==="cylinder"){
     const {x,y,w,h}=n, ry=Math.min(16,h*.18), top=y-h/2, bot=y+h/2;
@@ -264,14 +279,14 @@ function drawNode(c,n,t,theme,isExport){
     c.beginPath(); c.ellipse(x,top+ry,w/2,ry,0,0,Math.PI*2); c.stroke();
     c.setLineDash([]);
     c.shadowBlur=0;
-    drawLabelLines(c,n,theme);
+    drawLabelLines(c,n,theme,rs.interaction.editing);
   }
   else if(n.shape==="text"){
-    drawLabelLines(c,n,theme);
+    drawLabelLines(c,n,theme,rs.interaction.editing);
   }
   else if(n.shape==="anim"){
     drawAnim(c,n,t,theme,glow);
-    if(n.label) drawLabelLines(c,n,theme);
+    if(n.label) drawLabelLines(c,n,theme,rs.interaction.editing);
   }
   else if(n.shape==="code"){
     drawCodeNode(c,n,theme,glow);
@@ -284,15 +299,15 @@ function drawNode(c,n,t,theme,isExport){
     if(fc){ c.fillStyle=fc; c.fill(); }
     borderDash(n,c); c.stroke(); c.setLineDash([]);
     c.shadowBlur=0;
-    drawLabelLines(c,n,theme);
+    drawLabelLines(c,n,theme,rs.interaction.editing);
   }
   c.restore();
 
-  if(!isExport && selN.has(n.id)){
+  if(!isExport && rs.selection.nodes.has(n.id)){
     c.save();
     c.setLineDash([6,5]); c.strokeStyle="#3aa7e8"; c.lineWidth=1.5;
     c.strokeRect(n.x-n.w/2-6,n.y-n.h/2-6,n.w+12,n.h+12); c.setLineDash([]);
-    const s=singleSel();
+    const s=rs.selection.single;
     if(s && s.type==="node" && s.obj && s.obj.id===n.id){
       c.fillStyle="#fff"; c.strokeStyle="#3aa7e8"; c.lineWidth=1.5;
       for(const [cx,cy] of nodeCorners(n)){
@@ -442,13 +457,13 @@ function drawFlowBalls(c,t){
     }
   }
 }
-function drawEdge(c,e,t,theme,isExport){
+function drawEdge(c,e,t,theme,isExport,rs){
   const A=nodeById(e.from), B=nodeById(e.to); if(!A||!B) return;
   const a=Math.min(nodeAlpha(A,t),nodeAlpha(B,t)); if(a<=0) return;
   const pts=edgePoints(e); if(pts.length<2) return;
   const T=THEMES[theme];
-  const seld=!isExport && selE.has(e.id);
-  const single=!isExport && (()=>{ const s=singleSel(); return s && s.type==="edge" && s.obj && s.obj.id===e.id; })();
+  const seld=!isExport && rs.selection.edges.has(e.id);
+  const single=!isExport && (()=>{ const s=rs.selection.single; return s && s.type==="edge" && s.obj && s.obj.id===e.id; })();
   c.save(); c.globalAlpha=a;
   const lineCol=e.lineColor||T.edge;
   c.strokeStyle=seld? "#3aa7e8":lineCol; c.lineWidth=seld?2.6:2;
@@ -493,7 +508,7 @@ function drawEdge(c,e,t,theme,isExport){
        legible la etiqueta sobre la línea, y el textarea transparente lo necesita
        igual que el texto pintado. Lo que no se dibuja es el texto. */
     c.fillStyle=T.lblBg; c.fillRect(m.x-w/2-6,m.y-efs*.85,w+12,efs*1.7);
-    if(editing!==e){ c.fillStyle=T.edgeLbl; c.fillText(e.label,m.x,m.y); }
+    if(rs.interaction.editing!==e){ c.fillStyle=T.edgeLbl; c.fillText(e.label,m.x,m.y); }
   }
   if(single){
     c.lineWidth=1.6;
@@ -553,7 +568,9 @@ function drawEdge(c,e,t,theme,isExport){
    extremo al mover — soltar ahí dejaría la arista saliendo y entrando en el
    mismo nodo. No resaltarlo es la mitad visual de esa guarda; la otra está en
    el pointerup de js/interaction.js. */
-function drawDropPreview(c, theme, desde, excluirId){
+function drawDropPreview(c, theme, desde, excluirId, rs){
+  const {mouse, hoverNode} = rs.interaction;
+  const viewZoom = rs.viewport.zoom;
   c.save();
   c.strokeStyle="#3aa7e8"; c.setLineDash([6,5]); c.lineWidth=2/viewZoom;
   c.beginPath(); c.moveTo(desde.x,desde.y); c.lineTo(mouse.x,mouse.y); c.stroke();
@@ -591,14 +608,16 @@ function drawSideArrows(c,n){
   }
   c.restore();
 }
-function resizeCanvas(){
-  const r=$("wrap").getBoundingClientRect();
-  if(cv.width!==Math.round(r.width) || cv.height!==Math.round(r.height)){
-    cv.width=Math.round(r.width); cv.height=Math.round(r.height);
+function resizeCanvas(canvas, container){
+  const r=container.getBoundingClientRect();
+  if(canvas.width!==Math.round(r.width) || canvas.height!==Math.round(r.height)){
+    canvas.width=Math.round(r.width); canvas.height=Math.round(r.height);
   }
 }
 
 function render(c,t,opts={}){
+  if(!opts.renderState) throw new TypeError("render() requiere opts.renderState explícito");
+  const rs=opts.renderState;
   const theme=doc.theme, T=THEMES[theme];
   const isExport=!!opts.export;
 
@@ -616,28 +635,29 @@ function render(c,t,opts={}){
       c.stroke();
     }
     edgeLabelPos=placeEdgeLabels(measureCanvasLabel(c));
-    for(const e of P().edges) drawEdge(c,e,t,theme,isExport);
+    for(const e of P().edges) drawEdge(c,e,t,theme,isExport,rs);
     drawFlowBalls(c,t);
-    for(const n of P().nodes) drawNode(c,n,t,theme,isExport);
+    for(const n of P().nodes) drawNode(c,n,t,theme,isExport,rs);
     return;
   }
 
-  resizeCanvas();
-  c.clearRect(0,0,cv.width,cv.height);
+  const vp=rs.viewport;
+  const cw=vp.width||c.canvas.width, ch=vp.height||c.canvas.height;
+  c.clearRect(0,0,cw,ch);
 
   c.save();
-  c.translate(viewX, viewY);
-  c.scale(viewZoom, viewZoom);
+  c.translate(vp.x, vp.y);
+  c.scale(vp.zoom, vp.zoom);
 
-  const wx = -viewX / viewZoom;
-  const wy = -viewY / viewZoom;
-  const ww = cv.width / viewZoom;
-  const wh = cv.height / viewZoom;
+  const wx = -vp.x / vp.zoom;
+  const wy = -vp.y / vp.zoom;
+  const ww = cw / vp.zoom;
+  const wh = ch / vp.zoom;
 
   c.fillStyle = doc.customBg||T.bg; c.fillRect(wx, wy, ww, wh);
 
   if(settings.grid){
-    c.strokeStyle=T.grid; c.lineWidth=1/viewZoom; c.beginPath();
+    c.strokeStyle=T.grid; c.lineWidth=1/vp.zoom; c.beginPath();
     const sx = Math.floor(wx/GRID)*GRID;
     const sy = Math.floor(wy/GRID)*GRID;
     for(let x=sx; x<wx+ww+GRID; x+=GRID){c.moveTo(x,wy); c.lineTo(x,wy+wh);}
@@ -648,60 +668,49 @@ function render(c,t,opts={}){
   /* refreshEdgeLabels y no una asignación directa: mientras se arrastra un
      extremo el mapa está congelado. Ver js/geometry.js. */
   refreshEdgeLabels(measureCanvasLabel(c));
-  for(const e of P().edges) drawEdge(c,e,t,theme,isExport);
+  for(const e of P().edges) drawEdge(c,e,t,theme,isExport,rs);
   drawFlowBalls(c,t);
-  for(const n of P().nodes) drawNode(c,n,t,theme,isExport);
+  for(const n of P().nodes) drawNode(c,n,t,theme,isExport,rs);
 
-  if(!presenting && mode==="select" && !drag && !resizing && !wpDrag && !connectDrag && !endDrag && !marquee && !pendingShape && !pendingIcon && !pendingAnim){
-    const host=arrowHostNode();
+  const I=rs.interaction, S=rs.selection;
+  if(!vp.presenting && I.mode==="select" && !I.drag && !I.resizing && !I.wpDrag && !I.connectDrag && !I.endDrag && !I.marquee && !I.pendingShape && !I.pendingIcon && !I.pendingAnim){
+    const host=S.arrowHost;
     if(host) drawSideArrows(c,host);
   }
-  if(connectDrag){
-    const A=nodeById(connectDrag.fromId);
-    if(A) drawDropPreview(c, theme, sidePoint(A,connectDrag.fromSide), A.id);
+  if(I.connectDrag){
+    const A=nodeById(I.connectDrag.fromId);
+    if(A) drawDropPreview(c, theme, sidePoint(A,I.connectDrag.fromSide), A.id, rs);
   }
   /* Arrastrando un extremo: la línea de puntos sale del extremo que NO se mueve,
      y el nodo excluido es el del otro extremo — soltar ahí sería un auto-lazo. */
-  if(endDrag){
-    const e=edgeById(endDrag.edgeId);
+  if(I.endDrag){
+    const e=edgeById(I.endDrag.edgeId);
     if(e){
       const pts=edgePoints(e);
       if(pts.length>=2){
-        const quieto = endDrag.which==="from" ? pts[pts.length-1] : pts[0];
-        drawDropPreview(c, theme, quieto, endDrag.which==="from" ? e.to : e.from);
+        const quieto = I.endDrag.which==="from" ? pts[pts.length-1] : pts[0];
+        drawDropPreview(c, theme, quieto, I.endDrag.which==="from" ? e.to : e.from, rs);
       }
     }
   }
-  if(connecting!==null){
-    const A=nodeById(connecting);
-    if(A){ c.save(); c.strokeStyle="#3aa7e8"; c.setLineDash([5,5]); c.lineWidth=2/viewZoom;
-      c.beginPath(); c.moveTo(A.x,A.y); c.lineTo(mouse.x,mouse.y); c.stroke(); c.restore(); }
+  if(I.connecting!==null){
+    const A=nodeById(I.connecting);
+    if(A){ c.save(); c.strokeStyle="#3aa7e8"; c.setLineDash([5,5]); c.lineWidth=2/vp.zoom;
+      c.beginPath(); c.moveTo(A.x,A.y); c.lineTo(I.mouse.x,I.mouse.y); c.stroke(); c.restore(); }
   }
-  if(marquee){
-    const r=normRect(marquee);
+  if(I.marquee){
+    const r=normRect(I.marquee);
     c.save();
     c.fillStyle="rgba(58,167,232,.12)";
-    c.strokeStyle="#3aa7e8"; c.lineWidth=1/viewZoom;
+    c.strokeStyle="#3aa7e8"; c.lineWidth=1/vp.zoom;
     c.fillRect(r.x,r.y,r.w,r.h); c.strokeRect(r.x,r.y,r.w,r.h);
     c.restore();
   }
-  if(P().nodes.length===0 && !presenting){
+  if(P().nodes.length===0 && !vp.presenting){
     c.fillStyle=theme==="crema"?"#00000055":"#ffffff44";
-    c.font=(20/viewZoom)+"px Georgia, serif"; c.textAlign="center";
-    c.fillText("Elige una forma o icono a la izquierda y haz clic aquí — o pulsa «Ejemplo»", (cv.width/2 - viewX) / viewZoom, (cv.height/2 - viewY) / viewZoom);
+    c.font=(20/vp.zoom)+"px Georgia, serif"; c.textAlign="center";
+    c.fillText("Elige una forma o icono a la izquierda y haz clic aquí — o pulsa «Ejemplo»", (cw/2 - vp.x) / vp.zoom, (ch/2 - vp.y) / vp.zoom);
   }
 
   c.restore();
 }
-function now(){ return playing? (performance.now()-t0)/1000 : pausedAt; }
-/* pedir el siguiente fotograma ANTES de dibujar: si un fotograma falla, el error
-   sale por consola pero el bucle sigue vivo, en vez de dejar el lienzo en negro
-   para siempre por un único fallo. */
-(function loop(){
-  requestAnimationFrame(loop);
-  render(ctx,now());
-  /* El textarea de edición in-situ vive en el DOM, fuera del lienzo, así que no
-     lo mueve el zoom ni el paneo. Se recoloca aquí, después de dibujar, y solo
-     cuando algo de lo que depende ha cambiado. */
-  if(typeof syncEditBoxIfMoved==="function") syncEditBoxIfMoved();
-})();

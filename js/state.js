@@ -1,14 +1,13 @@
 "use strict";
-/* Estado del documento, estado de UI, utilidades, fábricas de nodos/flechas y autoguardado local */
+/* Runtime mutable, persistencia e integración DOM exclusivos del editor. */
 
-/* ===================== Documento (páginas) ===================== */
-function blankPage(name){ return {name, nodes:[], edges:[], nextId:1}; }
-let doc={ theme:"dark", customBg:"", pages:[blankPage("Página 1")], cur:0 };
-let settings={ speed:.5, dots:3, build:false, stagger:.45, grid:true, snap:false, font:DEFAULT_FONT, single:false };
-const P=()=>doc.pages[doc.cur];
-
-/* ===================== Estado de UI ===================== */
+/* ===================== Viewport ===================== */
 const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+let viewX=0, viewY=0, viewZoom=0.8;
+let presenting=false;         // modo presentación: el lienzo ocupa la pantalla y las páginas son diapositivas
+let panDrag=null;
+
+/* ===================== Interacción del editor ===================== */
 let mode="select", pendingShape=null, pendingIcon=null, pendingAnim=null, connecting=null;
 let selN=new Set(), selE=new Set();
 let drag=null;                // {offs:{id:{dx,dy}}, wps:[{w,dx,dy}]}
@@ -29,34 +28,12 @@ let endDrag=null;             // {edgeId, which:"from"|"to"}
 let segDrag=null;             // {edgeId, i0, i1, eje, lim:{min,max}}
 let marquee=null;             // {x0,y0,x1,y1,add}
 let hoverNode=null;
-/* Nodo o arista que se está editando in-situ. Vive aquí y no en interaction.js
-   porque lo LEE render.js —que se carga antes— para no dibujar dos veces el texto
-   que ya pinta el textarea. Un `let` de otro script estaría en zona muerta
-   temporal en el primer fotograma, y ni siquiera `typeof` lo salva. */
+/* Nodo o arista que se está editando in-situ. editor-runtime.js lo incorpora al
+   renderState para que el renderer no pinte dos veces el texto del textarea. */
 let editing=null;
 let clip=null;                // portapapeles interno
 let pasteTimer=null;
-let t0=performance.now(), playing=true, pausedAt=0;
 const mouse={x:0,y:0};
-let viewX=0, viewY=0, viewZoom=0.8;
-let panDrag=null;
-let presenting=false;         // modo presentación: el lienzo ocupa la pantalla y las páginas son diapositivas
-
-function getBounds(){
-  if(P().nodes.length===0) return {x:0, y:0, w:1280, h:720};
-  let mx=Infinity, my=Infinity, Mx=-Infinity, My=-Infinity;
-  const addP=(x,y)=>{ if(x<mx)mx=x; if(x>Mx)Mx=x; if(y<my)my=y; if(y>My)My=y; };
-  P().nodes.forEach(n=>{
-    addP(n.x-n.w/2, n.y-n.h/2);
-    addP(n.x+n.w/2, n.y+n.h/2);
-  });
-  P().edges.forEach(e=>{
-    const pts=edgePoints(e);
-    pts.forEach(p=>addP(p.x, p.y));
-  });
-  mx-=40; my-=40; Mx+=40; My+=40;
-  return {x: mx, y: my, w: Mx-mx, h: My-my};
-}
 
 function centerView(){
   const r=$("wrap").getBoundingClientRect();
@@ -80,45 +57,12 @@ setTimeout(centerView, 100);
 
 /* ===================== Utilidades ===================== */
 const $=id=>document.getElementById(id);
-const nodeById=id=>P().nodes.find(n=>n.id===id);
-const edgeById=id=>P().edges.find(e=>e.id===id);
-const lerp=(a,b,t)=>a+(b-a)*t;
-const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
-const smooth=t=>{t=clamp(t,0,1); return t*t*(3-2*t);};
-const snap=v=>Math.round(v/GRID)*GRID;
-/* Movimiento libre por defecto; snap a rejilla solo si settings.snap está activo */
-const snapV=v=>settings.snap? Math.round(v/GRID)*GRID : Math.round(v);
-const deep=o=>JSON.parse(JSON.stringify(o));
-function hexA(col,a){ const v=parseInt(col.slice(1),16);
-  return `rgba(${v>>16&255},${v>>8&255},${v&255},${a})`; }
-
-function newNode(shape,x,y,extra={}){
-  const [w,h]=DEFAULT_SIZES[shape]||[160,70];
-  const n=Object.assign({ id:P().nextId++, shape, x:snapV(x), y:snapV(y), w, h,
-    label: shape==="text"?"Texto":shape==="code"?CODE_DEFAULT_LABEL:(shape==="icon"||shape==="image"||shape==="anim")?"":"Nodo",
-    color:PALETTE[0].c, fill:null, border:"solid", lblPos:"center", textBg:null, textColor:null,
-    font:null, bold:false, pulse:false, order:P().nodes.length }, extra);
-  /* Los campos de `code` solo se ponen en nodos `code`, igual que `icon` solo va
-     en los de icono: no tiene sentido cargar todos los nodos con ellos. */
-  if(shape==="code" && !("lang" in n)) Object.assign(n,{lang:DEFAULT_LANG, keywords:null, kwBg:null, kwColor:null});
-  /* `tint` nace apagado también en los iconos nuevos: el interruptor tiene que
-     significar lo mismo en un diagrama de hoy y en uno de hace un mes. */
-  if(shape==="icon" && !("tint" in n)) n.tint=false;
-  P().nodes.push(n); return n;
-}
-function newEdge(a,b,opts={}){
-  if(a===b) return null;
-  const e=Object.assign({ id:P().nextId++, from:a, to:b, fromSide:null, toSide:null,
-    route:"straight", waypoints:[], label:"", font:null, bold:false, animated:true, dashed:false, startArrow:false, endArrow:true, flowDir:"normal" }, opts);
-  P().edges.push(e); return e;
-}
 
 /* ===================== Autoguardado local ===================== */
 const AUTOSAVE_KEY="fluyo.autosave.v1";
 const AUTOSAVE_DELAY=500;
 let autosaveTimer=null, autosavePaused=false, autosaveReady=true, autosaveSuppressed=0;
 
-function serializeProject(){ return {version:3,app:"fluyo",doc,settings}; }
 function canAutosave(){ return autosaveReady && !autosavePaused && autosaveSuppressed===0; }
 function suppressAutosave(){
   autosaveSuppressed++;
@@ -165,46 +109,6 @@ function syncProjectControls(){
   if($("chkSingle")) $("chkSingle").checked=!!settings.single;
   if($("bgCustom") && doc.customBg) $("bgCustom").value=doc.customBg;
   if($("fontGlobalSel")) $("fontGlobalSel").value=settings.font||DEFAULT_FONT;
-}
-/* Migra y normaliza un `.fluyo.json` hasta dejarlo como documento válido, SIN
-   instalarlo en el editor. Está separado de applyProjectData() porque «abrir
-   como página nueva» necesita las páginas ya migradas para engancharlas a OTRO
-   documento, y duplicar esta normalización es exactamente cómo se acaba con dos
-   importadores que divergen.
-
-   Lanza si lo que llega no es un documento Fluyo. Comprueba que `nodes` y
-   `edges` sean arrays de verdad y no solo que exista `pages`: hasta ahora todo
-   lo que pasaba por aquí venía de un archivo que el usuario había elegido a
-   mano, y a partir del enlace compartible viene de donde sea. */
-function documentFromProjectData(d){
-  let nd;
-  if(d && d.doc && Array.isArray(d.doc.pages) && d.doc.pages.length) nd=d.doc;
-  else if(d && d.state && Array.isArray(d.state.nodes)){
-    nd={theme:d.state.theme||"dark", cur:0,
-        pages:[Object.assign(blankPage("Página 1"),{nodes:d.state.nodes,edges:(d.state.edges||[]).map(e=>Object.assign({fromSide:null,toSide:null,route:"straight",waypoints:[]},e)),nextId:d.state.nextId||999})]};
-  } else throw new Error("invalid");
-  nd.pages.forEach(pg=>{
-    if(!pg || !Array.isArray(pg.nodes) || !Array.isArray(pg.edges)) throw new Error("invalid");
-  });
-  nd.pages.forEach(pg=>pg.edges.forEach(e=>{
-    if(e.endArrow===undefined){ e.endArrow=true; e.startArrow=!!e.bidir; }
-    if(!e.flowDir) e.flowDir="normal";
-    if(!e.waypoints) e.waypoints=[];
-    if(!e.route) e.route="straight";
-    if(e.font===undefined) e.font=null;
-    if(e.bold===undefined) e.bold=false;
-  }));
-  nd.pages.forEach(pg=>pg.nodes.forEach(n=>{
-    if(n.fill===undefined) n.fill=null;
-    if(!n.border) n.border="solid";
-    if(!n.lblPos) n.lblPos="center";
-    if(n.textBg===undefined) n.textBg=null;
-    if(n.textColor===undefined) n.textColor=null;
-    if(n.font===undefined) n.font=null;
-    if(n.bold===undefined) n.bold=false;
-  }));
-  if(nd.customBg===undefined) nd.customBg="";
-  return nd;
 }
 function applyProjectData(d){
   const nd=documentFromProjectData(d);

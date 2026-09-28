@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FLUYO-004 — Viewer Boundary harness</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 20px; background:#161616; color:#ededed; }
+    #cv { display:block; border:1px solid #444; background:#161616; }
+    #log { margin-top:12px; white-space:pre-wrap; font-family:monospace; }
+    .ok { color:#7bb85b; } .err { color:#d0576a; }
+  </style>
+</head>
+<body>
+  <h1>FLUYO-004 — Viewer Boundary harness</h1>
+  <div id="wrap" style="width:800px;height:600px;">
+    <canvas id="cv" width="800" height="600"></canvas>
+  </div>
+  <div id="log"></div>
+
+  <!-- Core read-only real: sin state.js, editor-runtime.js, selección,
+       interacción, autosave, localStorage, UI ni export. -->
+  <script src="../js/config.js"></script>
+  <script src="../js/model.js"></script>
+  <script src="../js/geometry.js"></script>
+  <script src="../js/render.js"></script>
+
+  <script>
+    const log = document.getElementById("log");
+    function out(s, ok){ log.innerHTML += (ok?"<span class=ok>PASS</span> ":"<span class=err>FAIL</span> ") + s + "\n"; }
+    function fail(s, e){ out(s + " — " + e, false); }
+
+    try {
+      const fixture={version:3,app:"fluyo",doc:{theme:"dark",customBg:"",cur:0,pages:[{
+        name:"Boundary test",nextId:4,
+        nodes:[
+          {id:1,shape:"rect",x:200,y:200,w:160,h:70,label:"Nodo A",color:"#3aa7e8"},
+          {id:2,shape:"rect",x:500,y:200,w:160,h:70,label:"Nodo B",color:"#7bb85b"}
+        ],
+        edges:[{id:3,from:1,to:2,label:"conexión",animated:true}]
+      }]},settings:{speed:.5,dots:3,build:false,stagger:.45,grid:false,snap:false,font:DEFAULT_FONT,single:false}};
+      doc=documentFromProjectData(fixture);
+      settings=Object.assign(settings,fixture.settings);
+
+      const canvas = document.getElementById("cv");
+      const context = canvas.getContext("2d");
+
+      // 1) Renderer ejecutable con estado read-only explícito (sin globals de interacción).
+      const rsViewer = makeReadOnlyRenderState({x:0, y:0, zoom:1, width:800, height:600, presenting:false});
+      render(context, 0, {renderState: rsViewer});
+      out("render() con makeReadOnlyRenderState no lanza", true);
+
+      // 2) Estado read-only no pinta selección/hover/drag/edición.
+      const noSel = rsViewer.selection.nodes.size === 0 && rsViewer.selection.edges.size === 0 &&
+                    rsViewer.selection.single === null && rsViewer.selection.arrowHost === null &&
+                    rsViewer.interaction.editing === null && rsViewer.interaction.hoverNode === null &&
+                    !rsViewer.interaction.drag;
+      out("makeReadOnlyRenderState tiene interacción y selección vacías", noSel);
+
+      // 3) Una integración incompleta falla de forma explícita.
+      let missingFailed=false;
+      try{ render(context,0.2); }catch(e){ missingFailed=/renderState/.test(e.message); }
+      out("render() rechaza llamadas sin renderState", missingFailed);
+
+      // 4) El modelo compartido normalizó defaults sin runtime del editor.
+      out("fixture normalizado por el modelo compartido", P().edges[0].route==="straight" && P().nodes[0].border==="solid");
+
+      out("Harness completado", true);
+    } catch(e) {
+      fail("Harness", e.message + "\n" + e.stack);
+    }
+  </script>
+</body>
+</html>

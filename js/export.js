@@ -410,7 +410,7 @@ function exportStatic(fmt,scale,transparent){
   const off=document.createElement("canvas"); off.width=w; off.height=h;
   const oc=off.getContext("2d");
   oc.save(); oc.scale(scale,scale); oc.translate(-b.x, -b.y);
-  render(oc, now(), {export:true, transparent: fmt==="png"&&transparent, bounds:b});
+  render(oc, now(), {export:true, transparent: fmt==="png"&&transparent, bounds:b, renderState: makeReadOnlyRenderState({width: off.width, height: off.height})});
   oc.restore();
   const mime=fmt==="png"?"image/png":"image/jpeg";
   off.toBlob(blob=>{
@@ -493,7 +493,7 @@ async function exportGIF(scale, transparent){
     for(let f=0;f<frames;f++){
       const t=f/fps;
       oc.save(); oc.scale(scale,scale); oc.translate(-b.x, -b.y);
-      render(oc,t, transparent? {export:true, bg:keyCss, bounds:b} : {export:true, bounds:b});
+      render(oc,t, transparent? {export:true, bg:keyCss, bounds:b, renderState: makeReadOnlyRenderState({width: off.width, height: off.height})} : {export:true, bounds:b, renderState: makeReadOnlyRenderState({width: off.width, height: off.height})});
       oc.restore();
       gif.addFrame(off,{copy:true, delay:Math.round(1000/fps)});
       if(f%5===0){
@@ -527,6 +527,7 @@ async function exportGIF(scale, transparent){
 }
 
 function registerServiceWorker(){
+  if(location.protocol!=="http:" && location.protocol!=="https:") return;
   if(!("serviceWorker" in navigator)) return;
   const register=()=> navigator.serviceWorker.register("./sw.js").catch(console.error);
   if(document.readyState==="complete") register();

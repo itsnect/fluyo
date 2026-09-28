@@ -13,7 +13,9 @@ function read(p){ return fs.readFileSync(path.join(__dirname, "..", p), "utf8");
 
 const editorScripts = [
   "js/config.js",
+  "js/safe-svg.js",
   "js/model.js",
+  "js/link-codec.js",
   "js/examples.js",
   "js/deeplink.js",
   "js/state.js",
@@ -24,12 +26,15 @@ const editorScripts = [
   "js/editor-runtime.js",
   "js/ui.js",
   "js/export.js",
+  "js/share-url.js",
+  "js/editor-share.js",
   "js/analytics.js",
   "js/editor-analytics.js",
 ];
 
 const viewerScripts = [
   "js/config.js",
+  "js/safe-svg.js",
   "js/model.js",
   "js/geometry.js",
   "js/render.js",

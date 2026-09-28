@@ -6,15 +6,14 @@
 <title>Diagrama compartido · Fluyo</title>
 
 <!-- Discoverability (FLUYO-003 §5/§9): el share es una capability URL pública,
-     no un contenido que deba indexarse. Cuando exista backend (FLUYO-006) la
-     respuesta HTTP añadirá además X-Robots-Tag: noindex, nofollow. -->
+     no un contenido que deba indexarse. El snapshot viaja exclusivamente en #d=; no existe backend. -->
 <meta name="robots" content="noindex, nofollow">
 <!-- Referrer-Policy explícita: la ruta /s/<id> no debe filtrarse en el
      Referer de peticiones a terceros. No se depende del default del navegador. -->
 <meta name="referrer" content="no-referrer">
 <!-- CSP del viewer (FLUYO-003 §8). frame-ancestors solo se puede fijar por
-     cabecera HTTP: queda pendiente para FLUYO-006 con el servicio hospedado. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cloud.umami.is; style-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://cloud.umami.is; object-src 'none'; base-uri 'none'">
+     cabecera HTTP: depende del hosting estático existente. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cloud.umami.is; style-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://cloud.umami.is https://gateway.umami.is; object-src 'none'; base-uri 'none'">
 <meta name="theme-color" content="#111213">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23161616'/%3E%3Ccircle cx='18' cy='32' r='7' fill='%23d08b5b'/%3E%3Ccircle cx='40' cy='32' r='5' fill='%23d08b5b' opacity='.65'/%3E%3Ccircle cx='54' cy='32' r='3.4' fill='%23d08b5b' opacity='.35'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="../css/identity.css">
@@ -54,7 +53,9 @@
      NO cargar aquí: state.js, editor-runtime.js, selection.js,
      interaction.js, ui.js ni export.js. -->
 <script src="../js/config.js"></script>
+<script src="../js/safe-svg.js"></script>
 <script src="../js/model.js"></script>
+<script src="../js/link-codec.js"></script>
 <script src="../js/geometry.js"></script>
 <script src="../js/render.js"></script>
 <!-- Transporte de telemetría puro (sin instrumentación de edición). -->

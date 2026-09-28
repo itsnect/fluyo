@@ -82,7 +82,7 @@ Consecuencia: los eventos no son directamente comparables con la semántica ante
 
 ## D-008 — Share Foundation: snapshot inmutable, capability URL y retirada por token
 
-Estado: vigente
+Estado: arquitectura futura diferida por D-010; diseño preservado
 
 Contexto: FLUYO-003 diseñó la arquitectura mínima para publicar un documento Fluyo mediante una URL no enumerable y visualizarlo en un viewer read-only, manteniendo el núcleo client-side y la promesa de privacidad de D-004 salvo por esta excepción explícita y consentida. Revisión humana el 2026-09-28.
 
@@ -108,3 +108,50 @@ documento activo: `newNode()`/`newEdge()` viven en `state.js`, sólo del editor.
 normalización de documento/settings para archivo, deep link y viewer;
 `documentFromProjectData()` mantiene su API delegando en ella. No hay política
 de versiones ni esquema separado para Share. El formato portable sigue en v3.
+
+## D-010 — Share MVP autocontenido antes de persistencia remota
+
+Estado: vigente / revisable
+
+Contexto: FLUYO-004/005 permiten reutilizar el renderer read-only y la entrada
+canónica. FLUYO-006 valida compartir un diagrama interactivo con coste operativo
+prácticamente cero, sobre el hosting estático existente.
+
+Decisión: snapshot canónico v3 → códec existente de deep links (deflate-raw,
+versión 0 UTF-8 como fallback, base64url) → `/s/#d=<payload>`. Confirmación
+explícita de copia, acceso de cualquiera con el enlace, ausencia de almacenamiento
+en servidor y ausencia de revocación. Límite operativo de 65536 caracteres sobre
+la URL final. Se conserva el límite defensivo de 2 MiB descomprimidos del códec;
+no son límites del formato `.fluyo.json`. Viewer y editor usan
+`projectFromProjectData()`; assets aportados por documentos deben ser raster
+embebido (PNG/JPEG/WebP/GIF, con firma coherente) o SVG estático reconstruido por
+`safe-svg.js` desde una lista cerrada. Se conserva la representación histórica
+`img: data:image/svg+xml;base64,...`, sin cambio de schema. La misma frontera
+rechaza scripts, handlers, foreignObject, DTD, CSS arbitrario y referencias
+externas; sólo admite referencias SVG internas, raster embebido verificado y
+SVG local anidado reconstruido con la misma frontera, hasta ocho niveles.
+Los marcadores de flecha, textLength/lengthAdjust y aliases href coherentes del
+exportador se admiten como construcciones estáticas de listas cerradas.
+La UI valida antes de cargar/crear la imagen. SVG de catálogo se conserva.
+`Abrir en Fluyo` reutiliza el payload válido como `/#d=`, sin reserialización ni
+identidad compartida. Los tres eventos Share son agregados, sin propiedades.
+Umami tiene captura automática desactivada y filtro que reconstruye URL, título
+y referrer; ningún documento, hash, tamaño o ID llega a analytics.
+
+Consecuencia: sin backend, API, storage, cuentas, sincronización, IDs remotos ni
+revoke. D-008/FLUYO-003 permanecen como diseño de una posible solución persistente;
+su implementación queda diferida y sólo se reconsidera si las métricas agregadas
+muestran uso real de Share. Enlaces pueden quedar en historial o ser reenviados;
+no son cifrado y Fluyo no puede retirarlos. Un medio externo puede truncarlos.
+La política de assets se aplica también al importar archivos: SVG históricos del
+subconjunto estático seguro vuelven a abrir; remotos y contenido activo se
+rechazan. No cambia el esquema ni la versión del formato portable.
+
+Resolución QA de FLUYO-006: el códec mantiene v0/v1 y recorre la estructura
+DEFLATE conforme a RFC 1951 antes de la descompresión nativa para comprobar el
+final exacto del único stream; sin recomprimir ni cambiar envelope. Acepta
+stored/fixed/dynamic y padding final, rechaza bytes/streams concatenados y
+preserva la defensa de 2 MiB. El viewer trata hashchange como nueva activación:
+invalida el estado anterior, descarta cargas tardías y emite share_viewed sólo
+tras el primer render de cada activación válida. Repetir el mismo payload activo
+no duplica evento/RAF. ERROR deja un modelo vacío inactivo y payload nulo.

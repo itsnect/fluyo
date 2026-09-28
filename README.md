@@ -47,6 +47,30 @@ Las herramientas que animan de verdad son de pago, viven en la nube y te piden u
 
 ---
 
+## Compartir un diagrama interactivo
+
+Pulsa **Compartir → Crear enlace → Copiar enlace**. La confirmación explica que
+es una copia, cualquiera con el enlace puede verla, Fluyo no la almacena en un
+servidor y el enlace no puede revocarse. El receptor abre `/s/#d=…` sin cuenta ni
+almacenamiento previo; puede navegar, mover la vista, acercar y presentar.
+**Abrir en Fluyo** abre una copia editable mediante `/#d=…`.
+
+El snapshot no cambia al editar el original. El Share MVP admite URL finales
+hasta **65536 caracteres (64 KiB)**; si se supera, ofrece exportar un archivo.
+Se mantiene la defensa existente del códec: máximo 2 MiB de JSON descomprimido.
+Estos límites son del transporte por enlace, no del archivo `.fluyo.json`.
+Compartir requiere HTTP/HTTPS; bajo `file://` se indica abrir la versión web.
+No hay backend, almacenamiento remoto, sincronización ni gestión de enlaces.
+
+Las imágenes del documento deben estar embebidas: PNG, JPEG, WebP, GIF o SVG
+estático. Fluyo valida y reconstruye los SVG admitidos antes de cargarlos;
+rechaza scripts, handlers, HTML embebido y referencias externas. Conserva SVG
+históricos del subconjunto seguro y el mismo formato `.fluyo.json`. Los SVG con
+marcadores de flecha, texto de código e imágenes SVG locales del exportador de
+Fluyo se reconstruyen con la misma validación; máximo ocho niveles de SVG.
+Un SVG con filtros, hojas de estilo u otras construcciones fuera de la lista admitida puede
+requerir simplificación o una imagen raster local.
+
 ## Cómo correrlo en local
 
 Clona y abre `index.html` en el navegador. Ya está: no hay que instalar nada, ni compilar nada, ni levantar nada.

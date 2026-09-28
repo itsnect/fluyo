@@ -62,7 +62,7 @@
    sin esto, un enlace de 20 KB puede pedirle al navegador 20 MB. Hasta hoy todo
    lo que entraba al editor venía de un archivo que alguien había elegido a
    mano; un enlace viene de donde sea, y hay que tratarlo como tal. */
-const DEEP_LINK_MAX_BYTES = 2 * 1024 * 1024;
+/* El límite de descompresión vive en link-codec.js. */
 
 /* Clave de sesión —por pestaña, no persistente— con la carga ya resuelta.
    Recargar una pestaña donde el enlace ya se abrió NO puede volver a preguntar:
@@ -89,84 +89,6 @@ const DEEP_LINK_PAYLOAD = (()=>{
    lista blanca de examples.js y el enlace de aquí— porque para quien arranca la
    pregunta es la misma y la respuesta tiene que ser una. */
 function urlBringsDocument(){ return !!EXAMPLE_SLUG || !!DEEP_LINK_PAYLOAD; }
-
-function base64urlToBytes(s){
-  const b64=s.replace(/-/g,"+").replace(/_/g,"/");
-  /* atob rechaza una longitud que no sea múltiplo de 4, y base64url viaja sin
-     relleno para no gastar caracteres en la URL. */
-  const bin=atob(b64 + "=".repeat((4 - b64.length % 4) % 4));
-  const u=new Uint8Array(bin.length);
-  for(let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i);
-  return u;
-}
-
-/* Descomprime contando lo que sale y abortando en cuanto se pasa del tope, sin
-   esperar a tener el resultado entero en memoria. */
-async function inflateRaw(bytes, max){
-  const ds=new DecompressionStream("deflate-raw");
-  const w=ds.writable.getWriter();
-  /* Si los bytes no son deflate válido, el error sale por el lado de lectura.
-     Estos dos catch evitan además la promesa rechazada sin dueño del escritor. */
-  w.write(bytes).catch(()=>{});
-  w.close().catch(()=>{});
-  const r=ds.readable.getReader();
-  const trozos=[]; let total=0;
-  for(;;){
-    const {value,done}=await r.read();
-    if(done) break;
-    total+=value.length;
-    if(total>max){ r.cancel().catch(()=>{}); const e=new Error("too_large"); e.motivo="too_large"; throw e; }
-    trozos.push(value);
-  }
-  const todo=new Uint8Array(total); let off=0;
-  for(const t of trozos){ todo.set(t,off); off+=t.length; }
-  return new TextDecoder().decode(todo);
-}
-
-/* Devuelve el diagrama del enlace, ya validado, o lanza. El error lleva
-   `motivo`, que es lo único que acaba en la telemetría: vocabulario cerrado de
-   cuatro valores, ningún dato del contenido.
-
-       decode       la carga no se puede leer — base64 roto, no es deflate,
-                    versión desconocida, o el resultado no es JSON.
-                    El caso probable: un cliente de correo partió la URL.
-       schema       se leyó bien, pero lo que traía no es un diagrama Fluyo.
-                    Reenviar el enlace no lo arregla; es otro problema.
-       too_large    se pasó del tope de descompresión.
-       unsupported  este navegador no sabe inflar deflate-raw.
-
-   La validación va aquí dentro y no en quien llama, para que la función tenga
-   un contrato entero: o devuelve un diagrama utilizable, o dice por qué no. */
-async function decodeDeepLink(payload){
-  let bytes;
-  try{ bytes=base64urlToBytes(payload); }
-  catch(e){ const err=new Error("base64"); err.motivo="decode"; throw err; }
-  if(!bytes.length){ const err=new Error("vacío"); err.motivo="decode"; throw err; }
-
-  const version=bytes[0], carga=bytes.subarray(1);
-  let texto;
-  if(version===1){
-    if(typeof DecompressionStream==="undefined"){
-      const err=new Error("sin DecompressionStream"); err.motivo="unsupported"; throw err;
-    }
-    try{ texto=await inflateRaw(carga, DEEP_LINK_MAX_BYTES); }
-    catch(e){ if(e.motivo) throw e; const err=new Error("inflate"); err.motivo="decode"; throw err; }
-  }else if(version===0){
-    if(carga.length>DEEP_LINK_MAX_BYTES){ const err=new Error("grande"); err.motivo="too_large"; throw err; }
-    texto=new TextDecoder().decode(carga);
-  }else{
-    const err=new Error("versión "+version); err.motivo="decode"; throw err;
-  }
-
-  let d;
-  try{ d=JSON.parse(texto); }
-  catch(e){ const err=new Error("json"); err.motivo="decode"; throw err; }
-
-  /* Que el JSON esté bien formado no lo convierte en un diagrama. */
-  try{ documentFromProjectData(d); }
-  catch(e){ const err=new Error("no es un diagrama Fluyo"); err.motivo="schema"; throw err; }
-  return d;
-}
 
 function loadDeepLinkFromURL(){
   if(!DEEP_LINK_PAYLOAD) return;

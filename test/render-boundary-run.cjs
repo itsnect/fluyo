@@ -48,6 +48,7 @@ const context = vm.createContext({
 
 const viewerScripts = [
   "js/config.js",
+  "js/safe-svg.js",
   "js/model.js",
   "js/geometry.js",
   "js/render.js"

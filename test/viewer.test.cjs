@@ -11,96 +11,9 @@
 
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
-const vm=require('node:vm');
-const fs=require('node:fs');
-const path=require('node:path');
 const {CompressionStream, DecompressionStream}=require('node:stream/web');
 
-const read=p=>fs.readFileSync(path.join(__dirname,'..',p),'utf8');
-
-const VIEWER_SCRIPTS=[
-  'js/config.js','js/model.js','js/geometry.js','js/render.js',
-  'js/analytics.js','js/share-loader.js','js/viewer-viewport.js','js/viewer.js'
-];
-const FORBIDDEN_SCRIPTS=['state.js','editor-runtime.js','selection.js','interaction.js','ui.js','export.js','deeplink.js','examples.js','editor-analytics.js'];
-const FORBIDDEN_GLOBALS=['newNode','newEdge','pushUndo','undo','redo','copySel','pasteClip','pasteSel','clearSel','setMode','scheduleAutosave','saveAutosave','clearAutosave','applyProjectData','presentIncomingDocument','exportStatic','exportSVG','exportGIF','buildSVGDocument','syncEditBoxIfMoved','buildEditorRenderState','renderEditorFrame','loadDeepLinkFromURL'];
-
-/* ─────────────────────────── Harness ─────────────────────────── */
-
-function makeViewer({hostname='fluyo.space', pathname='/s/demo', search='', hash=''}={}){
-  const events=[], scripts=[], ops=[];
-  let simTime=0;
-
-  const ctxMock=new Proxy({},{
-    get(_t, prop){
-      if(prop==='measureText') return s=>({width:String(s??'').length*8});
-      if(prop==='canvas') return {width:800, height:600};
-      return (...args)=>{ ops.push([String(prop), ...args]); };
-    },
-    set(){ return true; }
-  });
-
-  const documentListeners={};
-  const elements={};
-  function makeElement(id){
-    const listeners={};
-    return {
-      id, style:{}, dataset:{}, children:[],
-      textContent:'', hidden:false, disabled:false,
-      className:'', value:'', checked:false,
-      classList:{ _s:new Set(),
-        add(c){ this._s.add(c); },
-        remove(c){ this._s.delete(c); },
-        toggle(c,f){ f? this._s.add(c) : this._s.delete(c); },
-        contains(c){ return this._s.has(c); } },
-      setAttribute(){}, getAttribute(){ return null; },
-      appendChild(c){ this.children.push(c); return c; },
-      addEventListener(t,cb){ (listeners[t] ||= []).push(cb); },
-      removeEventListener(){},
-      dispatch(t,ev){ for(const cb of listeners[t]||[]) cb(ev); },
-      hasListener:t=>!!listeners[t],
-      getBoundingClientRect:()=>({width:800, height:600, left:0, top:0}),
-      getContext:()=>ctxMock,
-      setPointerCapture(){}, releasePointerCapture(){},
-      width:800, height:600, onclick:null
-    };
-  }
-  const document={
-    readyState:'loading',
-    getElementById:id=>elements[id] ||= makeElement(id),
-    createElement:()=>makeElement(''),
-    addEventListener(t,cb){ (documentListeners[t] ||= []).push(cb); },
-    body:null,
-    documentElement:{ requestFullscreen:()=>Promise.resolve() },
-    head:{ appendChild:s=>scripts.push(s) },
-    fullscreenElement:null
-  };
-  document.body=makeElement('body');
-  elements.body=document.body;
-  const location={hostname, pathname, search, hash, href:'https://fluyo.space'+pathname+search+hash};
-  let rafCallbacks=[];
-  const context=vm.createContext({
-    console, location, document, window:{},
-    performance:{ now:()=>simTime },
-    requestAnimationFrame:cb=>{ rafCallbacks.push(cb); return rafCallbacks.length; },
-    TextEncoder, TextDecoder, CompressionStream, DecompressionStream, atob, btoa, URL, URLSearchParams
-  });
-  const run=code=>vm.runInContext(code, context);
-  for(const f of VIEWER_SCRIPTS) run(read(f));
-
-  const flush=async(n=6)=>{ for(let i=0;i<n;i++) await new Promise(setImmediate); };
-  const frames=n=>{ for(let i=0;i<n;i++){ const callbacks=rafCallbacks; rafCallbacks=[]; for(const cb of callbacks) cb(simTime); } };
-  const advance=ms=>{ simTime+=ms; };
-  const connect=()=>{ context.window.umami={track:(name,props)=>events.push({name,props})}; scripts[0]?.onload(); };
-  const boot=async()=>{ for(const cb of documentListeners.DOMContentLoaded||[]) cb(); await flush(); };
-  const el=id=>elements[id];
-  const key=ev=>{ for(const cb of documentListeners.keydown||[]) cb(Object.assign({preventDefault(){}}, ev)); };
-  const wheel=ev=>el('sv').dispatch('wheel', Object.assign({preventDefault(){}, deltaX:0, deltaY:0, ctrlKey:false, metaKey:false, clientX:400, clientY:300}, ev));
-
-  return {context, run, events, scripts, ops, flush, frames, advance, connect, boot, el, key, wheel,
-    viewer:()=>context.window.__viewer,
-    names:()=>events.map(e=>e.name)};
-}
+const {makeViewer,read,VIEWER_SCRIPTS,FORBIDDEN_SCRIPTS,FORBIDDEN_GLOBALS}=require("./viewer-harness.cjs");
 
 /* ─────────────────────────── Tests ─────────────────────────── */
 
@@ -173,7 +86,8 @@ test('9b. settings.build reinicia la aparición al cambiar de diapositiva',async
 });
 
 test('3b. not_found, invalid_id y unsupported_version tienen estado propio',async()=>{
-  const missing=makeViewer({pathname:'/s/abcd1234abcd1234abcd22'});
+  const missing=makeViewer();
+  missing.run('shareSource.fetch=async()=>{throw shareError("not_found");}');
   await missing.boot();
   missing.frames(2);
   assert.match(missing.el('status').textContent, /no está disponible/);
@@ -316,7 +230,7 @@ test('12b. Abrir en Fluyo produce una copia editable decodificable por el deep l
   await v.el('btnOpen').onclick();
   await v.flush();
   const url=v.context.location.href;
-  assert.match(url, /^https:\/\/fluyo\.space\/index\.html#d=[A-Za-z0-9\-_]+$/);
+  assert.match(url, /^https:\/\/fluyo\.space\/#d=[A-Za-z0-9\-_]+$/);
   /* decodificar con el mismo contrato que js/deeplink.js */
   const payload=url.split('#d=')[1];
   const bin=atob(payload.replace(/-/g,'+').replace(/_/g,'/') + '='.repeat((4-payload.length%4)%4));
@@ -361,7 +275,7 @@ test('15. Referrer-Policy explícita presente en el shell',()=>{
 /* Regresiones de los hallazgos independientes de QA. */
 test('IDs completos y explícitos: la demo nunca es un fallback',async()=>{
   for(const [id,code] of [['demo',null],['!!','invalid_id'],['demo!','invalid_id'],['','invalid_id'],
-    ['abcdefghijklmnopqrstuv','not_found'],['abc','invalid_id'],['constructor','invalid_id'],['__proto__','invalid_id']]){
+    ['abcdefghijklmnopqrstuv','invalid_id'],['abc','invalid_id'],['constructor','invalid_id'],['__proto__','invalid_id']]){
     const v=makeViewer({pathname:'/s/index.html',search:'?s='+encodeURIComponent(id)});
     v.connect();
     await v.boot(); v.frames(2);
@@ -370,16 +284,16 @@ test('IDs completos y explícitos: la demo nunca es un fallback',async()=>{
     if(code) assert.equal(v.el('status').textContent,v.run(`SHARE_ERROR_MESSAGES[${JSON.stringify(code)}]`),id);
   }
   for(const location of [
-    {pathname:'/s/index.html'}, {pathname:'/s/'},
-    {pathname:'/s/index.html',hash:'#s=demo!'}, {pathname:'/s/demo!'},
-    {pathname:'/s/demo%21'}, {pathname:'/s/%ZZ'}
+    {pathname:'/s/index.html',search:''}, {pathname:'/s/',search:''},
+    {pathname:'/s/index.html',search:'',hash:'#s=demo!'}, {pathname:'/s/demo!',search:''},
+    {pathname:'/s/demo%21',search:''}, {pathname:'/s/%ZZ',search:''}
   ]){
     const v=makeViewer(location); await v.boot();
     assert.equal(v.viewer().phase,'error',JSON.stringify(location));
     assert.equal(v.viewer().shareViewed,false);
   }
-  const hash=makeViewer({pathname:'/s/',hash:'#s=demo'}); await hash.boot();
-  assert.equal(hash.viewer().phase,'ready');
+  const hash=makeViewer({pathname:'/s/',search:'',hash:'#s=demo'}); await hash.boot();
+  assert.equal(hash.viewer().phase,'error');
 });
 
 test('cur normalizado: fuera de rango, fracción y tipos no numéricos',async()=>{

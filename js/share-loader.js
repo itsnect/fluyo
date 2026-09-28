@@ -7,10 +7,7 @@
    un Error con `code` de baja cardinalidad:
    invalid_id | not_found | invalid_document | unsupported_version | unavailable
 
-   La fuente es intercambiable: hoy es un adapter de fixtures locales.
-   FLUYO-006 la sustituirá por `GET /api/shares/:id` SIN reescribir el viewer:
-   basta con reemplazar shareSource.fetch. El resto del contrato (validación,
-   normalización, códigos de error) es estable.
+   Producción usa el fragmento autocontenido; demo es sólo una fixture explícita.
 
    Este archivo no toca el DOM: es ejecutable en Node para los tests. */
 
@@ -24,12 +21,7 @@ function shareError(code){
   return e;
 }
 
-/* ─────────────────────────── Adapter local ───────────────────────────
-   Fixtures embebidos para desarrollo y pruebas antes de que exista backend.
-   Las claves son IDs de demo; cualquier otro ID exige la regex oficial.
-   FLUYO-006: borrar SHARE_FIXTURES y implementar fetch con
-   `await (await fetch("/api/shares/"+encodeURIComponent(id))).json()`,
-   mapeando 404 → not_found y respuestas no JSON → unavailable. */
+/* Fixture embebida para desarrollo y tests (?s=demo). */
 const SHARE_FIXTURES={
   demo:{
     version:3, app:"fluyo",
@@ -74,54 +66,34 @@ async function loadSharedDocument(id){
   catch(e){ throw shareError(e&&e.code==="unsupported_version"? "unsupported_version" : "invalid_document"); }
 }
 
-/* ─────────────────────── Abrir en Fluyo (copia) ───────────────────────
-   Entrega el documento al editor como COPIA editable mediante el deep link
-   existente (`/#d=`), que el editor ya valida y trata como documento
-   entrante. Nunca existe identidad de escritura hacia el share original:
-   el editor recibe bytes, no un ID.
-
-   Mismo formato que js/deeplink.js: [1 byte de versión] + carga.
-   Versión 1 = deflate-raw (CompressionStream, ~5× menos caracteres que el
-   JSON a pelo); versión 0 = JSON UTF-8 tal cual, como fallback para
-   navegadores sin CompressionStream (la versión la decide el primer byte,
-   no la URL, así que el editor lee ambas sin saber quién las emitió).
-
-   FLUYO-006: esta función dejará de usarse en producción en cuanto el
-   editor sepa resolver `/#s=<id>`; se conserva para self-host y para
-   enlazar documentos sin servicio de shares. */
-
-function bytesToBase64url(bytes){
-  let bin="";
-  for(let i=0;i<bytes.length;i+=8192)
-    bin+=String.fromCharCode.apply(null, bytes.subarray(i,i+8192));
-  return btoa(bin).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+/* Prioridad determinista: presencia de d (incluso vacío/duplicado) bloquea demo.
+   No se lee almacenamiento local ni se consulta un servidor. */
+function sharePayloadFromHash(hash){
+  const params=new URLSearchParams(hash.replace(/^#/, ""));
+  if(!params.has("d")) return null;
+  const values=params.getAll("d");
+  if(values.length!==1) throw shareError("invalid_document");
+  return values[0];
 }
-
-async function buildOpenInFluyoURL(projectData, baseHref){
-  const json=JSON.stringify(projectData);
-  let payload;
-  if(typeof CompressionStream==="function"){
-    const bytes=new TextEncoder().encode(json);
-    const cs=new CompressionStream("deflate-raw");
-    const w=cs.writable.getWriter();
-    w.write(bytes).catch(()=>{});
-    w.close().catch(()=>{});
-    const chunks=[]; let total=0;
-    const r=cs.readable.getReader();
-    for(;;){
-      const {value,done}=await r.read();
-      if(done) break;
-      chunks.push(value); total+=value.length;
+async function loadShareFromLocation(loc){
+  const payload=sharePayloadFromHash(loc.hash);
+  if(payload!==null){
+    try{
+      const data=await decodeDeepLink(payload);
+      return {project:projectFromProjectData(data),payload};
+    }catch(e){
+      throw shareError(e.code==="unsupported_version"? "unsupported_version" : "invalid_document");
     }
-    payload=new Uint8Array(total+1);
-    payload[0]=1;
-    let off=1;
-    for(const c of chunks){ payload.set(c,off); off+=c.length; }
-  }else{
-    const bytes=new TextEncoder().encode(json);
-    payload=new Uint8Array(bytes.length+1);
-    payload[0]=0;
-    payload.set(bytes,1);
   }
-  return new URL("../index.html#d="+bytesToBase64url(payload), baseHref).href;
+  const search=new URLSearchParams(loc.search);
+  // La única fixture pública de desarrollo requiere exactamente ?s=demo.
+  if(search.getAll("s").length!==1 || search.get("s")!=="demo") throw shareError("invalid_id");
+  return {project:await loadSharedDocument("demo"),payload:null};
+}
+async function buildOpenInFluyoURL(projectData, baseHref, validPayload=null){
+  const payload=validPayload===null? await encodeDeepLink(projectData) : validPayload;
+  const target=new URL("../",baseHref);
+  target.search="";
+  target.hash="d="+payload;
+  return target.href;
 }

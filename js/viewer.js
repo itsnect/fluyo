@@ -24,8 +24,13 @@ function togglePlay(){
 }
 
 let shareViewed=false;
+let viewerPayload=null;
 let viewerPhase="loading";
 let canvasDirty=false;
+let viewerGeneration=0,viewerRaf=null,presentationRaf=null,viewerInputKey=null;
+let viewportWired=false;
+const viewerPointers=new Map();
+let viewerPinch=null;
 const VIEWER_CONTROLS=["btnFit","btnZoomIn","btnZoomOut","btnPresent","btnOpen"];
 function setViewerPhase(phase){
   viewerPhase=phase;
@@ -43,10 +48,29 @@ const SHARE_ERROR_MESSAGES={
   unavailable:"No se pudo cargar el diagrama ahora mismo. Inténtalo de nuevo más tarde."
 };
 function setStatus(msg){ const el=$("status"); el.textContent=msg; el.hidden=!msg; }
-function showShareError(code){
-  setViewerPhase("error");
-  if(presenting) exitPresent();
+function clearViewerDocument(){
+  if(viewerRaf!==null) cancelAnimationFrame(viewerRaf);
+  if(presentationRaf!==null) cancelAnimationFrame(presentationRaf);
+  viewerRaf=presentationRaf=null;
+  const wasPresenting=presenting;
+  presenting=false;preView=null;
+  document.body.classList.remove("presenting");
+  if(wasPresenting && document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(()=>{});
+  for(const id of viewerPointers.keys()){
+    try{sv?.releasePointerCapture?.(id);}catch(e){/* Puntero ya liberado. */}
+  }
+  viewerPointers.clear();viewerPinch=null;
+  viewerPayload=null;shareViewed=false;
+  doc={theme:"dark",customBg:"",pages:[{name:"",nodes:[],edges:[],nextId:1}],cur:0};
+  settings={...DEFAULT_SETTINGS};
+  Object.assign(view,makeViewerViewport());
+  playing=false;pausedAt=0;t0=performance.now();
+  edgeLabelPos.clear();
+  for(const key of Object.keys(imgCache)) delete imgCache[key];
+  for(const key of Object.keys(tintedURL)) delete tintedURL[key];
   $("prBar").hidden=true;
+  $("prPos").textContent="";
+  $("prPrev").disabled=$("prNext").disabled=true;
   $("pgTabs").textContent="";
   $("pgTabs").hidden=true;
   // Limpiar frame parcial y pila/transformación de Canvas tras una excepción.
@@ -55,6 +79,11 @@ function showShareError(code){
     sctx?.clearRect(0,0,sv.width,sv.height);
     canvasDirty=false;
   }
+}
+function showShareError(code){
+  viewerGeneration++;viewerInputKey=null;
+  setViewerPhase("error");
+  clearViewerDocument();
   setStatus(SHARE_ERROR_MESSAGES[code]||SHARE_ERROR_MESSAGES.unavailable);
 }
 
@@ -72,11 +101,13 @@ function renderViewerFrame(){
   render(sctx, now(), {renderState:viewerRenderState(), emptyHint:"Esta página no contiene elementos."});
 }
 /* Un fallo de render es terminal y no programa otro RAF. */
-function viewerLoop(){
-  if(viewerPhase!=="ready") return;
+function viewerLoop(generation=viewerGeneration){
+  if(generation!==viewerGeneration || viewerPhase!=="ready") return;
+  viewerRaf=null;
+  if(viewerSourceKey()!==viewerInputKey){bootViewer();return;}
   try{ renderViewerFrame(); }
   catch(e){ showShareError("invalid_document"); return; }
-  requestAnimationFrame(viewerLoop);
+  viewerRaf=requestAnimationFrame(()=>viewerLoop(generation));
 }
 
 /* ─────────────────────── Navegación de páginas ─────────────────────── */
@@ -130,6 +161,8 @@ function zoomAtClient(factor, clientX, clientY){
 }
 
 function wireViewport(){
+  if(viewportWired) return;
+  viewportWired=true;
   /* Rueda: sin modificador = pan; Ctrl/Meta = zoom anclado al cursor.
      Misma semántica que el lienzo del editor. */
   sv.addEventListener("wheel", ev=>{
@@ -142,8 +175,7 @@ function wireViewport(){
   /* Puntero: arrastre = pan; dos punteros = pinch (zoom anclado al punto
      medio). Los eventos de puntero unifican ratón y táctil; ningún gesto
      hace hit-testing sobre nodos: no hay nada editable que seleccionar. */
-  const pointers=new Map();
-  let pinch=null;
+  const pointers=viewerPointers;
   const localPointers=()=>{
     const r=sv.getBoundingClientRect();
     return [...pointers.values()].map(p=>({x:p.x-r.left,y:p.y-r.top}));
@@ -153,7 +185,7 @@ function wireViewport(){
     sv.setPointerCapture?.(ev.pointerId);
     pointers.set(ev.pointerId, {x:ev.clientX, y:ev.clientY});
     if(pointers.size===2){
-      pinch=beginViewportPinch(view,...localPointers());
+      viewerPinch=beginViewportPinch(view,...localPointers());
     }
   });
   sv.addEventListener("pointermove", ev=>{
@@ -162,18 +194,18 @@ function wireViewport(){
     if(!prev) return;
     if(pointers.size===1){
       panViewportBy(view, ev.clientX-prev.x, ev.clientY-prev.y);
-    }else if(pinch && pointers.size===2){
+    }else if(viewerPinch && pointers.size===2){
       pointers.set(ev.pointerId, {x:ev.clientX, y:ev.clientY});
       const [a,b]=localPointers();
-      if(pinch.distance===0) pinch=beginViewportPinch(view,a,b);
-      updateViewportPinch(view,pinch,a,b);
+      if(viewerPinch.distance===0) viewerPinch=beginViewportPinch(view,a,b);
+      updateViewportPinch(view,viewerPinch,a,b);
       return;
     }
     pointers.set(ev.pointerId, {x:ev.clientX, y:ev.clientY});
   });
   const release=ev=>{
     pointers.delete(ev.pointerId);
-    pinch=pointers.size===2? beginViewportPinch(view,...localPointers()) : null;
+    viewerPinch=pointers.size===2? beginViewportPinch(view,...localPointers()) : null;
   };
   sv.addEventListener("pointerup", release);
   sv.addEventListener("pointercancel", release);
@@ -198,8 +230,10 @@ function enterPresent(){
   if(settings.build) restartClock();
   /* el chrome se acaba de ocultar: esperar un frame para medir el lienzo
      con su tamaño nuevo antes de encajar la vista */
-  requestAnimationFrame(()=>{
-    if(viewerPhase!=="ready" || !presenting) return;
+  const generation=viewerGeneration;
+  presentationRaf=requestAnimationFrame(()=>{
+    if(generation!==viewerGeneration || viewerPhase!=="ready" || !presenting) return;
+    presentationRaf=null;
     try{ resizeCanvas(sv, $("wrap")); fitView(); }
     catch(e){ showShareError("invalid_document"); }
   });
@@ -212,7 +246,12 @@ function exitPresent(){
   $("prBar").hidden=true;
   if(document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(()=>{});
   if(preView){ Object.assign(view, preView); preView=null; }
-  requestAnimationFrame(()=>{ resizeCanvas(sv, $("wrap")); });
+  if(presentationRaf!==null) cancelAnimationFrame(presentationRaf);
+  const generation=viewerGeneration;
+  presentationRaf=requestAnimationFrame(()=>{
+    if(generation!==viewerGeneration || viewerPhase!=="ready") return;
+    presentationRaf=null;resizeCanvas(sv, $("wrap"));
+  });
 }
 /* salir de la pantalla completa por la vía del navegador (Esc, F11) también
    deshace el modo; si no, el chrome se quedaría escondido */
@@ -224,15 +263,20 @@ document.addEventListener("fullscreenchange", ()=>{
 
 function openInFluyo(){
   if(viewerPhase!=="ready") return;
+  if(viewerSourceKey()!==viewerInputKey){bootViewer();return;}
+  const generation=viewerGeneration;
   /* El gesto explícito del usuario es el momento semántico fiable: sólo
      aquí se dispara share_opened_in_editor (FLUYO-003 §10). El documento se
      entrega como copia editable vía deep link; nunca hay escritura de vuelta
      hacia el share original. */
   trackEvent("share_opened_in_editor");
-  return buildOpenInFluyoURL(serializeProject(), location.href)
-    .then(url=>{ location.href=url; })
+  return buildOpenInFluyoURL(serializeProject(), location.href, viewerPayload)
+    .then(url=>{
+      if(generation===viewerGeneration && viewerPhase==="ready" && viewerSourceKey()===viewerInputKey) location.href=url;
+    })
     .catch(err=>{
-      console.error("No se pudo preparar la copia editable:", err);
+      if(generation!==viewerGeneration) return;
+      console.error("No se pudo preparar la copia editable.");
       setStatus("No se pudo preparar la copia editable. Inténtalo de nuevo.");
     });
 }
@@ -252,39 +296,38 @@ document.addEventListener("keydown", ev=>{
 
 /* ─────────────────────── Arranque ─────────────────────── */
 
-/* El ID real de /s/<id> lo resolverá FLUYO-006 con routing de hosting.
-   Hoy: pathname /s/<id>, fallback a ?s=<id> o #s=<id> para servir la
-   entrada estática s/index.html en desarrollo. La demo exige un ID explícito. */
-function shareIdFromLocation(){
-  // Leer el ID completo; la validación pertenece al loader, sin truncamientos.
-  const fromPath=/\/s\/(.+?)\/?$/.exec(location.pathname);
-  if(fromPath && fromPath[1]!=="index.html"){
-    try{ return decodeURIComponent(fromPath[1]); }catch(e){ return ""; }
-  }
-  const search=new URLSearchParams(location.search);
-  if(search.has("s")) return search.get("s");
-  const hash=new URLSearchParams(location.hash.slice(1));
-  if(hash.has("s")) return hash.get("s");
-  return null;
+function viewerSourceKey(){
+  try{
+    const payload=sharePayloadFromHash(location.hash);
+    return payload===null?"fixture:"+location.search:"d:"+payload;
+  }catch(e){return null;}
 }
-
 async function bootViewer(){
+  const key=viewerSourceKey();
+  if(key!==null && key===viewerInputKey) return;
+  const generation=++viewerGeneration;
   sv=$("sv");
   setViewerPhase("loading");
+  clearViewerDocument();
+  viewerInputKey=key;
   try{ sctx=sv.getContext("2d"); }
   catch(e){ showShareError("unavailable"); return; }
   if(!sctx){ showShareError("unavailable"); return; }
   setStatus("Cargando diagrama…");
-  const id=shareIdFromLocation();
   let loaded;
-  try{ loaded=await loadSharedDocument(id); }
-  catch(e){ showShareError(e&&e.code); return; }
+  const input={hash:location.hash,search:location.search};
+  try{ loaded=await loadShareFromLocation(input); }
+  catch(e){if(generation===viewerGeneration) showShareError(e&&e.code);return;}
+  if(generation!==viewerGeneration) return;
+  if(viewerSourceKey()!==key){bootViewer();return;}
   /* Instalar el snapshot read-only en el modelo compartido. Es la única
      "instalación" que hace el viewer: el modelo no toca DOM, autosave ni
      persistencia; todo lo demás es estado de vista local a este archivo. */
   try{
-    doc=loaded.doc;
-    settings=loaded.settings;
+    doc=loaded.project.doc;
+    settings=loaded.project.settings;
+    viewerPayload=loaded.payload;
+    playing=true;
     restartClock();
     buildTabs();
     updatePresentBar();
@@ -305,7 +348,7 @@ async function bootViewer(){
     setStatus("");
     shareViewed=true;
     trackEvent("share_viewed");
-    requestAnimationFrame(viewerLoop);
+    viewerRaf=requestAnimationFrame(()=>viewerLoop(generation));
   }catch(e){ showShareError("invalid_document"); }
 }
 function centerClient(){
@@ -317,6 +360,7 @@ if(document.readyState==="loading")
   document.addEventListener("DOMContentLoaded", bootViewer, {once:true});
 else
   bootViewer();
+window.addEventListener("hashchange",()=>{bootViewer();});
 
 /* Gancho de inspección para tests y depuración. Expone sólo estado de
    vista; el documento se lee del modelo compartido. */

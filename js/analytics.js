@@ -48,6 +48,7 @@ const ANALYTICS_PROVIDER = {
     s.src="https://cloud.umami.is/script.js";
     s.dataset.websiteId=UMAMI_WEBSITE_ID;
     // Defensa adicional al filtro de payload: ninguna URL de usuario sale.
+    s.dataset.autoTrack="false";
     s.dataset.excludeHash="true";
     s.dataset.excludeSearch="true";
     s.dataset.beforeSend="analyticsBeforeSend";
@@ -72,7 +73,7 @@ const ANALYTICS_PROVIDER = {
 /* Lista cerrada validada antes de encolar y antes de enviar al proveedor.
    `share_viewed` y `share_opened_in_editor` se emiten desde el viewer de /s/
    (js/viewer.js): sin propiedades, sin ID, sin URL, sin nada del documento.
-   `share_created` está reservado para el servicio hospedado y aún no se emite. */
+   `share_created` se emite tras generar una URL válida en el editor. */
 const ANALYTICS_EVENTS = {
   editor_opened:{}, first_edit_completed:{}, diagram_created:{},
   diagram_saved:{format:["fluyo_json"]}, present_started:{},
@@ -81,7 +82,7 @@ const ANALYTICS_EVENTS = {
   example_loaded:{example:["demo","funnel-de-ventas","onboarding-de-cliente","cadena-de-suministro","kafka-event-pipeline","microservicios-api-gateway","oauth2-flujo-autenticacion","pipeline-etl-datos","arquitectura-serverless-aws"]},
   gif_animation_added:{anim:["spinner","progress","ticket","errmove","check","typing","upload","pulse"]},
   link_failed:{reason:["decode","schema","too_large","unsupported"]},
-  share_viewed:{}, share_opened_in_editor:{}
+  share_created:{}, share_viewed:{}, share_opened_in_editor:{}
 };
 function analyticsProps(name, props={}){
   if(!Object.prototype.hasOwnProperty.call(ANALYTICS_EVENTS,name)) return null;

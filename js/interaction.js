@@ -891,13 +891,18 @@ cv.addEventListener("wheel", ev => {
 function addImageFromBlob(blob, x=W/2, y=H/2){
   const fr=new FileReader();
   fr.onload=()=>{
-    const url=fr.result, im=new Image();
+    let url;
+    try{url=normalizeDocumentImage(fr.result);}
+    catch(e){alert("Esta imagen no es compatible. Usa PNG, JPEG, WebP, GIF o SVG estático sin contenido activo ni recursos externos.");return;}
+    const im=new Image();
     im.onload=()=>{
+      if(!im.naturalWidth || !im.naturalHeight){alert("Esta imagen no tiene dimensiones válidas.");return;}
       pushUndo();
       const maxD=320, sc=Math.min(1, maxD/Math.max(im.naturalWidth,im.naturalHeight));
-      const n=newNode("image",x,y,{img:url, w:Math.round(im.naturalWidth*sc), h:Math.round(im.naturalHeight*sc)});
+      const n=newNode("image",x,y,{img:url, w:Math.max(1,Math.round(im.naturalWidth*sc)), h:Math.max(1,Math.round(im.naturalHeight*sc))});
       selectOnly("node",n.id);
     };
+    im.onerror=()=>alert("No se pudo leer esta imagen. Usa un archivo de imagen válido.");
     im.src=url;
   };
   fr.readAsDataURL(blob);

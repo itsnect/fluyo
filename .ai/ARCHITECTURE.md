@@ -122,6 +122,35 @@ Responsabilidad: integración con asistentes de IA.
 - Contrato visible desde aquí: nueve tools (`create_diagram`, `edit_diagram`, `export_diagram`, `list_icons`, `list_colors`, `list_anims`, `list_fonts`, `list_templates`, `create_from_template`) que producen consumen el formato `.fluyo.json` nativo. Su exportador produce solo SVG estático; el GIF animado se exporta desde el editor.
 - Referencia: `README.md` § "Servidor MCP". `POR CONFIRMAR`: detalles de despliegue del conector remoto (`mcp.fluyo.space`) — viven en el otro repo.
 
+## Share MVP autocontenido (FLUYO-006)
+
+- Editor: `editor-share.js` confirma, captura el documento y llama a
+  `share-url.js` (frontera pura de origen y límite de URL final).
+- `link-codec.js` comparte el códec original con `deeplink.js` y viewer:
+  v1 deflate-raw / v0 UTF-8, base64url y defensa de 2 MiB descomprimidos.
+  Un recorrido estructural RFC 1951 comprueba consumo exacto del único stream,
+  incluidos stored/fixed/dynamic, sin cambiar versiones ni recomprimir.
+- `/s/#d=` carga mediante `share-loader.js`, valida/migra/normaliza por
+  `projectFromProjectData()` y sólo llega a READY tras primer render exitoso.
+- Fragmento presente pero inválido es error terminal, sin fallback. Sólo
+  `?s=demo` exacto selecciona la fixture de desarrollo.
+- `hashchange` invalida el modelo anterior y activa el nuevo snapshot; una
+  generación descarta cargas/RAF tardíos. ERROR limpia documento, settings,
+  payload, canvas, gestos y presentación. Un payload ya activo no se reactiva.
+- `/#d=` abre una copia editable reutilizando el payload validado; no hay sync,
+  identidad remota, revoke, backend ni almacenamiento remoto.
+- URL final hasta 65536 caracteres; `file://` requiere abrir la versión web.
+- `safe-svg.js` es una frontera pura para raster embebido con firma coherente y
+  SVG estático reconstruido desde listas cerradas. Conserva img/data URI y
+  rechaza contenido activo, DTD y recursos externos antes de crear la imagen.
+  Admite construcciones estáticas del exportador (markers, texto de código y
+  aliases href coherentes) y SVG data URI anidado, reconstruido en cada nivel
+  con tope de ocho niveles; nunca habilita recursos externos por anidación.
+  `no-referrer` en editor/viewer, Umami sin autocapture y payload sanitizado.
+- Tests: `node --test test/share.test.cjs test/viewer.test.cjs test/analytics.test.cjs`;
+  `node test/share-browser.cjs <script actual de Umami>` con Playwright/Chrome
+  del entorno de pruebas. La red del proveedor se intercepta, sin envío real.
+
 ## Routing
 
 Responsabilidad: "rutas" del sitio estático.

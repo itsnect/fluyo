@@ -27,7 +27,7 @@ function editor(host='fluyo.space'){
     refreshPanel(){},renderTabs(){},edgePoints:()=>[],render(){},now:()=>0,
     makeReadOnlyRenderState:()=>({}),t0:0,pausedAt:0});
   const run=code=>vm.runInContext(code,context);
-  run(fuente('config.js'));run(fuente('analytics.js'));run(fuente('editor-analytics.js'));run(fuente('model.js'));run(fuente('state.js'));run(fuente('selection.js'));
+  run(fuente('config.js'));run(fuente('safe-svg.js'));run(fuente('analytics.js'));run(fuente('editor-analytics.js'));run(fuente('model.js'));run(fuente('state.js'));run(fuente('selection.js'));
   run('resetAnalyticsBaseline()');
   const flush=()=>{
     for(const [id,t] of [...timers]) if(t.delay===0){timers.delete(id);t.fn();}
@@ -99,7 +99,8 @@ test('listas cerradas y payload sin URLs, títulos, IDs ni datos libres',()=>{
   assert.ok(!JSON.stringify(payload).includes('secreto'));
   assert.equal(payload.url,'/');assert.equal(payload.referrer,'');
   assert.equal(e.run('analyticsBeforeSend("identify",{})'),false);
-  assert.equal(e.run('analyticsBeforeSend("event",{name:"share_created"})'),false);
+  assert.equal(e.run('analyticsBeforeSend("event",{name:"share_created"})').name,"share_created");
+  assert.equal(e.scripts[0].dataset.autoTrack,"false");
   assert.equal(e.scripts[0].dataset.excludeSearch,'true');
   assert.equal(e.scripts[0].dataset.excludeHash,'true');
 });

@@ -130,6 +130,8 @@ function projectFromProjectData(input){
     if(e.dots!==undefined) e.dots=clamp(Math.round(projectNumber(e.dots,normalizedSettings.dots)),1,6);
   }));
   nd.pages.forEach(pg=>pg.nodes.forEach((n,i)=>{
+    // Mismo contrato para archivo, deep link y viewer; SVG estático seguro.
+    if(n.img) n.img=normalizeDocumentImage(n.img);
     if(n.shape===undefined) n.shape="rect";
     if(!projectOwn(DEFAULT_SIZES,n.shape)) throw projectDataError();
     const [w,h]=DEFAULT_SIZES[n.shape];

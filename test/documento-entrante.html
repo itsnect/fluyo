@@ -176,9 +176,9 @@ const guardado = () => { try{ return JSON.parse(localStorage.getItem(AUTOSAVE_KE
      estar midiendo, y dar verde o rojo sobre código que ya no existe.
      Pasó la primera vez que se ejecutó esto. `cache:"reload"` fuerza la
      revalidación y deja la caché HTTP al día antes de cargar nada. */
-  const FUENTES=["../index.html","../css/identity.css","../css/styles.css","../js/analytics.js","../js/editor-analytics.js","../js/config.js","../js/model.js",
-                 "../js/examples.js","../js/deeplink.js","../js/state.js","../js/selection.js","../js/geometry.js",
-                 "../js/render.js","../js/interaction.js","../js/editor-runtime.js","../js/ui.js","../js/export.js"];
+  const FUENTES=["../index.html","../css/identity.css","../css/styles.css","../js/analytics.js","../js/editor-analytics.js","../js/config.js","../js/safe-svg.js","../js/model.js",
+                 "../js/examples.js","../js/link-codec.js","../js/deeplink.js","../js/state.js","../js/selection.js","../js/geometry.js",
+                 "../js/render.js","../js/interaction.js","../js/editor-runtime.js","../js/ui.js","../js/export.js","../js/share-url.js","../js/editor-share.js"];
   await Promise.all(FUENTES.map(u=>fetch(u,{cache:"reload"}).catch(()=>{})));
 
   try{ await run(); }

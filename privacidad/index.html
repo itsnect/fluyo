@@ -86,12 +86,15 @@
 <p><strong>Ese contenido tampoco llega a ningún servidor.</strong> Va detrás de la almohadilla, y el navegador no envía el fragmento de una URL: ni en la petición ni en la cabecera <code>Referer</code>. Puedes comprobarlo tú — sirve el proyecto en local, abre uno de estos enlaces y mira el registro de acceso: la línea dice <code>GET /index.html</code> y nada más.</p>
 <p><strong>Lo que sí conviene que sepas:</strong> el diagrama va <strong>codificado, no cifrado</strong>. Cualquiera que reciba el enlace puede leerlo. Además queda en el historial de tu navegador —que se sincroniza entre tus dispositivos si tienes esa opción activada— y en cualquier sitio por el que pases el enlace. Compártelo con el mismo criterio con el que compartirías el archivo.</p>
 
+<h3>Compartir una copia mediante enlace</h3>
+<p>La acción <strong>Compartir</strong> pide confirmación y genera <code>fluyo.space/s/#d=…</code> con una copia completa del diagrama. Cualquiera con el enlace puede verla. Fluyo no almacena esta copia en un servidor y no puede revocar el enlace. Los cambios posteriores del editor no modifican la copia. El límite de esta versión es de 64 KiB para la URL final; si se supera, puedes exportar el archivo.</p>
+
 <h3>Autoguardado</h3>
 <p>La sesión en curso se guarda en el <code>localStorage</code> de tu navegador, bajo la clave <code>fluyo.autosave.v1</code>. Es almacenamiento local de tu equipo, no un servidor: nadie más puede leerlo, y se borra al limpiar los datos del sitio en tu navegador.</p>
 
 <h3>Telemetría de producto</h3>
 <p>En el sitio público hay analítica de uso agregada, servida por <a href="https://umami.is" target="_blank" rel="noopener">Umami Cloud</a>. <strong>Sin cookies y sin fingerprinting</strong>, y sin identificar usuarios.</p>
-<p>Lo que se registra son pageviews y esta lista cerrada de eventos:</p>
+<p>Lo que se registra es esta lista cerrada de eventos; la captura automática está desactivada:</p>
 <table>
   <tr><th>Evento</th><th>Significado y propiedades</th></tr>
   <tr><td><code>editor_opened</code></td><td>Una vez por carga del editor. Sin propiedades.</td></tr>
@@ -104,15 +107,18 @@
   <tr><td><code>example_loaded</code></td><td><code>example</code>: identificador de un ejemplo de la lista fija.</td></tr>
   <tr><td><code>gif_animation_added</code></td><td><code>anim</code>: clave de una de las ocho animaciones predefinidas.</td></tr>
   <tr><td><code>link_failed</code></td><td><code>reason</code>: <code>decode</code>, <code>schema</code>, <code>too_large</code> o <code>unsupported</code>.</td></tr>
+  <tr><td><code>share_created</code></td><td>Tras confirmar y crear efectivamente un enlace dentro del límite. Sin propiedades.</td></tr>
+  <tr><td><code>share_viewed</code></td><td>Después del primer render exitoso del viewer. Sin propiedades.</td></tr>
+  <tr><td><code>share_opened_in_editor</code></td><td>Al pulsar explícitamente Abrir en Fluyo en el viewer. Sin propiedades.</td></tr>
 </table>
-<p><strong>El contenido de tus diagramas nunca se envía.</strong> Sólo se admiten los eventos y valores de estas listas cerradas. No se envían nombres de archivos o nodos, texto, imágenes, prompts, IDs de documentos ni datos personales. La comparación para detectar la primera edición ocurre sólo en memoria local.</p>
-<p><strong>No se envían URLs privadas.</strong> Se excluyen query y fragmento con <code>data-exclude-search</code> y <code>data-exclude-hash</code>; además, el filtro <code>data-before-send</code> reconstruye el payload con ruta fija <code>/</code>, título fijo <code>Fluyo</code> y referrer vacío. No se envían propiedades automáticas adicionales del navegador. La carga asíncrona usa una cola acotada en memoria; bloquear Umami no impide trabajar.</p>
+<p><strong>El contenido de tus diagramas nunca se envía a analytics.</strong> Sólo se admiten los eventos y valores de estas listas cerradas. No se envían nombres de archivos o nodos, texto, imágenes, prompts, IDs de documentos ni datos personales. La comparación para detectar la primera edición ocurre sólo en memoria local.</p>
+<p><strong>No se envían URLs privadas.</strong> La captura automática del proveedor está desactivada con <code>data-auto-track="false"</code>. Se excluyen query y fragmento con <code>data-exclude-search</code> y <code>data-exclude-hash</code>; además, el filtro <code>data-before-send</code> reconstruye el payload con ruta fija <code>/</code>, título fijo <code>Fluyo</code> y referrer vacío. No se envían propiedades automáticas adicionales del navegador. La carga asíncrona usa una cola acotada en memoria; bloquear Umami no impide trabajar.</p>
 <p>El script de analítica se carga <strong>únicamente</strong> cuando el dominio es <code>fluyo.space</code> o <code>www.fluyo.space</code>. Si clonas el repositorio, lo abres en local o lo self-hosteas, ese código no llega a ejecutarse y no se hace ninguna llamada de red. Los dominios de preview quedan fuera a propósito. La condición está en <code>js/analytics.js</code>, en un solo bloque, para que puedas verificarlo tú.</p>
 <p>Si quieres cero telemetría: usa el proyecto en local o self-hosteado, o bloquea el dominio <code>cloud.umami.is</code>. Fluyo funciona igual — la analítica está escrita para fallar en silencio.</p>
 
 <h3>La otra petición externa</h3>
 <p>Aparte del script de analítica de arriba, el editor hace una <strong>única</strong> petición a un tercero: carga <a href="https://github.com/jnordberg/gif.js" target="_blank" rel="noopener">gif.js</a> —y su <code>gif.worker.js</code>— desde el CDN de <strong>cdnjs (Cloudflare)</strong>, que es la librería que codifica el GIF. Es una descarga de código: <strong>no se le envía nada tuyo</strong>. Como en cualquier petición HTTP, Cloudflare ve tu IP y tu user-agent al servir el archivo. El service worker la precachea en la primera visita, así que en visitas posteriores normalmente ni siquiera se pide.</p>
-<p>Son los <strong>dos únicos dominios de terceros</strong> a los que el editor llama, y esta lista sí es completa: no hay fuentes, iconos ni hojas de estilo externas. Todo lo demás se sirve desde <code>fluyo.space</code>.</p>
+<p>Umami sirve su script en <code>cloud.umami.is</code> y recibe los eventos sanitizados en <code>gateway.umami.is</code>. Son los <strong>únicos servicios de terceros</strong> a los que el editor llama, y esta lista sí es completa: no hay fuentes, iconos ni hojas de estilo externas. Todo lo demás se sirve desde <code>fluyo.space</code>.</p>
 
 <h2>B. El servidor MCP en mcp.fluyo.space</h2>
 

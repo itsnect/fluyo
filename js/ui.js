@@ -497,6 +497,7 @@ function prevSlide(){ goSlide(doc.cur-1); }
 function enterPresent(){
   if(presenting) return;
   commitEditBox();
+  checkAnalyticsEdit();
   preView={x:viewX, y:viewY, z:viewZoom};
   presenting=true;
   clearSel();

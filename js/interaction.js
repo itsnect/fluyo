@@ -289,6 +289,7 @@ function cancelGestures(){
   /* thaw incondicional: si el gesto se cancela a mitad, dejar el mapa congelado
      dejaría las etiquetas clavadas para siempre. */
   endDrag=null; segDrag=null; thawEdgeLabels();
+  scheduleAnalyticsEdit();
 }
 function startPinch(){
   cancelGestures();
@@ -328,6 +329,7 @@ cv.addEventListener("pointerdown", ev=>{
   ev.preventDefault();
   const p=toWorld(ev); mouse.x=p.x; mouse.y=p.y;
   commitEditBox();
+  checkAnalyticsEdit();
   cv.setPointerCapture(ev.pointerId);
 
   if(pendingShape || pendingIcon || pendingAnim){
@@ -339,7 +341,6 @@ cv.addEventListener("pointerdown", ev=>{
     /* se mide al colocar el nodo, no al elegirlo en el cajón: elegir solo arma
        la herramienta y el usuario puede no llegar a poner nada nunca */
     if(pendingAnim) trackEvent("gif_animation_added",{anim:pendingAnim});
-    trackFirstNode();
     selectOnly("node",n.id);
     pendingShape=null; pendingIcon=null; pendingAnim=null; syncRail();
     return;
@@ -413,7 +414,7 @@ cv.addEventListener("pointerdown", ev=>{
     drag={offs:{}, wps:[], realin:[]};
     for(const id of selN){
       const nn=nodeById(id);
-      if(nn) drag.offs[id]={dx:p.x-nn.x, dy:p.y-nn.y};
+      if(nn) drag.offs[id]={dx:p.x-nn.x, dy:p.y-nn.y, x:nn.x, y:nn.y};
     }
     for(const e of P().edges){
       // los codos de flechas internas al grupo se mueven con él: los dos
@@ -434,6 +435,8 @@ cv.addEventListener("pointerdown", ev=>{
         drag.realin.push({id:e.id, base:e.waypoints.map(q=>({x:q.x,y:q.y}))});
       }
     }
+    // Seleccionar puede fijar anclajes automáticos: eso no es una edición.
+    resetAnalyticsBaseline();
     return;
   }
   // 5) flecha
@@ -645,6 +648,11 @@ cv.addEventListener("pointerup", ev=>{
   /* Realinear puede dejar un waypoint encima de su vecino, igual que topar al
      deslizar: se poda al soltar y no durante el arrastre. */
   if(drag) for(const r of drag.realin){ const e=edgeById(r.id); if(e) podarWaypoints(e); }
+  // Sin desplazamiento real, la limpieza de rutas sigue siendo selección.
+  if(drag && Object.keys(drag.offs).every(id=>{
+    const n=nodeById(+id), o=drag.offs[id];
+    return n && n.x===o.x && n.y===o.y;
+  })) resetAnalyticsBaseline();
   drag=null; resizing=null; wpDrag=null;
   /* El tramo deslizado se descongela aquí, igual que endDrag: las etiquetas se
      recolocan una vez al soltar y no sesenta veces por segundo. */
@@ -888,7 +896,6 @@ function addImageFromBlob(blob, x=W/2, y=H/2){
       pushUndo();
       const maxD=320, sc=Math.min(1, maxD/Math.max(im.naturalWidth,im.naturalHeight));
       const n=newNode("image",x,y,{img:url, w:Math.round(im.naturalWidth*sc), h:Math.round(im.naturalHeight*sc)});
-      trackFirstNode();
       selectOnly("node",n.id);
     };
     im.src=url;

@@ -93,17 +93,20 @@
 <p>En el sitio público hay analítica de uso agregada, servida por <a href="https://umami.is" target="_blank" rel="noopener">Umami Cloud</a>. <strong>Sin cookies y sin fingerprinting</strong>, y sin identificar usuarios.</p>
 <p>Lo que se registra son pageviews y esta lista cerrada de eventos:</p>
 <table>
-  <tr><th>Evento</th><th>Qué acompaña</th></tr>
-  <tr><td><code>diagram_created</code></td><td>Nada. Se envía una sola vez por sesión, la primera vez que colocas una forma</td></tr>
-  <tr><td><code>example_loaded</code></td><td>El identificador del ejemplo (uno de una lista fija)</td></tr>
-  <tr><td><code>file_imported</code></td><td>Por dónde entró el diagrama: <code>file</code> (lo abriste desde tu disco) o <code>link</code> (venía en un enlace)</td></tr>
-  <tr><td><code>diagram_exported</code></td><td>El formato: <code>gif</code>, <code>png</code>, <code>jpg</code> o <code>svg</code></td></tr>
-  <tr><td><code>gif_animation_added</code></td><td>La clave de la animación (una de ocho)</td></tr>
-  <tr><td><code>present_started</code></td><td>Nada</td></tr>
-  <tr><td><code>link_failed</code></td><td>Por qué no se pudo abrir un enlace: <code>decode</code>, <code>schema</code>, <code>too_large</code> o <code>unsupported</code></td></tr>
+  <tr><th>Evento</th><th>Significado y propiedades</th></tr>
+  <tr><td><code>editor_opened</code></td><td>Una vez por carga del editor. Sin propiedades.</td></tr>
+  <tr><td><code>first_edit_completed</code></td><td>Primera modificación real por carga del editor. No incluye selección, pan, zoom, navegación, importación o restauración. Sin propiedades.</td></tr>
+  <tr><td><code>diagram_created</code></td><td>Primera edición que deja nodos en un documento antes vacío, como máximo una vez por carga. Sin propiedades.</td></tr>
+  <tr><td><code>diagram_saved</code></td><td>Descarga explícita generada/iniciada desde Guardar; no autoguardado ni confirmación de escritura a disco. <code>format: fluyo_json</code>.</td></tr>
+  <tr><td><code>diagram_exported</code></td><td>Archivo generado y descarga iniciada. <code>format</code>: <code>gif</code>, <code>png</code>, <code>jpg</code> o <code>svg</code>. No confirma escritura a disco.</td></tr>
+  <tr><td><code>file_imported</code></td><td>Documento válido aplicado. <code>source</code>: <code>file</code> o <code>link</code>; <code>format: fluyo_json</code>. El origen no atribuye autoría MCP.</td></tr>
+  <tr><td><code>present_started</code></td><td>Entrada efectiva al modo presentación, también sin pantalla completa. Sin propiedades. No se mide presentación completada.</td></tr>
+  <tr><td><code>example_loaded</code></td><td><code>example</code>: identificador de un ejemplo de la lista fija.</td></tr>
+  <tr><td><code>gif_animation_added</code></td><td><code>anim</code>: clave de una de las ocho animaciones predefinidas.</td></tr>
+  <tr><td><code>link_failed</code></td><td><code>reason</code>: <code>decode</code>, <code>schema</code>, <code>too_large</code> o <code>unsupported</code>.</td></tr>
 </table>
-<p><strong>El contenido de tus diagramas no se envía nunca</strong>, ni entero ni en fragmentos: los eventos solo llevan valores de un vocabulario cerrado —el identificador de un ejemplo, un formato de exportación, una clave de animación, por dónde entró un archivo, por qué falló un enlace— y tres de los siete no llevan nada en absoluto. No hay ningún campo de texto libre donde pudiera colarse una etiqueta tuya, y no queda ningún valor derivado de lo que dibujas: <code>present_started</code> llevaba el número de páginas del documento y se le quitó.</p>
-<p><strong>Y el fragmento de la URL se excluye de la analítica.</strong> Importa porque es justo donde viaja el diagrama de un enlace: al script de Umami se le pasa <code>data-exclude-hash</code>, que le hace recortar el fragmento antes de enviar nada, tanto en el pageview como en todos los eventos. Sin ese atributo el diagrama entero acabaría en el campo <code>url</code> de la analítica. Está puesto, y se ve en <code>js/analytics.js</code> al lado del identificador del sitio.</p>
+<p><strong>El contenido de tus diagramas nunca se envía.</strong> Sólo se admiten los eventos y valores de estas listas cerradas. No se envían nombres de archivos o nodos, texto, imágenes, prompts, IDs de documentos ni datos personales. La comparación para detectar la primera edición ocurre sólo en memoria local.</p>
+<p><strong>No se envían URLs privadas.</strong> Se excluyen query y fragmento con <code>data-exclude-search</code> y <code>data-exclude-hash</code>; además, el filtro <code>data-before-send</code> reconstruye el payload con ruta fija <code>/</code>, título fijo <code>Fluyo</code> y referrer vacío. No se envían propiedades automáticas adicionales del navegador. La carga asíncrona usa una cola acotada en memoria; bloquear Umami no impide trabajar.</p>
 <p>El script de analítica se carga <strong>únicamente</strong> cuando el dominio es <code>fluyo.space</code> o <code>www.fluyo.space</code>. Si clonas el repositorio, lo abres en local o lo self-hosteas, ese código no llega a ejecutarse y no se hace ninguna llamada de red. Los dominios de preview quedan fuera a propósito. La condición está en <code>js/analytics.js</code>, en un solo bloque, para que puedas verificarlo tú.</p>
 <p>Si quieres cero telemetría: usa el proyecto en local o self-hosteado, o bloquea el dominio <code>cloud.umami.is</code>. Fluyo funciona igual — la analítica está escrita para fallar en silencio.</p>
 

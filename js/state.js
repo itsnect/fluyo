@@ -136,6 +136,7 @@ function saveAutosave(force=false){
   catch(e){ console.error("Autosave failed:", e); }
 }
 function scheduleAutosave(){
+  scheduleAnalyticsEdit();
   if(!canAutosave()) return;
   clearTimeout(autosaveTimer);
   autosaveTimer=setTimeout(saveAutosave, AUTOSAVE_DELAY);
@@ -217,6 +218,7 @@ function applyProjectData(d){
     syncProjectControls();
     clearSel(); renderTabs();
   });
+  resetAnalyticsBaseline();
 }
 /* Engancha las páginas de un documento entrante al final del que ya está
    abierto, y salta a la primera de las nuevas.
@@ -238,6 +240,7 @@ function appendPagesFrom(d){
     doc.cur=primeraNueva;
     clearSel(); renderTabs();
   });
+  resetAnalyticsBaseline();
 }
 function restoreAutosaveSession(){
   const d=loadAutosaveData();

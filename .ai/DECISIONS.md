@@ -69,3 +69,13 @@ Contexto: el producto, su documentación (`README.md`, `CONTRIBUTING.md`, `docs/
 Decisión: la documentación interna (`.ai/`, tareas, decisiones) se genera en español.
 
 Consecuencia: los agentes y colaboradores escriben en español por defecto.
+
+## D-007 — Semántica y privacidad de Product Analytics v2
+
+Estado: vigente
+
+Contexto: FLUYO-002 detectó eventos de intención, pérdida durante la carga del proveedor y ausencia de validación central de vocabularios.
+
+Decisión: medir resultados observables; sesión de editor equivale a una carga de página. Primera edición real por comparación local del estado editable; importación, restauración, navegación y selección no cuentan. Creación significa pasar de documento sin nodos a tener nodos mediante edición, como máximo una vez por carga. Guardar/exportar significan archivo generado y descarga iniciada, sin afirmar escritura a disco. No inferir presentación completada ni autoría MCP desde un transporte genérico.
+
+Consecuencia: los eventos no son directamente comparables con la semántica anterior de creación/exportación. El helper valida listas cerradas y mantiene una cola acotada sólo en memoria. El filtro Umami reconstruye el payload con ruta/título constantes y sin referrer ni campos automáticos adicionales; no transmite query, hash, contenido ni IDs. Se renuncia a la atribución automática de tráfico para preservar privacidad. La política pública refleja el catálogo; eventos Share quedan reservados sin implementar. Detalle y pruebas: `.ai/tasks/FLUYO-002.md`.

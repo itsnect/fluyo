@@ -47,23 +47,12 @@ const ANALYTICS_PROVIDER = {
     s.async=true;
     s.src="https://cloud.umami.is/script.js";
     s.dataset.websiteId=UMAMI_WEBSITE_ID;
-    /* El fragmento de la URL NO se manda. Sin esto, el script de Umami envía
-       `url: location.href` ENTERO —fragmento incluido— en el pageview y en cada
-       evento posterior. Su código, literalmente:
-
-           B = t => { const e = new URL(t, location.href);
-                      return j && (e.search=""), N && (e.hash=""), e.toString() }
-
-       donde N es este atributo. Hoy el editor no pone nada en el hash y no hay
-       fuga, pero el fragmento es el único trozo de la URL que el navegador NO
-       manda al servidor por sí solo: si algo del contenido del usuario acaba
-       ahí, este atributo es lo único que impide que un tercero lo reciba. Va
-       puesto antes de que exista el caso, no después.
-
-       `exclude-search` NO se pone: el query sí lleva información que queremos
-       —`?ejemplo=<slug>`, de lista blanca— y perderla dejaría los pageviews de
-       los ejemplos sin atribuir. */
+    // Defensa adicional al filtro de payload: ninguna URL de usuario sale.
     s.dataset.excludeHash="true";
+    s.dataset.excludeSearch="true";
+    s.dataset.beforeSend="analyticsBeforeSend";
+    s.onload=flushAnalytics;
+    s.onerror=()=>{ analyticsQueue.length=0; };
     document.head.appendChild(s);
     return true;
   },
@@ -72,8 +61,7 @@ const ANALYTICS_PROVIDER = {
      blocker: en los dos casos window.umami no existe y esto no hace nada. */
   send(name, props){
     if(typeof window.umami?.track !== "function") return;
-    if(props) window.umami.track(name, props);
-    else window.umami.track(name);
+    return props ? window.umami.track(name, props) : window.umami.track(name);
   }
 };
 
@@ -81,29 +69,102 @@ const ANALYTICS_PROVIDER = {
    De aquí hacia abajo nada es específico del proveedor.
    ═════════════════════════════════════════════════════════════════════════ */
 
-/* Se evalúa una sola vez, al cargar. En un clon local, en file:// o en un
-   self-host el hostname no coincide, load() no se llama y no se inyecta
-   ningún script: cero llamadas de red, cero telemetría. */
+/* Lista cerrada validada antes de encolar y antes de enviar al proveedor. */
+const ANALYTICS_EVENTS = {
+  editor_opened:{}, first_edit_completed:{}, diagram_created:{},
+  diagram_saved:{format:["fluyo_json"]}, present_started:{},
+  diagram_exported:{format:["png","jpg","svg","gif"]},
+  file_imported:{source:["file","link"],format:["fluyo_json"]},
+  example_loaded:{example:["demo","funnel-de-ventas","onboarding-de-cliente","cadena-de-suministro","kafka-event-pipeline","microservicios-api-gateway","oauth2-flujo-autenticacion","pipeline-etl-datos","arquitectura-serverless-aws"]},
+  gif_animation_added:{anim:["spinner","progress","ticket","errmove","check","typing","upload","pulse"]},
+  link_failed:{reason:["decode","schema","too_large","unsupported"]}
+};
+function analyticsProps(name, props={}){
+  if(!Object.prototype.hasOwnProperty.call(ANALYTICS_EVENTS,name)) return null;
+  const schema=ANALYTICS_EVENTS[name], clean={};
+  for(const key of Object.keys(schema)){
+    if(!schema[key].includes(props[key])) return null;
+    clean[key]=props[key];
+  }
+  return clean;
+}
+// Umami incluye URL, referrer y título también en eventos custom. Reconstruir
+// el payload evita enviar rutas privadas, queries, hashes o títulos variables.
+function analyticsBeforeSend(type, payload){
+  if(type!=="event") return false;
+  const safe={website:UMAMI_WEBSITE_ID,hostname:location.hostname,url:"/",title:"Fluyo",referrer:""};
+  if(payload.name){
+    const data=analyticsProps(payload.name,payload.data);
+    if(!data) return false;
+    safe.name=payload.name;
+    if(Object.keys(data).length) safe.data=data;
+  }
+  return safe;
+}
+const analyticsQueue=[];
 const ANALYTICS_ON = ANALYTICS_HOSTS.includes(location.hostname) && ANALYTICS_PROVIDER.load();
-
-/* Helper único de la app. Es seguro llamarlo siempre y desde cualquier sitio:
-   si la telemetría está apagada o el proveedor no está disponible, no hace
-   nada y no lanza. Medir nunca puede romper el editor. */
+function flushAnalytics(){
+  if(typeof window.umami?.track!=="function") return;
+  while(analyticsQueue.length){
+    const [name,props]=analyticsQueue.shift();
+    try{ Promise.resolve(ANALYTICS_PROVIDER.send(name,props)).catch(()=>{}); }
+    catch(e){ /* Medir nunca rompe el editor; no reintentar ni duplicar. */ }
+  }
+}
 function trackEvent(name, props){
   if(!ANALYTICS_ON) return;
-  try{ ANALYTICS_PROVIDER.send(name, props); }
-  catch(e){ /* silencio a propósito */ }
+  try{
+    const clean=analyticsProps(name,props);
+    if(!clean) return;
+    // Cola acotada, sólo en memoria, para la carga asíncrona de Umami.
+    if(analyticsQueue.length<100) analyticsQueue.push([name,clean]);
+    flushAnalytics();
+  }catch(e){ /* La telemetría es opcional. */ }
 }
 
-/* diagram_created se manda UNA sola vez por sesión: la pregunta que responde
-   es «¿esta persona llegó a dibujar algo?», no «¿cuántos nodos puso?».
-
-   El flag vive en memoria y no en localStorage a propósito: recargar cuenta
-   como sesión nueva, y así el dato no depende de un almacenamiento que el
-   usuario puede haber limpiado. */
-let _diagramStarted=false;
-function trackFirstNode(){
-  if(_diagramStarted) return;
-  _diagramStarted=true;
-  trackEvent("diagram_created");
+/* Sesión = una carga del editor. Comparar sólo estado editable, en memoria:
+   nunca enviar ni persistir esta instantánea. Cambiar de página, pan, zoom,
+   selección y preferencias de rejilla no son ediciones del diagrama. */
+let analyticsBaseline=null, analyticsHadNodes=false;
+let analyticsFirstEdit=false, analyticsCreated=false, analyticsEditTimer=null;
+function analyticsSnapshot(){
+  return JSON.stringify({theme:doc.theme,customBg:doc.customBg,
+    pages:doc.pages.map(pg=>({name:pg.name,nodes:pg.nodes,edges:pg.edges})),
+    settings:{speed:settings.speed,dots:settings.dots,build:settings.build,
+      stagger:settings.stagger,font:settings.font}});
 }
+function resetAnalyticsBaseline(){
+  if(!ANALYTICS_ON || (analyticsFirstEdit && analyticsCreated)) return;
+  try{
+    analyticsBaseline=analyticsSnapshot();
+    analyticsHadNodes=doc.pages.some(pg=>pg.nodes.length>0);
+  }catch(e){}
+}
+function checkAnalyticsEdit(){
+  if(!ANALYTICS_ON || (analyticsFirstEdit && analyticsCreated)) return;
+  // Esperar al resultado confirmado del gesto/texto, no a su estado provisional.
+  if(editing || drag || resizing || wpDrag || segDrag || endDrag || connectDrag) return;
+  // El exportador GIF ajusta temporalmente la velocidad para cerrar el bucle.
+  if(typeof activeGif!=="undefined" && activeGif) return;
+  try{
+    const current=analyticsSnapshot();
+    if(analyticsBaseline!==null && current!==analyticsBaseline){
+      if(!analyticsFirstEdit){ analyticsFirstEdit=true; trackEvent("first_edit_completed"); }
+      if(!analyticsCreated && !analyticsHadNodes && doc.pages.some(pg=>pg.nodes.length>0)){
+        analyticsCreated=true; trackEvent("diagram_created");
+      }
+    }
+    resetAnalyticsBaseline();
+    if(analyticsFirstEdit && analyticsCreated) analyticsBaseline=null;
+  }catch(e){}
+}
+function scheduleAnalyticsEdit(){
+  if(!ANALYTICS_ON || (analyticsFirstEdit && analyticsCreated)) return;
+  clearTimeout(analyticsEditTimer);
+  analyticsEditTimer=setTimeout(checkAnalyticsEdit,0);
+}
+document.addEventListener("DOMContentLoaded",()=>{
+  if(!document.getElementById("cv")) return;
+  resetAnalyticsBaseline();
+  trackEvent("editor_opened");
+},{once:true});

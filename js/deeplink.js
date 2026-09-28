@@ -182,7 +182,7 @@ function loadDeepLinkFromURL(){
              persona: meter un diagrama en el editor. La propiedad dice por
              dónde entró, que es justo lo que no se podía saber hasta ahora.
              Si la respuesta fue «seguir con lo mío», aquí no entró nada. */
-          if(eleccion!=="keep") trackEvent("file_imported",{source:"link"});
+          if(eleccion!=="keep") trackEvent("file_imported",{source:"link",format:"fluyo_json"});
         }
       });
     })

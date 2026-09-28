@@ -109,7 +109,9 @@ Archivos/rutas principales: `js/state.js`, `sw.js`.
 Responsabilidad: telemetría de producto sin contenido sensible.
 
 - Umami (script de `js/analytics.js`), cargado **solo** cuando el hostname es el dominio oficial (`fluyo.space`); en local o self-host no corre.
-- Eventos agregados de lista cerrada (crear, exportar y formato, cargar ejemplo, importar, usar GIF animado). El fragmento de URL no se envía.
+- Eventos de lista cerrada para apertura, primera edición real, creación desde vacío, guardado explícito, presentación, exportación, importación y uso de ejemplos/animaciones. Taxonomía y límites: `.ai/tasks/FLUYO-002.md`.
+- Primera edición comparada sólo en memoria desde las rutas de autoguardado; cargas/restauraciones actualizan la referencia sin contar como edición.
+- El filtro del proveedor fija ruta/título y elimina referrer, query, fragmento y campos no admitidos. Cola acotada durante la carga asíncrona.
 - El contenido de los diagramas **nunca** se envía. Excepción documentada: el servidor MCP remoto sí recibe el diagrama para procesarlo (ver § MCP y `privacidad/`).
 
 ## MCP
@@ -138,7 +140,7 @@ Responsabilidad: cómo se comparte el estado en runtime.
 
 Responsabilidad: cómo se verifica el comportamiento.
 
-- No hay suite de tests automatizados en este repo ni CI propia (`.github/` solo tiene plantillas de issues).
+- Regresión de analytics sin dependencias ni red: `node --test test/analytics.test.cjs`. No hay CI propia (`.github/` solo tiene plantillas de issues).
 - Verificación manual en navegador: la apertura desde `file://`, la consola sin errores y los tres exports (GIF/PNG/SVG). Ver `CONTRIBUTING.md` § "Antes de abrir el PR".
 - `test/` contiene harness HTML de desarrollo (`documento-entrante.html`, `editor-inline.html`, `fixtures/`) — páginas de apoyo manual, no tests ejecutables.
 - El test `no-esm.test.ts` que vigila la regla "sin módulos ES" vive en el repo de `fluyo-mcp` y corre en su CI.

@@ -6,6 +6,7 @@ function saveJSON(){
   const blob=new Blob([JSON.stringify(serializeProject(),null,2)],{type:"application/json"});
   const a=document.createElement("a");
   a.href=URL.createObjectURL(blob); a.download="diagrama.fluyo.json"; a.click();
+  trackEvent("diagram_saved",{format:"fluyo_json"});
   setTimeout(()=>URL.revokeObjectURL(a.href),3000);
 }
 $("btnJsonOut").onclick=saveJSON;
@@ -20,7 +21,7 @@ $("fileIn").onchange=ev=>{
       applyProjectData(JSON.parse(txt));
       centerView();
       saveAutosave(true);
-      trackEvent("file_imported");   // dentro del try: un archivo inválido no cuenta
+      trackEvent("file_imported",{source:"file",format:"fluyo_json"});   // dentro del try: un archivo inválido no cuenta
     }catch(e){ alert("El archivo no es un diagrama Fluyo válido."); }
   });
   ev.target.value="";
@@ -90,6 +91,7 @@ $("btnDemo").onclick=()=>{
   e=newEdge(C.id,G.id);  e.label="no";         e.fromSide="s"; e.toSide="n"; e.route="ortho"; e.dashed=true;
   settings.build=true; t0=performance.now(); pausedAt=0; syncProjectControls();
   centerView();
+  resetAnalyticsBaseline();
   trackEvent("example_loaded",{example:"demo"});
 };
 
@@ -364,6 +366,7 @@ function buildSVGDocument(scale=1){
 }
 function exportSVG(scale=1){
   downloadTextFile(slug()+".svg", buildSVGDocument(scale), "image/svg+xml;charset=utf-8");
+  trackEvent("diagram_exported",{format:"svg"});
 }
 
 /* ===================== Exportación ===================== */
@@ -397,9 +400,6 @@ $("exGo").onclick=()=>{
           "PNG, JPG y SVG no dependen de esa librería y funcionan igual.");
     return;
   }
-  /* después del guard, para no contar exports abortados. Mide la intención:
-     un GIF puede fallar más tarde en el encoder y eso no se refleja aquí */
-  trackEvent("diagram_exported",{format:fmt});
   if(fmt==="gif") exportGIF(scale, $("exTr").checked);
   else if(fmt==="svg") exportSVG(scale);
   else exportStatic(fmt, scale, $("exTr").checked);
@@ -414,10 +414,12 @@ function exportStatic(fmt,scale,transparent){
   oc.restore();
   const mime=fmt==="png"?"image/png":"image/jpeg";
   off.toBlob(blob=>{
+    if(!blob) return;
     const a=document.createElement("a");
     a.href=URL.createObjectURL(blob);
     a.download=slug()+"."+(fmt==="png"?"png":"jpg");
     a.click();
+    trackEvent("diagram_exported",{format:fmt});
     setTimeout(()=>URL.revokeObjectURL(a.href),3000);
   }, mime, .92);
 }
@@ -507,10 +509,11 @@ async function exportGIF(scale, transparent){
     msg.textContent="Codificando GIF…";
     gif.on("progress",p=>{ fill.style.width=(40+p*60)+"%"; armGifWatchdog(); });
     gif.on("finished",blob=>{
-      if(gifCancelled) return;
+      if(gifCancelled || !blob) return;
       const a=document.createElement("a");
       a.href=URL.createObjectURL(blob);
       a.download=slug()+".gif"; a.click();
+      trackEvent("diagram_exported",{format:"gif"});
       setTimeout(()=>URL.revokeObjectURL(a.href),5000);
       closeProgress();
     });

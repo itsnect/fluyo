@@ -709,7 +709,7 @@ function render(c,t,opts={}){
   if(P().nodes.length===0 && !vp.presenting){
     c.fillStyle=theme==="crema"?"#00000055":"#ffffff44";
     c.font=(20/vp.zoom)+"px Georgia, serif"; c.textAlign="center";
-    c.fillText("Elige una forma o icono a la izquierda y haz clic aquí — o pulsa «Ejemplo»", (cw/2 - vp.x) / vp.zoom, (ch/2 - vp.y) / vp.zoom);
+    c.fillText(opts.emptyHint ?? "Elige una forma o icono a la izquierda y haz clic aquí — o pulsa «Ejemplo»", (cw/2 - vp.x) / vp.zoom, (ch/2 - vp.y) / vp.zoom);
   }
 
   c.restore();

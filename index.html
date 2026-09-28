@@ -78,6 +78,10 @@ if(location.protocol==="http:" || location.protocol==="https:"){
   en un único bloque para poder cambiar de proveedor sin tocar el resto.
 -->
 <script src="js/analytics.js"></script>
+<!-- Instrumentación de edición (snapshots, editor_opened). El viewer de /s/
+     carga únicamente js/analytics.js, que es transporte puro sin esta parte. -->
+<script src="js/editor-analytics.js"></script>
+<link rel="stylesheet" href="css/identity.css">
 <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>

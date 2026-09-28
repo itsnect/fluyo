@@ -1,0 +1,65 @@
+/* Viewer read-only de /s/<id> — chrome mínimo coherente con el editor.
+   Todo el diagrama se dibuja en canvas; aquí sólo hay estados de vista. */
+
+*{ box-sizing:border-box; }
+html,body{ height:100%; }
+body{
+  margin:0; display:flex; flex-direction:column;
+  background:var(--bg); color:var(--text);
+  font:var(--ui-font);
+  overflow:hidden;
+}
+
+/* ── Chrome superior: tabs de página + controles de vista ── */
+#chrome{
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  padding:8px 14px; background:var(--panel); border-bottom:1px solid var(--line);
+}
+.logo{ color:var(--text); text-decoration:none; }
+
+#pgTabs{ display:flex; gap:4px; max-width:100%; overflow-x:auto; }
+#pgTabs[hidden]{ display:none; }
+#pgTabs button{
+  background:var(--panel2); color:var(--muted);
+  padding:5px 10px; border-radius:7px 7px 0 0; white-space:nowrap; font-size:12px;
+}
+#pgTabs button:hover{ color:var(--text); }
+#pgTabs button.active{ color:var(--accent); border-color:#4a3d2c; background:#2c2620; }
+
+.tools{ display:flex; align-items:center; gap:6px; margin-left:auto; flex-wrap:wrap; }
+.tools .spacer{ width:8px; }
+button:disabled{ opacity:.4; cursor:default; }
+
+/* ── Lienzo ── */
+#wrap{ position:relative; flex:1; min-height:0; }
+#sv{ position:absolute; inset:0; width:100%; height:100%; display:block; touch-action:none; cursor:grab; }
+#sv:active{ cursor:grabbing; }
+
+#status{
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  text-align:center; padding:24px; color:var(--muted); font-size:16px;
+  pointer-events:none;
+}
+#status[hidden]{ display:none; }
+
+/* ── Barra de presentación ── */
+#prBar{
+  position:absolute; left:50%; bottom:18px; transform:translateX(-50%);
+  display:flex; align-items:center; gap:10px; max-width:calc(100% - 16px); flex-wrap:wrap; justify-content:center;
+  background:var(--panel); border:1px solid var(--line); border-radius:12px;
+  padding:8px 14px; box-shadow:0 6px 24px #0008;
+}
+#prBar[hidden]{ display:none; }
+#prPos{ color:var(--muted); min-width:52px; text-align:center; }
+
+/* ── Branding ── */
+#brand{
+  padding:6px 12px; text-align:center; background:var(--panel);
+  border-top:1px solid var(--line);
+}
+#brand a{ color:var(--muted); text-decoration:none; font-size:12px; }
+#brand a:hover{ color:var(--text); }
+
+/* ── Presentación: chrome fuera, lienzo a pantalla completa ── */
+body.presenting #chrome, body.presenting #brand{ display:none; }
+body.presenting #sv{ cursor:default; }

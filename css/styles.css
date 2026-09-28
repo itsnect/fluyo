@@ -1,12 +1,8 @@
-:root{
-  --bg:#111213; --panel:#1b1d1f; --panel2:#222527; --line:#2e3134;
-  --text:#e8e6e1; --muted:#9a978f; --accent:#d08b5b; --accent2:#3aa7e8;
-}
 *{box-sizing:border-box; margin:0; padding:0;}
 html,body{height:100%;}
 body{
   background:var(--bg); color:var(--text);
-  font:13px/1.45 "Segoe UI", system-ui, sans-serif;
+  font:var(--ui-font);
   display:flex; flex-direction:column; overflow:hidden;
 }
 header{
@@ -14,23 +10,8 @@ header{
   padding:8px 14px; background:var(--panel); border-bottom:1px solid var(--line);
   flex-wrap:wrap;
 }
-header .logo{font-family:Georgia,serif; font-size:19px; letter-spacing:.3px; margin-right:4px; display:flex; align-items:baseline; gap:7px;}
-header .logo b{color:var(--accent); font-weight:normal;}
-header .logo .dots span{display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--accent); margin-left:3px; animation:flow 1.6s infinite;}
-header .logo .dots span:nth-child(2){animation-delay:.25s; opacity:.65;}
-header .logo .dots span:nth-child(3){animation-delay:.5s; opacity:.35;}
-@keyframes flow{0%,100%{transform:translateY(0);}50%{transform:translateY(-3px);}}
-@media (prefers-reduced-motion: reduce){ header .logo .dots span{animation:none;} }
 .spacer{flex:1;}
-button, select{
-  background:var(--panel2); color:var(--text); border:1px solid var(--line);
-  border-radius:7px; padding:6px 11px; cursor:pointer; font:inherit;
-}
-button:hover{border-color:#4a4e52;}
-button.primary{background:var(--accent); border-color:var(--accent); color:#16110c; font-weight:600;}
-button.primary:hover{filter:brightness(1.08);}
 button.toggled{background:#3a3326; border-color:var(--accent); color:var(--accent);}
-button:focus-visible, select:focus-visible, input:focus-visible{outline:2px solid var(--accent2); outline-offset:1px;}
 main{flex:1; display:flex; min-height:0;}
 /* ---- tool rail ---- */
 .rail{

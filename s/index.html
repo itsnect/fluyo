@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Diagrama compartido · Fluyo</title>
+
+<!-- Discoverability (FLUYO-003 §5/§9): el share es una capability URL pública,
+     no un contenido que deba indexarse. Cuando exista backend (FLUYO-006) la
+     respuesta HTTP añadirá además X-Robots-Tag: noindex, nofollow. -->
+<meta name="robots" content="noindex, nofollow">
+<!-- Referrer-Policy explícita: la ruta /s/<id> no debe filtrarse en el
+     Referer de peticiones a terceros. No se depende del default del navegador. -->
+<meta name="referrer" content="no-referrer">
+<!-- CSP del viewer (FLUYO-003 §8). frame-ancestors solo se puede fijar por
+     cabecera HTTP: queda pendiente para FLUYO-006 con el servicio hospedado. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cloud.umami.is; style-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://cloud.umami.is; object-src 'none'; base-uri 'none'">
+<meta name="theme-color" content="#111213">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23161616'/%3E%3Ccircle cx='18' cy='32' r='7' fill='%23d08b5b'/%3E%3Ccircle cx='40' cy='32' r='5' fill='%23d08b5b' opacity='.65'/%3E%3Ccircle cx='54' cy='32' r='3.4' fill='%23d08b5b' opacity='.35'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../css/identity.css">
+<link rel="stylesheet" href="../css/share.css">
+</head>
+<body>
+
+<header id="chrome">
+  <a class="logo" href="../" title="Fluyo" aria-label="Fluyo">flu<b>yo</b><span class="dots" aria-hidden="true"><span></span><span></span><span></span></span></a>
+  <nav id="pgTabs" aria-label="Páginas del diagrama" hidden></nav>
+  <div class="tools">
+    <button id="btnFit" type="button" disabled title="Encajar el diagrama en la vista">Encajar</button>
+    <button id="btnZoomOut" type="button" disabled title="Alejar">−</button>
+    <button id="btnZoomIn" type="button" disabled title="Acercar">+</button>
+    <button id="btnPresent" type="button" disabled title="Presentar las páginas como diapositivas">Presentar</button>
+    <span class="spacer"></span>
+    <button id="btnOpen" type="button" disabled class="primary" title="Abrir una copia editable de este diagrama en el editor">Abrir en Fluyo</button>
+  </div>
+</header>
+
+<main id="wrap">
+  <canvas id="sv"></canvas>
+  <div id="prBar" hidden>
+    <button id="prPrev" type="button" title="Página anterior">‹ Anterior</button>
+    <span id="prPos"></span>
+    <button id="prNext" type="button" title="Página siguiente">Siguiente ›</button>
+    <button id="prExit" type="button" title="Salir de la presentación">Salir</button>
+  </div>
+  <div id="status" role="status"></div>
+</main>
+
+<footer id="brand">
+  <a href="../">Hecho con Fluyo</a>
+</footer>
+
+<!-- Core compartido (idéntico al del editor, sin módulos de edición).
+     NO cargar aquí: state.js, editor-runtime.js, selection.js,
+     interaction.js, ui.js ni export.js. -->
+<script src="../js/config.js"></script>
+<script src="../js/model.js"></script>
+<script src="../js/geometry.js"></script>
+<script src="../js/render.js"></script>
+<!-- Transporte de telemetría puro (sin instrumentación de edición). -->
+<script src="../js/analytics.js"></script>
+<!-- Viewer: loader del share, viewport y runtime read-only. -->
+<script src="../js/share-loader.js"></script>
+<script src="../js/viewer-viewport.js"></script>
+<script src="../js/viewer.js"></script>
+</body>
+</html>

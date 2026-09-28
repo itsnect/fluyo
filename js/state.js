@@ -1,6 +1,28 @@
 "use strict";
 /* Runtime mutable, persistencia e integración DOM exclusivos del editor. */
 
+/* Fábricas de edición: no se cargan en consumidores read-only. */
+function newNode(shape,x,y,extra={}){
+  const [w,h]=DEFAULT_SIZES[shape]||[160,70];
+  const n=Object.assign({ id:P().nextId++, shape, x:snapV(x), y:snapV(y), w, h,
+    label: shape==="text"?"Texto":shape==="code"?CODE_DEFAULT_LABEL:(shape==="icon"||shape==="image"||shape==="anim")?"":"Nodo",
+    color:PALETTE[0].c, fill:null, border:"solid", lblPos:"center", textBg:null, textColor:null,
+    font:null, bold:false, pulse:false, order:P().nodes.length }, extra);
+  /* Los campos de `code` solo se ponen en nodos `code`, igual que `icon` solo va
+     en los de icono: no tiene sentido cargar todos los nodos con ellos. */
+  if(shape==="code" && !("lang" in n)) Object.assign(n,{lang:DEFAULT_LANG, keywords:null, kwBg:null, kwColor:null});
+  /* `tint` nace apagado también en los iconos nuevos: el interruptor tiene que
+     significar lo mismo en un diagrama de hoy y en uno de hace un mes. */
+  if(shape==="icon" && !("tint" in n)) n.tint=false;
+  P().nodes.push(n); return n;
+}
+function newEdge(a,b,opts={}){
+  if(a===b) return null;
+  const e=Object.assign({ id:P().nextId++, from:a, to:b, fromSide:null, toSide:null,
+    route:"straight", waypoints:[], label:"", font:null, bold:false, animated:true, dashed:false, startArrow:false, endArrow:true, flowDir:"normal" }, opts);
+  P().edges.push(e); return e;
+}
+
 /* ===================== Viewport ===================== */
 const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
 let viewX=0, viewY=0, viewZoom=0.8;
@@ -111,14 +133,11 @@ function syncProjectControls(){
   if($("fontGlobalSel")) $("fontGlobalSel").value=settings.font||DEFAULT_FONT;
 }
 function applyProjectData(d){
-  const nd=documentFromProjectData(d);
+  const normalized=projectFromProjectData(d);
   runWithoutAutosave(()=>{
-    doc=nd;
-    if(!settings.font) settings.font=DEFAULT_FONT;
+    doc=normalized.doc;
     undoStack.length=0; redoStack.length=0;
-    if(d.settings) Object.assign(settings,d.settings);
-    if(settings.grid===undefined) settings.grid=true;
-    doc.cur=clamp(doc.cur||0,0,doc.pages.length-1);
+    settings=normalized.settings;
     syncProjectControls();
     clearSel(); renderTabs();
   });

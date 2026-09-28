@@ -69,7 +69,10 @@ const ANALYTICS_PROVIDER = {
    De aquí hacia abajo nada es específico del proveedor.
    ═════════════════════════════════════════════════════════════════════════ */
 
-/* Lista cerrada validada antes de encolar y antes de enviar al proveedor. */
+/* Lista cerrada validada antes de encolar y antes de enviar al proveedor.
+   `share_viewed` y `share_opened_in_editor` se emiten desde el viewer de /s/
+   (js/viewer.js): sin propiedades, sin ID, sin URL, sin nada del documento.
+   `share_created` está reservado para el servicio hospedado y aún no se emite. */
 const ANALYTICS_EVENTS = {
   editor_opened:{}, first_edit_completed:{}, diagram_created:{},
   diagram_saved:{format:["fluyo_json"]}, present_started:{},
@@ -77,7 +80,8 @@ const ANALYTICS_EVENTS = {
   file_imported:{source:["file","link"],format:["fluyo_json"]},
   example_loaded:{example:["demo","funnel-de-ventas","onboarding-de-cliente","cadena-de-suministro","kafka-event-pipeline","microservicios-api-gateway","oauth2-flujo-autenticacion","pipeline-etl-datos","arquitectura-serverless-aws"]},
   gif_animation_added:{anim:["spinner","progress","ticket","errmove","check","typing","upload","pulse"]},
-  link_failed:{reason:["decode","schema","too_large","unsupported"]}
+  link_failed:{reason:["decode","schema","too_large","unsupported"]},
+  share_viewed:{}, share_opened_in_editor:{}
 };
 function analyticsProps(name, props={}){
   if(!Object.prototype.hasOwnProperty.call(ANALYTICS_EVENTS,name)) return null;
@@ -122,49 +126,12 @@ function trackEvent(name, props){
   }catch(e){ /* La telemetría es opcional. */ }
 }
 
-/* Sesión = una carga del editor. Comparar sólo estado editable, en memoria:
-   nunca enviar ni persistir esta instantánea. Cambiar de página, pan, zoom,
-   selección y preferencias de rejilla no son ediciones del diagrama. */
-let analyticsBaseline=null, analyticsHadNodes=false;
-let analyticsFirstEdit=false, analyticsCreated=false, analyticsEditTimer=null;
-function analyticsSnapshot(){
-  return JSON.stringify({theme:doc.theme,customBg:doc.customBg,
-    pages:doc.pages.map(pg=>({name:pg.name,nodes:pg.nodes,edges:pg.edges})),
-    settings:{speed:settings.speed,dots:settings.dots,build:settings.build,
-      stagger:settings.stagger,font:settings.font}});
-}
-function resetAnalyticsBaseline(){
-  if(!ANALYTICS_ON || (analyticsFirstEdit && analyticsCreated)) return;
-  try{
-    analyticsBaseline=analyticsSnapshot();
-    analyticsHadNodes=doc.pages.some(pg=>pg.nodes.length>0);
-  }catch(e){}
-}
-function checkAnalyticsEdit(){
-  if(!ANALYTICS_ON || (analyticsFirstEdit && analyticsCreated)) return;
-  // Esperar al resultado confirmado del gesto/texto, no a su estado provisional.
-  if(editing || drag || resizing || wpDrag || segDrag || endDrag || connectDrag) return;
-  // El exportador GIF ajusta temporalmente la velocidad para cerrar el bucle.
-  if(typeof activeGif!=="undefined" && activeGif) return;
-  try{
-    const current=analyticsSnapshot();
-    if(analyticsBaseline!==null && current!==analyticsBaseline){
-      if(!analyticsFirstEdit){ analyticsFirstEdit=true; trackEvent("first_edit_completed"); }
-      if(!analyticsCreated && !analyticsHadNodes && doc.pages.some(pg=>pg.nodes.length>0)){
-        analyticsCreated=true; trackEvent("diagram_created");
-      }
-    }
-    resetAnalyticsBaseline();
-    if(analyticsFirstEdit && analyticsCreated) analyticsBaseline=null;
-  }catch(e){}
-}
-function scheduleAnalyticsEdit(){
-  if(!ANALYTICS_ON || (analyticsFirstEdit && analyticsCreated)) return;
-  clearTimeout(analyticsEditTimer);
-  analyticsEditTimer=setTimeout(checkAnalyticsEdit,0);
-}
-document.addEventListener("DOMContentLoaded",()=>{
-  if(!document.getElementById("cv")) return;
-  resetAnalyticsBaseline();
-  trackEvent("editor_opened");
-},{once:true});
+/* ═════════════════════════════════════════════════════════════════════════
+   FIN DEL TRANSPORTE GENÉRICO.
+
+   Todo lo que hay por debajo de esta línea en otro tiempo vivía aquí:
+   snapshots de edición, first_edit_completed y el evento editor_opened.
+   Es instrumentación exclusiva del editor y se movió a
+   js/editor-analytics.js para que el viewer de /s/ pueda cargar sólo este
+   transporte sin arrastrar estado editable ni emitir eventos de edición.
+   ═════════════════════════════════════════════════════════════════════════ */

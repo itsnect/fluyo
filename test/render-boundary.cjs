@@ -25,6 +25,7 @@ const editorScripts = [
   "js/ui.js",
   "js/export.js",
   "js/analytics.js",
+  "js/editor-analytics.js",
 ];
 
 const viewerScripts = [
@@ -47,7 +48,7 @@ check("viewer-core", viewerScripts);
 const modelSource=read("js/model.js");
 const renderSource=read("js/render.js");
 for(const [name,source,forbidden] of [
-  ["model",modelSource,/\blocalStorage\s*\.|\bdocument\s*\.|\brequestAnimationFrame\s*\(|\b(?:selN|selE|singleSel|arrowHostNode|hoverNode)\b/],
+  ["model",modelSource,/\blocalStorage\s*\.|\bdocument\s*\.|\brequestAnimationFrame\s*\(|\b(?:newNode|newEdge|selN|selE|singleSel|arrowHostNode|hoverNode)\b/],
   ["renderer",renderSource,/\bbuildEditorRenderState\b|\bsyncEditBoxIfMoved\b|\brequestAnimationFrame\b|\bplaying\b|\bpausedAt\b/]
 ]){
   if(forbidden.test(source)) throw new Error(name+" conserva una dependencia del editor");

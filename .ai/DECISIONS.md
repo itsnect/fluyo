@@ -89,3 +89,22 @@ Contexto: FLUYO-003 diseñó la arquitectura mínima para publicar un documento 
 Decisión: Share persiste una copia completa **ya validada y normalizada** del `.fluyo.json` canónico bajo un ID aleatorio de 128 bits no enumerable, como snapshot inmutable (sin `PUT`/`PATCH`, sin overwrite, sin segundo esquema). El contenido solo sale del navegador tras confirmación explícita del usuario: **«Cualquiera con el enlace puede acceder a este diagrama.»** La URL del share es una *capability URL* pública, no un mecanismo de autenticación fuerte. `/s/<id>` se sirve con `noindex, nofollow` (+ `X-Robots-Tag` equivalente cuando exista backend) y `Referrer-Policy` explícita, para no ampliar su descubribilidad más allá de quien recibe el enlace. No hay expiración automática en v1 y no se promete almacenamiento permanente como SLA. La única vía de retirada propia del creador es un `deleteToken` aleatorio de alta entropía, devuelto una sola vez en la respuesta de creación, nunca persistido en claro (solo su hash) y nunca incluido en `.fluyo.json`, la URL o analytics; si se pierde, v1 no ofrece recuperación. `Open in Fluyo` siempre crea una copia local editable sin vínculo remoto con el share original. Embeds de terceros quedan fuera de v1 (`frame-ancestors 'self'`). La persistencia usa object storage + función serverless/edge; el rate limiting exige un tercer componente conceptual explícito (contador/KV), pero no se introduce una base de datos para el contenido de los shares. Los eventos `share_created`, `share_viewed` y `share_opened_in_editor` (reservados en D-007/FLUYO-002) se implementan sin IDs, URLs ni propiedades de correlación: entregan señal agregada, no un funnel individual por share, y esa limitación se acepta a cambio de la privacidad.
 
 Consecuencia: Share es la primera excepción documentada a la promesa "tus diagramas nunca salen de tu navegador" de D-004, y solo aplica al gesto explícito de publicar. El formato `.fluyo.json` y su compatibilidad (D-003) no cambian: Share reutiliza el mismo validador/normalizador que archivo y deep link. Los límites operativos v1 (≈2 MiB, imágenes raster en lista cerrada, sin SVG ni recursos remotos) son configuración del servicio, no parte del contrato del formato, y pueden revisarse sin bump de versión. La elección de proveedor de storage/edge/rate-limit queda diferida a `FLUYO-006`. Detalle, API conceptual y arquitectura completa: `.ai/tasks/FLUYO-003.md`.
+
+## D-009 — Transporte de analytics separado de la instrumentación del editor
+
+Estado: vigente
+
+Contexto: el viewer de `/s/<id>` (FLUYO-005) necesita el helper `trackEvent()` y el provider de Umami para emitir `share_viewed` y `share_opened_in_editor`, pero no debe cargar snapshots de edición ni emitir `editor_opened`. Antes de esta separación, `js/analytics.js` mezclaba ambas responsabilidades.
+
+Decisión: `js/analytics.js` es **transporte genérico**: hosts permitidos, provider, cola, validación de eventos, `trackEvent()` y filtro de payload. `js/editor-analytics.js` es **instrumentación del editor**: snapshots de edición, `first_edit_completed`, `diagram_created` y `editor_opened`. El viewer carga solo el transporte; `index.html` carga ambos. `share_viewed` y `share_opened_in_editor` forman parte de la lista cerrada del transporte, sin propiedades ni identificadores.
+
+Consecuencia: una nueva superficie (viewer) puede emitir eventos sin arrastrar el estado editable del editor. Modificar eventos del editor sigue siendo una operación localizada en `js/editor-analytics.js`; cambiar de proveedor sigue siendo un único bloque en `js/analytics.js`.
+
+### Precisión de la frontera de documento tras QA de FLUYO-005
+
+El core `model.js` no incluye fábricas que creen nodos o conexiones en el
+documento activo: `newNode()`/`newEdge()` viven en `state.js`, sólo del editor.
+`projectFromProjectData()` es la frontera común de validación, migración y
+normalización de documento/settings para archivo, deep link y viewer;
+`documentFromProjectData()` mantiene su API delegando en ella. No hay política
+de versiones ni esquema separado para Share. El formato portable sigue en v3.

@@ -11,7 +11,7 @@
    estaba sirviendo al iframe una copia vieja de js/interaction.js. Por eso ese
    test ahora desregistra el SW antes de cargar nada — y por eso esta versión
    sube también cuando solo cambia el contenido. */
-const CACHE = "fluyo-static-v33";
+const CACHE = "fluyo-static-v36";
 /* Núcleo: si algo de aquí falla, la instalación falla (cache.addAll es atómico)
    y es lo correcto, porque sin estos archivos la app no funciona. */
 const ASSETS = [
@@ -19,6 +19,7 @@ const ASSETS = [
   "./index.html",
   "./manifest.webmanifest",
   "./sw.js",
+  "./css/identity.css",
   "./css/styles.css",
   "./js/analytics.js",
   "./js/examples.js",
@@ -32,7 +33,11 @@ const ASSETS = [
   "./js/interaction.js",
   "./js/editor-runtime.js",
   "./js/ui.js",
-  "./js/export.js"
+  "./js/export.js",
+  "./js/editor-analytics.js",
+  "./js/share-loader.js",
+  "./js/viewer-viewport.js",
+  "./js/viewer.js"
 ];
 /* Páginas estáticas y ejemplos: se cachean si se puede, pero su fallo no debe
    tumbar la instalación — el editor funciona perfectamente sin ellos. */
@@ -46,6 +51,8 @@ const PAGE_ASSETS = [
   "./terms/",
   "./soporte/",
   "./support/",
+  "./s/",
+  "./css/share.css",
   "./ejemplos/data/funnel-de-ventas.fluyo.json",
   "./ejemplos/data/onboarding-de-cliente.fluyo.json",
   "./ejemplos/data/cadena-de-suministro.fluyo.json",

@@ -22,7 +22,7 @@ Fluyo es un editor de diagramas de arquitectura en el que **las conexiones se mu
 
 El problema que resuelve: explicar un sistema distribuido con una imagen estática obliga a que quien la ve reconstruya mentalmente el orden de los pasos. Un diagrama animado lo muestra. Eso importa cuando el diagrama va a un README, a una presentación o a una propuesta de diseño — sitios donde no puedes estar delante para narrarlo.
 
-Las herramientas que animan de verdad son de pago, viven en la nube y te piden una cuenta. Fluyo no tiene backend, no tiene cuentas y no guarda nada: el editor, la animación y hasta la codificación del GIF ocurren íntegramente en tu navegador. Es MIT, y son unos pocos archivos de HTML, CSS y JavaScript sin dependencias ni paso de compilación.
+Las herramientas que animan de verdad son de pago, viven en la nube y te piden una cuenta. Hoy Fluyo no tiene backend, no tiene cuentas y no guarda nada: el editor, la animación y hasta la codificación del GIF ocurren íntegramente en tu navegador. Es MIT, y son unos pocos archivos de HTML, CSS y JavaScript sin dependencias ni paso de compilación — una simplificación deliberada que se mantiene mientras sea suficiente y que puede revisarse si una necesidad técnica, de mantenibilidad o de producto lo justifica (ver [`.ai/DECISIONS.md`](.ai/DECISIONS.md)).
 
 ---
 
@@ -62,7 +62,7 @@ Dos cosas concretas necesitan HTTP, porque el navegador las bloquea en `file://`
 - el **modo offline** (los service workers exigen un contexto seguro);
 - los **enlaces a ejemplos** del tipo `?ejemplo=<slug>`, que hacen `fetch` de un JSON.
 
-> Que los scripts sean clásicos y no módulos ES **es la condición que hace cierto lo de arriba**, no un detalle de estilo: un `<script type="module">` lo bloquea el navegador en `file://` por CORS, y con un solo `import` la app deja de abrirse con doble clic. Está escrito como regla dura en [CONTRIBUTING.md](CONTRIBUTING.md) y hay un test en CI que falla si alguien lo introduce.
+> Que los scripts sean clásicos y no módulos ES **es la condición que hace cierto lo de arriba**, no un detalle de estilo: un `<script type="module">` lo bloquea el navegador en `file://` por CORS, y con un solo `import` la app deja de abrirse con doble clic. Está escrito como convención en [CONTRIBUTING.md](CONTRIBUTING.md) y hay un test en CI que falla si alguien lo introduce. Es el estado técnico actual, no una prohibición permanente: las decisiones estructurales se revisan cuando una necesidad real lo justifica (ver [`.ai/DECISIONS.md`](.ai/DECISIONS.md)).
 
 Si quieres eso también, cualquier servidor de estáticos sirve:
 
@@ -148,7 +148,7 @@ La única petición externa del editor es [gif.js](https://github.com/jnordberg/
 
 ## Contribuir
 
-Las contribuciones son bienvenidas, y el proyecto está pensado para que empezar sea fácil: no hay build, no hay dependencias y cada archivo tiene una responsabilidad clara.
+Las contribuciones son bienvenidas, y el proyecto está pensado para que empezar sea fácil: hoy no hay build ni dependencias — decisión deliberada y revisable, ver [`.ai/DECISIONS.md`](.ai/DECISIONS.md) — y cada archivo tiene una responsabilidad clara.
 
 Lee **[CONTRIBUTING.md](CONTRIBUTING.md)** — trae la estructura de archivos con una línea por archivo, la convención de commits y guías paso a paso para las dos contribuciones más habituales: **añadir un icono** y **añadir una animación GIF**.
 

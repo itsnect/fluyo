@@ -4,7 +4,7 @@ Gracias por pasarte. Esta guía es corta a propósito.
 
 ## Cómo correr el proyecto
 
-**No hay build.** No hay `npm install`, ni bundler, ni paso de compilación. Clonas, abres `index.html` en el navegador y ya estás editando.
+**Hoy no hay build.** No hay `npm install`, ni bundler, ni paso de compilación. Clonas, abres `index.html` en el navegador y ya estás editando. Es el estado técnico actual, no una restricción permanente: cambiarlo requiere una decisión explícita (ver [`.ai/DECISIONS.md`](.ai/DECISIONS.md)).
 
 ```bash
 git clone https://github.com/itsnect/fluyo.git
@@ -16,11 +16,11 @@ Los scripts son clásicos (no módulos ES), así que cargan desde `file://` sin 
 python -m http.server 8000     # o:  npx serve -l 8000
 ```
 
-> **Al probar en local, ojo con el service worker.** El `fetch` handler es *cache-first*, así que puedes quedarte viendo una versión antigua de tus propios cambios. Si algo no se actualiza: DevTools → Application → Service Workers → **Unregister**, y borra las cachés en Application → Storage. **Sube la constante `CACHE` en `sw.js` en cualquier PR que toque un archivo servido** — añadirlo, quitarlo, renombrarlo *o cambiar su contenido*. Mientras el nombre de la caché no cambie, nada se revalida.
+> **Al probar en local, ojo con el service worker.** El `fetch` handler es *cache-first*, así que puedes quedarte viendo una versión antigua de tus propios cambios. Si algo no se actualiza: DevTools → Application → Service Workers → **Unregister**, y borra las cachés en Application → Storage. **Sube la constante `CACHE` en `sw.js` en cualquier PR que toque un archivo servido** — añadirlo, quitarlo, renombrarlo *o cambiar su contenido*. Mientras el nombre de la caché no cambie, nada se revalida. Esta estrategia de caché (cache-first, versionado manual) es la actual, no permanente: si una necesidad concreta justifica otra, se decide explícitamente (ver [`.ai/DECISIONS.md`](.ai/DECISIONS.md)).
 
-## Regla dura: scripts clásicos, nunca módulos ES
+## Convención actual: scripts clásicos, no módulos ES
 
-**No conviertas ningún `js/*.js` en módulo ES, ni añadas `<script type="module">`, ni uses `import`/`export` de nivel superior.** No es preferencia de estilo: es lo que sostiene una propiedad publicada del producto.
+**Hoy los `js/*.js` son scripts clásicos: no añadas `<script type="module">` ni uses `import`/`export` de nivel superior.** No es preferencia de estilo: es lo que sostiene hoy una propiedad publicada del producto. Es el estado técnico actual, no una prohibición permanente: si surge una necesidad real, se decide abriendo un issue (ver [`.ai/DECISIONS.md`](.ai/DECISIONS.md)).
 
 `file://` es un caso de uso soportado y anunciado — [`README.md:58`](README.md) promete que *«cargan perfectamente desde `file://`»* y esta misma página lo repite arriba. Medido en Chrome, desde un origen `file:` real:
 
@@ -105,7 +105,7 @@ Los archivos de `js/` se cargan como scripts clásicos en orden de dependencia (
 **Abre un issue antes:**
 
 - Features nuevas del editor. Es más rápido acordar el enfoque que rehacer el trabajo.
-- Cualquier cosa que añada una **dependencia** o un **paso de build**. Que el proyecto sea un HTML que se abre y funciona es una restricción deliberada, no un descuido.
+- Cualquier cosa que añada una **dependencia** o un **paso de build**. Que el proyecto sea hoy un HTML que se abre y funciona es una decisión deliberada y revisable, no un descuido: si existe una necesidad técnica, de mantenibilidad o de producto que lo justifique, se decide explícitamente (ver [`.ai/DECISIONS.md`](.ai/DECISIONS.md)).
 - Refactorizaciones grandes o mover código entre archivos. Hay varios PRs abiertos a la vez y los conflictos de merge cuestan más que la mejora.
 - Cambios en el formato `.fluyo.json`, que tiene que seguir abriendo archivos antiguos.
 - Cualquier cosa que envíe datos a algún sitio. Ver la sección de privacidad del [README](README.md#privacidad-y-telemetría).

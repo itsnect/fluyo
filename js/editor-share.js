@@ -4,6 +4,16 @@ const shareDialog=document.getElementById("shareDialog");
 const shareControl=id=>document.getElementById(id);
 let shareBusy=false;
 function showShareDialog(){
+  if(typeof isScenarioPlaybackActive==="function" && isScenarioPlaybackActive()){
+    shareControl("shareMessage").textContent="Finaliza el Scenario con Reset antes de compartir.";
+    shareControl("shareConfirm").hidden=true;
+    shareControl("shareResult").hidden=true;
+    shareControl("shareCreate").hidden=true;
+    shareControl("shareCopy").hidden=true;
+    shareControl("shareClose").textContent="Cerrar";
+    shareDialog.showModal();
+    return;
+  }
   commitEditBox();
   shareControl("shareConfirm").hidden=false;
   shareControl("shareResult").hidden=true;

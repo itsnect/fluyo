@@ -174,6 +174,11 @@ if(location.protocol==="http:" || location.protocol==="https:"){
   </div>
 
   <aside id="propPanel">
+    <div class="panelTabs">
+      <button id="tabProperties" class="active" type="button">Propiedades</button>
+      <button id="tabScenarios" type="button">Scenarios</button>
+    </div>
+    <div id="panelProperties">
     <section>
       <h3>Selección</h3>
       <div id="noSel" class="hint">Nada seleccionado.<br><br>
@@ -189,8 +194,7 @@ if(location.protocol==="http:" || location.protocol==="https:"){
         • Táctil: con algo seleccionado sale un botón de <b>papelera</b> sobre el lienzo.<br>
         • <kbd>P</kbd> presenta a pantalla completa; <kbd>←</kbd> <kbd>→</kbd> cambian de página.<br>
         • Con una flecha seleccionada, arrastra sus <b>extremos</b> para cambiar de lado o de forma, y las <b>barras azules</b> para deslizar un tramo; doble clic en un codo lo elimina.<br>
-        • <kbd>R</kbd> devuelve una flecha a su <b>ruta automática</b>, deshaciendo los tramos que hayas movido.<br>
-        • Pega imágenes con <kbd>Ctrl+V</kbd>.
+        • <kbd>R</kbd> devuelve una flecha a su <b>ruta automática</b>, deshaciendo los tramos que hayas movido.
       </div>
       <div id="multiSel" style="display:none">
         <p class="hint" id="multiCount" style="font-size:12px; color:var(--text);"></p>
@@ -202,6 +206,10 @@ if(location.protocol==="http:" || location.protocol==="https:"){
         </div>
       </div>
       <div id="selBody" style="display:none">
+        <div id="scCanvasActions" class="scCanvasActions" style="display:none;">
+          <p class="hint">Añadir al Scenario</p>
+          <div class="btnGrid" id="scCanvasActionButtons"></div>
+        </div>
         <div class="row" style="flex-direction:column; align-items:stretch;">
           <label for="lblEdit">Texto (Enter = nueva línea)</label>
           <textarea id="lblEdit"></textarea>
@@ -396,6 +404,111 @@ if(location.protocol==="http:" || location.protocol==="https:"){
         <span><b>fluyo-mcp</b><br><span class="hint">Úsalo con tu IA vía MCP</span></span>
       </a>
     </section>
+    </div>
+
+    <div id="panelScenarios" style="display:none;">
+      <section class="scHeader">
+        <div class="row scSelectorRow">
+          <select id="scSel" title="Scenario activo"></select>
+          <button id="scNew" type="button" title="Nuevo Scenario">＋</button>
+          <button id="scDel" type="button" title="Eliminar Scenario" class="danger">✕</button>
+        </div>
+        <div class="scNameRunRow">
+          <input type="text" id="scName" maxlength="120" placeholder="Nombre del Scenario">
+          <button id="scRun" type="button" class="primary">▶ Run</button>
+          <button id="scReset" type="button" style="display:none;">Reset</button>
+        </div>
+        <p id="scUnsupported" class="hint" style="display:none; color:#e0c070;">Este Scenario usa una versión de ejecución no soportada por esta versión de Fluyo.</p>
+        <p id="scErrors" class="hint" style="display:none; color:#e08585;"></p>
+      </section>
+
+      <section class="scEventLibrarySection">
+        <div class="scSectionHeader">
+          <h3>Eventos del proyecto</h3>
+          <button id="scEventNew" type="button" class="mini">＋ Crear evento</button>
+        </div>
+        <div id="scEventLibrary" class="scEventLibrary"></div>
+        <p class="hint">Arrastra un evento al canvas para crear una instancia.</p>
+      </section>
+
+      <section class="scStoryboardSection">
+        <div id="scEmptyState" class="scEmptyState" style="display:none;">
+          <p>Todavía no ocurre nada.</p>
+          <p class="hint">Selecciona un nodo o conexión en el canvas, o añade un momento.</p>
+        </div>
+        <div id="scStoryboard"></div>
+        <button id="scAddMoment" type="button" class="wfull">＋ Añadir momento</button>
+      </section>
+
+      <section class="scConfigSection">
+        <button id="scToggleConfig" type="button" class="wfull scCollapseBtn">Configuración</button>
+        <div id="scConfig" style="display:none;">
+          <h3>Estado inicial</h3>
+          <div id="scBehaviors"></div>
+          <button id="scAddBehavior" type="button" class="mini wfull">＋ Añadir override</button>
+        </div>
+      </section>
+
+      <section class="scTraceSection">
+        <button id="scToggleTrace" type="button" class="wfull scCollapseBtn">Detalles técnicos</button>
+        <div id="scTraceWrap" style="display:none;">
+          <div id="scTraceLog" class="traceLog"></div>
+        </div>
+      </section>
+
+      <!-- Diálogo semántico para añadir un momento -->
+      <div id="scMomentDialog" class="scMomentDialog" style="display:none;">
+        <div class="scMomentDialogBody">
+          <p class="scMomentQuestion">¿Qué ocurre?</p>
+          <button id="scMomentState" type="button" class="wfull">Un elemento cambia de estado</button>
+          <button id="scMomentSend" type="button" class="wfull">Se envía algo</button>
+          <button id="scMomentCancel" type="button" class="wfull scSecondaryBtn">Cancelar</button>
+        </div>
+      </div>
+
+      <!-- Diálogo de creación/edición de EventType -->
+      <div id="scEventDialog" class="scMomentDialog" style="display:none;">
+        <div class="scMomentDialogBody">
+          <h3 id="scEventDialogTitle">Crear evento</h3>
+          <div class="row" style="flex-direction:column; align-items:stretch;">
+            <label for="scEventName">Nombre</label>
+            <input type="text" id="scEventName" maxlength="60" placeholder="Pago">
+          </div>
+          <div class="row" style="flex-direction:column; align-items:stretch;">
+            <label for="scEventPrimitive">¿Qué hace?</label>
+            <select id="scEventPrimitive">
+              <option value="FLOW">Recorre una conexión</option>
+              <option value="OCCURRENCE">Ocurre en un elemento</option>
+              <option value="SET_AVAILABILITY">Cambia disponibilidad</option>
+            </select>
+          </div>
+          <div id="scEventAvailabilityRow" class="row" style="flex-direction:column; align-items:stretch; display:none;">
+            <label for="scEventAvailability">Resultado</label>
+            <select id="scEventAvailability">
+              <option value="DOWN">No disponible</option>
+              <option value="UP">Disponible</option>
+            </select>
+          </div>
+          <div class="row" style="flex-direction:column; align-items:stretch;">
+            <label for="scEventTemplate">Texto</label>
+            <input type="text" id="scEventTemplate" maxlength="200" placeholder="{source} paga a {target}">
+          </div>
+          <div class="row" style="flex-direction:column; align-items:stretch;">
+            <label for="scEventVisual">Visual</label>
+            <input type="text" id="scEventVisual" maxlength="8" placeholder="💵">
+          </div>
+          <div class="row" style="flex-direction:column; align-items:stretch;">
+            <label>Preview</label>
+            <p id="scEventPreview" class="hint">—</p>
+          </div>
+          <div class="actions">
+            <button id="scEventDelete" type="button" class="danger" style="display:none;">Eliminar</button>
+            <button id="scEventCancel" type="button">Cancelar</button>
+            <button id="scEventSave" type="button" class="primary">Guardar</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </aside>
 </main>
 
@@ -524,6 +637,9 @@ if(location.protocol==="http:" || location.protocol==="https:"){
 <script src="js/render.js"></script>
 <script src="js/interaction.js"></script>
 <script src="js/editor-runtime.js"></script>
+<script src="js/scenario-engine.js"></script>
+<script src="js/scenario-playback.js"></script>
+<script src="js/editor-scenarios.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/export.js"></script>
 <script src="js/share-url.js"></script>

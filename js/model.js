@@ -4,7 +4,7 @@
 
 /* ===================== Documento (páginas) ===================== */
 function blankPage(name){ return {name, nodes:[], edges:[], nextId:1, behaviors:[], scenarios:[], nextScenarioId:1}; }
-let doc={ theme:"dark", customBg:"", pages:[blankPage("Página 1")], cur:0 };
+let doc={ theme:"dark", customBg:"", eventTypes:[], nextEventTypeId:1, pages:[blankPage("Página 1")], cur:0 };
 const DEFAULT_SETTINGS={speed:.5, dots:3, build:false, stagger:.45, grid:true, snap:false, font:DEFAULT_FONT, single:false};
 let settings={...DEFAULT_SETTINGS};
 const P=()=>doc.pages[doc.cur];
@@ -36,7 +36,7 @@ function getBounds(){
 }
 
 /* ===================== Contrato .fluyo.json ===================== */
-function serializeProject(){ return {version:4,app:"fluyo",doc,settings}; }
+function serializeProject(){ return {version:5,app:"fluyo",doc,settings}; }
 
 function projectDataError(code="invalid_document"){
   const err=new Error(code); err.code=code; return err;
@@ -48,10 +48,13 @@ function projectNumber(value,fallback){
 }
 /* Límites de los controles existentes: speedIn, dotsIn y staggerIn.
    No dependen del DOM; archivo, deep link y viewer comparten la semántica. */
-/* Scenarios v1 */
-const SCENARIO_ENGINE_VERSION=1;
+/* Scenarios v2 (v1 se conserva para documentos históricos) */
+const SCENARIO_ENGINE_VERSION=2;
 const SCENARIO_STATES=new Set(["UP","DOWN"]);
-const SCENARIO_ACTIONS=new Set(["SET_STATE","SEND"]);
+const SCENARIO_ACTIONS=new Set(["SET_STATE","SEND","OCCURRENCE"]);
+const EVENT_TYPE_PRIMITIVES=new Set(["FLOW","OCCURRENCE","SET_AVAILABILITY"]);
+const EVENT_TYPE_AVAILABILITY=new Set(["UP","DOWN"]);
+const EVENT_TOKEN_MAX_LEN=8;
 
 /* Marcas de identidad persistidas, sin guards de ejecución. El último entero
    seguro se reserva como marca de agotamiento: nunca se asigna y luego suma 1. */
@@ -83,16 +86,158 @@ function reserveProjectIds(owner,key,count=1,minimum=1){
 }
 function reserveStructureIds(pg,count=1){ return reserveProjectIds(pg,"nextId",count,structuralNextId(pg)); }
 
-function validatePersistedStep(step){
+/* ===================== EventTypes ===================== */
+const EVENT_TEMPLATE_PLACEHOLDERS=new Set(["source","target","name"]);
+function eventTypeById(id){ return doc.eventTypes.find(e=>e.id===id)||null; }
+
+function eventTypeUseCount(id){
+  let count=0;
+  for(const pg of doc.pages){
+    for(const sc of pg.scenarios||[]){
+      for(const step of sc.steps||[]){
+        if(step.eventTypeId===id) count++;
+      }
+    }
+  }
+  return count;
+}
+function eventTypeIsUsed(id){ return eventTypeUseCount(id)>0; }
+
+function validateEventType(et){
+  if(!projectObject(et) || !Number.isSafeInteger(et.id) || et.id<1) throw projectDataError();
+  if(typeof et.name!=="string" || et.name.trim().length===0 || et.name.length>60) throw projectDataError();
+  if(!EVENT_TYPE_PRIMITIVES.has(et.primitive)) throw projectDataError();
+  if(typeof et.sentenceTemplate!=="string" || et.sentenceTemplate.trim().length===0 || et.sentenceTemplate.length>200) throw projectDataError();
+  // placeholders allowlisted y bien formados
+  for(const m of et.sentenceTemplate.matchAll(/\{([a-zA-Z0-9_]*)\}/g)){
+    if(!EVENT_TEMPLATE_PLACEHOLDERS.has(m[1])) throw projectDataError();
+  }
+  if(!projectObject(et.visual) || et.visual.kind!=="token" || typeof et.visual.value!=="string") throw projectDataError();
+  if([...et.visual.value].length>EVENT_TOKEN_MAX_LEN) throw projectDataError();
+  if(et.primitive==="SET_AVAILABILITY"){
+    if(!EVENT_TYPE_AVAILABILITY.has(et.availability)) throw projectDataError();
+  } else if(Object.prototype.hasOwnProperty.call(et,"availability")){
+    // availability solo tiene sentido para SET_AVAILABILITY
+    delete et.availability;
+  }
+  return et;
+}
+
+function normalizeEventTypes(d){
+  if(d.eventTypes===undefined) d.eventTypes=[];
+  if(!Array.isArray(d.eventTypes)) throw projectDataError();
+  d.nextEventTypeId=projectCounter(d.nextEventTypeId);
+  const seen=new Set();
+  let maxId=0;
+  for(const et of d.eventTypes){
+    validateEventType(et);
+    if(seen.has(et.id)) throw projectDataError();
+    seen.add(et.id);
+    maxId=Math.max(maxId,et.id);
+  }
+  d.nextEventTypeId=projectCounter(d.nextEventTypeId,maxId);
+}
+
+function createEventType(definition){
+  if(!projectObject(definition)) throw projectDataError();
+  const name=String(definition.name||"").trim();
+  if(!name || name.length>60) throw projectDataError();
+  const primitive=definition.primitive;
+  if(!EVENT_TYPE_PRIMITIVES.has(primitive)) throw projectDataError();
+  const sentenceTemplate=String(definition.sentenceTemplate||"").trim();
+  if(!sentenceTemplate || sentenceTemplate.length>200) throw projectDataError();
+  const visual={kind:"token", value:String(definition.visual&&definition.visual.value||"")};
+  if([...visual.value].length>EVENT_TOKEN_MAX_LEN) throw projectDataError();
+  let availability;
+  if(primitive==="SET_AVAILABILITY"){
+    availability=definition.availability;
+    if(!EVENT_TYPE_AVAILABILITY.has(availability)) throw projectDataError();
+  }
+  let maxId=0;
+  for(const et of doc.eventTypes) maxId=Math.max(maxId,et.id);
+  const id=reserveProjectIds(doc,"nextEventTypeId",1,projectCounter(doc.nextEventTypeId,maxId));
+  const et={id,name,primitive,sentenceTemplate,visual};
+  if(availability!==undefined) et.availability=availability;
+  validateEventType(et);
+  doc.eventTypes.push(et);
+  return et;
+}
+
+function updateEventType(id, changes){
+  const et=eventTypeById(id);
+  if(!et) throw projectDataError("event_type_not_found");
+  const used=eventTypeIsUsed(id);
+  if(changes.primitive!==undefined && changes.primitive!==et.primitive && used)
+    throw projectDataError("event_type_primitive_immutable_when_used");
+  if(changes.availability!==undefined && et.primitive==="SET_AVAILABILITY" && used)
+    throw projectDataError("event_type_availability_immutable_when_used");
+  if(changes.name!==undefined){
+    const n=String(changes.name).trim();
+    if(!n || n.length>60) throw projectDataError();
+    et.name=n;
+  }
+  if(changes.sentenceTemplate!==undefined){
+    const t=String(changes.sentenceTemplate).trim();
+    if(!t || t.length>200) throw projectDataError();
+    for(const m of t.matchAll(/\{([a-zA-Z0-9_]*)\}/g)){
+      if(!EVENT_TEMPLATE_PLACEHOLDERS.has(m[1])) throw projectDataError();
+    }
+    et.sentenceTemplate=t;
+  }
+  if(changes.visual!==undefined){
+    const v={kind:"token", value:String(changes.visual&&changes.visual.value||"")};
+    if([...v.value].length>EVENT_TOKEN_MAX_LEN) throw projectDataError();
+    et.visual=v;
+  }
+  if(changes.primitive!==undefined && !used){
+    if(!EVENT_TYPE_PRIMITIVES.has(changes.primitive)) throw projectDataError();
+    et.primitive=changes.primitive;
+    if(et.primitive!=="SET_AVAILABILITY" && Object.prototype.hasOwnProperty.call(et,"availability")) delete et.availability;
+  }
+  if(changes.availability!==undefined && et.primitive==="SET_AVAILABILITY" && !used){
+    if(!EVENT_TYPE_AVAILABILITY.has(changes.availability)) throw projectDataError();
+    et.availability=changes.availability;
+  }
+  return et;
+}
+
+function deleteEventType(id){
+  if(eventTypeIsUsed(id)) throw projectDataError("event_type_in_use");
+  doc.eventTypes=doc.eventTypes.filter(et=>et.id!==id);
+}
+
+function renderEventSentence(et, source, target){
+  if(!et) return "";
+  return et.sentenceTemplate
+    .replaceAll("{source}", source||"Origen")
+    .replaceAll("{target}", target||"Destino")
+    .replaceAll("{name}", et.name);
+}
+
+function eventTypeAllowedTargets(et){
+  if(!et) return new Set();
+  if(et.primitive==="FLOW") return new Set(["edge"]);
+  return new Set(["node"]); // OCCURRENCE y SET_AVAILABILITY
+}
+
+function validatePersistedStep(step, engineVersion){
   if(!projectObject(step) || !Number.isSafeInteger(step.id) || step.id<1) throw projectDataError();
   if(!Number.isSafeInteger(step.at) || step.at<0) throw projectDataError();
   if(!SCENARIO_ACTIONS.has(step.action)) throw projectDataError();
-  const allowed=step.action==="SET_STATE"?["id","at","action","nodeId","state"]:["id","at","action","edgeId"];
+  // eventTypeId es opcional en cualquier Step de cualquier versión (compatibilidad).
+  const baseFields=["id","at","action"];
+  const actionFields=step.action==="SET_STATE"?["nodeId","state"]:(step.action==="OCCURRENCE"?["nodeId"]:["edgeId"]);
+  // OCCURRENCE solo existe a partir de engineVersion 2; en v1 se rechaza en normalizeScenarios.
+  const allowed=[...baseFields, ...actionFields];
+  if(step.eventTypeId!==undefined) allowed.push("eventTypeId");
   const keys=Object.keys(step);
   if(keys.length!==allowed.length || !allowed.every(k=>projectOwn(step,k))) throw projectDataError();
   if(step.action==="SET_STATE"){
     if(!Number.isSafeInteger(step.nodeId) || step.nodeId<1 || !SCENARIO_STATES.has(step.state)) throw projectDataError();
+  }else if(step.action==="OCCURRENCE"){
+    if(!Number.isSafeInteger(step.nodeId) || step.nodeId<1) throw projectDataError();
   }else if(!Number.isSafeInteger(step.edgeId) || step.edgeId<1) throw projectDataError();
+  if(step.eventTypeId!==undefined && (!Number.isSafeInteger(step.eventTypeId) || step.eventTypeId<1)) throw projectDataError();
 }
 
 function normalizeBehaviors(pg){
@@ -125,7 +270,8 @@ function normalizeScenarios(pg){
     const stepIds=new Set();
     let maxStepId=0;
     for(const step of sc.steps){
-      validatePersistedStep(step);
+      validatePersistedStep(step, sc.engineVersion);
+      if(sc.engineVersion<2 && step.action==="OCCURRENCE") throw projectDataError();
       if(stepIds.has(step.id)) throw projectDataError();
       stepIds.add(step.id);
       maxStepId=Math.max(maxStepId,step.id);
@@ -146,11 +292,11 @@ function createScenario(pg,name="Escenario"){
 }
 function deleteScenario(pg,id){ pg.scenarios=pg.scenarios.filter(sc=>sc.id!==id); }
 function createStep(sc,definition){
-  if(sc.engineVersion!==SCENARIO_ENGINE_VERSION) throw projectDataError("unsupported_engine_version");
+  if(sc.engineVersion>SCENARIO_ENGINE_VERSION) throw projectDataError("unsupported_engine_version");
   if(!projectObject(definition) || projectOwn(definition,"id")) throw projectDataError();
   let maxId=0; for(const step of sc.steps) maxId=Math.max(maxId,step.id);
   const next=projectCounter(sc.nextStepId,maxId);
-  const step={id:next,...definition}; validatePersistedStep(step);
+  const step={id:next,...definition}; validatePersistedStep(step, sc.engineVersion);
   reserveProjectIds(sc,"nextStepId",1,next);
   sc.steps.push(step); return step;
 }
@@ -192,7 +338,7 @@ function projectFromProjectData(input){
   if(!projectObject(input)) throw projectDataError();
   if(input.version!==undefined){
     if(!Number.isInteger(input.version)) throw projectDataError();
-    if(input.version<1 || input.version>4) throw projectDataError("unsupported_version");
+    if(input.version<1 || input.version>5) throw projectDataError("unsupported_version");
   }
   if(input.app!==undefined && input.app!=="fluyo") throw projectDataError();
   let d;
@@ -260,8 +406,21 @@ function projectFromProjectData(input){
       if(n.keywords!=null && (!Array.isArray(n.keywords) || n.keywords.some(word=>typeof word!=="string"))) throw projectDataError();
     }
   }));
+  normalizeEventTypes(nd);
   nd.pages.forEach(pg=>{ normalizeBehaviors(pg); normalizeScenarios(pg); pg.nextId=structuralNextId(pg); });
   return {doc:nd,settings:normalizedSettings};
 }
 /* Compatibilidad de la API usada por migración/añadir páginas y deep link. */
 function documentFromProjectData(d){ return projectFromProjectData(d).doc; }
+
+/* Exposición mínima para el editor de Scenarios. */
+if(typeof window!=="undefined"){
+  window.eventTypeById=eventTypeById;
+  window.createEventType=createEventType;
+  window.updateEventType=updateEventType;
+  window.deleteEventType=deleteEventType;
+  window.eventTypeIsUsed=eventTypeIsUsed;
+  window.eventTypeUseCount=eventTypeUseCount;
+  window.renderEventSentence=renderEventSentence;
+  window.eventTypeAllowedTargets=eventTypeAllowedTargets;
+}

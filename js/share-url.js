@@ -27,7 +27,7 @@ async function createShareUrl(projectData,baseUrl){
   }
   let payload;
   try{
-    payload=await encodeDeepLink({version:4,app:"fluyo",...normalized});
+    payload=await encodeDeepLink({version:5,app:"fluyo",...normalized});
   }catch(e){
     // El tope descomprimido no es el límite de URL. Ninguna excepción del
     // encoder puede hacerse pasar por un exceso calculado del enlace final.

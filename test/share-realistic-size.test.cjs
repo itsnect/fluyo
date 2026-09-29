@@ -7,6 +7,7 @@ function creator(kind='tiny'){
   const v=makeViewer();v.context.location.protocol='https:';v.context.location.href='https://fluyo.space/';
   v.run(read('js/state.js').split('/* ===================== Viewport')[0]);
   v.run('('+buildRealisticEditorDocument.toString()+')('+JSON.stringify(kind)+')');
+  v.run('const __n=projectFromProjectData({version:5,app:"fluyo",doc,settings});doc=__n.doc;settings=__n.settings;');
   v.run(read('js/share-url.js'));v.run('function commitEditBox(){}');v.context.navigator={};
   for(const id of ['btnShare','shareDialog','shareConfirm','shareResult','shareCopy','shareCreate','shareClose','shareLink','shareMessage']){
     const element=v.context.document.getElementById(id);element.focus=()=>{};element.select=()=>{};

@@ -72,6 +72,7 @@ $("incomingKeep").onclick=incomingKeepMine;
    como un proceso y no como un dibujo, y es el diferenciador del producto. Es lo
    mismo que traen los tres ejemplos de negocio en sus `settings`. */
 $("btnDemo").onclick=()=>{
+  if(typeof isScenarioPlaybackActive==="function" && isScenarioPlaybackActive()){ if(typeof scReset==="function") scReset(); return; }
   pushUndo();
   const pg=P(); pg.nodes=[]; pg.edges=[]; /* pg.nextId se conserva: IDs eliminados no se reutilizan. */ clearSel();
   const T=newNode("text",1180,300,{label:"Funnel de ventas"}); T.color="#d08b5b"; T.w=620; T.order=0;

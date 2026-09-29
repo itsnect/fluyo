@@ -7,7 +7,7 @@ function now(){ return playing? (performance.now()-t0)/1000 : pausedAt; }
 
 function buildEditorRenderState(){
   const single=singleSel();
-  return {
+  const rs={
     viewport:{x:viewX,y:viewY,zoom:viewZoom,width:cv.width,height:cv.height,presenting:!!presenting},
     interaction:{
       mode,
@@ -32,6 +32,12 @@ function buildEditorRenderState(){
       arrowHost:arrowHostNode()
     }
   };
+  // Overlay de Scenario playback; la función la provee editor-scenarios.js.
+  if(typeof buildScenarioRenderState === "function"){
+    const scRS = buildScenarioRenderState();
+    if(scRS) rs.scenarioRuntime = scRS;
+  }
+  return rs;
 }
 
 function resizeEditorCanvas(){ resizeCanvas(cv,$("wrap")); }

@@ -238,6 +238,41 @@ function drawCodeNode(c,n,theme,glow){
   c.restore();
 }
 function colHex(c){ return (typeof c==="string" && c[0]==="#")? c : "#3aa7e8"; }
+function drawScenarioNodeOverlay(c,n,state,theme,rs){
+  if(!state && !rs) return;
+  const T=THEMES[theme];
+  // Cues visuales de OCCURRENCE / SET_AVAILABILITY sobre el nodo
+  if(rs){
+    const occs = (rs.activeOccurrences||[]).filter(o => o.nodeId === n.id).concat((rs.completedOccurrences||[]).filter(o => o.nodeId === n.id));
+    for(const occ of occs){
+      const step = rs.scenario ? rs.scenario.steps.find(s => s.id === occ.stepId) : null;
+      const et = step && step.eventTypeId ? eventTypeById(step.eventTypeId) : null;
+      const token = et && et.visual.value ? et.visual.value : "●";
+      c.save();
+      c.font = "bold 18px Georgia,serif";
+      c.textAlign = "center"; c.textBaseline = "middle";
+      c.fillStyle = T.text;
+      c.fillText(token, n.x, n.y - n.h/2 - 14);
+      c.restore();
+    }
+  }
+  if(!state) return;
+  if(state==="DOWN"){
+    c.save();
+    // Marco distintivo sin mutar el nodo
+    c.strokeStyle="#d0576a"; c.lineWidth=2.5; c.setLineDash([4,3]);
+    shapePath(c,n); c.stroke(); c.setLineDash([]);
+    // Badge
+    const badgeH=18, badgeW=46, pad=6;
+    const bx=n.x+n.w/2-badgeW-pad, by=n.y-n.h/2+pad;
+    c.fillStyle="#d0576a";
+    c.beginPath(); roundRect(c,bx,by,badgeW,badgeH,4); c.fill();
+    c.fillStyle="#fff"; c.font="bold 11px Georgia,serif"; c.textAlign="center"; c.textBaseline="middle";
+    c.fillText("DOWN", bx+badgeW/2, by+badgeH/2+0.5);
+    c.restore();
+  }
+}
+
 function drawNode(c,n,t,theme,isExport,rs){
   const a=nodeAlpha(n,t); if(a<=0) return;
   c.save(); c.globalAlpha=a;
@@ -303,6 +338,16 @@ function drawNode(c,n,t,theme,isExport,rs){
   }
   c.restore();
 
+  if(!isExport && typeof scDrag!=="undefined" && scDrag){
+    const et = eventTypeById(scDrag.eventTypeId);
+    const allowed = eventTypeAllowedTargets(et);
+    if(allowed.has("node")){
+      c.save();
+      c.strokeStyle="rgba(58,167,232,.55)"; c.lineWidth=3; c.setLineDash([6,4]);
+      shapePath(c,n); c.stroke(); c.setLineDash([]);
+      c.restore();
+    }
+  }
   if(!isExport && rs.selection.nodes.has(n.id)){
     c.save();
     c.setLineDash([6,5]); c.strokeStyle="#3aa7e8"; c.lineWidth=1.5;
@@ -315,6 +360,9 @@ function drawNode(c,n,t,theme,isExport,rs){
       }
     }
     c.restore();
+  }
+  if(rs.scenarioRuntime && !isExport){
+    drawScenarioNodeOverlay(c,n,rs.scenarioRuntime.nodeStates[n.id],theme,rs);
   }
 }
 /* Medidor de etiquetas para el lienzo. Toca c.font, que drawEdge vuelve a fijar
@@ -457,6 +505,52 @@ function drawFlowBalls(c,t){
     }
   }
 }
+function drawScenarioEdgeOverlay(c,e,pts,active,completed,theme,rs){
+  if(pts.length<2) return;
+  const T=THEMES[theme];
+  // Partículas SEND activas
+  for(const send of active){
+    const p=pointAt(pts, send.progress);
+    const step = rs.scenario ? rs.scenario.steps.find(s => s.id === send.stepId) : null;
+    const et = step && step.eventTypeId ? eventTypeById(step.eventTypeId) : null;
+    const token = et && et.visual.value ? et.visual.value : "";
+    c.save();
+    if(token){
+      c.font = "bold 16px Georgia,serif";
+      c.textAlign = "center"; c.textBaseline = "middle";
+      c.fillStyle = T.text; c.fillText(token, p.x, p.y);
+    } else {
+      c.fillStyle="#d08b5b"; c.shadowColor="#d08b5b"; c.shadowBlur=12;
+      c.beginPath(); c.arc(p.x,p.y,6,0,Math.PI*2); c.fill();
+    }
+    c.restore();
+  }
+  // Terminales completados
+  for(const term of completed){
+    const isFail = term.terminalType === "send_failed";
+    const A=nodeById(e.from), B=nodeById(e.to);
+    // source_down -> marcador en origen; target_down/success -> en destino
+    const target = (isFail && term.terminalReason==="source_down") ? A : B;
+    if(!target) continue;
+    const end = pts[pts.length-1];
+    const pos = (isFail && term.terminalReason==="source_down") ? pts[0] : end;
+    c.save();
+    const col = isFail ? "#d0576a" : "#7bb85b";
+    c.fillStyle = col;
+    c.beginPath();
+    c.arc(pos.x,pos.y,9,0,Math.PI*2); c.fill();
+    c.fillStyle="#fff"; c.font="bold 11px Georgia,serif"; c.textAlign="center"; c.textBaseline="middle";
+    c.fillText(isFail ? "✕" : "✓", pos.x, pos.y+0.5);
+    // Reason label breve
+    if(isFail && term.terminalReason){
+      const label = term.terminalReason === "source_down" ? "source down" : "target down";
+      c.fillStyle = col; c.font="11px Georgia,serif";
+      c.fillText(label, pos.x, pos.y + 20);
+    }
+    c.restore();
+  }
+}
+
 function drawEdge(c,e,t,theme,isExport,rs){
   const A=nodeById(e.from), B=nodeById(e.to); if(!A||!B) return;
   const a=Math.min(nodeAlpha(A,t),nodeAlpha(B,t)); if(a<=0) return;
@@ -481,7 +575,9 @@ function drawEdge(c,e,t,theme,isExport,rs){
   }
   /* con la pelota única los puntos por flecha se apagan: si no, se verían las
      dos animaciones a la vez sobre la misma línea */
-  if(e.animated && !settings.single){
+  /* Durante Scenario playback se suprime el flujo decorativo para no competir
+     con las partículas SEND controladas por el Trace. */
+  if(e.animated && !settings.single && !rs.scenarioRuntime){
     c.fillStyle=e.dotColor||A.color;
     const n=edgeDots(e);
     const sp=settings.speed*edgeSpeedFac(e);
@@ -556,6 +652,23 @@ function drawEdge(c,e,t,theme,isExport,rs){
       c.beginPath(); c.moveTo(mx-ux*half,my-uy*half); c.lineTo(mx+ux*half,my+uy*half); c.stroke();
       c.lineCap="butt"; c.lineWidth=1.6;
     }
+  }
+  if(!isExport && typeof scDrag!=="undefined" && scDrag){
+    const et = eventTypeById(scDrag.eventTypeId);
+    const allowed = eventTypeAllowedTargets(et);
+    if(allowed.has("edge")){
+      c.save();
+      c.strokeStyle="rgba(58,167,232,.45)"; c.lineWidth=5; c.setLineDash([8,6]);
+      c.beginPath(); c.moveTo(pts[0].x,pts[0].y);
+      for(let i=1;i<pts.length;i++) c.lineTo(pts[i].x,pts[i].y);
+      c.stroke(); c.setLineDash([]);
+      c.restore();
+    }
+  }
+  if(rs.scenarioRuntime && !isExport){
+    const active = rs.scenarioRuntime.activeSends.filter(s => s.edgeId === e.id);
+    const completed = rs.scenarioRuntime.completedSends.filter(s => s.edgeId === e.id);
+    if(active.length || completed.length) drawScenarioEdgeOverlay(c,e,pts,active,completed,theme,rs);
   }
   c.restore();
 }
@@ -669,7 +782,7 @@ function render(c,t,opts={}){
      extremo el mapa está congelado. Ver js/geometry.js. */
   refreshEdgeLabels(measureCanvasLabel(c));
   for(const e of P().edges) drawEdge(c,e,t,theme,isExport,rs);
-  drawFlowBalls(c,t);
+  if(!rs.scenarioRuntime) drawFlowBalls(c,t);
   for(const n of P().nodes) drawNode(c,n,t,theme,isExport,rs);
 
   const I=rs.interaction, S=rs.selection;

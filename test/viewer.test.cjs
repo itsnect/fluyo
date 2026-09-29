@@ -97,7 +97,7 @@ test('3b. not_found, invalid_id y unsupported_version tienen estado propio',asyn
   const v=makeViewer();
   await assert.rejects(v.run('loadSharedDocument("!!")'), e=>e.code==='invalid_id');
   await assert.rejects(v.run('loadSharedDocument("abcd1234abcd1234abcd12")'), e=>e.code==='not_found');
-  v.run('shareSource.fetch=async()=>({version:5,app:"fluyo",doc:{pages:[{name:"x",nodes:[],edges:[]}]},settings:{}})');
+  v.run('shareSource.fetch=async()=>({version:6,app:"fluyo",doc:{pages:[{name:"x",nodes:[],edges:[]}]},settings:{}})');
   await assert.rejects(v.run('loadSharedDocument("abcd1234abcd1234abcd12")'), e=>e.code==='unsupported_version');
 });
 
@@ -244,7 +244,7 @@ test('12b. Abrir en Fluyo produce una copia editable decodificable por el deep l
   for(;;){ const {value,done}=await r.read(); if(done) break; texto+=dec.decode(value,{stream:true}); }
   const data=JSON.parse(texto);
   v.run(`documentFromProjectData(${JSON.stringify(data)})`);
-  assert.equal(data.version, 4);
+  assert.equal(data.version, 5);
   assert.ok(data.doc.pages.length>=1);
 });
 
@@ -278,7 +278,7 @@ test('IDs completos y explícitos: la demo nunca es un fallback',async()=>{
     ['abcdefghijklmnopqrstuv','invalid_id'],['abc','invalid_id'],['constructor','invalid_id'],['__proto__','invalid_id']]){
     const v=makeViewer({pathname:'/s/index.html',search:'?s='+encodeURIComponent(id)});
     v.connect();
-    await v.boot(); v.frames(2);
+    await v.boot(); await v.waitForPhase(p=>p==='ready'||p==='error');
     assert.equal(v.viewer().phase,code?'error':'ready',id);
     assert.equal(v.viewer().shareViewed,!code,id);
     if(code) assert.equal(v.el('status').textContent,v.run(`SHARE_ERROR_MESSAGES[${JSON.stringify(code)}]`),id);
@@ -288,11 +288,11 @@ test('IDs completos y explícitos: la demo nunca es un fallback',async()=>{
     {pathname:'/s/index.html',search:'',hash:'#s=demo!'}, {pathname:'/s/demo!',search:''},
     {pathname:'/s/demo%21',search:''}, {pathname:'/s/%ZZ',search:''}
   ]){
-    const v=makeViewer(location); await v.boot();
+    const v=makeViewer(location); await v.boot(); await v.waitForPhase(p=>p==='ready'||p==='error');
     assert.equal(v.viewer().phase,'error',JSON.stringify(location));
     assert.equal(v.viewer().shareViewed,false);
   }
-  const hash=makeViewer({pathname:'/s/',search:'',hash:'#s=demo'}); await hash.boot();
+  const hash=makeViewer({pathname:'/s/',search:'',hash:'#s=demo'}); await hash.boot(); await hash.waitForPhase(p=>p==='ready'||p==='error');
   assert.equal(hash.viewer().phase,'error');
 });
 
@@ -301,7 +301,7 @@ test('cur normalizado: fuera de rango, fracción y tipos no numéricos',async()=
     const v=makeViewer();
     v.context.incomingCur=cur;
     v.run('shareSource.fetch=async()=>{const d=deep(SHARE_FIXTURES.demo);d.doc.cur=incomingCur;return d;}');
-    await v.boot(); v.frames(2);
+    await v.boot(); await v.waitForPhase(p=>p==='ready'||p==='error');
     assert.equal(v.viewer().phase,'ready');
     assert.equal(v.viewer().cur,expected);
   }
@@ -318,9 +318,9 @@ test('documentos históricos y actuales comparten migración con el importador',
     assert.equal(loaded.doc.pages[0].nodes[0].shape,'rect');
     assert.equal(loaded.settings.font,v.run('DEFAULT_FONT'));
   }
-  v.run('shareSource.fetch=async()=>({version:5,state:{nodes:[],edges:[]}})');
+  v.run('shareSource.fetch=async()=>({version:6,state:{nodes:[],edges:[]}})');
   await assert.rejects(v.run('loadSharedDocument("demo")'),e=>e.code==='unsupported_version');
-  assert.throws(()=>v.run('documentFromProjectData({version:5,state:{nodes:[],edges:[]}})'),e=>e.code==='unsupported_version');
+  assert.throws(()=>v.run('documentFromProjectData({version:6,state:{nodes:[],edges:[]}})'),e=>e.code==='unsupported_version');
   assert.throws(()=>v.run('documentFromProjectData({version:1,state:{nodes:[],edges:{}}})'),e=>e.code==='invalid_document');
 });
 
@@ -329,7 +329,7 @@ test('settings normalizados con defaults y límites de Fluyo, sin NaN',async()=>
   v.run('shareSource.fetch=async()=>{const d=deep(SHARE_FIXTURES.demo);d.settings={speed:100,dots:-9,stagger:Infinity,build:"sí",grid:null,snap:[],single:1,font:"desconocida"};return d;}');
   const data=await v.run('loadSharedDocument("demo")');
   assert.deepEqual(JSON.parse(JSON.stringify(data.settings)),JSON.parse(v.run('JSON.stringify({...DEFAULT_SETTINGS,speed:2,dots:1})')));
-  await v.boot(); v.frames(2);
+  await v.boot(); await v.waitForPhase(p=>p==='ready'||p==='error');
   assert.equal(v.viewer().phase,'ready');
   v.run('shareSource.fetch=async()=>{const d=deep(SHARE_FIXTURES.demo);d.settings={speed:NaN,dots:2.8,stagger:0};return d;}');
   const other=await v.run('loadSharedDocument("demo")');
@@ -350,7 +350,7 @@ test('entradas imposibles se rechazan antes de dibujar todas las páginas',async
   ]){
     const v=makeViewer();
     v.run('shareSource.fetch=async()=>{const d=deep(SHARE_FIXTURES.demo);'+mutation+';return d;}');
-    await v.boot(); v.frames(3); v.connect();
+    await v.boot(); v.connect(); await v.waitForPhase(p=>p==='ready'||p==='error');
     assert.equal(v.viewer().phase,'error',mutation);
     assert.match(v.el('status').textContent,/no es un diagrama Fluyo válido/,mutation);
     assert.equal(v.ops.length,0,mutation);
@@ -408,7 +408,7 @@ test('pinch real: traslación conjunta, levantar un dedo y volver a pan',async()
 test('fallo del primer render: error terminal, lienzo limpio y cero analytics',async()=>{
   const v=makeViewer();
   v.run('let renderAttempts=0; render=()=>{renderAttempts++;sctx.fillRect(1,2,3,4);throw new Error("fallo de render");}');
-  v.connect(); await v.boot(); v.frames(5);
+  v.connect(); await v.boot(); await v.waitForPhase(p=>p==='ready'||p==='error');
   assert.equal(v.viewer().phase,'error'); assert.equal(v.viewer().shareViewed,false);
   assert.equal(v.run('renderAttempts'),1);
   assert.deepEqual(v.events,[]);
@@ -421,9 +421,9 @@ test('fallo del primer render: error terminal, lienzo limpio y cero analytics',a
 test('fallo preparando bounds y fallo posterior no dejan RAF en bucle',async()=>{
   const prep=makeViewer();
   prep.run('getBounds=()=>{throw new Error("bounds");}');
-  await prep.boot(); prep.frames(5); prep.connect();
+  await prep.boot(); prep.connect(); await prep.waitForPhase(p=>p==='ready'||p==='error');
   assert.equal(prep.viewer().phase,'error'); assert.equal(prep.ops.length,0); assert.deepEqual(prep.events,[]);
-  const v=makeViewer(); await v.boot(); v.connect();
+  const v=makeViewer(); await v.boot(); v.connect(); await v.waitForPhase(p=>p==='ready'||p==='error');
   v.run('let laterAttempts=0; render=()=>{laterAttempts++;throw new Error("fallo posterior");}');
   v.frames(5);
   assert.equal(v.viewer().phase,'error'); assert.equal(v.run('laterAttempts'),1);

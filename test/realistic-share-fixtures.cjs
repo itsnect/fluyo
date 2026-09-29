@@ -2,7 +2,7 @@
 /* Documentos creados con las fábricas reales del editor, sin assets ni estado
    de prueba agregado al documento. También ejecutable por page.evaluate. */
 function buildRealisticEditorDocument(kind){
-  doc={theme:'dark',customBg:'',pages:[blankPage('Página 1')],cur:0};
+  doc={theme:'dark',customBg:'',eventTypes:[],nextEventTypeId:1,pages:[blankPage('Página 1')],cur:0};
   settings={...DEFAULT_SETTINGS};
   const labels=kind==='tiny'?['Nodo']:kind==='small'?['Cliente','API']:['Producer','Kafka','Consumer','Database'];
   const nodes=labels.map((label,i)=>newNode('rect',160+i*220,200,{label}));

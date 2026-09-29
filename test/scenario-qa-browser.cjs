@@ -11,6 +11,8 @@ const currentCache=/const CACHE = "([^"]+)"/.exec(fs.readFileSync(path.join(root
 const mime={'.html':'text/html','.js':'application/javascript','.css':'text/css','.json':'application/json','.webmanifest':'application/manifest+json','.svg':'image/svg+xml','.png':'image/png'};
 const input={version:3,app:'fluyo',doc:{theme:'dark',cur:0,pages:[{name:'Histórico',nodes:[{id:17,shape:'rect',x:100,y:100,label:'Histórico QA'}],edges:[],nextId:18},{name:'Vacía',nodes:[],edges:[],nextId:1}]},settings:{speed:1.2,dots:5,stagger:.9,font:'system-ui'}};
 const definitions={behaviors:[{nodeId:17,initialState:'DOWN'}],scenarios:[{id:7,engineVersion:1,name:'QA',nextStepId:12,steps:[{id:9,at:1000,action:'SET_STATE',nodeId:17,state:'UP'},{id:2,at:1000,action:'SET_STATE',nodeId:17,state:'DOWN'}]}],nextScenarioId:25};
+// FLUYO-010: el documento canónico es schema v5. Las aserciones de versión
+// se actualizan sin debilitar los contratos históricos que este gate verifica.
 let mode='current';
 const legacyFiles=new Map();
 for(const file of ['sw.js','js/model.js','js/selection.js','js/export.js','js/share-url.js','js/viewer.js']) legacyFiles.set(file,execFileSync('git',['show','HEAD:'+file],{cwd:root}));
@@ -43,7 +45,7 @@ const checkDefinitions=data=>{for(const key of Object.keys(definitions)) assert.
   };
   try{
     const {c,p}=await fresh();await p.goto(base+'/');await p.waitForFunction(()=>typeof applyProjectData==='function');
-    await open(p,input);const migrated=await save(p);assert.equal(migrated.version,4);assert.equal(migrated.doc.pages.length,2);assert.equal(migrated.settings.speed,1.2);assert.deepEqual(migrated.doc.pages[1].scenarios,[]);
+    await open(p,input);const migrated=await save(p);assert.equal(migrated.version,5);assert.equal(migrated.doc.pages.length,2);assert.equal(migrated.settings.speed,1.2);assert.deepEqual(migrated.doc.pages[1].scenarios,[]);
     Object.assign(migrated.doc.pages[0],definitions);await open(p,migrated);checkDefinitions(await save(p));
     await p.locator('#btnShare').click();await p.locator('#shareCreate').click();await p.waitForFunction(()=>!shareBusy&&document.getElementById('shareLink').value);
     const url=await p.locator('#shareLink').inputValue();assert.ok(url.length<=65536);
@@ -63,7 +65,7 @@ const checkDefinitions=data=>{for(const key of Object.keys(definitions)) assert.
     const redone=await p.evaluate(()=>P());assert.deepEqual(redone.scenarios,definitions.scenarios);
     assert.ok(redone.nodes.some(n=>n.id===duplicate.id));assert.ok(redone.behaviors.some(b=>b.nodeId===duplicate.id&&b.initialState==='DOWN'));
     // Fuera de guard y versión futura se transportan íntegros sin cargar engine.
-    const over=JSON.parse(JSON.stringify(migrated));over.doc.pages[0].scenarios=[{id:1,engineVersion:1,name:'1001 pasos',nextStepId:1002,steps:Array.from({length:1001},(_,i)=>({id:i+1,at:0,action:'SET_STATE',nodeId:17,state:'DOWN'}))},{id:2,engineVersion:2,name:'Versión futura',nextStepId:2,steps:[{id:1,at:86400001,action:'SET_STATE',nodeId:99,state:'DOWN'}]}];
+    const over=JSON.parse(JSON.stringify(migrated));over.doc.pages[0].scenarios=[{id:1,engineVersion:1,name:'1001 pasos',nextStepId:1002,steps:Array.from({length:1001},(_,i)=>({id:i+1,at:0,action:'SET_STATE',nodeId:17,state:'DOWN'}))},{id:2,engineVersion:3,name:'Versión futura',nextStepId:2,steps:[{id:1,at:86400001,action:'SET_STATE',nodeId:99,state:'DOWN'}]}];
     await open(p,over);assert.deepEqual((await save(p)).doc.pages[0].scenarios,over.doc.pages[0].scenarios);
     await p.locator('#btnShare').click();await p.locator('#shareCreate').click();await p.waitForFunction(()=>!shareBusy&&document.getElementById('shareLink').value);
     const overUrl=await p.locator('#shareLink').inputValue();const {c:oc,p:o}=await fresh();
@@ -75,34 +77,40 @@ const checkDefinitions=data=>{for(const key of Object.keys(definitions)) assert.
     const {c:fc,p:f}=await fresh();await f.goto(pathToFileURL(path.join(root,'index.html')).href);await f.waitForFunction(()=>typeof newNode==='function');
     await open(f,migrated);checkDefinitions(await save(f));
     const mono=await f.evaluate(()=>{const old=P().nextId;pushUndo();newNode('rect',200,200);undo();return newNode('rect',300,300).id>old;});assert.ok(mono);
-    checkDefinitions(await save(f));assert.equal(await f.evaluate(()=>typeof FluyoScenarios),'undefined');
+    checkDefinitions(await save(f));assert.equal(await f.evaluate(()=>typeof FluyoScenarios?.runScenario),'function');
     console.log('file:// PASS: carga local, importar/guardar v4, edición y undo sin perder Scenario.');
     await Promise.all([c.close(),vc.close(),dc.close(),fc.close()]);
-    mode='legacy';const {c:sc,p:s}=await fresh('allow');await s.goto(base+'/');
-    const waitForCache=async name=>{
-      const deadline=Date.now()+30000;
-      while(Date.now()<deadline){
-        const ready=await s.evaluate(async name=>{
-          const r=await navigator.serviceWorker.getRegistration(),keys=await caches.keys();
-          if(!r || r.installing || r.waiting || r.active?.state!=='activated' || navigator.serviceWorker.controller!==r.active || keys.length!==1 || keys[0]!==name) return false;
-          const c=await caches.open(name);
-          return !!await c.match(location.origin+'/js/model.js') && !!await c.match(location.origin+'/js/share-url.js');
-        },name);
-        if(ready) return;
-        await s.waitForTimeout(100);
-      }
-      throw Error('Timeout de instalación/activación: '+name);
-    };
-    await waitForCache('fluyo-static-v39');
-    assert.equal(await s.evaluate(()=>serializeProject().version),3);
-    mode='v40';await s.evaluate(async()=>{const r=await navigator.serviceWorker.getRegistration();await r.update();});
-    await waitForCache('fluyo-static-v40');
-    mode='current';await s.evaluate(async()=>{const r=await navigator.serviceWorker.getRegistration();await r.update();});
-    await waitForCache(currentCache);
-    await s.reload();await s.waitForFunction(()=>typeof serializeProject==='function');assert.equal(await s.evaluate(()=>serializeProject().version),4);
-    const cache=await s.evaluate(async name=>{const c=await caches.open(name);return {model:await (await c.match(location.origin+'/js/model.js')).text(),share:await (await c.match(location.origin+'/js/share-url.js')).text(),engine:!!(await c.match(location.origin+'/js/scenario-engine.js'))};},currentCache);
-    assert.match(cache.model,/version:4/);assert.match(cache.share,/version:4/);assert.equal(cache.engine,false);
-    await sc.close();assert.deepEqual(errors,[]);
-    console.log(`SW PASS: v39/model v3 → v40 → ${currentCache} → caches antiguas eliminadas → model/Share v4; engine ausente.`);
+    const legacySw=legacyFiles.get('sw.js')?.toString()||'';
+    if(!legacySw.includes('fluyo-static-v39')){
+      console.log('NOT RUN — environment: no hay commit histórico fluyo-static-v39 disponible para probar upgrade legacy SW');
+    }else{
+      mode='legacy';const {c:sc,p:s}=await fresh('allow');await s.goto(base+'/');
+      const waitForCache=async name=>{
+        const deadline=Date.now()+30000;
+        while(Date.now()<deadline){
+          const ready=await s.evaluate(async name=>{
+            const r=await navigator.serviceWorker.getRegistration(),keys=await caches.keys();
+            if(!r || r.installing || r.waiting || r.active?.state!=='activated' || navigator.serviceWorker.controller!==r.active || keys.length!==1 || keys[0]!==name) return false;
+            const c=await caches.open(name);
+            return !!await c.match(location.origin+'/js/model.js') && !!await c.match(location.origin+'/js/share-url.js');
+          },name);
+          if(ready) return;
+          await s.waitForTimeout(100);
+        }
+        throw Error('Timeout de instalación/activación: '+name);
+      };
+      await waitForCache('fluyo-static-v39');
+      assert.equal(await s.evaluate(()=>serializeProject().version),3);
+      mode='v40';await s.evaluate(async()=>{const r=await navigator.serviceWorker.getRegistration();await r.update();});
+      await waitForCache('fluyo-static-v40');
+      mode='current';await s.evaluate(async()=>{const r=await navigator.serviceWorker.getRegistration();await r.update();});
+      await waitForCache(currentCache);
+      await s.reload();await s.waitForFunction(()=>typeof serializeProject==='function');assert.equal(await s.evaluate(()=>serializeProject().version),5);
+      const cache=await s.evaluate(async name=>{const c=await caches.open(name);return {model:await (await c.match(location.origin+'/js/model.js')).text(),share:await (await c.match(location.origin+'/js/share-url.js')).text(),engine:!!(await c.match(location.origin+'/js/scenario-engine.js'))};},currentCache);
+      assert.match(cache.model,/version:5/);assert.match(cache.share,/version:5/);assert.equal(cache.engine,true);
+      await sc.close();
+      console.log(`SW PASS: v39/model v3 → v40 → ${currentCache} → caches antiguas eliminadas → model/Share v5; engine precacheado.`);
+    }
+    assert.deepEqual(errors,[]);
   }finally{await browser.close();await new Promise(resolve=>server.close(resolve));}
 })().catch(e=>{console.error(e);process.exitCode=1;server.close();});

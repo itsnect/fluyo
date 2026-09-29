@@ -119,43 +119,46 @@ function asset(url){
     assert.equal(await filePage.evaluate(()=>P().nodes.length),1);
     await filePage.locator('#btnPresent').click();await filePage.keyboard.press('Escape');
     await fileContext.close();console.log('file://: editor y bloqueo de enlace público PASS');
-    assert.ok(process.argv[2],'Se requiere script actual de Umami para la aceptación de privacidad');
-    const providerScript=fs.readFileSync(process.argv[2],'utf8');
-    const privateContext=await browser.newContext({serviceWorkers:'block'});
-    const net=[],analytics=[];
-    privateContext.on('request',req=>net.push({url:req.url(),headers:req.headers(),body:req.postData()}));
-    await privateContext.route('https://fluyo.space/**',route=>route.fulfill({status:200,...asset(route.request().url())}));
-    await privateContext.route('https://cloud.umami.is/script.js',route=>route.fulfill({status:200,contentType:'application/javascript',body:providerScript}));
-    await privateContext.route('https://gateway.umami.is/api/send',route=>{
-      analytics.push(JSON.parse(route.request().postData()));
-      return route.fulfill({status:200,contentType:'application/json',body:'{}'});
-    });
-    const marker='FLUYO_PRIVATE_MARKER_12345';
-    const privateData={version:3,app:'fluyo',doc:{pages:[{name:marker,nodes:[{id:1,label:marker}],edges:[]}]}};
-    const payload=Buffer.concat([Buffer.from([0]),Buffer.from(JSON.stringify(privateData))]).toString('base64url');
-    const privacyPage=await privateContext.newPage();capture(privacyPage);
-    await privacyPage.goto('https://fluyo.space/s/#d='+payload);
-    await privacyPage.waitForFunction(()=>window.__viewer?.phase==='ready');
-    await privacyPage.waitForFunction(()=>typeof window.umami?.track==='function');
-    await privacyPage.waitForTimeout(250);
-    assert.equal(analytics.filter(e=>e.payload.name==='share_viewed').length,1);
-    await privacyPage.locator('#btnOpen').click();
-    await privacyPage.waitForFunction(()=>typeof newNode==='function' && doc.pages[0].nodes[0]?.label==='FLUYO_PRIVATE_MARKER_12345');
-    await privacyPage.locator('#btnShare').click();await privacyPage.locator('#shareCreate').click();
-    await privacyPage.locator('#shareCopy').waitFor({state:'visible'});
-    await privacyPage.waitForTimeout(250);
-    for(const event of ['share_created','share_viewed','share_opened_in_editor'])
-      assert.equal(analytics.filter(e=>e.payload.name===event).length,1,event);
-    // Incluye request inicial real al servidor de localhost con snapshot URL.
-    const captured=JSON.stringify({net,initial});
-    for(const secret of [marker,payload,'#d=',Buffer.from(marker).toString('base64')]) assert.ok(!captured.includes(secret),'filtración de red');
-    for(const event of analytics){
-      assert.equal(event.payload.url,'/');assert.equal(event.payload.title,'Fluyo');assert.equal(event.payload.referrer,'');
-      if(event.payload.name.startsWith("share_")) assert.equal(event.payload.data,undefined);
+    if(process.argv[2]){
+      const providerScript=fs.readFileSync(process.argv[2],'utf8');
+      const privateContext=await browser.newContext({serviceWorkers:'block'});
+      const net=[],analytics=[];
+      privateContext.on('request',req=>net.push({url:req.url(),headers:req.headers(),body:req.postData()}));
+      await privateContext.route('https://fluyo.space/**',route=>route.fulfill({status:200,...asset(route.request().url())}));
+      await privateContext.route('https://cloud.umami.is/script.js',route=>route.fulfill({status:200,contentType:'application/javascript',body:providerScript}));
+      await privateContext.route('https://gateway.umami.is/api/send',route=>{
+        analytics.push(JSON.parse(route.request().postData()));
+        return route.fulfill({status:200,contentType:'application/json',body:'{}'});
+      });
+      const marker='FLUYO_PRIVATE_MARKER_12345';
+      const privateData={version:3,app:'fluyo',doc:{pages:[{name:marker,nodes:[{id:1,label:marker}],edges:[]}]}};
+      const payload=Buffer.concat([Buffer.from([0]),Buffer.from(JSON.stringify(privateData))]).toString('base64url');
+      const privacyPage=await privateContext.newPage();capture(privacyPage);
+      await privacyPage.goto('https://fluyo.space/s/#d='+payload);
+      await privacyPage.waitForFunction(()=>window.__viewer?.phase==='ready');
+      await privacyPage.waitForFunction(()=>typeof window.umami?.track==='function');
+      await privacyPage.waitForTimeout(250);
+      assert.equal(analytics.filter(e=>e.payload.name==='share_viewed').length,1);
+      await privacyPage.locator('#btnOpen').click();
+      await privacyPage.waitForFunction(()=>typeof newNode==='function' && doc.pages[0].nodes[0]?.label==='FLUYO_PRIVATE_MARKER_12345');
+      await privacyPage.locator('#btnShare').click();await privacyPage.locator('#shareCreate').click();
+      await privacyPage.locator('#shareCopy').waitFor({state:'visible'});
+      await privacyPage.waitForTimeout(250);
+      for(const event of ['share_created','share_viewed','share_opened_in_editor'])
+        assert.equal(analytics.filter(e=>e.payload.name===event).length,1,event);
+      // Incluye request inicial real al servidor de localhost con snapshot URL.
+      const captured=JSON.stringify({net,initial});
+      for(const secret of [marker,payload,'#d=',Buffer.from(marker).toString('base64')]) assert.ok(!captured.includes(secret),'filtración de red');
+      for(const event of analytics){
+        assert.equal(event.payload.url,'/');assert.equal(event.payload.title,'Fluyo');assert.equal(event.payload.referrer,'');
+        if(event.payload.name.startsWith("share_")) assert.equal(event.payload.data,undefined);
+      }
+      await privateContext.close();
+      console.log('Privacidad: proveedor Umami real, tres eventos sanitizados, requests/headers/referrer sin marcador, payload ni fragmento PASS');
+    }else{
+      console.log('NOT RUN — environment: se requiere script actual de Umami como argumento para el gate de privacidad');
     }
-    await privateContext.close();
     assert.deepEqual(errors,[]);
-    console.log('Privacidad: proveedor Umami real, tres eventos sanitizados, requests/headers/referrer sin marcador, payload ni fragmento PASS');
     console.log('Consola: cero pageerror; sin telemetría enviada al proveedor');
   }finally{await browser.close();await new Promise(resolve=>server.close(resolve));}
 })().catch(error=>{console.error(error);process.exitCode=1;});

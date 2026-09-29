@@ -22,7 +22,7 @@ test('SVG estático: normalización idempotente, archivo histórico y deep link 
     const payload=await c.run('encodeDeepLink(input)');
     const viewer=makeViewer({search:'',hash:'#d='+payload});
     viewer.context.Image=class{set src(value){this.url=value;}get complete(){return true;}get naturalWidth(){return 40;}};
-    await viewer.boot();assert.equal(viewer.viewer().phase,'ready');
+    await viewer.boot();await viewer.waitForPhase(p=>p==='ready'||p==='error');assert.equal(viewer.viewer().phase,'ready');
     assert.match(viewer.run('doc.pages[0].nodes[0].img'),/^data:image\/svg\+xml;base64,/);
     assert.ok(viewer.ops.some(op=>op[0]==='drawImage'));
   }
@@ -128,7 +128,8 @@ test('A → invalid: limpia modelo/settings/payload/canvas/gestos/presentación/
   const v=makeViewer({search:'',hash:'#d='+link(project('A'))});v.connect();await v.boot();
   v.el('sv').dispatch('pointerdown',{pointerId:1,clientX:10,clientY:10});
   v.el('btnPresent').onclick();
-  await v.navigate('#d=invalid');v.frames(5);
+  await v.navigate('#d=invalid');
+  await v.waitForPhase(p=>p==='ready'||p==='error');
   assert.equal(v.viewer().phase,'error');assert.equal(v.viewer().presenting,false);
   assert.equal(v.pendingFrames(),0);assert.equal(v.run('viewerPointers.size'),0);
   assert.equal(v.run('viewerPinch'),null);assert.equal(v.run('viewerPayload'),null);
@@ -138,7 +139,7 @@ test('A → invalid: limpia modelo/settings/payload/canvas/gestos/presentación/
   assert.equal(v.el('btnOpen').disabled,true);assert.equal(v.el('btnPresent').disabled,true);
   await v.el('btnOpen').onclick();assert.equal(v.names().filter(n=>n==='share_opened_in_editor').length,0);
   assert.equal(v.names().filter(n=>n==='share_viewed').length,1);
-  await v.navigate('#d='+link(project('C')));assert.equal(v.viewer().phase,'ready');
+  await v.navigate('#d='+link(project('C')));await v.waitForPhase(p=>p==='ready'||p==='error');assert.equal(v.viewer().phase,'ready');
   assert.equal(v.run('doc.pages[0].nodes[0].label'),'C');
   assert.equal(v.el('btnOpen').disabled,false);assert.equal(v.pendingFrames(),1);
   assert.equal(v.names().filter(n=>n==='share_viewed').length,2);
@@ -149,7 +150,7 @@ test('Carga lenta A no puede reemplazar B ni sacar de ERROR una navegación inv�
     const v=makeViewer({search:'',hash:'#d='+link(project('A'))});v.connect();
     v.run('const realLoader=loadShareFromLocation;let releaseA;let loads=0;loadShareFromLocation=async loc=>{if(++loads===1) await new Promise(resolve=>{releaseA=resolve});return realLoader(loc)}');
     await v.boot();assert.equal(v.viewer().phase,'loading');
-    await v.navigate(destination);v.run('releaseA()');await v.flush(12);v.frames(4);
+    await v.navigate(destination);v.run('releaseA()');await v.waitForPhase(p=>p==='ready'||p==='error');
     if(destination==='#d=invalid'){
       assert.equal(v.viewer().phase,'error');assert.equal(v.run('doc.pages[0].nodes.length'),0);assert.equal(v.pendingFrames(),0);
       assert.deepEqual(v.names(),[]);
@@ -162,7 +163,8 @@ test('Carga lenta A no puede reemplazar B ni sacar de ERROR una navegación inv�
 
 test('Fallo natural de primer render termina limpio y no cuenta vista',async()=>{
   const data=project('fallo');data.doc.pages[0].nodes[0]={id:1,shape:'icon',icon:'constructor',tint:true};
-  const v=makeViewer({search:'',hash:'#d='+link(data)});v.connect();await v.boot();v.frames(3);
+  const v=makeViewer({search:'',hash:'#d='+link(data)});v.connect();await v.boot();
+  await v.waitForPhase(p=>p==='ready'||p==='error');
   assert.equal(v.viewer().phase,'error');assert.equal(v.run('viewerPayload'),null);
   assert.equal(v.run('doc.pages[0].nodes.length'),0);assert.deepEqual(v.names(),[]);
 });

@@ -299,6 +299,7 @@ function startPinch(){
 }
 
 cv.addEventListener("pointerdown", ev=>{
+  if(typeof scDrag!=="undefined" && scDrag) return;
   lastPointerType = ev.pointerType || "mouse";
   /* En un equipo híbrido se alterna dedo y ratón con la misma selección puesta:
      sin esto la papelera flotante se quedaría encendida al pasar al ratón hasta
@@ -316,6 +317,12 @@ cv.addEventListener("pointerdown", ev=>{
     ev.preventDefault();
     panDrag={ x:ev.clientX, y:ev.clientY, startX:viewX, startY:viewY, isRight:ev.button===2, moved:false, tap:true };
     if(ev.pointerType!=="touch") cv.setPointerCapture(ev.pointerId);
+    return;
+  }
+  if(typeof isScenarioPlaybackActive==="function" && isScenarioPlaybackActive()){
+    // Durante Scenario playback solo pan/zoom/observación
+    panDrag={ x:ev.clientX, y:ev.clientY, startX:viewX, startY:viewY, isRight:ev.button===2, moved:false, tap:true };
+    cv.setPointerCapture(ev.pointerId);
     return;
   }
   if (ev.pointerType!=="touch" && (ev.button === 1 || ev.button === 2 || (ev.button === 0 && ev.altKey))) {
@@ -560,6 +567,7 @@ cv.addEventListener("pointercancel", ev=>{
 });
 
 cv.addEventListener("pointerup", ev=>{
+  if(typeof scDrag!=="undefined" && scDrag) return;
   if(endTouchPointer(ev)) return;
   if(panDrag){
     if (panDrag.isRight && panDrag.moved) {
@@ -838,15 +846,25 @@ document.addEventListener("keydown", ev=>{
   if(ctl && k==="y"){ ev.preventDefault(); redo(); return; }
   if(ctl && k==="s"){ ev.preventDefault(); saveJSON(); return; }
   if(ctl && k==="c"){ copySel(); return; }
-  if(ctl && k==="x"){ cutSel(); return; }
-  if(ctl && k==="a"){ ev.preventDefault(); selectAll(); return; }
-  if(ctl && k==="d"){ ev.preventDefault(); dupSel(); return; }
-  if(ctl && k==="v"){
-    clearTimeout(pasteTimer);
-    pasteTimer=setTimeout(()=>pasteClip(),140); // si el evento paste trae imagen, se cancela
+  if(ctl && k==="x"){
+    if(typeof isScenarioPlaybackActive!=="function" || !isScenarioPlaybackActive()) cutSel();
     return;
   }
-  if(ev.key==="Delete"||ev.key==="Backspace") deleteSel();
+  if(ctl && k==="a"){ ev.preventDefault(); selectAll(); return; }
+  if(ctl && k==="d"){
+    if(typeof isScenarioPlaybackActive!=="function" || !isScenarioPlaybackActive()){ ev.preventDefault(); dupSel(); }
+    return;
+  }
+  if(ctl && k==="v"){
+    if(typeof isScenarioPlaybackActive!=="function" || !isScenarioPlaybackActive()){
+      clearTimeout(pasteTimer);
+      pasteTimer=setTimeout(()=>pasteClip(),140); // si el evento paste trae imagen, se cancela
+    }
+    return;
+  }
+  if(ev.key==="Delete"||ev.key==="Backspace"){
+    if(typeof isScenarioPlaybackActive!=="function" || !isScenarioPlaybackActive()) deleteSel();
+  }
   /* endDrag y thawEdgeLabels() van juntos y sin condición: abandonar con Escape
      a mitad de un arrastre de extremo no debe dejar el mapa de etiquetas
      congelado, porque entonces no se recolocarían nunca más en esta sesión.
@@ -858,7 +876,9 @@ document.addEventListener("keydown", ev=>{
      a su ruta automática. */
   if(ev.key==="Escape"){ if(segDrag){ segDrag=null; undo(); } pendingShape=null; pendingIcon=null; pendingAnim=null; connecting=null; connectDrag=null; endDrag=null; thawEdgeLabels(); marquee=null; $("iconDrawer").style.display="none"; $("animDrawer").style.display="none"; syncRail(); }
   if(k==="v") setMode("select");
-  if(k==="c") setMode("connect");
+  if(k==="c"){
+    if(typeof isScenarioPlaybackActive!=="function" || !isScenarioPlaybackActive()) setMode("connect");
+  }
   /* R: devuelve la flecha seleccionada a su ruta automática. Solo hace algo si
      hay una única flecha seleccionada y tiene tramos movidos a mano, así que no
      pisa nada cuando la selección es otra cosa. Ver rutaAuto() en js/ui.js. */

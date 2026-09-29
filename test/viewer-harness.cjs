@@ -92,7 +92,16 @@ function makeViewer({hostname='fluyo.space', pathname='/s/', search='?s=demo', h
   const key=ev=>{ for(const cb of documentListeners.keydown||[]) cb(Object.assign({preventDefault(){}}, ev)); };
   const wheel=ev=>el('sv').dispatch('wheel', Object.assign({preventDefault(){}, deltaX:0, deltaY:0, ctrlKey:false, metaKey:false, clientX:400, clientY:300}, ev));
 
-  return {context, run, events, scripts, ops, flush, frames, advance, connect, boot, el, key, wheel,navigate,
+  const waitForPhase=async(predicate, timeoutMs=2000)=>{
+    const deadline=Date.now()+timeoutMs;
+    while(Date.now()<deadline){
+      const phase=context.window.__viewer?.phase;
+      if(predicate(phase)) return phase;
+      await new Promise(setImmediate);
+    }
+    throw new Error('timeout waiting for viewer phase; last='+context.window.__viewer?.phase);
+  };
+  return {context, run, events, scripts, ops, flush, frames, advance, connect, boot, el, key, wheel,navigate,waitForPhase,
     pendingFrames:()=>rafCallbacks.size,
     viewer:()=>context.window.__viewer,
     names:()=>events.map(e=>e.name)};

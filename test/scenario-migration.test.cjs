@@ -48,9 +48,9 @@ function v3Doc(){
   };
 }
 
-/* ===================== Migración v3 → v4 ===================== */
+/* ===================== Migración v3 → v5 ===================== */
 
-test('v3 migra a v4 con defaults por página',()=>{
+test('v3 migra a v5 con defaults por página',()=>{
   const ctx=makeModel();
   const input=v3Doc();
   const original=JSON.stringify(input);
@@ -58,7 +58,9 @@ test('v3 migra a v4 con defaults por página',()=>{
   assert.equal(JSON.stringify(out.doc.pages[0].behaviors), "[]");
   assert.equal(JSON.stringify(out.doc.pages[0].scenarios), "[]");
   assert.equal(out.doc.pages[0].nextScenarioId, 1);
-  assert.equal(ctx.serializeProject().version, 4);
+  assert.equal(JSON.stringify(out.doc.eventTypes), "[]");
+  assert.equal(out.doc.nextEventTypeId, 1);
+  assert.equal(ctx.serializeProject().version, 5);
   assert.equal(JSON.stringify(input), original, 'input no mutado');
 });
 
@@ -92,9 +94,35 @@ test('v4 roundtrip conserva behaviors y scenarios',()=>{
   assert.equal(out.doc.pages[0].scenarios[0].steps.length, 2);
 });
 
-test('v5 se rechaza como unsupported_version',()=>{
+test('v5 roundtrip conserva eventTypes',()=>{
   const ctx=makeModel();
-  assert.throws(()=>ctx.projectFromProjectData({version:5,app:"fluyo",doc:{pages:[{name:"x",nodes:[],edges:[]}]},settings:{}}),
+  const input={
+    version:5, app:"fluyo",
+    doc:{
+      theme:"dark", customBg:"", eventTypes:[
+        {id:1, name:"Pago", primitive:"FLOW", sentenceTemplate:"{source} paga a {target}", visual:{kind:"token", value:"💵"}}
+      ], nextEventTypeId:2,
+      cur:0,
+      pages:[{
+        name:"P", nextId:3, behaviors:[], nextScenarioId:2,
+        scenarios:[{id:1, engineVersion:2, name:"S", nextStepId:2, steps:[{id:1, at:0, action:"SEND", edgeId:5, eventTypeId:1}]}],
+        nodes:[{id:1, shape:"rect", x:0, y:0, label:"A"},{id:2, shape:"rect", x:100, y:0, label:"B"}],
+        edges:[{id:5, from:1, to:2}]
+      }]
+    },
+    settings:{}
+  };
+  const out=ctx.projectFromProjectData(input);
+  assert.equal(out.doc.eventTypes.length, 1);
+  assert.equal(out.doc.eventTypes[0].name, "Pago");
+  assert.equal(out.doc.eventTypes[0].primitive, "FLOW");
+  assert.equal(out.doc.nextEventTypeId, 2);
+  assert.equal(out.doc.pages[0].scenarios[0].steps[0].eventTypeId, 1);
+});
+
+test('v6 se rechaza como unsupported_version',()=>{
+  const ctx=makeModel();
+  assert.throws(()=>ctx.projectFromProjectData({version:6,app:"fluyo",doc:{pages:[{name:"x",nodes:[],edges:[]}]},settings:{}}),
     e=>e.code==='unsupported_version');
 });
 
@@ -216,24 +244,24 @@ test('Viewer conserva v4 y muestra Structure sin ejecutar engine',()=>{
 
 /* ===================== Entrada malformada de Scenarios ===================== */
 
-test('Scenario con engineVersion 2 se acepta en documento pero no se ejecuta por model',()=>{
+test('Scenario con engineVersion futura se acepta en documento pero no se ejecuta por model',()=>{
   const ctx=makeModel();
   const input={
-    version:4, app:"fluyo",
+    version:5, app:"fluyo",
     doc:{
-      theme:"dark", customBg:"", cur:0,
+      theme:"dark", customBg:"", cur:0, eventTypes:[], nextEventTypeId:1,
       pages:[{
         name:"P", nextId:2, behaviors:[], scenarios:[
-          {id:1, engineVersion:2, name:"S", nextStepId:2, steps:[{id:1, at:0, action:"SET_STATE", nodeId:1, state:"DOWN"}]}
+          {id:1, engineVersion:3, name:"S", nextStepId:2, steps:[{id:1, at:0, action:"SET_STATE", nodeId:1, state:"DOWN"}]}
         ], nextScenarioId:2,
         nodes:[{id:1, shape:"rect", x:0, y:0, label:"A"}], edges:[]
       }]
     },
     settings:{}
   };
-  // model.js acepta engineVersion >=1 como entero seguro
+  // model.js acepta engineVersion >=1 como entero seguro; la ejecución la bloquea el engine.
   const out=ctx.projectFromProjectData(input);
-  assert.equal(out.doc.pages[0].scenarios[0].engineVersion, 2);
+  assert.equal(out.doc.pages[0].scenarios[0].engineVersion, 3);
 });
 
 test('Action desconocida rechaza documento',()=>{

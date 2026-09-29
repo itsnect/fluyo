@@ -7,7 +7,7 @@ const read=p=>fs.readFileSync(path.join(__dirname,'..',p),'utf8');
 const json=o=>JSON.parse(JSON.stringify(o));
 const sc=(steps=[])=>({id:1,engineVersion:1,name:'S',nextStepId:steps.reduce((max,s)=>Math.max(max,s.id+1),1),steps});
 const state=(id=1,nodeId=17,at=0)=>({id,at,action:'SET_STATE',nodeId,state:'DOWN'});
-const project=pg=>({version:4,app:'fluyo',doc:{pages:[{name:'P',nodes:[],edges:[],behaviors:[],scenarios:[],...pg}],cur:0},settings:{}});
+const project=pg=>({version:5,app:'fluyo',doc:{eventTypes:[],nextEventTypeId:1,pages:[{name:'P',nodes:[],edges:[],behaviors:[],scenarios:[],...pg}],cur:0},settings:{}});
 function model(){
   const ctx=vm.createContext({scheduleAutosave(){},renderTabs(){},refreshPanel(){},selN:new Set(),selE:new Set(),clip:null});
   const run=code=>vm.runInContext(code,ctx);
@@ -93,7 +93,7 @@ test('Shapes inválidas siempre devuelven errors[] y nunca lanzan ni dejan Trace
 });
 test('1001 steps y versión futura se guardan, comparten, abren y preservan íntegros',async()=>{
   const v=makeViewer();v.run(read('js/share-url.js'));
-  const scenarios=[sc(Array.from({length:1001},(_,i)=>state(i+1))),{...sc([state(1,88,86400001)]),id:2,engineVersion:2}];
+  const scenarios=[sc(Array.from({length:1001},(_,i)=>state(i+1))),{...sc([state(1,88,86400001)]),id:2,engineVersion:3}];
   const input=project({nodes:[{id:17}],scenarios});v.context.input=input;
   const normalized=v.run('projectFromProjectData(input)');v.context.normalized=normalized;
   v.run('doc=normalized.doc;settings=normalized.settings');const saved=json(v.run('serializeProject()'));
@@ -103,15 +103,14 @@ test('1001 steps y versión futura se guardan, comparten, abren y preservan ínt
   assert.equal(failure(engine().runScenario(roundtrip.doc.pages[0],[],scenarios[1]))[0].code,'unsupported_engine_version');
   const url=await v.run('createShareUrl(serializeProject(),"https://fluyo.space/")');assert.ok(url.length<=65536);
   const viewer=makeViewer({search:'',hash:new URL(url).hash});await viewer.boot();
-  const deadline=Date.now()+3000;
-  while(viewer.viewer().phase==='loading' && Date.now()<deadline) await viewer.flush();
+  await viewer.waitForPhase(p=>p==='ready'||p==='error');
   assert.equal(viewer.viewer().phase,'ready');
   assert.deepEqual(json(viewer.run('doc.pages[0].scenarios')),scenarios);assert.equal(viewer.run('typeof FluyoScenarios'),'undefined');
   await viewer.el('btnOpen').onclick();const decoded=await viewer.run('decodeDeepLink(location.hash.slice(3))');
   assert.deepEqual(json(model().load(decoded).doc.pages[0].scenarios),scenarios);
 });
 test('Helper de autoría no reinterpreta un Scenario futuro preservable',()=>{
-  const m=model();m.ctx.input=project({scenarios:[{...sc(),engineVersion:2}]});m.run('doc=projectFromProjectData(input).doc');const before=m.run('JSON.stringify(P())');
+  const m=model();m.ctx.input=project({scenarios:[{...sc(),engineVersion:3}]});m.run('doc=projectFromProjectData(input).doc');const before=m.run('JSON.stringify(P())');
   assert.throws(()=>m.run('createStep(P().scenarios[0],{at:0,action:"SEND",edgeId:2})'),e=>e.code==='unsupported_engine_version');
   assert.throws(()=>m.run('deleteStep(P().scenarios[0],1)'),e=>e.code==='unsupported_engine_version');assert.equal(m.run('JSON.stringify(P())'),before);
 });

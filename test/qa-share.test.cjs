@@ -28,8 +28,9 @@ test('QA: transportes v0/v1 y documentos históricos siguen compatibles',async()
       v.context.qaPayload=payload;
       const decoded=await v.run('decodeDeepLink(qaPayload)');
       assert.equal(decoded.version,version);
-      const viewer=makeViewer({search:'',hash:'#d='+payload});await viewer.boot();
-      assert.equal(viewer.viewer().phase,'ready');
+    const viewer=makeViewer({search:'',hash:'#d='+payload});await viewer.boot();
+    await viewer.waitForPhase(p=>p==='ready'||p==='error');
+    assert.equal(viewer.viewer().phase,'ready');
       assert.equal(viewer.run('doc.pages[0].nodes[0].label'),'Histórico ñ');
     }
   }
@@ -54,7 +55,8 @@ test('QA: un SVG simple creado por la UI debe poder reabrirse como archivo hist�
 test('QA: bytes añadidos a un stream v1 deben producir error terminal',async()=>{
   const c=makeViewer();const payload=await c.run('encodeDeepLink(SHARE_FIXTURES.demo)');
   const tampered=Buffer.concat([Buffer.from(payload,'base64url'),Buffer.from([0,0,0])]).toString('base64url');
-  const v=makeViewer({search:'?s=demo',hash:'#d='+tampered});v.connect();await v.boot();v.frames(3);
+  const v=makeViewer({search:'?s=demo',hash:'#d='+tampered});v.connect();await v.boot();
+  await v.waitForPhase(p=>p==='error'||p==='ready');
   assert.equal(v.viewer().phase,'error');
   assert.deepEqual(v.names(),[]);
 });
@@ -62,7 +64,8 @@ test('QA: bytes añadidos a un stream v1 deben producir error terminal',async()=
 test('QA: ERROR de primer render elimina documento y payload parcialmente instalados',async()=>{
   const c=makeViewer();const payload=await c.run('encodeDeepLink(SHARE_FIXTURES.demo)');
   const v=makeViewer({search:'',hash:'#d='+payload});
-  v.run('render=()=>{throw Error("primer render")}');v.connect();await v.boot();v.frames(3);
+  v.run('render=()=>{throw Error("primer render")}');v.connect();await v.boot();
+  await v.waitForPhase(p=>p==='error'||p==='ready');
   assert.equal(v.viewer().phase,'error');assert.deepEqual(v.names(),[]);
   assert.equal(v.el('btnOpen').disabled,true);assert.equal(v.el('btnPresent').disabled,true);
   assert.equal(v.run('doc.pages.reduce((total,page)=>total+page.nodes.length+page.edges.length,0)'),0);

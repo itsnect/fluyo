@@ -37,7 +37,7 @@ function model({editor=false}={}){
   return {ctx,run,normalize:input=>ctx.projectFromProjectData(input)};
 }
 function project(pg={}){
-  return {version:4,app:'fluyo',doc:{pages:[{name:'QA',nodes:[],edges:[],nextId:1,behaviors:[],scenarios:[],nextScenarioId:1,...pg}],cur:0},settings:{}};
+  return {version:5,app:'fluyo',doc:{pages:[{name:'QA',nodes:[],edges:[],nextId:1,behaviors:[],scenarios:[],nextScenarioId:1,eventTypes:[],nextEventTypeId:1,...pg}],cur:0},settings:{}};
 }
 function freeze(o){Object.freeze(o);for(const v of Object.values(o)) if(v && typeof v==='object') freeze(v);return o;}
 function reject(result){assert.equal(result.ok,false,JSON.stringify(result));assert.equal('trace' in result,false);}
@@ -84,7 +84,7 @@ test('CONTROL: límites inclusivos de graph, tiempo y emisiones',()=>{
 test('CONTROL: migración idempotente sobre copia y namespaces por página',()=>{
   const m=model(),input=project({nodes:[{id:1}],scenarios:[scenario([set()])]});
   input.doc.pages.push(json(input.doc.pages[0]));freeze(input);
-  const a=m.normalize(input),b=m.normalize({version:4,app:'fluyo',...a});
+  const a=m.normalize(input),b=m.normalize({version:5,app:'fluyo',...a});
   assert.deepEqual(json(a),json(b));assert.equal(a.doc.pages[1].scenarios[0].id,1);
 });
 test('CONTROL: guardar/reabrir preserva exactamente definiciones y marcas altas',()=>{
@@ -92,11 +92,11 @@ test('CONTROL: guardar/reabrir preserva exactamente definiciones y marcas altas'
   m.ctx.qaInput=input;m.run('doc=projectFromProjectData(qaInput).doc;settings=projectFromProjectData(qaInput).settings');
   const saved=JSON.parse(m.run('JSON.stringify(serializeProject())')),out=m.normalize(saved);
   for(const key of ['behaviors','scenarios','nextScenarioId']) assert.deepEqual(json(out.doc.pages[0][key]),input.doc.pages[0][key]);
-  assert.equal(saved.version,4);
+  assert.equal(saved.version,5);
 });
 test('CONTROL: versión futura y acción desconocida no tienen fallback',()=>{
   const e=engine();
-  const future={...scenario([send()]),engineVersion:2};
+  const future={...scenario([send()]),engineVersion:3};
   const r=e.runScenario(structure(),[],future);reject(r);assert.equal(r.error?.code||r.errors?.[0]?.code,'unsupported_engine_version');
   reject(e.runScenario(structure(),[],scenario([{id:1,at:0,action:'EXECUTE',edgeId:3}])));
 });
@@ -131,12 +131,13 @@ test('CONTROL: Share real → viewer READY → copia editable conserva v4, orden
   creator.context.qaInput=input;
   const url=await creator.run('createShareUrl(qaInput,"https://fluyo.space/")');
   const viewer=makeViewer({search:'',hash:new URL(url).hash});await viewer.boot();
+  await viewer.waitForPhase(p=>p==='ready'||p==='error');
   assert.equal(viewer.viewer().phase,'ready');
   assert.equal(viewer.run('typeof FluyoScenarios'),'undefined');
   assert.deepEqual(json(viewer.run('doc.pages[0].scenarios')),input.doc.pages[0].scenarios);
   assert.deepEqual(json(viewer.run('doc.pages[0].behaviors')),input.doc.pages[0].behaviors);
   const data=await viewer.run('decodeDeepLink(location.hash.slice(3))');
-  assert.equal(data.version,4);assert.equal('trace' in data.doc.pages[0],false);
+  assert.equal(data.version,5);assert.equal('trace' in data.doc.pages[0],false);
   await viewer.el('btnOpen').onclick();assert.equal(new URL(viewer.context.location.href).hash,new URL(url).hash);
 });
 
@@ -200,6 +201,7 @@ test('QA-07: Share y viewer conservan Scenario fuera del guard de ejecución',as
   creator.context.qaInput=project({nodes:[{id:1}],scenarios:[scenario([set(1,86400001)])]});
   const url=await creator.run('createShareUrl(qaInput,"https://fluyo.space/")');
   const viewer=makeViewer({search:'',hash:new URL(url).hash});await viewer.boot();
+  await viewer.waitForPhase(p=>p==='ready'||p==='error');
   assert.equal(viewer.viewer().phase,'ready');
 });
 test('QA-08: contador nextStepId ausente se deriva de IDs existentes en migración',()=>{

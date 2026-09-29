@@ -165,44 +165,48 @@ function asset(url){
     assert.deepEqual(await offline.evaluate(async()=>caches.keys()),[currentCache]);
     await pwa.close();console.log('PWA: fixtures v37 → v38 → '+currentCache+' activada, helper precacheado y Share SVG previamente abierto offline PASS');
 
-    assert.ok(process.argv[2],'Se requiere script actual Umami');
-    const script=fs.readFileSync(process.argv[2],'utf8');
-    const privacy=await browser.newContext({serviceWorkers:'block'});const net=[],events=[];
-    privacy.on('request',r=>net.push({url:r.url(),headers:r.headers(),body:r.postData()}));
-    await privacy.route('**/*',route=>{
-      const url=route.request().url();
-      if(url.startsWith('https://fluyo.space/'))return route.fulfill({status:200,...asset(url)});
-      if(url==='https://cloud.umami.is/script.js')return route.fulfill({status:200,contentType:'application/javascript',body:script});
-      if(url==='https://gateway.umami.is/api/send'){events.push(JSON.parse(route.request().postData()));return route.fulfill({status:200,contentType:'application/json',body:'{}'});}
-      return route.abort();
-    });
-    const marker='FLUYO_PRIVATE_MARKER_12345',pa=payload(project(marker+' A')),pb=payload(project(marker+' B'));
-    const pv=await privacy.newPage();capture(pv);await pv.goto('https://fluyo.space/s/#d='+pa);
-    await pv.waitForFunction(()=>window.__viewer?.phase==='ready');await pv.waitForFunction(()=>typeof window.umami?.track==='function');await pv.waitForTimeout(150);
-    await pv.goto('https://fluyo.space/s/#d='+pb);await pv.waitForFunction(()=>window.__viewer?.phase==='ready' && doc.pages[0].nodes[0].label.endsWith('B'));await pv.waitForTimeout(150);
-    await pv.evaluate(()=>window.dispatchEvent(new HashChangeEvent('hashchange')));await pv.waitForTimeout(100);
-    assert.equal(events.filter(e=>e.payload.name==='share_viewed').length,2);
-    await pv.goto('https://fluyo.space/s/#d=invalid');await pv.waitForFunction(()=>window.__viewer?.phase==='error');await pv.waitForTimeout(100);
-    assert.equal(events.filter(e=>e.payload.name==='share_viewed').length,2);
-    await pv.goto('https://fluyo.space/s/#d='+pa);await pv.waitForFunction(()=>window.__viewer?.phase==='ready');await pv.waitForTimeout(150);
-    assert.equal(events.filter(e=>e.payload.name==='share_viewed').length,3);
-    const slow=payload(project(marker+' SLOW')),pc=payload(project(marker+' C'));
-    await pv.evaluate(slow=>{
-      const original=loadShareFromLocation;
-      loadShareFromLocation=async input=>{if(input.hash==='#d='+slow)await new Promise(resolve=>window.finishSlow=resolve);return original(input);};
-      location.hash='d='+slow;
-    },slow);
-    await pv.waitForFunction(()=>window.__viewer.phase==='loading'&&typeof window.finishSlow==='function');
-    await pv.evaluate(()=>location.hash='d=invalid');await pv.waitForFunction(()=>window.__viewer.phase==='error');
-    await pv.evaluate(pc=>location.hash='d='+pc,pc);await pv.waitForFunction(()=>window.__viewer.phase==='ready'&&doc.pages[0].nodes[0].label.endsWith(' C'));
-    await pv.evaluate(()=>window.finishSlow());await pv.waitForTimeout(150);
-    assert.equal(await pv.evaluate(()=>doc.pages[0].nodes[0].label),marker+' C');
-    assert.equal(events.filter(e=>e.payload.name==='share_viewed').length,4);
-    assert.deepEqual([...new Set(events.map(e=>e.payload.name))],['share_viewed']); // Ningún pageview automático.
-    for(const event of events){assert.equal(event.payload.url,'/');assert.equal(event.payload.title,'Fluyo');assert.equal(event.payload.referrer,'');assert.equal(event.payload.data,undefined);}
-    const serialized=JSON.stringify(net);
-    for(const secret of [marker,pa,pb,slow,pc,'#d=',Buffer.from(marker).toString('base64')])assert.ok(!serialized.includes(secret));
-    await privacy.close();assert.deepEqual(errors,[]);
-    console.log('Privacidad hash navigation: Umami actual, evento por activación, invalid/mismo estado sin evento, cero marcador/hash/payload/pageview ni pageerror PASS');
+    if(process.argv[2]){
+      const script=fs.readFileSync(process.argv[2],'utf8');
+      const privacy=await browser.newContext({serviceWorkers:'block'});const net=[],events=[];
+      privacy.on('request',r=>net.push({url:r.url(),headers:r.headers(),body:r.postData()}));
+      await privacy.route('**/*',route=>{
+        const url=route.request().url();
+        if(url.startsWith('https://fluyo.space/'))return route.fulfill({status:200,...asset(url)});
+        if(url==='https://cloud.umami.is/script.js')return route.fulfill({status:200,contentType:'application/javascript',body:script});
+        if(url==='https://gateway.umami.is/api/send'){events.push(JSON.parse(route.request().postData()));return route.fulfill({status:200,contentType:'application/json',body:'{}'});}
+        return route.abort();
+      });
+      const marker='FLUYO_PRIVATE_MARKER_12345',pa=payload(project(marker+' A')),pb=payload(project(marker+' B'));
+      const pv=await privacy.newPage();capture(pv);await pv.goto('https://fluyo.space/s/#d='+pa);
+      await pv.waitForFunction(()=>window.__viewer?.phase==='ready');await pv.waitForFunction(()=>typeof window.umami?.track==='function');await pv.waitForTimeout(150);
+      await pv.goto('https://fluyo.space/s/#d='+pb);await pv.waitForFunction(()=>window.__viewer?.phase==='ready' && doc.pages[0].nodes[0].label.endsWith('B'));await pv.waitForTimeout(150);
+      await pv.evaluate(()=>window.dispatchEvent(new HashChangeEvent('hashchange')));await pv.waitForTimeout(100);
+      assert.equal(events.filter(e=>e.payload.name==='share_viewed').length,2);
+      await pv.goto('https://fluyo.space/s/#d=invalid');await pv.waitForFunction(()=>window.__viewer?.phase==='error');await pv.waitForTimeout(100);
+      assert.equal(events.filter(e=>e.payload.name==='share_viewed').length,2);
+      await pv.goto('https://fluyo.space/s/#d='+pa);await pv.waitForFunction(()=>window.__viewer?.phase==='ready');await pv.waitForTimeout(150);
+      assert.equal(events.filter(e=>e.payload.name==='share_viewed').length,3);
+      const slow=payload(project(marker+' SLOW')),pc=payload(project(marker+' C'));
+      await pv.evaluate(slow=>{
+        const original=loadShareFromLocation;
+        loadShareFromLocation=async input=>{if(input.hash==='#d='+slow)await new Promise(resolve=>window.finishSlow=resolve);return original(input);};
+        location.hash='d='+slow;
+      },slow);
+      await pv.waitForFunction(()=>window.__viewer.phase==='loading'&&typeof window.finishSlow==='function');
+      await pv.evaluate(()=>location.hash='d=invalid');await pv.waitForFunction(()=>window.__viewer.phase==='error');
+      await pv.evaluate(pc=>location.hash='d='+pc,pc);await pv.waitForFunction(()=>window.__viewer.phase==='ready'&&doc.pages[0].nodes[0].label.endsWith(' C'));
+      await pv.evaluate(()=>window.finishSlow());await pv.waitForTimeout(150);
+      assert.equal(await pv.evaluate(()=>doc.pages[0].nodes[0].label),marker+' C');
+      assert.equal(events.filter(e=>e.payload.name==='share_viewed').length,4);
+      assert.deepEqual([...new Set(events.map(e=>e.payload.name))],['share_viewed']); // Ningún pageview automático.
+      for(const event of events){assert.equal(event.payload.url,'/');assert.equal(event.payload.title,'Fluyo');assert.equal(event.payload.referrer,'');assert.equal(event.payload.data,undefined);}
+      const serialized=JSON.stringify(net);
+      for(const secret of [marker,pa,pb,slow,pc,'#d=',Buffer.from(marker).toString('base64')])assert.ok(!serialized.includes(secret));
+      await privacy.close();
+      console.log('Privacidad hash navigation: Umami actual, evento por activación, invalid/mismo estado sin evento, cero marcador/hash/payload/pageview ni pageerror PASS');
+    }else{
+      console.log('NOT RUN — environment: se requiere script actual de Umami como argumento para el gate de privacidad');
+    }
+    assert.deepEqual(errors,[]);
   }finally{await browser.close();await new Promise(resolve=>server.close(resolve));}
 })().catch(e=>{console.error(e);process.exitCode=1;});

@@ -256,3 +256,132 @@ body.presenting #presentBar{display:flex;}
   .row input[type=range] { width: 90px; }
   .row select { width: 100px; }
 }
+
+/* ===================== Panel Scenarios ===================== */
+.panelTabs{display:flex; gap:4px; margin:-6px -6px 10px; border-bottom:1px solid var(--line); padding:0 6px 6px;}
+.panelTabs button{flex:1; padding:6px 8px; font-size:12px; background:transparent; border:1px solid transparent; border-radius:6px; color:var(--muted); cursor:pointer;}
+.panelTabs button.active{background:var(--panel2); color:var(--text); border-color:var(--line);}
+.panelTabs button:hover:not(.active){color:var(--text);}
+
+.scSelectorRow{display:flex; gap:6px; align-items:center;}
+.scSelectorRow select{flex:1; min-width:0;}
+.scSelectorRow button{min-width:30px; padding:4px 6px;}
+
+#scName{width:100%; padding:5px 8px; background:var(--panel2); color:var(--text); border:1px solid var(--line); border-radius:6px; font:inherit;}
+
+.scBehaviorRow{display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid var(--line);}
+.scBehaviorRow span:first-child{flex:1; color:var(--text); font-size:12px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.scBehaviorRow .scState{font-weight:600; color:var(--accent);}
+.scBehaviorRow select{min-width:90px;}
+
+.scStepCard{background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:8px; margin-bottom:8px;}
+.scStepCard.missing{border-color:rgba(208,87,106,.55); background:rgba(208,87,106,.10);}
+.scStepHeader{display:flex; align-items:center; gap:6px; margin-bottom:8px;}
+.scStepHeader .scStepTitle{flex:1; font-size:12px; font-weight:600; color:var(--muted); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.scStepHeader .scStepActions{display:flex; gap:4px;}
+.scStepHeader .scStepActions button{min-width:28px; padding:3px 6px; font-size:12px; line-height:1;}
+.scStepHeader .scStepActions button.danger{padding:3px 7px;}
+
+.scStepField{margin-bottom:8px;}
+.scStepField:last-child{margin-bottom:0;}
+.scStepField label{display:block; font-size:11px; color:var(--muted); margin-bottom:3px;}
+.scStepField input[type=number],
+.scStepField select{width:100%; padding:5px 7px; background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:6px; font:inherit; font-size:12px; box-sizing:border-box;}
+.scStepField select{min-height:28px;}
+.scStepField select option{background:var(--panel); color:var(--text);}
+
+.traceLog{max-height:220px; overflow-y:auto; background:var(--panel2); border:1px solid var(--line); border-radius:6px; padding:6px; font-size:12px;}
+.scLogLine{padding:4px 0; border-bottom:1px solid var(--line); color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.scLogLine:last-child{border-bottom:none;}
+.scLogLine .scLogMark{display:inline-block; width:1.2em; text-align:center; margin-right:4px;}
+.scLogLine.success .scLogMark{color:#7bb85b;}
+.scLogLine.fail .scLogMark{color:#e08585;}
+.scLogLine.success .scLogResult{color:#7bb85b;}
+.scLogLine.fail .scLogResult{color:#e08585;}
+
+#panelScenarios section h3{margin-top:0;}
+#panelScenarios .hint{margin-top:6px;}
+
+/* ===================== Storyboard Scenarios ===================== */
+.scHeader{margin-bottom:10px;}
+.scNameRunRow{display:flex; gap:8px; align-items:center; margin-top:8px;}
+.scNameRunRow #scName{flex:1; min-width:0;}
+.scNameRunRow #scRun,
+.scNameRunRow #scReset{min-width:70px; padding:6px 10px;}
+
+.scStoryboardSection{flex:1; min-height:0; overflow-y:auto; margin:0 -6px; padding:0 6px;}
+.scEmptyState{padding:16px 0; text-align:center; color:var(--muted);}
+.scEmptyState p{margin:0 0 6px;}
+
+.scStepCard{background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin-bottom:10px; cursor:pointer; transition:border-color .12s, background .12s;}
+.scStepCard:hover{border-color:rgba(255,255,255,.15);}
+.scStepCard.missing{border-color:rgba(208,87,106,.55); background:rgba(208,87,106,.10);}
+.scStepCard.scStatus_active{border-color:rgba(58,167,232,.55); background:rgba(58,167,232,.10);}
+.scStepCard.scStatus_completed,.scStepCard.scStatus_success{border-color:rgba(123,184,91,.45);}
+.scStepCard.scStatus_failed{border-color:rgba(208,87,106,.55); background:rgba(208,87,106,.10);}
+
+.scStepMain{display:flex; align-items:flex-start; gap:10px;}
+.scStepNumber{flex:0 0 22px; text-align:center; font-size:12px; font-weight:700; color:var(--muted); background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:2px 0; margin-top:2px;}
+.scStepBody{flex:1; min-width:0;}
+.scStepPrimary{font-size:14px; color:var(--text); line-height:1.35; word-break:break-word;}
+.scStepSecondary{font-size:11px; color:var(--muted); margin-top:3px; word-break:break-word;}
+.scStepDetail{font-size:12px; color:#e08585; margin-top:4px;}
+.scStepActions{display:flex; align-items:center; gap:6px; flex:0 0 auto;}
+.scStepStatusMark{font-size:14px; width:1.2em; text-align:center; color:var(--muted);}
+.scStepCard.scStatus_active .scStepStatusMark{color:#3aa7e8;}
+.scStepCard.scStatus_completed .scStepStatusMark,.scStepCard.scStatus_success .scStepStatusMark{color:#7bb85b;}
+.scStepCard.scStatus_failed .scStepStatusMark{color:#e08585;}
+.scMenuBtn{min-width:28px; padding:3px 6px; font-size:14px; line-height:1;}
+
+.scStepDelay{font-size:11px; color:var(--muted); margin:6px 0 0 32px; padding-top:6px; border-top:1px dashed var(--line);}
+
+.scStepForm{margin-top:10px; padding-top:10px; border-top:1px solid var(--line);}
+.scStepForm .scStepField{margin-bottom:10px;}
+.scStepForm .scStepField label{display:block; font-size:11px; color:var(--muted); margin-bottom:4px;}
+.scStepForm input[type=number],
+.scStepForm select{width:100%; padding:6px 8px; background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:6px; font:inherit; font-size:13px; box-sizing:border-box;}
+.scTimeRow{display:flex; align-items:center; gap:8px;}
+.scTimeRow input[type=number]{flex:0 0 70px; width:auto;}
+.scTimeRow select{flex:0 0 auto; min-width:110px;}
+.scTimeLabel{font-size:12px; color:var(--muted); white-space:nowrap;}
+.scTimePresets{display:flex; flex-wrap:wrap; gap:6px; margin:-4px 0 10px;}
+.scTimePresets button{flex:1; min-width:50px; padding:4px 6px; font-size:11px;}
+.scStepFormActions{display:flex; gap:8px; justify-content:flex-end; margin-top:12px;}
+
+.scCollapseBtn{background:transparent; border:1px solid var(--line); color:var(--muted); font-size:12px; padding:6px 8px; text-align:left;}
+.scCollapseBtn.open{color:var(--text); background:var(--panel2);}
+.scConfigSection,.scTraceSection{margin-top:10px;}
+
+.scMomentDialog{position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:200; display:flex; align-items:center; justify-content:center;}
+.scMomentDialogBody{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px; width:min(280px, 90vw); box-shadow:0 8px 30px rgba(0,0,0,.35);}
+.scMomentQuestion{font-size:15px; font-weight:600; margin:0 0 12px; color:var(--text);}
+.scMomentDialogBody button{margin-bottom:8px;}
+.scMomentDialogBody button:last-child{margin-bottom:0;}
+.scSecondaryBtn{background:transparent; border:1px solid var(--line); color:var(--muted);}
+
+.scCanvasActions{margin-bottom:12px; padding:10px; background:var(--panel2); border:1px solid var(--line); border-radius:8px;}
+.scCanvasActions > .hint{margin:0 0 8px; font-size:12px;}
+
+/* ===================== Event Library (FLUYO-010) ===================== */
+.scSectionHeader{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px;}
+.scSectionHeader h3{margin:0; font-size:13px; color:var(--text);}
+.scEventLibrarySection{margin-top:10px; padding:10px; background:var(--panel2); border:1px solid var(--line); border-radius:8px;}
+.scEventLibrary{display:flex; flex-direction:column; gap:6px; max-height:160px; overflow-y:auto;}
+.scEventChip{display:flex; align-items:center; gap:8px; padding:6px 8px; background:var(--panel); border:1px solid var(--line); border-radius:8px; cursor:grab; transition:border-color .12s, background .12s;}
+.scEventChip:hover{border-color:rgba(58,167,232,.55); background:rgba(58,167,232,.08);}
+.scEventChipToken{font-size:16px; line-height:1;}
+.scEventChipName{flex:1; font-size:13px; color:var(--text); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.scEventChipPrimitive{font-size:10px; color:var(--muted); background:var(--panel2); padding:2px 6px; border-radius:4px;}
+.scEventChip button{opacity:.7;}
+.scEventChip button:hover{opacity:1;}
+.scEventToken{margin-right:4px;}
+.scMomentHeader{font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; margin:10px 0 6px 32px; padding-top:6px; border-top:1px dashed var(--line);}
+.scMomentHeader:first-child{margin-top:0; border-top:none;}
+.scStepTargets{margin-top:8px;}
+.scDragGhost{position:fixed; padding:6px 10px; background:var(--panel); border:1px solid var(--line); border-radius:8px; box-shadow:0 4px 16px rgba(0,0,0,.35); font-size:13px; color:var(--text); pointer-events:none; white-space:nowrap; z-index:1000;}
+
+@media (max-width:400px){
+  .scNameRunRow{flex-wrap:wrap;}
+  .scNameRunRow #scName{width:100%;}
+  .scStepPrimary{font-size:13px;}
+}

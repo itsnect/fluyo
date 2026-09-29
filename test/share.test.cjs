@@ -43,6 +43,7 @@ test('Share: confirmación, roundtrip canónico, snapshot inmutable y origen loc
   const payload=new URL(url).hash.slice(3);
   const viewer=makeViewer({search:'?s=demo',hash:'#d='+payload});
   await viewer.boot();
+  await viewer.waitForPhase(p=>p==='ready'||p==='error');
   assert.equal(viewer.viewer().phase,'ready');
   assert.equal(viewer.run('doc.pages[0].nodes[0].label'),'Servicio');
   assert.equal(viewer.run('typeof localStorage'),'undefined');
@@ -93,7 +94,8 @@ test('Viewer: fragmento inválido, truncado y duplicado nunca caen a demo',async
   c.run('doc=deep(SHARE_FIXTURES.demo.doc)');
   const payload=await c.run('encodeDeepLink(serializeProject())');
   for(const hash of ['#d=','#d=invalid','#d=AA!','#d='+payload.slice(0,-8),'#d='+payload+'&d='+payload]){
-    const v=makeViewer({search:'?s=demo',hash});v.connect();await v.boot();v.frames(3);
+    const v=makeViewer({search:'?s=demo',hash});v.connect();await v.boot();
+    await v.waitForPhase(p=>p==='ready'||p==='error');
     assert.equal(v.viewer().phase,'error',hash.slice(0,20));
     assert.equal(v.el('btnOpen').disabled,true);
     assert.equal(v.el('btnPresent').disabled,true);
@@ -105,9 +107,9 @@ test('Viewer: normaliza antes de render; primer render fallido no habilita nada'
   const payload=await c.run('encodeDeepLink({doc:{pages:[{nodes:[{id:1,label:"A"}],edges:[]}]}})');
   const v=makeViewer({hash:'#d='+payload});
   v.run('const original=render;render=(...args)=>{if(!Number.isFinite(doc.pages[0].nodes[0].w)) throw Error("missing defaults");return original(...args)}');
-  await v.boot();assert.equal(v.viewer().phase,'ready');
+  await v.boot();await v.waitForPhase(p=>p==='ready'||p==='error');assert.equal(v.viewer().phase,'ready');
   const bad=makeViewer({hash:'#d='+payload});bad.connect();bad.run('render=()=>{throw Error("first render")}');
-  await bad.boot();bad.frames(3);
+  await bad.boot();await bad.waitForPhase(p=>p==='ready'||p==='error');
   assert.equal(bad.viewer().phase,'error');assert.deepEqual(bad.names(),[]);
   assert.equal(bad.el('btnOpen').disabled,true);
 });

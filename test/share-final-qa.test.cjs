@@ -17,11 +17,11 @@ test('Re-QA: A lenta → inválido → C, éxito/fallo obsoleto nunca reinstala 
     const v=makeViewer({search:'',hash:'#d='+link(project('A'))});v.connect();
     v.run('const originalLoader=loadShareFromLocation;let finishA;let calls=0;loadShareFromLocation=async input=>{if(++calls===1) await new Promise((resolve,reject)=>{finishA={resolve,reject}});return originalLoader(input)}');
     await v.boot();assert.equal(v.viewer().phase,'loading');
-    await v.navigate('#d=invalid');assert.equal(v.viewer().phase,'error');
+    await v.navigate('#d=invalid');await v.waitForPhase(p=>p==='ready'||p==='error');assert.equal(v.viewer().phase,'error');
     const c=link(project('C'));await v.navigate('#d='+c);
     assert.equal(v.run('doc.pages[0].nodes[0].label'),'C');
     v.run(reject?'finishA.reject(Error("resultado antiguo"))':'finishA.resolve()');
-    await v.flush(12);v.frames(3);
+    await v.waitForPhase(p=>p==='ready'||p==='error');
     assert.equal(v.viewer().phase,'ready');assert.equal(v.run('viewerPayload'),c);
     assert.equal(v.run('doc.pages[0].nodes[0].label'),'C');
     assert.deepEqual(v.names(),['share_viewed']);assert.equal(v.pendingFrames(),1);

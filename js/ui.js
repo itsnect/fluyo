@@ -91,6 +91,7 @@ function refreshPanel(){
     [...$("lineSw").children].forEach(sw=>sw.classList.toggle("sel", (obj.lineColor||"")===sw.dataset.c));
     [...$("dotSw").children].forEach(sw=>sw.classList.toggle("sel", (obj.dotColor||"")===sw.dataset.c));
   }
+  if(typeof scRenderCanvasActions === "function") scRenderCanvasActions();
 }
 /* ===================== Teclado en las rejillas de swatches =====================
    Los swatches son <div> a propósito (son muestras de color, no texto), pero eso
@@ -365,6 +366,7 @@ function syncRail(){
 }
 document.querySelectorAll(".rail button[data-mode],.rail button[data-shape]").forEach(b=>{
   b.onclick=()=>{
+    if(typeof isScenarioPlaybackActive==="function" && isScenarioPlaybackActive()) return;
     if(b.dataset.mode) setMode(b.dataset.mode);
     else { pendingShape=b.dataset.shape; pendingIcon=null; pendingAnim=null; mode="select"; connecting=null; syncRail(); }
   };
@@ -387,7 +389,10 @@ $("chkGrid").onchange=()=>{ settings.grid=$("chkGrid").checked; scheduleAutosave
 $("chkSnap").onchange=()=>{ settings.snap=$("chkSnap").checked; scheduleAutosave(); };
 $("bgCustom").oninput=()=>{ doc.customBg=$("bgCustom").value; scheduleAutosave(); };
 $("btnBgClear").onclick=()=>{ doc.customBg=""; scheduleAutosave(); };
-$("btnClear").onclick=()=>{ if(confirm("¿Borrar todo el contenido de esta página?")){ pushUndo(); P().nodes=[]; P().edges=[]; clearSel(); } };
+$("btnClear").onclick=()=>{
+  if(typeof isScenarioPlaybackActive==="function" && isScenarioPlaybackActive()){ if(typeof scReset==="function") scReset(); return; }
+  if(confirm("¿Borrar todo el contenido de esta página?")){ pushUndo(); P().nodes=[]; P().edges=[]; clearSel(); }
+};
 
 /* ===================== Cajón de iconos ===================== */
 (function buildDrawer(){
@@ -409,6 +414,7 @@ $("btnClear").onclick=()=>{ if(confirm("¿Borrar todo el contenido de esta pági
   }
 })();
 $("btnIcons").onclick=()=>{
+  if(typeof isScenarioPlaybackActive==="function" && isScenarioPlaybackActive()) return;
   const dr=$("iconDrawer");
   const show=dr.style.display!=="block";
   $("animDrawer").style.display="none";
@@ -434,6 +440,7 @@ $("btnIcons").onclick=()=>{
   dr.appendChild(tip);
 })();
 $("btnAnims").onclick=()=>{
+  if(typeof isScenarioPlaybackActive==="function" && isScenarioPlaybackActive()) return;
   const dr=$("animDrawer");
   const show=dr.style.display!=="block";
   $("iconDrawer").style.display="none";
@@ -460,13 +467,24 @@ function renderTabs(){
         }};
       t.appendChild(x);
     }
-    t.onclick=()=>{ doc.cur=i; clearSel(); renderTabs(); scheduleAutosave(); };
-    t.ondblclick=()=>{ const nn=prompt("Nombre de la página:",pg.name); if(nn){ pg.name=nn; renderTabs(); scheduleAutosave(); } };
+    t.onclick=()=>{
+      if(i!==doc.cur && typeof isScenarioPlaybackActive==="function" && isScenarioPlaybackActive()){
+        if(typeof scReset==="function") scReset();
+      }
+      doc.cur=i; clearSel(); renderTabs(); scheduleAutosave();
+    };
+    t.ondblclick=()=>{
+      if(typeof isScenarioPlaybackActive==="function" && isScenarioPlaybackActive()) return;
+      const nn=prompt("Nombre de la página:",pg.name); if(nn){ pg.name=nn; renderTabs(); scheduleAutosave(); }
+    };
     bar.appendChild(t);
   });
   const add=document.createElement("button");
   add.textContent="＋"; add.title="Nueva página"; add.style.padding="4px 10px";
-  add.onclick=()=>{ doc.pages.push(blankPage("Página "+(doc.pages.length+1))); doc.cur=doc.pages.length-1; clearSel(); renderTabs(); scheduleAutosave(); };
+  add.onclick=()=>{
+    if(typeof isScenarioPlaybackActive==="function" && isScenarioPlaybackActive()){ if(typeof scReset==="function") scReset(); }
+    doc.pages.push(blankPage("Página "+(doc.pages.length+1))); doc.cur=doc.pages.length-1; clearSel(); renderTabs(); scheduleAutosave();
+  };
   bar.appendChild(add);
 }
 
@@ -496,6 +514,7 @@ function nextSlide(){ goSlide(doc.cur+1); }
 function prevSlide(){ goSlide(doc.cur-1); }
 function enterPresent(){
   if(presenting) return;
+  if(typeof isScenarioPlaybackActive==="function" && isScenarioPlaybackActive()){ if(typeof scReset==="function") scReset(); }
   commitEditBox();
   checkAnalyticsEdit();
   preView={x:viewX, y:viewY, z:viewZoom};
@@ -546,6 +565,24 @@ $("btnPanel").onclick=()=>{
   document.body.classList.toggle("panelOpen", open);
   $("btnPanel").setAttribute("aria-expanded", String(open));
 };
+
+/* ===================== Pestañas del panel derecho ===================== */
+function switchPanelTab(tab){
+  const isScenarios = tab === "scenarios";
+  $("panelProperties").style.display = isScenarios ? "none" : "block";
+  $("panelScenarios").style.display = isScenarios ? "block" : "none";
+  $("tabProperties").classList.toggle("active", !isScenarios);
+  $("tabScenarios").classList.toggle("active", isScenarios);
+  if(isScenarios){
+    if(typeof ensureScenariosUI === "function") ensureScenariosUI();
+    if(typeof scRefreshIfVisible === "function") scRefreshIfVisible();
+  } else {
+    refreshPanel();
+  }
+  if(typeof scRenderCanvasActions === "function") scRenderCanvasActions();
+}
+$("tabProperties").onclick = () => switchPanelTab("properties");
+$("tabScenarios").onclick = () => switchPanelTab("scenarios");
 
 renderTabs();
 

@@ -5,14 +5,15 @@
 
 var FluyoScenarios = (function(){
   /* ===================== Constantes ===================== */
-  const ENGINE_VERSION = 1;
+  const ENGINE_VERSION = 2;
   const MAX_SCENARIO_STEPS = 1000;
   const MAX_RUNTIME_JOBS = 2000;
   const MAX_TRACE_EVENTS = 2000;
   const MAX_VIRTUAL_TIME_MS = 86400000;
   const MAX_STRUCTURE_ENTITIES = 10000;
   const VALID_STATES = new Set(["UP", "DOWN"]);
-  const VALID_ACTIONS = new Set(["SET_STATE", "SEND"]);
+  const VALID_ACTIONS = new Set(["SET_STATE", "SEND", "OCCURRENCE"]);
+  const VALID_ACTIONS_V1 = new Set(["SET_STATE", "SEND"]);
 
   /* ===================== Utilidades ===================== */
   const isPosInt = v => Number.isSafeInteger(v) && v >= 1;
@@ -73,13 +74,13 @@ var FluyoScenarios = (function(){
         add(shape,"invalid_scenario","scenario.engineVersion");
       else if(scenario.engineVersion<1)
         add(shape,"invalid_scenario","scenario.engineVersion");
-      else if(scenario.engineVersion !== ENGINE_VERSION)
+      else if(scenario.engineVersion !== ENGINE_VERSION && scenario.engineVersion !== 1)
         add(shape,"unsupported_engine_version","scenario.engineVersion",{engineVersion:scenario.engineVersion,supported:ENGINE_VERSION});
       if(typeof scenario.name !== "string" || scenario.name.trim().length===0 || scenario.name.length>120)
         add(shape,"invalid_scenario","scenario.name");
       if(!isPosInt(scenario.nextStepId)) add(shape,"invalid_scenario","scenario.nextStepId");
       if(!Array.isArray(scenario.steps)) add(shape,"invalid_scenario","scenario.steps");
-      else if(scenario.engineVersion===ENGINE_VERSION){
+      else if(scenario.engineVersion>=1 && scenario.engineVersion<=ENGINE_VERSION){
         const stepIds=new Set();let maxStepId=0;
         for(let i=0;i<scenario.steps.length;i++){
           const step=scenario.steps[i],path=`scenario.steps[${i}]`,before=shape.length;
@@ -89,12 +90,18 @@ var FluyoScenarios = (function(){
           stepIds.add(step.id); maxStepId=Math.max(maxStepId,step.id);
           if(!Number.isSafeInteger(step.at) || step.at<0) add(shape,"invalid_timestamp",path,extra);
           else if(step.at>MAX_VIRTUAL_TIME_MS) add(guards,"invalid_timestamp",path,{...extra,limit:MAX_VIRTUAL_TIME_MS});
-          if(!VALID_ACTIONS.has(step.action)){ add(shape,"unknown_action",path,extra); continue; }
-          const allowed=step.action==="SET_STATE"?["id","at","action","nodeId","state"]:["id","at","action","edgeId"];
-          if(Object.keys(step).length!==allowed.length || !allowed.every(k=>Object.prototype.hasOwnProperty.call(step,k)))
+          const allowedActions = scenario.engineVersion===1 ? VALID_ACTIONS_V1 : VALID_ACTIONS;
+          if(!allowedActions.has(step.action)){ add(shape,"unknown_action",path,extra); continue; }
+          const allowed=step.action==="SET_STATE"?[ "id","at","action","nodeId","state"]:(step.action==="OCCURRENCE"?[ "id","at","action","nodeId"]:[ "id","at","action","edgeId"]);
+          // eventTypeId es metadata de presentación, opcional en cualquier versión.
+          const keys=Object.keys(step).filter(k=>k!=="eventTypeId");
+          if(keys.length!==allowed.length || !allowed.every(k=>Object.prototype.hasOwnProperty.call(step,k)))
             add(shape,"invalid_scenario",path,{...extra,reason:"extra_fields"});
           if(step.action==="SET_STATE"){
             if(!isPosInt(step.nodeId) || !VALID_STATES.has(step.state)) add(shape,"invalid_state",path,extra);
+            if(before===shape.length) pending.push({kind:"node",id:step.nodeId,code:"missing_node",path,extra:{...extra,nodeId:step.nodeId}});
+          }else if(step.action==="OCCURRENCE"){
+            if(!isPosInt(step.nodeId)) add(shape,"invalid_scenario",path,extra);
             if(before===shape.length) pending.push({kind:"node",id:step.nodeId,code:"missing_node",path,extra:{...extra,nodeId:step.nodeId}});
           }else{
             if(!isPosInt(step.edgeId)) add(shape,"invalid_scenario",path,extra);
@@ -164,6 +171,10 @@ var FluyoScenarios = (function(){
           events.push({at:virtualTime, type:"state_changed", stepId:step.id, nodeId:step.nodeId, from:current, to:step.state});
           states.set(step.nodeId, step.state);
         }
+      } else if(step.action === "OCCURRENCE"){
+        if(events.length >= MAX_TRACE_EVENTS)
+          return err("guard_exceeded", {path:"trace.events", limit:MAX_TRACE_EVENTS});
+        events.push({at:virtualTime, type:"event_occurred", stepId:step.id, nodeId:step.nodeId});
       } else { // SEND
         if(events.length >= MAX_TRACE_EVENTS)
           return err("guard_exceeded", {path:"trace.events", limit:MAX_TRACE_EVENTS});

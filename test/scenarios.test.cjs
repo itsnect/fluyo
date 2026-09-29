@@ -51,7 +51,7 @@ function canonicalScenario(){
   };
 }
 const EXPECTED_CANONICAL_TRACE={
-  engineVersion:1,
+  engineVersion:2,
   scenarioId:1,
   events:[
     {at:0, type:"state_changed", stepId:1, nodeId:2, from:"UP", to:"DOWN"},
@@ -98,7 +98,7 @@ test('Inputs congelados no se mutan',()=>{
 
 /* ===================== Orden semántico ===================== */
 
-test('Orden del array como tie-break: SET_STATE DOWN antes de SEND provoca fallo',()=>{
+test('tie-break: SET_STATE DOWN antes de SEND provoca fallo',()=>{
   const engine=makeEngine();
   const scenario={
     id:1, engineVersion:1, name:"orden-1", nextStepId:3,
@@ -114,13 +114,46 @@ test('Orden del array como tie-break: SET_STATE DOWN antes de SEND provoca fallo
   assert.equal(failed.reason, "target_down");
 });
 
-test('Orden del array como tie-break: SEND antes de SET_STATE DOWN tiene éxito',()=>{
+test('tie-break: SEND antes de SET_STATE DOWN tiene éxito',()=>{
   const engine=makeEngine();
   const scenario={
     id:1, engineVersion:1, name:"orden-2", nextStepId:3,
     steps:[
       {id:1, at:1000, action:"SEND", edgeId:5},
       {id:2, at:1000, action:"SET_STATE", nodeId:2, state:"DOWN"}
+    ]
+  };
+  const res=engine.runScenario(canonicalStructure(), [], scenario);
+  assert.equal(res.ok, true);
+  const succeeded=res.trace.events.find(e=>e.type==="send_succeeded");
+  assert.ok(succeeded);
+});
+
+/* IDs invertidos respecto al orden del array: si el motor usara step.id como
+   tie-break, estos casos fallarían porque el ID mayor aparece primero. */
+test('tie-break: IDs invertidos, SET_STATE DOWN antes de SEND provoca fallo',()=>{
+  const engine=makeEngine();
+  const scenario={
+    id:1, engineVersion:1, name:"orden-id-1", nextStepId:100,
+    steps:[
+      {id:99, at:1000, action:"SET_STATE", nodeId:2, state:"DOWN"},
+      {id:1, at:1000, action:"SEND", edgeId:5}
+    ]
+  };
+  const res=engine.runScenario(canonicalStructure(), [], scenario);
+  assert.equal(res.ok, true);
+  const failed=res.trace.events.find(e=>e.type==="send_failed");
+  assert.ok(failed);
+  assert.equal(failed.reason, "target_down");
+});
+
+test('tie-break: IDs invertidos, SEND antes de SET_STATE DOWN tiene éxito',()=>{
+  const engine=makeEngine();
+  const scenario={
+    id:1, engineVersion:1, name:"orden-id-2", nextStepId:100,
+    steps:[
+      {id:99, at:1000, action:"SEND", edgeId:5},
+      {id:1, at:1000, action:"SET_STATE", nodeId:2, state:"DOWN"}
     ]
   };
   const res=engine.runScenario(canonicalStructure(), [], scenario);
@@ -259,7 +292,7 @@ invalidTest('step IDs duplicados',
 
 invalidTest('engineVersion no soportada',
   {nodes:[{id:1}], edges:[]}, [],
-  {id:1, engineVersion:2, name:"x", nextStepId:2, steps:[{id:1, at:0, action:"SET_STATE", nodeId:1, state:"DOWN"}]},
+  {id:1, engineVersion:3, name:"x", nextStepId:2, steps:[{id:1, at:0, action:"SET_STATE", nodeId:1, state:"DOWN"}]},
   "unsupported_engine_version");
 
 invalidTest('demasiados steps',

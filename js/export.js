@@ -73,7 +73,7 @@ $("incomingKeep").onclick=incomingKeepMine;
    mismo que traen los tres ejemplos de negocio en sus `settings`. */
 $("btnDemo").onclick=()=>{
   pushUndo();
-  const pg=P(); pg.nodes=[]; pg.edges=[]; pg.nextId=1; clearSel();
+  const pg=P(); pg.nodes=[]; pg.edges=[]; /* pg.nextId se conserva: IDs eliminados no se reutilizan. */ clearSel();
   const T=newNode("text",1180,300,{label:"Funnel de ventas"}); T.color="#d08b5b"; T.w=620; T.order=0;
   const A=newNode("icon",460,580,{icon:"users",label:"Visitantes"}); A.color="#6a9fb5"; A.order=1;
   const B=newNode("rect",790,580);  B.label="Lead\nregistrado";  B.color="#6a9fb5"; B.order=2;

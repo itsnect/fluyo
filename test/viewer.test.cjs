@@ -97,7 +97,7 @@ test('3b. not_found, invalid_id y unsupported_version tienen estado propio',asyn
   const v=makeViewer();
   await assert.rejects(v.run('loadSharedDocument("!!")'), e=>e.code==='invalid_id');
   await assert.rejects(v.run('loadSharedDocument("abcd1234abcd1234abcd12")'), e=>e.code==='not_found');
-  v.run('shareSource.fetch=async()=>({version:4,app:"fluyo",doc:{pages:[{name:"x",nodes:[],edges:[]}]},settings:{}})');
+  v.run('shareSource.fetch=async()=>({version:5,app:"fluyo",doc:{pages:[{name:"x",nodes:[],edges:[]}]},settings:{}})');
   await assert.rejects(v.run('loadSharedDocument("abcd1234abcd1234abcd12")'), e=>e.code==='unsupported_version');
 });
 
@@ -244,7 +244,7 @@ test('12b. Abrir en Fluyo produce una copia editable decodificable por el deep l
   for(;;){ const {value,done}=await r.read(); if(done) break; texto+=dec.decode(value,{stream:true}); }
   const data=JSON.parse(texto);
   v.run(`documentFromProjectData(${JSON.stringify(data)})`);
-  assert.equal(data.version, 3);
+  assert.equal(data.version, 4);
   assert.ok(data.doc.pages.length>=1);
 });
 
@@ -318,9 +318,9 @@ test('documentos históricos y actuales comparten migración con el importador',
     assert.equal(loaded.doc.pages[0].nodes[0].shape,'rect');
     assert.equal(loaded.settings.font,v.run('DEFAULT_FONT'));
   }
-  v.run('shareSource.fetch=async()=>({version:4,state:{nodes:[],edges:[]}})');
+  v.run('shareSource.fetch=async()=>({version:5,state:{nodes:[],edges:[]}})');
   await assert.rejects(v.run('loadSharedDocument("demo")'),e=>e.code==='unsupported_version');
-  assert.throws(()=>v.run('documentFromProjectData({version:4,state:{nodes:[],edges:[]}})'),e=>e.code==='unsupported_version');
+  assert.throws(()=>v.run('documentFromProjectData({version:5,state:{nodes:[],edges:[]}})'),e=>e.code==='unsupported_version');
   assert.throws(()=>v.run('documentFromProjectData({version:1,state:{nodes:[],edges:{}}})'),e=>e.code==='invalid_document');
 });
 

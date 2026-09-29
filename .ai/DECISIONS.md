@@ -155,3 +155,96 @@ preserva la defensa de 2 MiB. El viewer trata hashchange como nueva activación:
 invalida el estado anterior, descarta cargas tardías y emite share_viewed sólo
 tras el primer render de cada activación válida. Repetir el mismo payload activo
 no duplica evento/RAF. ERROR deja un modelo vacío inactivo y payload nulo.
+
+## D-011 — Scenarios: motor puro con tiempo virtual determinista
+
+Estado: implementado en `js/scenario-engine.js`; contrato en FLUYO-007/FLUYO-008
+
+Contexto: los resultados de un Scenario deben proceder de reglas explícitas y
+reproducibles, independientemente del navegador o de la animación del diagrama.
+
+Decisión: ejecución íntegramente local, en un módulo puro que recibe Structure,
+Behavior y Scenario y devuelve Trace o errores de validación sin Trace parcial.
+Tiempo virtual entero en milisegundos; cola ordenada por `(at,sequence)`, con
+sequence inicial derivada del índice explícito de autoría y secuencias monotónicas
+para futuros trabajos generados. Sin DOM, Canvas, almacenamiento, red, timers,
+relojes reales, aleatoriedad ni estado mutable externo como fuente de lógica.
+V1 limita acciones a SET_STATE/SEND y estados a UP/DOWN; SEND evalúa una sola
+arista `from → to` instantáneamente, sin propagación implícita.
+
+Cada Scenario persiste `engineVersion: 1` y Trace derivado incluye la misma
+versión. Una futura versión del motor no reinterpreta silenciosamente Scenarios
+antiguos: valida `engineVersion` y devuelve `unsupported_engine_version` si no
+está soportada.
+
+Consecuencia: engine comprobable en Node y mismo Trace para mismos inputs y
+versión de semántica. La animación no decide resultados. Semántica exacta,
+prioridad de fallos, guards y pruebas: [FLUYO-007](tasks/FLUYO-007.md) y
+[FLUYO-008](tasks/FLUYO-008.md).
+
+Precisión post-QA: Run valida toda Structure, incluidos edges no utilizados y
+unicidad conjunta node/edge. Fallo siempre devuelve `{ok:false,errors:[...]}`
+sin Trace; errores independientes se acumulan en orden shape/tipos/duplicados,
+referencias y guards. Las cotas operativas se aplican al runner, nunca a la
+validez del documento persistido. La queue v1 usa un cursor sobre copia ordenada.
+
+## D-012 — Scenarios: definiciones persistidas, Trace derivado y playback separado
+
+Estado: contrato técnico vigente; playback/UI no implementados todavía
+
+Contexto: ejecutar una simulación debe conservar el documento editable y permitir
+reproducir su resultado sin mezclar estado del sistema con pintura/animación.
+
+Decisión: persistir únicamente Structure, Behavior inicial y definitions de
+Scenario. Estados actuales, queue, reloj, Trace y playback viven en memoria.
+Trace no se guarda en documento/autosave/URL; se mantiene junto al snapshot que
+lo generó. Engine → Trace → Playback → Renderer son capas distintas. Reset
+descarta runtime; nunca necesita restaurar mutations del documento porque Run
+no las hace. Playback y renderer reciben datos runtime explícitos de pintura.
+
+Consecuencia: presentación futura puede consumir el mismo snapshot/Trace sin
+depender de autoría ni recalcular reglas visualmente. Cambiar inputs invalida
+el resultado anterior. Export de Trace y reglas incompatibles futuras requieren
+contratos versionados posteriores. Detalle: [FLUYO-007](tasks/FLUYO-007.md), §6–§10,
+y [FLUYO-008](tasks/FLUYO-008.md).
+
+## D-013 — Scenarios por página y evolución del formato a v4
+
+Estado: implementado; `serializeProject()` emite v4 y `projectFromProjectData()`
+migra v0/v1/v2/v3 a v4
+
+Contexto: IDs existentes son numéricos y únicos por página; las páginas carecen
+de identidad propia estable. El formato portable y su frontera común eran v3.
+
+Decisión: Scenario y Behavior pertenecen a la página que los contiene, sin
+cross-page ni pageId nuevo. Referencias por IDs numéricos, nunca labels. Behavior
+se almacena separado del estilo como registros `{nodeId,initialState}`; ausencia
+equivale a UP. Referencias eliminadas se conservan visibles como missing y
+bloquean Run hasta reparación explícita. Asignación de IDs monotónica, incluyendo
+undo/redo y reemplazo de página, para no retargetear referencias accidentalmente.
+La implementación incorpora `behaviors`, `scenarios` y contadores de autoría en
+las páginas con bump del campo real `version:3 → 4`, sin renombrar claves
+existentes. Migración sobre copia en `projectFromProjectData()` para todas las
+entradas; documentos antiguos reciben defaults vacíos y continúan abriendo.
+
+Consecuencia: página sigue siendo namespace y unidad transportable. Lector nuevo
+abre archivos históricos; lector v3 rechaza v4 explícitamente, sin prometer
+edición sin pérdida hacia atrás. No cambia la versión del códec de enlaces.
+Contrato de datos/migración/identidad: [FLUYO-007](tasks/FLUYO-007.md), §3/§8–§9,
+y [FLUYO-008](tasks/FLUYO-008.md).
+
+Precisión post-QA: persistencia válida no equivale a Scenario ejecutable.
+Missing references, más de 1000 pasos y timestamps seguros sobre el guard pueden
+abrirse/guardarse/compartirse sin truncar; Run queda bloqueado. Los límites de
+transporte del enlace permanecen independientes. engineVersion futura positiva
+se conserva si usa el contrato v4 interpretable (acciones/enums/claves actuales);
+el runner no la ejecuta ni los helpers v1 de Step reinterpretan sus datos. Un
+esquema futuro incompatible necesitará otra decisión de migración.
+
+Las referencias missing de Behavior, SET_STATE, SEND y endpoints participan del
+mínimo nextId. Contadores ausentes se derivan, bajos se elevan y altos se
+preservan; presentes malformados o mínimos no representables se rechazan. El
+máximo entero seguro es marca de agotamiento, no un ID que pueda incrementarse.
+Asignación estructural, Scenario, Step y paste comprueban capacidad antes de
+mutar. Duplicar selección remapea Behavior explícito con el mapa de nodos, sin
+copiar Scenarios ni cambiar sus referencias; default UP continúa implícito.

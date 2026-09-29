@@ -25,7 +25,9 @@ async function confirmShare(){
   shareControl("shareMessage").textContent="Creando enlace…";
   try{
     commitEditBox();
-    const url=await createShareUrl(serializeProject(),location.href);
+    let project;
+    try{project=serializeProject();}catch{throw shareUrlError("serialization_failed");}
+    const url=await createShareUrl(project,location.href);
     shareControl("shareLink").value=url;
     shareControl("shareConfirm").hidden=true;
     shareControl("shareResult").hidden=false;
@@ -36,7 +38,7 @@ async function confirmShare(){
     trackEvent("share_created");
     shareControl("shareCopy").focus();
   }catch(e){
-    shareControl("shareMessage").textContent=e.code==="too_large"
+    shareControl("shareMessage").textContent=e.code==="too_large" && e.stage==="url"
       ? "Este diagrama es demasiado grande para compartir mediante enlace. Puedes exportarlo como archivo por ahora."
       : e.code==="web_required"
         ? "Compartir mediante enlace requiere abrir Fluyo desde su versión web."

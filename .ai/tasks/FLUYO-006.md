@@ -1,6 +1,6 @@
 # FLUYO-006 — Share MVP sin backend
 
-Estado: RE-QA APROBADO CON CORRECCIONES MENORES APLICADAS — pendiente deploy y validación de hosting (2026-09-28)
+Estado: CHANGES REQUIRED — diagnóstico de bloqueo Share reportado en producción (2026-09-28)
 Owner/agente actual: Codex
 
 ## Handoff de re-QA final

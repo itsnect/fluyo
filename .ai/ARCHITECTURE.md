@@ -64,14 +64,47 @@ Archivos/rutas principales: `js/render.js`, `js/geometry.js`, `js/interaction.js
 
 Responsabilidad: estructura de datos que se guarda y comparte.
 
-- Un documento es `{ version, app, doc, settings }`; `doc.pages` es un array de páginas independientes (`POR CONFIRMAR` la versión actual del campo `version` — el README muestra `"version": 3`; comprobar en `js/state.js`/`js/export.js` si se toca el formato).
-- Cada página: `{ name, nextId, nodes, edges }`.
+- Un documento es `{ version, app, doc, settings }`; `doc.pages` es un array de páginas independientes. `serializeProject()` en `js/model.js` emite `version: 4`; `projectFromProjectData()` admite documentos sin versión y versiones 1/2/3/4, y rechaza versiones superiores.
+- Cada página: `{ name, nextId, nodes, edges, behaviors, scenarios, nextScenarioId }`.
 - `id` únicos por página; nodos y flechas comparten el contador `nextId`. Las flechas referencian nodos por `from`/`to` (si el id no existe, no se dibujan).
 - `x`,`y` son el **centro** del nodo.
 - `settings`: velocidad y cantidad de puntos globales, `build` (aparición secuencial), `stagger`.
 - Al abrir archivos antiguos, los campos que falten se rellenan con valores por defecto (retrocompatibilidad).
 
-Archivos/rutas principales: `js/state.js` (fábricas y defaults), `js/export.js` (serialización), `docs/index.html` (referencia campo a campo), `README.md` § "El formato .fluyo.json".
+Archivos/rutas principales: `js/model.js` (modelo, defaults, normalización/migración sobre copia y serialización), `js/state.js` (fábricas del editor e instalación), `js/export.js` (guardar/abrir), `docs/index.html` (referencia campo a campo), `README.md` § "El formato .fluyo.json".
+
+### Scenarios: motor implementado, playback/UI pendiente
+
+[FLUYO-007](tasks/FLUYO-007.md) y [FLUYO-008](tasks/FLUYO-008.md) definen
+Structure + Behavior + Scenario → Trace. El motor puro está implementado en
+`js/scenario-engine.js`: validación completa antes de ejecución, cola virtual
+ordenada por `(at, índice del array)`, tiempo virtual entero y Trace derivado.
+Soporta acciones v1 `SET_STATE`/`SEND` y estados `UP`/`DOWN`; SEND evalúa una
+sola arista sin propagación implícita.
+
+- Definitions por página: `behaviors`, `scenarios`, `nextScenarioId`.
+- Cada Scenario persiste `engineVersion: 1`; Trace incluye `engineVersion`.
+- El orden del array `steps` es semántico bajo mismo `at`.
+- IDs de Scenario/Step monotónicos por página; IDs eliminados no se reutilizan.
+- `projectFromProjectData()` migra v3→v4 y rechaza v5+; Share/deep link/viewer
+  preservan v4 sin ejecutar el motor.
+- Validez persistida y ejecutabilidad son fronteras diferentes. El loader
+  valida tipos, enums, unicidad y contadores seguros; conserva referencias
+  missing y definiciones fuera de las cotas operativas. Los guards viven sólo
+  en Run; los límites de URL/descompresión siguen perteneciendo al transporte.
+- `nextId` reserva también Behavior, targets SET_STATE/SEND y endpoints missing.
+  Las fábricas y paste comprueban agotamiento antes de asignar IDs. Copiar una
+  selección remapea sus Behavior, sin copiar Scenarios ni retargetear pasos.
+- Model ofrece `createScenario(pg,name)`, `deleteScenario(pg,id)`,
+  `createStep(sc,definition)` y `deleteStep(sc,id)`, sin DOM/undo/autosave.
+  Las marcas de Scenario/Step no bajan al borrar; `nextStepId` ausente se deriva.
+- El runner valida toda Structure y devuelve `{ok:false,errors:[...]}` sin
+  Trace. Orden de errores: shape/tipos/duplicados, referencias, guards; recorrido
+  de arrays estable. `engineVersion` futura positiva se preserva si conserva el
+  contrato v4 interpretable; Run v1 la bloquea sin reinterpretarla y los helpers
+  de Step impiden editar su semántica.
+- No hay UI de autoría, playback visual ni integración con Present todavía;
+  las animaciones de flujo existentes siguen siendo visuales.
 
 ## Import / export
 
@@ -169,10 +202,19 @@ Responsabilidad: cómo se comparte el estado en runtime.
 
 Responsabilidad: cómo se verifica el comportamiento.
 
-- Regresión de analytics sin dependencias ni red: `node --test test/analytics.test.cjs`. No hay CI propia (`.github/` solo tiene plantillas de issues).
+- Regresión de analytics sin dependencias ni red: `node --test test/analytics.test.cjs`.
+- Motor de Scenarios puro sin DOM: `node --test test/scenarios.test.cjs`.
+- Migración v4, identidad y fronteras: `node --test test/scenario-migration.test.cjs`.
+- QA independiente y correcciones: `node --test test/scenario-independent-qa.test.cjs test/scenario-post-qa.test.cjs`;
+  mutaciones en copias aisladas: `node test/scenario-qa-mutations.cjs`.
+- Smoke Chrome con Playwright del entorno, sin dependencia del producto:
+  `node test/scenario-qa-browser.cjs`; cubre HTTP, `file://`, Share, copia,
+  duplicación Behavior y upgrades de caché histórica a la versión vigente.
+- Share, viewer y fronteras de importación: `node --test test/share.test.cjs test/viewer.test.cjs`.
 - Verificación manual en navegador: la apertura desde `file://`, la consola sin errores y los tres exports (GIF/PNG/SVG). Ver `CONTRIBUTING.md` § "Antes de abrir el PR".
 - `test/` contiene harness HTML de desarrollo (`documento-entrante.html`, `editor-inline.html`, `fixtures/`) — páginas de apoyo manual, no tests ejecutables.
 - El test `no-esm.test.ts` que vigila la regla "sin módulos ES" vive en el repo de `fluyo-mcp` y corre en su CI.
+- No hay CI propia (`.github/` solo tiene plantillas de issues).
 
 ## Build / deploy
 

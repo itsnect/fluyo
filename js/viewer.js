@@ -61,7 +61,7 @@ function clearViewerDocument(){
   }
   viewerPointers.clear();viewerPinch=null;
   viewerPayload=null;shareViewed=false;
-  doc={theme:"dark",customBg:"",pages:[{name:"",nodes:[],edges:[],nextId:1}],cur:0};
+  doc={theme:"dark",customBg:"",pages:[{name:"",nodes:[],edges:[],nextId:1,behaviors:[],scenarios:[],nextScenarioId:1}],cur:0};
   settings={...DEFAULT_SETTINGS};
   Object.assign(view,makeViewerViewport());
   playing=false;pausedAt=0;t0=performance.now();

@@ -36,27 +36,34 @@ function copySel(){
   const ns=P().nodes.filter(n=>selN.has(n.id)).map(deep);
   const ids=new Set(ns.map(n=>n.id));
   const es=P().edges.filter(e=>ids.has(e.from)&&ids.has(e.to)).map(deep);
-  clip={nodes:ns, edges:es};
+  const behaviors=(P().behaviors||[]).filter(b=>ids.has(b.nodeId)).map(deep);
+  clip={nodes:ns, edges:es, behaviors};
   // marca el portapapeles del sistema para que Ctrl+V priorice las formas
   try{ navigator.clipboard.writeText("fluyo::"+JSON.stringify(clip)).catch(()=>{}); }catch(e){}
 }
 function cutSel(){ copySel(); deleteSel(); }
 function pasteClip(){
   if(!clip || !clip.nodes.length) return;
+  // Reservar el lote antes de cambiar selección/estructura: agotamiento no
+  // puede dejar un pegado parcial ni IDs inseguros.
+  let nextId=reserveStructureIds(P(),clip.nodes.length+clip.edges.length);
   pushUndo();
   const map={};
   selN.clear(); selE.clear();
   clip.nodes.forEach(n=>{
-    const c=deep(n); map[n.id]=c.id=P().nextId++;
+    const c=deep(n); map[n.id]=c.id=nextId++;
     c.x+=GRID; c.y+=GRID; c.order=P().nodes.length;
     P().nodes.push(c); selN.add(c.id);
   });
   clip.edges.forEach(e=>{
-    const c=deep(e); c.id=P().nextId++;
+    const c=deep(e); c.id=nextId++;
     c.from=map[e.from]; c.to=map[e.to];
     (c.waypoints||[]).forEach(w=>{w.x+=GRID; w.y+=GRID;});
     P().edges.push(c); selE.add(c.id);
   });
+  for(const b of clip.behaviors||[]){
+    if(Object.prototype.hasOwnProperty.call(map,b.nodeId)) P().behaviors.push({...deep(b),nodeId:map[b.nodeId]});
+  }
   // cascada en pegados sucesivos
   clip.nodes.forEach(n=>{n.x+=GRID; n.y+=GRID;});
   clip.edges.forEach(e=>(e.waypoints||[]).forEach(w=>{w.x+=GRID; w.y+=GRID;}));
@@ -107,11 +114,20 @@ function sendBackward(){
 
 /* ---- deshacer / rehacer ---- */
 let undoStack=[], redoStack=[], lblDirty=false, fsDirty=false;
-function snapPage(){ return {pi:doc.cur, data:deep({nodes:P().nodes, edges:P().edges, nextId:P().nextId})}; }
+function snapPage(){ return {pi:doc.cur, data:deep(P())}; }
 function pushUndo(){ undoStack.push(snapPage()); if(undoStack.length>60) undoStack.shift(); redoStack.length=0; scheduleAutosave(); }
 function applySnap(s){
   doc.cur=clamp(s.pi,0,doc.pages.length-1);
-  const pg=P(); pg.nodes=deep(s.data.nodes); pg.edges=deep(s.data.edges); pg.nextId=s.data.nextId;
+  const pg=P();
+  const restored=deep(s.data);
+  // Los contadores de identidad nunca bajan: un ID eliminado no se reasigna a una entidad distinta.
+  const prevNextId=pg.nextId;
+  const prevNextScenarioId=pg.nextScenarioId;
+  const prevNextStepIds=new Map((pg.scenarios||[]).map(sc=>[sc.id,sc.nextStepId]));
+  pg.nodes=restored.nodes; pg.edges=restored.edges; pg.behaviors=restored.behaviors; pg.scenarios=restored.scenarios;
+  pg.nextId=Math.max(prevNextId, restored.nextId);
+  pg.nextScenarioId=Math.max(prevNextScenarioId, restored.nextScenarioId);
+  for(const sc of pg.scenarios) sc.nextStepId=Math.max(prevNextStepIds.get(sc.id)||1, sc.nextStepId);
   clearSel(); renderTabs();
 }
 function undo(){ if(!undoStack.length) return; redoStack.push(snapPage()); applySnap(undoStack.pop()); scheduleAutosave(); }

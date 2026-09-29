@@ -1,5 +1,5 @@
 "use strict";
-/* Chrome real: SVG, navegación/ERROR/copia, upgrade v37→v38→v39 y Umami actual.
+/* Chrome real: SVG, navegación/ERROR/copia, upgrade v37→v38→CACHE vigente y Umami actual.
    node test/share-post-qa-browser.cjs <script actual Umami>
    Toda telemetría se intercepta. NODE_PATH apunta al Playwright del entorno. */
 const {chromium}=require('playwright');
@@ -8,6 +8,8 @@ const fs=require('node:fs');
 const path=require('node:path');
 const http=require('node:http');
 const root=path.resolve(__dirname,'..');
+const currentCache=/const CACHE = "([^"]+)"/.exec(fs.readFileSync(path.join(root,'sw.js'),'utf8'))[1];
+const currentVersion=Number(currentCache.match(/v(\d+)$/)[1]);
 const mime={'.html':'text/html','.js':'application/javascript','.css':'text/css','.json':'application/json','.webmanifest':'application/manifest+json'};
 const svg='<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="#ff0000"/></svg>';
 const project=label=>({version:3,doc:{pages:[{name:label,nodes:[{id:1,label}],edges:[]}]}});
@@ -18,14 +20,14 @@ function asset(url){
   return {body:fs.readFileSync(file),contentType:mime[path.extname(file)]||'application/octet-stream'};
 }
 (async()=>{
-  let previous=39;
+  let previous=currentVersion;
   const server=http.createServer((req,res)=>{
     try{
       const url='http://localhost'+req.url,a=asset(url),pathname=new URL(url).pathname;
       // Fixture anterior: misma estrategia PWA, cache v37, helper nuevo ausente
       // del precache/shell. No cambia código de producto ni caches a mano.
-      if(previous<39 && pathname==='/sw.js'){
-        a.body=Buffer.from(a.body.toString().replace('fluyo-static-v39','fluyo-static-v'+previous));
+      if(previous<currentVersion && pathname==='/sw.js'){
+        a.body=Buffer.from(a.body.toString().replace(currentCache,'fluyo-static-v'+previous));
         if(previous===37)a.body=Buffer.from(a.body.toString().replace('  "./js/safe-svg.js",\n','').replace('  "./js/safe-svg.js",\r\n',''));
       }
       if(previous===37 && ['/','/index.html','/s/'].includes(pathname)) a.body=Buffer.from(a.body.toString().replace(/<script src="(?:\.\.\/)?js\/safe-svg\.js"><\/script>\s*/g,''));
@@ -152,16 +154,16 @@ function asset(url){
     await waitForCache(38);
     assert.equal(await offline.evaluate(async()=>{const response=await(await caches.open('fluyo-static-v38')).match(location.origin+'/s/');return(await response.text()).includes('safe-svg.js');}),true);
     await offline.goto(svgShare);await offline.waitForFunction(()=>window.__viewer?.phase==='ready'&&getImg(doc.pages[0].nodes[0].img).naturalWidth===40);
-    previous=39;
+    previous=currentVersion;
     await offline.evaluate(async()=>{const registration=await navigator.serviceWorker.getRegistration();await registration.update();});
-    await waitForCache(39);
+    await waitForCache(currentVersion);
     // Esperar controllerchange real: la cache se crea antes de terminar install.
     await offline.waitForFunction(()=>navigator.serviceWorker.controller?.state==='activated');
     await offline.waitForTimeout(200);
     await pwa.setOffline(true);await offline.goto(svgShare);
     await offline.waitForFunction(()=>window.__viewer?.phase==='ready' && getImg(doc.pages[0].nodes[0].img).naturalWidth===40);
-    assert.deepEqual(await offline.evaluate(async()=>caches.keys()),['fluyo-static-v39']);
-    await pwa.close();console.log('PWA: fixtures v37 → v38 → v39 activada, helper precacheado y Share SVG previamente abierto offline PASS');
+    assert.deepEqual(await offline.evaluate(async()=>caches.keys()),[currentCache]);
+    await pwa.close();console.log('PWA: fixtures v37 → v38 → '+currentCache+' activada, helper precacheado y Share SVG previamente abierto offline PASS');
 
     assert.ok(process.argv[2],'Se requiere script actual Umami');
     const script=fs.readFileSync(process.argv[2],'utf8');

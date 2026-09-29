@@ -96,7 +96,7 @@ test('Re-QA: los gates preservados detectan mutaciones Q1/Q2/Q3/Q4 en copias ais
     {name:'Q1',file:'js/safe-svg.js',from:'function normalizeDocumentImage(uri,depth=0){',to:'function normalizeDocumentImage(uri,depth=0){if(/^data:image\\/svg/.test(uri)) throw imageDataError();',suite:'qa-share.test.cjs',pattern:'SVG simple'},
     {name:'Q2',file:'js/viewer.js',from:'window.addEventListener("hashchange",()=>{bootViewer();});',to:'/* Mutación QA: hashchange ausente. */',suite:'share-post-qa.test.cjs',pattern:'Hash A'},
     {name:'Q3',file:'js/link-codec.js',from:'  validateDeflateRaw(bytes,max);',to:'  /* Mutación QA: sólo descompresor nativo. */',suite:'qa-share.test.cjs',pattern:'bytes añadidos'},
-    {name:'Q4',file:'js/viewer.js',from:'  viewerPayload=null;shareViewed=false;\n  doc={theme:"dark",customBg:"",pages:[{name:"",nodes:[],edges:[],nextId:1}],cur:0};',to:'  shareViewed=false; /* Mutación QA: modelo/payload retenidos. */',suite:'qa-share.test.cjs',pattern:'ERROR de primer render'}
+    {name:'Q4',file:'js/viewer.js',from:'  viewerPayload=null;shareViewed=false;\n  doc={theme:"dark",customBg:"",pages:[{name:"",nodes:[],edges:[],nextId:1,behaviors:[],scenarios:[],nextScenarioId:1}],cur:0};',to:'  shareViewed=false; /* Mutación QA: modelo/payload retenidos. */',suite:'qa-share.test.cjs',pattern:'ERROR de primer render'}
   ];
   for(const mutation of mutations){
     const temp=mkdtempSync(path.join(tmpdir(),'fluyo-final-mutation-'));

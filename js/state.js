@@ -4,10 +4,11 @@
 /* Fábricas de edición: no se cargan en consumidores read-only. */
 function newNode(shape,x,y,extra={}){
   const [w,h]=DEFAULT_SIZES[shape]||[160,70];
-  const n=Object.assign({ id:P().nextId++, shape, x:snapV(x), y:snapV(y), w, h,
+  const id=reserveStructureIds(P());
+  const n=Object.assign({ id, shape, x:snapV(x), y:snapV(y), w, h,
     label: shape==="text"?"Texto":shape==="code"?CODE_DEFAULT_LABEL:(shape==="icon"||shape==="image"||shape==="anim")?"":"Nodo",
     color:PALETTE[0].c, fill:null, border:"solid", lblPos:"center", textBg:null, textColor:null,
-    font:null, bold:false, pulse:false, order:P().nodes.length }, extra);
+    font:null, bold:false, pulse:false, order:P().nodes.length }, extra, {id});
   /* Los campos de `code` solo se ponen en nodos `code`, igual que `icon` solo va
      en los de icono: no tiene sentido cargar todos los nodos con ellos. */
   if(shape==="code" && !("lang" in n)) Object.assign(n,{lang:DEFAULT_LANG, keywords:null, kwBg:null, kwColor:null});
@@ -18,8 +19,9 @@ function newNode(shape,x,y,extra={}){
 }
 function newEdge(a,b,opts={}){
   if(a===b) return null;
-  const e=Object.assign({ id:P().nextId++, from:a, to:b, fromSide:null, toSide:null,
-    route:"straight", waypoints:[], label:"", font:null, bold:false, animated:true, dashed:false, startArrow:false, endArrow:true, flowDir:"normal" }, opts);
+  const id=reserveStructureIds(P());
+  const e=Object.assign({ id, from:a, to:b, fromSide:null, toSide:null,
+    route:"straight", waypoints:[], label:"", font:null, bold:false, animated:true, dashed:false, startArrow:false, endArrow:true, flowDir:"normal" }, opts, {id});
   P().edges.push(e); return e;
 }
 

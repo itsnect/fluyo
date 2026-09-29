@@ -10,6 +10,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const {randomBytes}=require('node:crypto');
 const root=path.resolve(__dirname,'..');
+const currentCache=/const CACHE = "([^"]+)"/.exec(fs.readFileSync(path.join(root,'sw.js'),'utf8'))[1];
 const mime={'.html':'text/html','.js':'application/javascript','.css':'text/css','.json':'application/json','.webmanifest':'application/manifest+json'};
 function asset(url){
   let rel=decodeURIComponent(new URL(url).pathname);
@@ -101,12 +102,12 @@ function asset(url){
     const pwa=await browser.newContext();const offlinePage=await pwa.newPage();capture(offlinePage);
     await offlinePage.goto(base+'/');
     await offlinePage.waitForFunction(()=>!!navigator.serviceWorker.controller,null,{timeout:30000});
-    assert.equal(await offlinePage.evaluate(async()=> (await caches.keys()).includes('fluyo-static-v39')),true);
+    assert.equal(await offlinePage.evaluate(async name=> (await caches.keys()).includes(name),currentCache),true);
     await pwa.setOffline(true);await offlinePage.goto(url);
     await offlinePage.waitForFunction(()=>window.__viewer?.phase==='ready');
     assert.equal(await offlinePage.evaluate(()=>doc.pages[0].nodes[0].label),'Snapshot A');
-    assert.equal(await offlinePage.evaluate(async()=>{const cache=await caches.open('fluyo-static-v39');return (await cache.keys()).some(req=>req.url.includes('#d='));}),false);
-    await pwa.close();console.log('PWA: cache v39 instalada y viewer offline con fragmento autocontenido PASS');
+    assert.equal(await offlinePage.evaluate(async name=>{const cache=await caches.open(name);return (await cache.keys()).some(req=>req.url.includes('#d='));},currentCache),false);
+    await pwa.close();console.log('PWA: '+currentCache+' instalada y viewer offline con fragmento autocontenido PASS');
     // Protocolo file real, scripts clásicos y editor funcional.
     const fileContext=await browser.newContext();const filePage=await fileContext.newPage();capture(filePage);
     await filePage.goto(require('node:url').pathToFileURL(path.join(root,'index.html')).href);

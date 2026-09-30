@@ -34,3 +34,29 @@
 21. **Compatibilidad hacia atrás**. Steps históricos sin `eventTypeId` siguen cargando, ejecutando y renderizando con fallback legacy.
 22. **Eliminación segura**. No se permite borrar un EventType en uso; se indica cuántos momentos lo usan.
 23. **Viewer preserva EventTypes**. El viewer no ejecuta Scenarios, pero conserva `eventTypes` en roundtrip.
+
+## Composición de escenarios (FLUYO-011)
+
+24. **Biblioteca → Canvas → Historia**. Evento y Escenario son el modelo mental visible; las primitivas y acciones internas quedan en código o diagnóstico técnico.
+25. **Editor fuera del panel estrecho**. Crear/editar vocabulario usa un modal central con cuerpo desplazable y cabecera/pie visibles.
+26. **Frases como texto y chips**. Los nombres se insertan mediante controles accesibles y se traducen al formato de template existente. No se evalúa HTML ni se reescriben silenciosamente templates anteriores.
+27. **Historia temporal, no cards**. Grupos derivados por tiempo y orden estable del array en empates. La simultaneidad se expresa como «Al mismo tiempo» sin nueva entidad persistida.
+28. **Drop espacial explícito**. Soltar en vacío nunca aplica a una selección previa. La multiselección sólo actúa si el objetivo real pertenece a ella. Los cruces ambiguos requieren elegir una conexión.
+29. **Edición global y local separadas**. Cambiar un evento actualiza su vocabulario compartido; quitar de Historia conserva el evento. No hay eliminación en cascada de eventos en uso.
+30. **Modo de colocación efímero**. Drag y click-to-place comparten targets y operaciones del modelo; Escape/pointercancel limpian estado y feedback. No hay un segundo sistema de undo.
+31. **Movimiento temporal explícito**. Cambiar una espera desplaza el grupo completo y los posteriores. Mover antes/después intercambia posiciones temporales; a igual tiempo cambia el orden de resolución. Quitar una aparición no adelanta las siguientes.
+32. **Eventos de nodo: presentación antes que primitiva**. El usuario configura el efecto visual (icono, mensaje, resaltado, parpadeo, atenuación, color) y una consecuencia funcional separada. El runtime dibuja los overlays; el step del motor sigue siendo `OCCURRENCE` o `SET_AVAILABILITY` según la consecuencia elegida.
+33. **Efectos visuales solo en runtime**. `presentation.nodeEffects` se persiste en el EventType, pero el estado de overlay vive en la sesión de playback; Reset lo limpia.
+34. **Auto-creación de Scenario**. Si no existe un Scenario en la página, colocar un evento crea uno por defecto y añade el paso en una sola operación de undo.
+35. **EventType usado editable en presentación**. Nombre, frase, token, movimiento y efectos de nodo pueden cambiar; los pasos existentes conservan su acción original y la Historia no se reconstruye.
+
+## Create/Edit Event UX final polish
+
+36. **Inputs nativos ocultos, UI estilizada visible**. Los radio, checkbox y color `<input>` permanecen en el DOM para accesibilidad y teclado; la interfaz visual usa labels segmentados, chips de efecto y swatches sincronizados con ellos.
+37. **Paleta de color centralizada**. `EVENT_SWATCHES` en `js/config.js` es la fuente de verdad para selectores de color del producto; cualquier selector futuro debe reutilizarla.
+38. **Revelación progresiva con `<details>`**. Las secciones avanzadas de apariencia y comportamiento son acordeones nativos colapsados por defecto al crear; se abren automáticamente cuando el evento ya tiene configuración.
+39. **Configuración de efectos adyacente**. Activar un chip de efecto despliega inmediatamente sus campos debajo del chip, no en una sección remota.
+40. **Compactación por tipo de evento**. Los eventos de conexión ocultan los controles exclusivos de nodo (apariencia y comportamiento) sin cambiar el modelo subyacente.
+
+## FLUYO-011 — Un Evento = un símbolo
+`EventType.visual.value` es la única fuente del símbolo (Biblioteca, ghost, Historia, preview, Playback). `nodeEffects.showSymbol` solo controla visibilidad del overlay; no se permite un segundo icono. El nombre del Evento no se concatena a la frase salvo que se inserte `[Nombre del evento]`; `renderEventSentence` nunca pega marcadores a texto. Estilos de mensaje (tamaño/peso/tipografía/posición) son presets en `presentation.nodeEffects`, runtime-only.

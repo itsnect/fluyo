@@ -49,7 +49,7 @@ test('SEND same-timestamp genera partícula activa y terminal diferida',()=>{
   P.tick(pb, 1000);
   assert.equal(pb.activeSends.length, 1);
   assert.equal(pb.completedSends.length, 0);
-  const rs=P.tick(pb, 1300); // 300ms real de partícula
+  const rs=P.tick(pb, 1000 + P.SEND_PARTICLE_MS); // duración real de la partícula
   assert.equal(pb.activeSends.length, 0);
   assert.equal(pb.completedSends.length, 1);
   assert.equal(rs.completedSends[0].terminalType, "send_failed");
@@ -59,9 +59,10 @@ test('Terminal expira tras TERMINAL_MS',()=>{
   const P=makePlayback();
   const pb=P.makePlayback(CANONICAL_TRACE);
   pb.startedAtReal = 0;
-  P.tick(pb, 1300);
+  const done = 1000 + P.SEND_PARTICLE_MS;
+  P.tick(pb, done);
   assert.equal(pb.completedSends.length, 1);
-  P.tick(pb, 1300 + P.TERMINAL_MS);
+  P.tick(pb, done + P.TERMINAL_MS);
   assert.equal(pb.completedSends.length, 0);
 });
 
@@ -80,7 +81,7 @@ test('finished es true tras último evento y efectos visuales',()=>{
   pb.startedAtReal = 0;
   P.tick(pb, 6000);
   assert.equal(pb.activeSends.length, 1); // aún en partícula
-  const rs=P.tick(pb, 7000);
+  const rs=P.tick(pb, 6000 + P.SEND_PARTICLE_MS + P.TERMINAL_MS + 50);
   assert.equal(rs.finished, true);
 });
 

@@ -31,6 +31,11 @@ const PALETTE=[
   {c:"#5b9bd0", n:"Info"},
 ];
 /* Paleta amplia para el selector de color (rejilla de swatches) */
+const EVENT_SWATCHES=[
+  "#d0576a","#d08b5b","#c9b458","#7bb85b","#5bb0a0",
+  "#6a9fb5","#5b9bd0","#3a7bc8","#9b7fb5","#7a5fb0",
+  "#c96fb5","#e8a3d8","#8f8f8f","#ffffff","#2b2b2b"
+];
 const SWATCH_COLORS=[
   "#ffffff","#e8e6e1","#b8b5ad","#8f8f8f","#5a5a5a","#2b2b2b","#000000",
   "#f4a3a3","#e06666","#c1272d","#8b1a1a","#5c0f0f",

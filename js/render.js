@@ -238,39 +238,107 @@ function drawCodeNode(c,n,theme,glow){
   c.restore();
 }
 function colHex(c){ return (typeof c==="string" && c[0]==="#")? c : "#3aa7e8"; }
-function drawScenarioNodeOverlay(c,n,state,theme,rs){
-  if(!state && !rs) return;
-  const T=THEMES[theme];
-  // Cues visuales de OCCURRENCE / SET_AVAILABILITY sobre el nodo
-  if(rs){
-    const occs = (rs.activeOccurrences||[]).filter(o => o.nodeId === n.id).concat((rs.completedOccurrences||[]).filter(o => o.nodeId === n.id));
-    for(const occ of occs){
-      const step = rs.scenario ? rs.scenario.steps.find(s => s.id === occ.stepId) : null;
-      const et = step && step.eventTypeId ? eventTypeById(step.eventTypeId) : null;
-      const token = et && et.visual.value ? et.visual.value : "●";
-      c.save();
-      c.font = "bold 18px Georgia,serif";
-      c.textAlign = "center"; c.textBaseline = "middle";
-      c.fillStyle = T.text;
-      c.fillText(token, n.x, n.y - n.h/2 - 14);
-      c.restore();
+function nodeRuntimeEffects(n, sr, t){
+  const fx = defaultNodeEffects();
+  let token = "";
+  for(const item of sr.activeNodeEffects || []){
+    if(item.nodeId !== n.id) continue;
+    const e = item.effects || defaultNodeEffects();
+    if(e.showSymbol){ fx.showSymbol = true; token = item.token || token; }
+    if(e.message){
+      fx.message = e.message; fx.messageColor = e.messageColor;
+      fx.messageSize = e.messageSize; fx.messageWeight = e.messageWeight;
+      fx.messageFont = e.messageFont; fx.messagePosition = e.messagePosition;
+    }
+    if(e.highlight) fx.highlight = true;
+    if(e.blink) fx.blink = true;
+    if(e.dim) fx.dim = true;
+    if(e.fillColor){ fx.fillColor = e.fillColor; }
+  }
+  const blinkAlpha = fx.blink ? (Math.sin(t*Math.PI*2)+1)/2*0.7+0.3 : 1;
+  return { fx, token, blinkAlpha };
+}
+function drawWrappedMessage(c, text, x, y, maxWidth, lineHeight){
+  const words = text.split(/\s+/).filter(Boolean);
+  let line = "", lines = [];
+  for(const w of words){
+    const test = line ? line + " " + w : w;
+    if(c.measureText(test).width > maxWidth && line){
+      lines.push(line);
+      line = w;
+    } else {
+      line = test;
     }
   }
-  if(!state) return;
-  if(state==="DOWN"){
-    c.save();
-    // Marco distintivo sin mutar el nodo
-    c.strokeStyle="#d0576a"; c.lineWidth=2.5; c.setLineDash([4,3]);
-    shapePath(c,n); c.stroke(); c.setLineDash([]);
-    // Badge
-    const badgeH=18, badgeW=46, pad=6;
-    const bx=n.x+n.w/2-badgeW-pad, by=n.y-n.h/2+pad;
-    c.fillStyle="#d0576a";
-    c.beginPath(); roundRect(c,bx,by,badgeW,badgeH,4); c.fill();
-    c.fillStyle="#fff"; c.font="bold 11px Georgia,serif"; c.textAlign="center"; c.textBaseline="middle";
-    c.fillText("DOWN", bx+badgeW/2, by+badgeH/2+0.5);
-    c.restore();
+  if(line) lines.push(line);
+  for(let i=0;i<lines.length;i++) c.fillText(lines[i], x, y + i*lineHeight);
+  return lines.length;
+}
+function drawScenarioNodeOverlay(c,n,t,state,theme,rs){
+  if(!rs || !rs.scenarioRuntime) return;
+  const sr = rs.scenarioRuntime;
+  const { fx, token, blinkAlpha } = nodeRuntimeEffects(n, sr, t);
+  const isDown = state === "DOWN";
+  if(!fx.showSymbol && !fx.message && !fx.highlight && !fx.blink && !fx.dim && !fx.fillColor && !isDown) return;
+  c.save();
+  c.globalAlpha = blinkAlpha;
+  // Color temporal
+  if(fx.fillColor){
+    c.globalCompositeOperation = "source-atop";
+    c.fillStyle = hexA(fx.fillColor, 0.35);
+    shapePath(c,n); c.fill();
+    c.globalCompositeOperation = "source-over";
   }
+  // Oscurecimiento persistente por estado DOWN o efecto dim
+  if(isDown || fx.dim){
+    c.fillStyle = isDown ? "rgba(0,0,0,0.28)" : "rgba(0,0,0,0.40)";
+    shapePath(c,n); c.fill();
+  }
+  // Resaltar
+  if(fx.highlight){
+    c.shadowColor = "#3aa7e8"; c.shadowBlur = 14;
+    c.strokeStyle = "rgba(58,167,232,.85)"; c.lineWidth = 2.5;
+    shapePath(c,n); c.stroke();
+    c.shadowBlur = 0;
+  }
+  const top = n.y - n.h/2, bottom = n.y + n.h/2;
+  // Símbolo principal del Evento (única fuente: EventType.visual.value), sobre el elemento
+  let symTop = top;
+  if(fx.showSymbol && token){
+    c.font = '20px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", Georgia, serif';
+    c.textAlign = "center"; c.textBaseline = "middle";
+    c.fillStyle = "#fff"; c.strokeStyle = "rgba(0,0,0,.55)"; c.lineWidth = 3;
+    const iy = top - 14;
+    c.strokeText(token, n.x, iy); c.fillText(token, n.x, iy);
+    symTop = top - 28;
+  }
+  // Mensaje: tamaño, peso, tipografía y posición vienen de nodeMessageStyle
+  if(fx.message){
+    const st = nodeMessageStyle(fx);
+    const maxW = Math.min(260, Math.max(120, n.w + 40));
+    c.font = st.weight + " " + st.px + 'px ' + st.family;
+    const pad = 6, lineH = Math.round(st.px * 1.3);
+    const lines = [];
+    let line = "";
+    for(const w of fx.message.split(/\s+/).filter(Boolean)){
+      const test = line ? line + " " + w : w;
+      if(c.measureText(test).width > maxW - pad*2 && line){ lines.push(line); line = w; }
+      else line = test;
+    }
+    if(line) lines.push(line);
+    const msgW = Math.min(maxW, Math.max(...lines.map(l=>c.measureText(l).width)) + pad*2);
+    const msgH = lines.length*lineH + pad*2;
+    const mx = n.x - msgW/2;
+    let my;
+    if(st.position === "below") my = bottom + 8;
+    else if(st.position === "center") my = n.y - msgH/2;
+    else my = symTop - 6 - msgH;
+    c.fillStyle = fx.messageColor || "#d0576a";
+    c.beginPath(); roundRect(c,mx,my,msgW,msgH,5); c.fill();
+    c.fillStyle = "#fff"; c.textAlign = "center"; c.textBaseline = "top";
+    for(let i=0;i<lines.length;i++) c.fillText(lines[i], n.x, my+pad+i*lineH);
+  }
+  c.restore();
 }
 
 function drawNode(c,n,t,theme,isExport,rs){
@@ -338,15 +406,13 @@ function drawNode(c,n,t,theme,isExport,rs){
   }
   c.restore();
 
-  if(!isExport && typeof scDrag!=="undefined" && scDrag){
-    const et = eventTypeById(scDrag.eventTypeId);
-    const allowed = eventTypeAllowedTargets(et);
-    if(allowed.has("node")){
-      c.save();
-      c.strokeStyle="rgba(58,167,232,.55)"; c.lineWidth=3; c.setLineDash([6,4]);
-      shapePath(c,n); c.stroke(); c.setLineDash([]);
-      c.restore();
-    }
+  if(rs.scenarioRuntime && !isExport){
+    drawScenarioNodeOverlay(c,n,t,rs.scenarioRuntime.nodeStates[n.id],theme,rs);
+  }
+
+  if(!isExport && typeof scHighlight==="function"){
+    const highlight=scHighlight("node",n.id);
+    if(highlight){c.save();c.strokeStyle=highlight===2?"#3aa7e8":"rgba(58,167,232,.35)";c.lineWidth=highlight===2?5:2;c.setLineDash(highlight===2?[]:[6,4]);shapePath(c,n);c.stroke();c.restore();}
   }
   if(!isExport && rs.selection.nodes.has(n.id)){
     c.save();
@@ -360,9 +426,6 @@ function drawNode(c,n,t,theme,isExport,rs){
       }
     }
     c.restore();
-  }
-  if(rs.scenarioRuntime && !isExport){
-    drawScenarioNodeOverlay(c,n,rs.scenarioRuntime.nodeStates[n.id],theme,rs);
   }
 }
 /* Medidor de etiquetas para el lienzo. Toca c.font, que drawEdge vuelve a fijar
@@ -509,14 +572,18 @@ function drawScenarioEdgeOverlay(c,e,pts,active,completed,theme,rs){
   if(pts.length<2) return;
   const T=THEMES[theme];
   // Partículas SEND activas
+  const scenario = rs.scenarioRuntime && rs.scenarioRuntime.scenario ? rs.scenarioRuntime.scenario : null;
   for(const send of active){
     const p=pointAt(pts, send.progress);
-    const step = rs.scenario ? rs.scenario.steps.find(s => s.id === send.stepId) : null;
-    const et = step && step.eventTypeId ? eventTypeById(step.eventTypeId) : null;
-    const token = et && et.visual.value ? et.visual.value : "";
+    let token = send.token || "";
+    if(!token){
+      const step = scenario ? scenario.steps.find(s => s.id === send.stepId) : null;
+      const et = step && step.eventTypeId ? eventTypeById(step.eventTypeId) : null;
+      token = et && et.visual.value ? et.visual.value : "";
+    }
     c.save();
     if(token){
-      c.font = "bold 16px Georgia,serif";
+      c.font = 'bold 20px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", Georgia, serif';
       c.textAlign = "center"; c.textBaseline = "middle";
       c.fillStyle = T.text; c.fillText(token, p.x, p.y);
     } else {
@@ -525,30 +592,8 @@ function drawScenarioEdgeOverlay(c,e,pts,active,completed,theme,rs){
     }
     c.restore();
   }
-  // Terminales completados
-  for(const term of completed){
-    const isFail = term.terminalType === "send_failed";
-    const A=nodeById(e.from), B=nodeById(e.to);
-    // source_down -> marcador en origen; target_down/success -> en destino
-    const target = (isFail && term.terminalReason==="source_down") ? A : B;
-    if(!target) continue;
-    const end = pts[pts.length-1];
-    const pos = (isFail && term.terminalReason==="source_down") ? pts[0] : end;
-    c.save();
-    const col = isFail ? "#d0576a" : "#7bb85b";
-    c.fillStyle = col;
-    c.beginPath();
-    c.arc(pos.x,pos.y,9,0,Math.PI*2); c.fill();
-    c.fillStyle="#fff"; c.font="bold 11px Georgia,serif"; c.textAlign="center"; c.textBaseline="middle";
-    c.fillText(isFail ? "✕" : "✓", pos.x, pos.y+0.5);
-    // Reason label breve
-    if(isFail && term.terminalReason){
-      const label = term.terminalReason === "source_down" ? "source down" : "target down";
-      c.fillStyle = col; c.font="11px Georgia,serif";
-      c.fillText(label, pos.x, pos.y + 20);
-    }
-    c.restore();
-  }
+  // Los resultados terminados se comunican principalmente en Historia.
+  // El canvas solo conserva partículas activas; no dibuja badges permanentes.
 }
 
 function drawEdge(c,e,t,theme,isExport,rs){
@@ -653,17 +698,9 @@ function drawEdge(c,e,t,theme,isExport,rs){
       c.lineCap="butt"; c.lineWidth=1.6;
     }
   }
-  if(!isExport && typeof scDrag!=="undefined" && scDrag){
-    const et = eventTypeById(scDrag.eventTypeId);
-    const allowed = eventTypeAllowedTargets(et);
-    if(allowed.has("edge")){
-      c.save();
-      c.strokeStyle="rgba(58,167,232,.45)"; c.lineWidth=5; c.setLineDash([8,6]);
-      c.beginPath(); c.moveTo(pts[0].x,pts[0].y);
-      for(let i=1;i<pts.length;i++) c.lineTo(pts[i].x,pts[i].y);
-      c.stroke(); c.setLineDash([]);
-      c.restore();
-    }
+  if(!isExport && typeof scHighlight==="function"){
+    const highlight=scHighlight("edge",e.id);
+    if(highlight){c.save();c.strokeStyle=highlight===2?"#3aa7e8":"rgba(58,167,232,.35)";c.lineWidth=highlight===2?6:3;c.setLineDash(highlight===2?[]:[8,6]);c.beginPath();c.moveTo(pts[0].x,pts[0].y);for(let i=1;i<pts.length;i++)c.lineTo(pts[i].x,pts[i].y);c.stroke();c.restore();}
   }
   if(rs.scenarioRuntime && !isExport){
     const active = rs.scenarioRuntime.activeSends.filter(s => s.edgeId === e.id);

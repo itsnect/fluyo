@@ -8,6 +8,10 @@ Fluyo (fluyo.space) es un editor de diagramas de arquitectura y sistemas que fun
 - **Lenguaje visual neutro**: Fluyo no impone el vocabulario de un dominio. El usuario define sus propios eventos, frases y representación visual sobre primitivas deterministas.
 - **Diagramas que se mueven**: conexiones animadas, aparición escalonada, pulso y Scenarios que cuentan una historia paso a paso.
 - **Compartir sin servidor**: archivos `.fluyo.json` y enlaces `#d=` que transportan el documento de forma autocontenida.
+- **Eventos → Canvas → Historia**: la biblioteca define un vocabulario reutilizable; colocarlo sobre el sistema crea apariciones en un escenario. Editar un evento tiene alcance global; quitar una aparición sólo cambia esa historia.
+- **Autoría en lenguaje humano**: Eventos y Escenarios son los conceptos visibles. Las primitivas del motor quedan ocultas; frases, símbolos y ejemplos muestran qué ocurrirá.
+- **Espacio adecuado para cada tarea**: los eventos se editan en un diálogo amplio fuera del panel estrecho. La historia se lee como una línea temporal, con esperas y grupos simultáneos, sin formularios por acontecimiento.
+- **Colocación explícita**: soltar en vacío nunca aplica un evento a una selección anterior. El canvas identifica los objetivos compatibles antes de confirmar.
 
 ## Alcance actual
 

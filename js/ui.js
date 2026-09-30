@@ -391,7 +391,14 @@ $("bgCustom").oninput=()=>{ doc.customBg=$("bgCustom").value; scheduleAutosave()
 $("btnBgClear").onclick=()=>{ doc.customBg=""; scheduleAutosave(); };
 $("btnClear").onclick=()=>{
   if(typeof isScenarioPlaybackActive==="function" && isScenarioPlaybackActive()){ if(typeof scReset==="function") scReset(); return; }
-  if(confirm("¿Borrar todo el contenido de esta página?")){ pushUndo(); P().nodes=[]; P().edges=[]; clearSel(); }
+  if(confirm("Limpiar página\n\nSe eliminarán los elementos y escenarios de esta página.\n\nLos Eventos del proyecto se conservarán.\n\n¿Limpiar página?")){
+    if(typeof scReset==="function") scReset();
+    pushUndo();
+    clearPageContents(P());
+    clearSel();
+    if(typeof scActiveId!=="undefined") scActiveId=null;
+    if(typeof scRenderPanel==="function") scRenderPanel();
+  }
 };
 
 /* ===================== Cajón de iconos ===================== */
@@ -570,7 +577,9 @@ $("btnPanel").onclick=()=>{
 function switchPanelTab(tab){
   const isScenarios = tab === "scenarios";
   $("panelProperties").style.display = isScenarios ? "none" : "block";
-  $("panelScenarios").style.display = isScenarios ? "block" : "none";
+  $("panelScenarios").style.display = isScenarios ? "flex" : "none";
+  $("panelScenarios").closest("aside").classList.toggle("scenariosOpen", isScenarios);
+  if(!isScenarios && typeof scCancelPlacement === "function"){ scCancelPlacement(); scHidePalette(); }
   $("tabProperties").classList.toggle("active", !isScenarios);
   $("tabScenarios").classList.toggle("active", isScenarios);
   if(isScenarios){

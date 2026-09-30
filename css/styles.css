@@ -263,33 +263,6 @@ body.presenting #presentBar{display:flex;}
 .panelTabs button.active{background:var(--panel2); color:var(--text); border-color:var(--line);}
 .panelTabs button:hover:not(.active){color:var(--text);}
 
-.scSelectorRow{display:flex; gap:6px; align-items:center;}
-.scSelectorRow select{flex:1; min-width:0;}
-.scSelectorRow button{min-width:30px; padding:4px 6px;}
-
-#scName{width:100%; padding:5px 8px; background:var(--panel2); color:var(--text); border:1px solid var(--line); border-radius:6px; font:inherit;}
-
-.scBehaviorRow{display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid var(--line);}
-.scBehaviorRow span:first-child{flex:1; color:var(--text); font-size:12px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-.scBehaviorRow .scState{font-weight:600; color:var(--accent);}
-.scBehaviorRow select{min-width:90px;}
-
-.scStepCard{background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:8px; margin-bottom:8px;}
-.scStepCard.missing{border-color:rgba(208,87,106,.55); background:rgba(208,87,106,.10);}
-.scStepHeader{display:flex; align-items:center; gap:6px; margin-bottom:8px;}
-.scStepHeader .scStepTitle{flex:1; font-size:12px; font-weight:600; color:var(--muted); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-.scStepHeader .scStepActions{display:flex; gap:4px;}
-.scStepHeader .scStepActions button{min-width:28px; padding:3px 6px; font-size:12px; line-height:1;}
-.scStepHeader .scStepActions button.danger{padding:3px 7px;}
-
-.scStepField{margin-bottom:8px;}
-.scStepField:last-child{margin-bottom:0;}
-.scStepField label{display:block; font-size:11px; color:var(--muted); margin-bottom:3px;}
-.scStepField input[type=number],
-.scStepField select{width:100%; padding:5px 7px; background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:6px; font:inherit; font-size:12px; box-sizing:border-box;}
-.scStepField select{min-height:28px;}
-.scStepField select option{background:var(--panel); color:var(--text);}
-
 .traceLog{max-height:220px; overflow-y:auto; background:var(--panel2); border:1px solid var(--line); border-radius:6px; padding:6px; font-size:12px;}
 .scLogLine{padding:4px 0; border-bottom:1px solid var(--line); color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
 .scLogLine:last-child{border-bottom:none;}
@@ -302,86 +275,236 @@ body.presenting #presentBar{display:flex;}
 #panelScenarios section h3{margin-top:0;}
 #panelScenarios .hint{margin-top:6px;}
 
-/* ===================== Storyboard Scenarios ===================== */
-.scHeader{margin-bottom:10px;}
-.scNameRunRow{display:flex; gap:8px; align-items:center; margin-top:8px;}
-.scNameRunRow #scName{flex:1; min-width:0;}
-.scNameRunRow #scRun,
-.scNameRunRow #scReset{min-width:70px; padding:6px 10px;}
 
-.scStoryboardSection{flex:1; min-height:0; overflow-y:auto; margin:0 -6px; padding:0 6px;}
-.scEmptyState{padding:16px 0; text-align:center; color:var(--muted);}
-.scEmptyState p{margin:0 0 6px;}
+/* FLUYO-011 — Eventos → Canvas → Historia. */
+[hidden]{display:none!important;}
+aside.scenariosOpen{box-sizing:border-box;width:336px;flex:0 0 336px;overflow:hidden;gap:12px;container-type:inline-size;}
+#panelScenarios{flex:1;min-height:0;flex-direction:column;gap:16px;}
+.scHeader{flex:none;min-width:0;}
+.scHeaderRow,.scPlaybackControls,.scSectionHeader{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.scHeaderRow{margin-bottom:10px;}
+#scScenarioTitle{min-width:0;flex:1;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:650;border-color:transparent;}
+#scScenarioMenu{flex:none;}
+.scPlaybackControls{justify-content:flex-start;flex-wrap:wrap;}
+#scStatus:empty{display:none;}
+#scStatus{font-size:12px;color:var(--muted);margin:8px 0 0;}
+#scErrors{color:#e08585;font-size:13px;}
+.scSectionHeader h3,.scStorySection>h3{margin:0;font-size:11px;letter-spacing:1.4px;color:var(--muted);}
+.scSectionHeader>button{font-size:12px;border:0;background:transparent;white-space:nowrap;}
+.scEventLibrarySection{display:flex;flex-direction:column;gap:6px;flex:0 1 204px;min-height:110px;border-bottom:1px solid var(--line);padding-bottom:12px;}
+.scEventLibrary{overflow:auto;overscroll-behavior:contain;min-height:0;flex:1;}
+.scEventRow{display:flex;align-items:center;min-height:38px;border-radius:7px;}
+.scEventRow:hover,.scEventRow.new{background:rgba(58,167,232,.12);}
+.scEventPlace{display:flex;align-items:center;gap:10px;min-width:0;flex:1;text-align:left;cursor:grab;border:0;background:transparent;padding:8px;touch-action:none;}
+.scEventPlace:active{cursor:grabbing;}
+.scEventPlace span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.scEventSymbol{font-size:18px;flex:none;width:22px;text-align:center;}
+.scMore{border:0;background:transparent;flex:none;min-width:30px;min-height:32px;}
+.scLibraryHint{font-size:11px;margin:0;color:var(--muted);}
+.scStorySection{display:flex;flex-direction:column;flex:1;min-height:100px;gap:8px;}
+.scStoryboardSection{min-height:0;flex:1;overflow:auto;overscroll-behavior:contain;}
+.scEmptyState{padding:14px 4px;color:var(--muted);font-size:13px;line-height:1.6;}
+.scEmptyState strong{display:block;color:var(--text);margin-bottom:8px;}
+.scEmptyState button{margin-top:8px;}
+.scStoryGroup{border-left:1px solid var(--line);margin-left:9px;padding-left:12px;padding-bottom:8px;}
+.scDelay{border:0;background:transparent;color:var(--muted);padding:6px 4px;font-size:12px;min-height:28px;text-align:left;}
+.scDelay:hover{color:var(--text);text-decoration:underline;}
+.scTogether{font-size:11px;color:var(--muted);padding:4px 0 6px;}
+.scStoryRow{position:relative;display:flex;align-items:flex-start;gap:6px;min-height:36px;border-radius:6px;padding:3px 0;}
+.scStoryRow .scStatusMark{position:absolute;left:-20px;top:11px;background:var(--panel);font-size:11px;width:14px;text-align:center;}
+.scStoryText{flex:1;min-width:0;}
+.scStorySentence{border:0;background:transparent;padding:5px 4px;text-align:left;width:100%;line-height:1.5;font-size:13px;overflow-wrap:anywhere;}
+.scStoryRow:hover,.scStoryRow.selected{background:rgba(58,167,232,.07);}
+.scStoryRow.scStatus_active{background:rgba(58,167,232,.13);}
+.scStoryRow.scStatus_failed,.scStoryRow.missing{background:rgba(208,87,106,.08);}
+.scStatus_completed .scStatusMark,.scStatus_success .scStatusMark{color:#7bb85b;}
+.scStatus_failed .scStatusMark,.scStepDetail{color:#e08585;}
+.scStepDetail{font-size:12px;padding:0 4px 5px;line-height:1.4;}
+.scStepSecondary{color:var(--muted);font-size:12px;padding:0 4px 4px;line-height:1.4;}
+.scStoryRepair{font-size:11px;padding:3px 5px;margin:3px;}
+.scGroupWarning{font-size:11px;line-height:1.4;color:var(--muted);margin:5px 0;}
+#scPaletteToggle{display:none;width:100%;text-align:left;margin-top:8px;}
+.scCompact #scPaletteToggle,.scPlaying #scPaletteToggle{display:block;}
+.scCompact #scLibrarySection:not(.scFloating),.scPlaying #scLibrarySection{display:none;}
+#scLibrarySection.scFloating{position:fixed;z-index:190;width:300px;max-width:calc(100vw - 32px);max-height:calc(100dvh - 100px);height:350px;min-height:0;background:var(--panel);border:1px solid var(--line);padding:12px;border-radius:12px;box-shadow:0 16px 45px #0006;}
+#scPlacementBar{position:fixed;z-index:180;left:50%;bottom:62px;transform:translateX(-50%);display:flex;align-items:center;gap:12px;width:max-content;max-width:calc(100vw - 40px);padding:12px 16px;background:var(--panel);border:1px solid var(--accent);border-radius:12px;box-shadow:0 8px 30px #0005;box-sizing:border-box;}
+#scPlacementText{font-size:13px;white-space:pre-line;min-width:0;}
+#scPlacementBar button{flex:none;}
+#scNotice{position:fixed;z-index:260;bottom:65px;left:84px;background:var(--panel);padding:12px 16px;border:1px solid var(--line);border-radius:8px;max-width:calc(100vw - 120px);font-size:13px;box-shadow:0 6px 24px #0004;}
+.scDragGhost{position:fixed;z-index:210;pointer-events:none;padding:10px 14px;background:var(--panel);color:var(--text);border:1px solid var(--accent);border-radius:10px;box-shadow:0 8px 30px #0005;font-size:13px;white-space:pre-line;max-width:300px;}
+.scPopover{position:fixed;z-index:250;box-sizing:border-box;min-width:230px;max-width:calc(100vw - 24px);max-height:calc(100dvh - 24px);overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px;box-shadow:0 12px 35px #0005;}
+.scPopover>button{display:block;width:100%;text-align:left;background:transparent;border:0;padding:9px 10px;white-space:normal;}
+.scPopover>button:hover{background:var(--panel2);}
+.scPopover p{font-size:12px;color:var(--muted);max-width:270px;}
+.scPopover label{display:block;margin:8px 0;}
+.scPopover input,.scPopover select{box-sizing:border-box;max-width:100%;}
+/* ---- Scenario dialogs ---- */
+.scDialog{padding:0;width:min(760px,calc(100vw - 32px));max-width:none;max-height:calc(100dvh - 48px);color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:0 24px 90px #0007;}
+.scDialog[open]{display:flex;flex-direction:column;overflow:hidden;}
+.scDialog::backdrop{background:#0008;backdrop-filter:blur(3px);}
+.scDialog>header,.scDialog>footer{display:flex;align-items:center;justify-content:space-between;gap:12px;flex:none;padding:18px 24px;}
+.scDialog>header{border-bottom:1px solid var(--line);}
+.scDialog h2{font-size:20px;margin:0;}
+.scDialog header p{font-size:12px;color:var(--muted);margin:6px 0 0;}
+.scDialog>footer{justify-content:flex-end;border-top:1px solid var(--line);}
+/* position:relative: los inputs ocultos (position:absolute) quedan contenidos en el body que scrollea,
+   no en el <dialog>; si no, el foco de un radio scrollea el dialog entero y rompe header/footer. */
+.scDialogBody{position:relative;flex:1 1 auto;overflow:auto;overscroll-behavior:contain;min-height:0;padding:24px;}
+.scEventColumns{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:24px;}
+.scEventFields{display:flex;flex-direction:column;gap:14px;min-width:0;}
+.scDialog label,.scDialog legend{font-size:13px;}
+.scDialog input:not([type=radio]):not([type=checkbox]),.scPopover input,.scPopover select,#scEventSearch{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:9px;color:var(--text);font:inherit;box-sizing:border-box;min-width:0;}
+.scDialog fieldset{border:0;padding:0;margin:0;min-width:0;}
+.scDialog legend{margin-bottom:8px;font-weight:600;}
+.scFieldGroup{display:flex;flex-direction:column;gap:8px;min-width:0;}
+.scFieldGroup>label{font-weight:600;}
 
-.scStepCard{background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin-bottom:10px; cursor:pointer; transition:border-color .12s, background .12s;}
-.scStepCard:hover{border-color:rgba(255,255,255,.15);}
-.scStepCard.missing{border-color:rgba(208,87,106,.55); background:rgba(208,87,106,.10);}
-.scStepCard.scStatus_active{border-color:rgba(58,167,232,.55); background:rgba(58,167,232,.10);}
-.scStepCard.scStatus_completed,.scStepCard.scStatus_success{border-color:rgba(123,184,91,.45);}
-.scStepCard.scStatus_failed{border-color:rgba(208,87,106,.55); background:rgba(208,87,106,.10);}
+/* Segmented controls */
+.scSegmented{display:flex;gap:6px;flex-wrap:wrap;}
+.scSegmented label{display:flex;align-items:center;cursor:pointer;}
+.scSegmented input{position:absolute;opacity:0;width:0;height:0;}
+.scSegmented span{display:block;padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel2);font-size:13px;transition:background .08s,border-color .08s;}
+.scSegmented input:checked+span{border-color:var(--accent);background:rgba(58,167,232,.13);color:var(--text);}
+.scSegmented input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px;}
+.scSegmented span:hover{background:var(--panel);}
+.scSegmented input:disabled+span{opacity:.5;cursor:not-allowed;}
 
-.scStepMain{display:flex; align-items:flex-start; gap:10px;}
-.scStepNumber{flex:0 0 22px; text-align:center; font-size:12px; font-weight:700; color:var(--muted); background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:2px 0; margin-top:2px;}
-.scStepBody{flex:1; min-width:0;}
-.scStepPrimary{font-size:14px; color:var(--text); line-height:1.35; word-break:break-word;}
-.scStepSecondary{font-size:11px; color:var(--muted); margin-top:3px; word-break:break-word;}
-.scStepDetail{font-size:12px; color:#e08585; margin-top:4px;}
-.scStepActions{display:flex; align-items:center; gap:6px; flex:0 0 auto;}
-.scStepStatusMark{font-size:14px; width:1.2em; text-align:center; color:var(--muted);}
-.scStepCard.scStatus_active .scStepStatusMark{color:#3aa7e8;}
-.scStepCard.scStatus_completed .scStepStatusMark,.scStepCard.scStatus_success .scStepStatusMark{color:#7bb85b;}
-.scStepCard.scStatus_failed .scStepStatusMark{color:#e08585;}
-.scMenuBtn{min-width:28px; padding:3px 6px; font-size:14px; line-height:1;}
+/* Choice cards */
+.scChoice{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:8px;padding:10px;margin:0;cursor:pointer;transition:border-color .08s,background .08s;}
+.scChoice:has(input:checked){border-color:var(--accent);background:rgba(58,167,232,.07);}
+.scChoice input{position:absolute;opacity:0;width:0;height:0;}
+.scChoice:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:2px;}
+.scChoice strong{font-size:13px;font-weight:500;}
+.scChoice small{display:block;color:var(--muted);line-height:1.4;margin-top:4px;}
+.scChoiceStack{display:flex;flex-direction:column;gap:8px;}
 
-.scStepDelay{font-size:11px; color:var(--muted); margin:6px 0 0 32px; padding-top:6px; border-top:1px dashed var(--line);}
+.scScope{padding:12px;border-radius:8px;background:var(--panel2);font-size:12px;line-height:1.6;margin:0;}
+.scPhrase{display:flex;flex-wrap:wrap;align-items:center;gap:4px;padding:8px;border:1px solid var(--line);border-radius:8px;margin-top:0;background:var(--panel2);}
+.scPhrase input.scPhraseText{padding:5px 2px;border:0;background:transparent;min-width:18px;max-width:100%;color:var(--text);font:inherit;}
+.scPhraseChip{background:rgba(58,167,232,.13);color:var(--text);border:1px solid rgba(58,167,232,.3);border-radius:5px;padding:5px;font-size:12px;}
+.scPhraseInsert{display:flex;gap:4px;flex-wrap:wrap;margin-top:0;}
+.scPhraseInsert button{font-size:11px;padding:4px 6px;}
+#scVisualPicker{display:flex;flex-wrap:wrap;gap:5px;margin-top:0;}
+#scVisualPicker button{min-width:40px;min-height:40px;font-size:19px;padding:0;display:flex;align-items:center;justify-content:center;}
+#scVisualPicker button[aria-pressed=true]{border-color:var(--accent);background:rgba(58,167,232,.15);}
+#scVisualPicker button:last-child{font-size:12px;min-width:auto;padding:0 10px;}
+#scCustomVisual{margin-top:8px;}
+#scCustomVisual input{width:100%;margin:6px 0;}
+#scCustomVisual small{color:var(--muted);}
 
-.scStepForm{margin-top:10px; padding-top:10px; border-top:1px solid var(--line);}
-.scStepForm .scStepField{margin-bottom:10px;}
-.scStepForm .scStepField label{display:block; font-size:11px; color:var(--muted); margin-bottom:4px;}
-.scStepForm input[type=number],
-.scStepForm select{width:100%; padding:6px 8px; background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:6px; font:inherit; font-size:13px; box-sizing:border-box;}
-.scTimeRow{display:flex; align-items:center; gap:8px;}
-.scTimeRow input[type=number]{flex:0 0 70px; width:auto;}
-.scTimeRow select{flex:0 0 auto; min-width:110px;}
-.scTimeLabel{font-size:12px; color:var(--muted); white-space:nowrap;}
-.scTimePresets{display:flex; flex-wrap:wrap; gap:6px; margin:-4px 0 10px;}
-.scTimePresets button{flex:1; min-width:50px; padding:4px 6px; font-size:11px;}
-.scStepFormActions{display:flex; gap:8px; justify-content:flex-end; margin-top:12px;}
+/* Accordions */
+.scAccordion{border:1px solid var(--line);border-radius:10px;background:var(--panel2);overflow:hidden;}
+.scAccordion summary{display:flex;flex-direction:column;gap:2px;padding:12px 14px;cursor:pointer;list-style:none;font-size:13px;}
+.scAccordion summary::-webkit-details-marker{display:none;}
+.scAccordion summary:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;}
+.scAccordionTitle{font-weight:600;}
+.scAccordionSummary{font-weight:400;color:var(--muted);font-size:12px;}
+.scAccordion[open] summary{padding-bottom:10px;border-bottom:1px solid var(--line);}
+.scAccordionBody{padding:14px;display:flex;flex-direction:column;gap:14px;}
+.scSectionLead{font-size:13px;color:var(--muted);margin:0;}
 
-.scCollapseBtn{background:transparent; border:1px solid var(--line); color:var(--muted); font-size:12px; padding:6px 8px; text-align:left;}
-.scCollapseBtn.open{color:var(--text); background:var(--panel2);}
-.scConfigSection,.scTraceSection{margin-top:10px;}
+/* Effect chips */
+.scEffectGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.scEffectChip{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border:1px solid var(--line);border-radius:10px;padding:10px 4px;min-height:66px;background:var(--panel);cursor:pointer;transition:border-color .08s,background .08s;}
+.scEffectChip input{position:absolute;opacity:0;width:0;height:0;}
+.scEffectChip input:checked+span{border-color:var(--accent);background:rgba(58,167,232,.13);}
+.scEffectChip:has(input:checked){border-color:var(--accent);background:rgba(58,167,232,.07);}
+.scEffectChip:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:2px;}
+.scEffectChip:hover{background:var(--panel2);}
+.scEffectIcon{font-size:20px;line-height:1;}
+.scEffectLabel{font-size:11px;color:var(--muted);}
+.scEffectChip:has(input:checked) .scEffectLabel{color:var(--text);}
 
-.scMomentDialog{position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:200; display:flex; align-items:center; justify-content:center;}
-.scMomentDialogBody{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px; width:min(280px, 90vw); box-shadow:0 8px 30px rgba(0,0,0,.35);}
-.scMomentQuestion{font-size:15px; font-weight:600; margin:0 0 12px; color:var(--text);}
-.scMomentDialogBody button{margin-bottom:8px;}
-.scMomentDialogBody button:last-child{margin-bottom:0;}
-.scSecondaryBtn{background:transparent; border:1px solid var(--line); color:var(--muted);}
+/* Effect inline config */
+.scEffectConfig{display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--panel);}
+.scEffectConfig>label{font-weight:600;}
 
-.scCanvasActions{margin-bottom:12px; padding:10px; background:var(--panel2); border:1px solid var(--line); border-radius:8px;}
-.scCanvasActions > .hint{margin:0 0 8px; font-size:12px;}
+/* Icon picker inside effect */
+.scEffectIconPicker{display:flex;flex-wrap:wrap;gap:5px;}
+.scEffectIconPicker button{min-width:38px;min-height:38px;font-size:18px;padding:0;display:flex;align-items:center;justify-content:center;}
+.scEffectIconPicker button[aria-pressed=true]{border-color:var(--accent);background:rgba(58,167,232,.15);}
 
-/* ===================== Event Library (FLUYO-010) ===================== */
-.scSectionHeader{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px;}
-.scSectionHeader h3{margin:0; font-size:13px; color:var(--text);}
-.scEventLibrarySection{margin-top:10px; padding:10px; background:var(--panel2); border:1px solid var(--line); border-radius:8px;}
-.scEventLibrary{display:flex; flex-direction:column; gap:6px; max-height:160px; overflow-y:auto;}
-.scEventChip{display:flex; align-items:center; gap:8px; padding:6px 8px; background:var(--panel); border:1px solid var(--line); border-radius:8px; cursor:grab; transition:border-color .12s, background .12s;}
-.scEventChip:hover{border-color:rgba(58,167,232,.55); background:rgba(58,167,232,.08);}
-.scEventChipToken{font-size:16px; line-height:1;}
-.scEventChipName{flex:1; font-size:13px; color:var(--text); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-.scEventChipPrimitive{font-size:10px; color:var(--muted); background:var(--panel2); padding:2px 6px; border-radius:4px;}
-.scEventChip button{opacity:.7;}
-.scEventChip button:hover{opacity:1;}
-.scEventToken{margin-right:4px;}
-.scMomentHeader{font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; margin:10px 0 6px 32px; padding-top:6px; border-top:1px dashed var(--line);}
-.scMomentHeader:first-child{margin-top:0; border-top:none;}
-.scStepTargets{margin-top:8px;}
-.scDragGhost{position:fixed; padding:6px 10px; background:var(--panel); border:1px solid var(--line); border-radius:8px; box-shadow:0 4px 16px rgba(0,0,0,.35); font-size:13px; color:var(--text); pointer-events:none; white-space:nowrap; z-index:1000;}
+/* Color swatches */
+.scSwatches{display:flex;flex-wrap:wrap;gap:6px;}
+.scSwatch{width:26px;height:26px;border-radius:50%;border:2px solid transparent;cursor:pointer;box-shadow:inset 0 0 0 1px rgba(128,128,128,.25);transition:transform .08s,border-color .08s;}
+.scSwatch:hover{transform:scale(1.1);}
+.scSwatch.sel{border-color:var(--text);box-shadow:0 0 0 1px var(--panel),0 0 0 3px var(--accent);}
+.scSwatch:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+/* El input nativo solo se abre desde el botón «+» de los swatches: no es UI principal. */
+.scColorNative{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;padding:0;border:0;overflow:hidden;}
+.scColorNative::-webkit-color-swatch-wrapper{padding:0;}
+.scColorNative::-webkit-color-swatch{border:2px solid var(--line);border-radius:50%;}
+.scColorNative::-moz-color-swatch{border:2px solid var(--line);border-radius:50%;}
+.scColorNative:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+.scColorAdd{display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;border:2px dashed var(--line);color:var(--muted);font-size:16px;background:transparent;cursor:pointer;}
+.scColorAdd:hover{border-color:var(--accent);color:var(--accent);}
+.scColorAdd:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
 
-@media (max-width:400px){
-  .scNameRunRow{flex-wrap:wrap;}
-  .scNameRunRow #scName{width:100%;}
-  .scStepPrimary{font-size:13px;}
+.scEventPreview{align-self:start;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:18px;text-align:center;min-width:0;position:sticky;top:0;}
+.scEventPreview h3{font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted);margin-top:0;}
+#scPreviewDiagram{display:flex;align-items:center;justify-content:center;min-height:110px;gap:4px;position:relative;}
+.scPreviewNode{border:1px solid var(--line);padding:12px 8px;border-radius:8px;font-size:12px;display:flex;flex-direction:column;align-items:center;}
+.scPreviewPath{position:relative;flex:1;min-width:45px;border-bottom:1px solid var(--muted);}
+.scPreviewToken{font-size:23px;display:inline-block;}
+.scPreviewPath .scPreviewToken{position:absolute;left:30%;top:-16px;background:var(--panel2);}
+.scPreviewPath.animate .scPreviewToken{animation:scTravel 1.1s ease-in-out;}
+.scPreviewPath.animate.fast .scPreviewToken{animation-duration:.5s;}
+.scPreviewPath.animate.normal .scPreviewToken{animation-duration:1.1s;}
+.scPreviewPath.animate.slow .scPreviewToken{animation-duration:1.8s;}
+.scPreviewNode.animate{animation:scAppear 1.1s ease-in-out;}
+.scPreviewNode.animate.fast{animation-duration:.5s;}
+.scPreviewNode.animate.normal{animation-duration:1.1s;}
+.scPreviewNode.animate.slow{animation-duration:1.8s;}
+.scPreviewNode.unavailable{border-style:dashed;opacity:.55;}
+.scPreviewNode.highlight{box-shadow:0 0 0 3px rgba(58,167,232,.5);}
+.scPreviewNode.dim{opacity:.45;}
+.scPreviewNode.fillColor{background:var(--effect-color,rgba(58,167,232,.18));}
+.scPreviewStack{display:flex;flex-direction:column;align-items:center;gap:4px;max-width:100%;}
+.scPreviewMessage{display:block;max-width:180px;padding:3px 8px;border-radius:5px;background:var(--message-color,#d0576a);color:#fff;text-align:center;overflow-wrap:anywhere;}
+.scPreviewMessage.center{margin-top:6px;}
+.scMsgField{border:0;padding:0;margin:8px 0 0;min-width:0;}
+.scMsgField legend{font-size:12px;color:var(--muted);padding:0;margin-bottom:4px;}
+.scSymbolUse{margin:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.scSymbolUseValue{font-size:22px;line-height:1;}
+.scLinkBtn{background:none;border:0;color:var(--accent);padding:4px 2px;cursor:pointer;text-decoration:underline;font-size:12px;}
+#scEventPreview{font-size:14px;line-height:1.6;overflow-wrap:anywhere;}
+#scEventError{color:#e08585;font-size:13px;padding-top:4px;}
+
+.scDetailsDialog{width:min(580px,calc(100vw - 32px));}
+.scBehaviorRow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;}
+.scBehaviorRow span{min-width:0;overflow-wrap:anywhere;}
+.scDialog .hint{font-size:12px;color:var(--muted);line-height:1.5;}
+.scUse{display:block;width:100%;text-align:left;margin-bottom:6px;}
+#panelScenarios button:focus-visible,.scDialog button:focus-visible,.scPopover button:focus-visible,.scPhrase input:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+@keyframes scTravel{from{left:0;opacity:.3;}to{left:80%;opacity:1;}}
+@keyframes scAppear{0%{transform:scale(.95);opacity:.3;}60%{transform:scale(1.05);}100%{transform:scale(1);opacity:1;}}
+@media(min-width:1600px){aside.scenariosOpen{width:384px;flex-basis:384px;}.scEventLibrarySection{flex-basis:268px;}}
+@media(max-height:650px){#panelScenarios{gap:10px;}.scEventLibrarySection{flex-basis:142px;min-height:84px;}.scLibraryHint{display:none;}.scDialog>header,.scDialog>footer{padding:12px 20px;}}
+@media(max-width:720px){
+  .scEventColumns{grid-template-columns:1fr;}
+  .scEventPreview{position:static;order:-1;min-height:auto;padding:14px;}
+  #scPreviewDiagram{min-height:80px;}
+  .scDialogBody{padding:16px;}
+  .scDialog>header,.scDialog>footer{padding:12px 16px;}
+  #scPlacementBar{flex-wrap:wrap;}
+  aside.scenariosOpen{width:270px;flex-basis:270px;}
+}
+@media(max-width:420px){
+  .scEffectGrid{grid-template-columns:repeat(2,1fr);}
+  .scSegmented{gap:4px;}
+  .scSegmented span{padding:7px 10px;font-size:12px;}
+}
+@media(prefers-reduced-motion:reduce){.scPreviewPath.animate .scPreviewToken,.scPreviewNode.animate{animation:none;}}
+.scHeader{display:block;padding:0;border:0;background:transparent;}
+.scDialog{margin:auto;}
+.scHeaderRow{width:100%;}
+
+.scTogether{position:relative;}
+.scTogether::before{content:"●";position:absolute;left:-20px;top:4px;width:14px;text-align:center;background:var(--panel);color:var(--text);font-size:11px;}
+
+/* Mobile fullscreen sheet */
+@media(max-width:560px), (max-height:500px){
+  .scEventDialog{position:fixed;inset:0;width:100%;max-width:none;height:100%;max-height:none;border-radius:0;border:0;}
+  .scEventDialog[open]{display:flex;}
+  .scEventDialog::backdrop{background:#000a;}
 }

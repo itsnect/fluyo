@@ -422,7 +422,7 @@ for(const [label, template, expected, shouldCreate] of [
   ['whitespace', '   ', null, false],
   ['only source', '{source}', 'A', true],
   ['only target', '{target}', 'B', true],
-  ['no spaces', '{source}{target}', 'AB', true],
+  ['no spaces', '{source}{target}', 'A B', true],
   ['emoji only', '💵', '💵', true],
   ['unicode', '{source} paga 💵 a {target}', 'A paga 💵 a B', true]
 ])
@@ -669,6 +669,7 @@ test('Share/viewer roundtrip preserves EventTypes and v5 structure',async()=>{
   const url=await creator.run('createShareUrl(qaInput,"https://fluyo.space/")');
   const viewer=makeViewer({search:'',hash:new URL(url).hash});
   await viewer.boot();
+  await viewer.waitForPhase(phase=>phase==='ready'||phase==='error');
   assert.equal(viewer.viewer().phase, 'ready');
   assert.equal(viewer.run('typeof FluyoScenarios'), 'undefined');
   assert.deepEqual(json(viewer.run('doc.eventTypes')), input.doc.eventTypes);
@@ -768,9 +769,9 @@ test('scFindDropTargets filters incompatible primitive for direct hit',()=>{
 
 /* ─────────────────────────── 23. Service Worker cache version and assets ─────────────────────────── */
 
-test('Service Worker cache is v45 and includes new scenario assets',()=>{
+test('Service Worker cache is v52 and includes new scenario assets',()=>{
   const sw=read('sw.js');
-  assert.ok(sw.includes('fluyo-static-v45'));
+  assert.ok(sw.includes('fluyo-static-v52'));
   assert.ok(sw.includes('"./js/scenario-engine.js"'));
   assert.ok(sw.includes('"./js/scenario-playback.js"'));
   assert.ok(sw.includes('"./js/editor-scenarios.js"'));

@@ -55,6 +55,72 @@ const SCENARIO_ACTIONS=new Set(["SET_STATE","SEND","OCCURRENCE"]);
 const EVENT_TYPE_PRIMITIVES=new Set(["FLOW","OCCURRENCE","SET_AVAILABILITY"]);
 const EVENT_TYPE_AVAILABILITY=new Set(["UP","DOWN"]);
 const EVENT_TOKEN_MAX_LEN=8;
+const EVENT_TYPE_MOTIONS=new Set(["fast","normal","slow"]);
+const DEFAULT_EVENT_MOTION="normal";
+const EVENT_MOTION_MS={fast:500, normal:1100, slow:1800};
+const NODE_EFFECT_MAX_MESSAGE_LEN=120;
+const NODE_MESSAGE_SIZES=["small","medium","large"];
+const NODE_MESSAGE_WEIGHTS=["normal","semibold","bold"];
+const NODE_MESSAGE_FONTS=["default","sans","mono"];
+const NODE_MESSAGE_POSITIONS=["above","center","below"];
+/* Presets de presentación del mensaje: la UI habla en presets, nunca en px. */
+const NODE_MESSAGE_SIZE_PX={small:11, medium:14, large:18};
+const NODE_MESSAGE_WEIGHT_CSS={normal:"400", semibold:"600", bold:"700"};
+const NODE_MESSAGE_FONT_STACK={
+  default:"Georgia, serif",
+  sans:"'Segoe UI', system-ui, Arial, Helvetica, sans-serif",
+  mono:'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace'
+};
+function defaultNodeEffects(){
+  return { showSymbol:false, message:"", messageColor:"", messageSize:"medium", messageWeight:"normal", messageFont:"default", messagePosition:"above", highlight:false, blink:false, dim:false, fillColor:"" };
+}
+function normalizeNodeEffects(effects){
+  const out=defaultNodeEffects();
+  if(effects==null) return out;
+  /* showIcon es el nombre previo (FLUYO-011 sin publicar): mismo booleano. */
+  if(typeof effects.showSymbol==="boolean") out.showSymbol=effects.showSymbol;
+  else if(typeof effects.showIcon==="boolean") out.showSymbol=effects.showIcon;
+  if(typeof effects.message==="string") out.message=effects.message.slice(0,NODE_EFFECT_MAX_MESSAGE_LEN);
+  if(typeof effects.messageColor==="string" && /^#[0-9a-fA-F]{6}$/.test(effects.messageColor)) out.messageColor=effects.messageColor;
+  if(NODE_MESSAGE_SIZES.includes(effects.messageSize)) out.messageSize=effects.messageSize;
+  if(NODE_MESSAGE_WEIGHTS.includes(effects.messageWeight)) out.messageWeight=effects.messageWeight;
+  if(NODE_MESSAGE_FONTS.includes(effects.messageFont)) out.messageFont=effects.messageFont;
+  if(NODE_MESSAGE_POSITIONS.includes(effects.messagePosition)) out.messagePosition=effects.messagePosition;
+  if(typeof effects.highlight==="boolean") out.highlight=effects.highlight;
+  if(typeof effects.blink==="boolean") out.blink=effects.blink;
+  if(typeof effects.dim==="boolean") out.dim=effects.dim;
+  if(typeof effects.fillColor==="string" && /^#[0-9a-fA-F]{6}$/.test(effects.fillColor)) out.fillColor=effects.fillColor;
+  return out;
+}
+/* Única fuente del símbolo de un Evento: EventType.visual.value. */
+function eventSymbol(et){
+  return et && et.visual && et.visual.value ? et.visual.value : "●";
+}
+/* Metadata visual única que consumen preview y Playback (paridad por construcción). */
+function nodeEffectsVisualSpec(et){
+  const fx=normalizeNodeEffects(et && et.presentation && et.presentation.nodeEffects);
+  return Object.assign({}, fx, { symbol: eventSymbol(et) });
+}
+function nodeMessageStyle(fx){
+  const e=normalizeNodeEffects(fx);
+  return { px:NODE_MESSAGE_SIZE_PX[e.messageSize], weight:NODE_MESSAGE_WEIGHT_CSS[e.messageWeight], family:NODE_MESSAGE_FONT_STACK[e.messageFont], position:e.messagePosition };
+}
+function normalizeEventTypePresentation(et){
+  if(et.presentation===undefined) return;
+  if(!projectObject(et.presentation)) throw projectDataError();
+  if(et.presentation.nodeEffects!==undefined){
+    const raw=et.presentation.nodeEffects;
+    const norm=normalizeNodeEffects(raw);
+    /* Política de compatibilidad: un `icon` secundario distinto del símbolo principal
+       nunca se persistió en v5, pero si aparece se eleva a símbolo principal (sin perderlo)
+       cuando el símbolo estaba visible y cabe en un token. */
+    if(raw && typeof raw.icon==="string" && norm.showSymbol && et.visual && typeof et.visual==="object"
+       && raw.icon && [...raw.icon].length<=EVENT_TOKEN_MAX_LEN && raw.icon!==et.visual.value){
+      et.visual.value=raw.icon;
+    }
+    et.presentation.nodeEffects=norm;
+  }
+}
 
 /* Marcas de identidad persistidas, sin guards de ejecución. El último entero
    seguro se reserva como marca de agotamiento: nunca se asigna y luego suma 1. */
@@ -114,6 +180,8 @@ function validateEventType(et){
   }
   if(!projectObject(et.visual) || et.visual.kind!=="token" || typeof et.visual.value!=="string") throw projectDataError();
   if([...et.visual.value].length>EVENT_TOKEN_MAX_LEN) throw projectDataError();
+  if(et.motion!==undefined && !EVENT_TYPE_MOTIONS.has(et.motion)) throw projectDataError();
+  normalizeEventTypePresentation(et);
   if(et.primitive==="SET_AVAILABILITY"){
     if(!EVENT_TYPE_AVAILABILITY.has(et.availability)) throw projectDataError();
   } else if(Object.prototype.hasOwnProperty.call(et,"availability")){
@@ -148,16 +216,22 @@ function createEventType(definition){
   if(!sentenceTemplate || sentenceTemplate.length>200) throw projectDataError();
   const visual={kind:"token", value:String(definition.visual&&definition.visual.value||"")};
   if([...visual.value].length>EVENT_TOKEN_MAX_LEN) throw projectDataError();
+  const motion=EVENT_TYPE_MOTIONS.has(definition.motion)? definition.motion : DEFAULT_EVENT_MOTION;
   let availability;
   if(primitive==="SET_AVAILABILITY"){
     availability=definition.availability;
     if(!EVENT_TYPE_AVAILABILITY.has(availability)) throw projectDataError();
   }
+  let presentation;
+  if(definition.presentation!==undefined){
+    presentation={ nodeEffects: normalizeNodeEffects(definition.presentation&&definition.presentation.nodeEffects) };
+  }
   let maxId=0;
   for(const et of doc.eventTypes) maxId=Math.max(maxId,et.id);
   const id=reserveProjectIds(doc,"nextEventTypeId",1,projectCounter(doc.nextEventTypeId,maxId));
-  const et={id,name,primitive,sentenceTemplate,visual};
+  const et={id,name,primitive,sentenceTemplate,visual,motion};
   if(availability!==undefined) et.availability=availability;
+  if(presentation!==undefined) et.presentation=presentation;
   validateEventType(et);
   doc.eventTypes.push(et);
   return et;
@@ -189,6 +263,14 @@ function updateEventType(id, changes){
     if([...v.value].length>EVENT_TOKEN_MAX_LEN) throw projectDataError();
     et.visual=v;
   }
+  if(changes.motion!==undefined){
+    const m=String(changes.motion||"");
+    if(!EVENT_TYPE_MOTIONS.has(m)) throw projectDataError();
+    et.motion=m;
+  }
+  if(changes.presentation!==undefined){
+    et.presentation={ nodeEffects: normalizeNodeEffects(changes.presentation&&changes.presentation.nodeEffects) };
+  }
   if(changes.primitive!==undefined && !used){
     if(!EVENT_TYPE_PRIMITIVES.has(changes.primitive)) throw projectDataError();
     et.primitive=changes.primitive;
@@ -208,10 +290,15 @@ function deleteEventType(id){
 
 function renderEventSentence(et, source, target){
   if(!et) return "";
-  return et.sentenceTemplate
+  /* Un marcador nunca se pega a letras/dígitos vecinos ni a otro marcador. */
+  const tpl=et.sentenceTemplate
+    .replace(/\}(?=[\p{L}\p{N}{])/gu,"} ")
+    .replace(/([\p{L}\p{N}])(?=\{)/gu,"$1 ");
+  return tpl
     .replaceAll("{source}", source||"Origen")
     .replaceAll("{target}", target||"Destino")
-    .replaceAll("{name}", et.name);
+    .replaceAll("{name}", et.name)
+    .replace(/\s{2,}/g," ").trim();
 }
 
 function eventTypeAllowedTargets(et){
@@ -303,6 +390,15 @@ function createStep(sc,definition){
 function deleteStep(sc,id){
   if(sc.engineVersion!==SCENARIO_ENGINE_VERSION) throw projectDataError("unsupported_engine_version");
   sc.steps=sc.steps.filter(step=>step.id!==id);
+}
+
+function clearPageContents(pg){
+  pg.nodes=[];
+  pg.edges=[];
+  pg.behaviors=[];
+  pg.scenarios=[];
+  pg.nextId=1;
+  pg.nextScenarioId=1;
 }
 
 function settingsFromProjectData(source){
@@ -423,4 +519,10 @@ if(typeof window!=="undefined"){
   window.eventTypeUseCount=eventTypeUseCount;
   window.renderEventSentence=renderEventSentence;
   window.eventTypeAllowedTargets=eventTypeAllowedTargets;
+  window.clearPageContents=clearPageContents;
+  window.EVENT_MOTION_MS=EVENT_MOTION_MS;
+  window.DEFAULT_EVENT_MOTION=DEFAULT_EVENT_MOTION;
+  window.NODE_EFFECT_MAX_MESSAGE_LEN=NODE_EFFECT_MAX_MESSAGE_LEN;
+  window.defaultNodeEffects=defaultNodeEffects;
+  window.normalizeNodeEffects=normalizeNodeEffects;
 }

@@ -13,18 +13,21 @@ const read=p=>fs.readFileSync(path.join(__dirname,'..',p),'utf8');
 function makeFakeElement(tag){
   const el={
     tagName:String(tag).toUpperCase(),
-    children:[],
+    children:[], dataset:{}, hidden:false, value:"",
     attrs:{},
     style:{},
     classList:{
       _set:new Set(),
       add(c){ this._set.add(c); },
+      toggle(c,on){if(on===undefined)on=!this._set.has(c);if(on)this._set.add(c);else this._set.delete(c);},
       contains(c){ return this._set.has(c); },
       remove(c){ this._set.delete(c); }
     },
     setAttribute(k,v){ this.attrs[k]=String(v); },
     getAttribute(k){ return Object.prototype.hasOwnProperty.call(this.attrs,k)?this.attrs[k]:null; },
-    appendChild(c){ this.children.push(c); return c; },
+    appendChild(c){ this.children.push(c); c.parentElement=this; return c; },
+    append(...cs){cs.forEach(c=>this.appendChild(c));},
+    replaceChildren(...cs){this._text="";this.children=[];this.append(...cs);},
     removeChild(c){ const i=this.children.indexOf(c); if(i>=0)this.children.splice(i,1); return c; },
     insertBefore(c,ref){ const i=this.children.indexOf(ref); if(i>=0)this.children.splice(i,0,c); else this.children.push(c); return c; },
     addEventListener(){},
@@ -87,7 +90,7 @@ function makeScenarioUIContext(){
   const {doc,$,register}=makeDOM();
   const ctx=vm.createContext({
     run:function(code){ return vm.runInContext(code, this); },
-    console,
+    console, setTimeout:()=>0, clearTimeout:()=>{},
     Math, Number, Array, Object, Set, Map, JSON, Error, TypeError, RangeError,
     RegExp, Date, String, Boolean, parseInt, isNaN, isFinite, Infinity, NaN,
     Uint8Array, TextEncoder, TextDecoder, atob, btoa, URL, URLSearchParams,
@@ -115,6 +118,7 @@ function makeScenarioUIContext(){
   vm.runInContext(read('js/scenario-engine.js'), ctx);
   vm.runInContext(read('js/scenario-playback.js'), ctx);
   vm.runInContext(read('js/editor-scenarios.js'), ctx);
+  vm.runInContext(read('js/selection.js'), ctx);
   return {ctx,doc,register};
 }
 
@@ -139,7 +143,7 @@ function buildExample(ctx){
 }
 
 function setupPanel(ctx, register){
-  const ids=['panelScenarios','scSel','scName','scUnsupported','scErrors','scBehaviors','scStoryboard','scEmptyState','scAddBehavior','scAddMoment','scRun','scReset','scTraceLog','scStatus','tabProperties','scToggleConfig','scConfig','scToggleTrace','scTraceWrap','scMomentDialog','scMomentState','scMomentSend','scMomentCancel','scEventLibrary','scEventDialog','scEventDialogTitle','scEventName','scEventPrimitive','scEventTemplate','scEventVisual','scEventAvailabilityRow','scEventAvailability','scEventPreview','scEventSave','scEventCancel','scEventDelete','scEventNew'];
+  const ids=['scPlacementBar','scPaletteToggle','scScenarioTitle','scDetailsDialog','panelScenarios','scSel','scName','scUnsupported','scErrors','scBehaviors','scStoryboard','scEmptyState','scAddBehavior','scAddMoment','scRun','scReset','scTraceLog','scStatus','tabProperties','scToggleConfig','scConfig','scToggleTrace','scTraceWrap','scMomentDialog','scMomentState','scMomentSend','scMomentCancel','scEventLibrary','scEventDialog','scEventDialogTitle','scEventDialogSubtitle','scEventName','scEventVisual','scEventPreview','scEventSave','scEventCancel','scEventNew','scMotion','scPreviewDiagram','scPhrase','scPhraseInsert','scVisualPicker','scCustomVisual','scVisualHelp','scEventScope','scEventLocked','scEventError','scPreviewPlay','scWhere','scConsequence','scAppearance','scAppearanceSummary','scBehavior','scBehaviorSummary','scShowSymbol','scMessage','scMessageColorCustom','scHighlight','scBlink','scDim','scUseFill','scFillColorCustom','scUseMessage','scFillConfig','scMessageConfig','scShowSymbolConfig','scMessageSwatches','scFillSwatches','scSymbolUse','scChangeSymbol'];
   for(const id of ids){
     const el=ctx.document.createElement('div');
     if(id==='scSel'){
@@ -243,7 +247,7 @@ test('Nodo sin nombre usa fallback estable',()=>{
   const {ctx}=makeScenarioUIContext();
   buildExample(ctx);
   ctx.run(`const n=nodeById(nodeId); n.label=""; result=describeScenarioStep({action:"SET_STATE", nodeId:nodeId, state:"DOWN"}).primary;`);
-  assert.ok(ctx.result.startsWith('Nodo #'));
+  assert.ok(ctx.result.startsWith('Elemento sin nombre'));
   assert.ok(ctx.result.includes('se cae'));
 });
 
@@ -268,9 +272,9 @@ test('Storyboard muestra delays relativos por defecto',()=>{
   ctx.run(`createStep(P().scenarios[0], {at:5000, action:"SET_STATE", nodeId:nodeId, state:"UP"});`);
   ctx.run(`createStep(P().scenarios[0], {at:6000, action:"SEND", edgeId:edgeId});`);
   ctx.run(`scRenderStoryboard();`);
-  const delays=ctx.document.querySelectorAll('.scMomentHeader');
+  const delays=ctx.document.querySelectorAll('.scDelay');
   const texts=[...delays].map(d=>d.textContent).filter(Boolean);
-  assert.deepEqual(texts,['1 s después','4 s después','1 s después']);
+  assert.deepEqual(texts,['Al comenzar','1 s después','4 s después','1 s después']);
 });
 
 test('Mismo timestamp muestra al mismo tiempo y preserva orden',()=>{
@@ -283,18 +287,19 @@ test('Mismo timestamp muestra al mismo tiempo y preserva orden',()=>{
   ctx.run(`createStep(P().scenarios[0], {at:1000, action:"SET_STATE", nodeId:nodeId, state:"UP"});`);
   ctx.run(`createStep(P().scenarios[0], {at:1000, action:"SEND", edgeId:edgeId});`);
   ctx.run(`scRenderStoryboard();`);
-  const cards=ctx.document.querySelectorAll('.scStepCard');
+  const cards=ctx.document.querySelectorAll('.scStoryRow');
   assert.equal(cards.length,3);
   const primaries=[...cards].map(c=>c.querySelector('.scStepPrimary').textContent);
   assert.equal(primaries[0],'Kafka se cae');
   assert.equal(primaries[1],'Kafka se recupera');
   assert.equal(primaries[2],'Producer → Kafka envía');
-  const headers=[...ctx.document.querySelectorAll('.scMomentHeader')].map(h=>h.textContent).filter(Boolean);
-  assert.deepEqual(headers,['1 s después']);
+  const headers=[...ctx.document.querySelectorAll('.scDelay')].map(h=>h.textContent).filter(Boolean);
+  assert.deepEqual(headers,['Al comenzar','1 s después']);
+  assert.equal(ctx.document.querySelectorAll('.scTogether').length,1);
 });
 
 /* ===================== Tests de cards colapsadas/expandibles ===================== */
-test('Cards están colapsadas por defecto',()=>{
+test('Historia muestra frases sin formularios',()=>{
   const {ctx,register}=makeScenarioUIContext();
   buildExample(ctx);
   setupPanel(ctx,register);
@@ -302,26 +307,19 @@ test('Cards están colapsadas por defecto',()=>{
   ctx.run(`scNewScenario();`);
   ctx.run(`createStep(P().scenarios[0], {at:0, action:"SET_STATE", nodeId:nodeId, state:"DOWN"});`);
   ctx.run(`scRenderStoryboard();`);
-  const cards=ctx.document.querySelectorAll('.scStepCard');
+  const cards=ctx.document.querySelectorAll('.scStoryRow');
   assert.equal(cards.length,1);
   assert.equal(cards[0].querySelector('.scStepForm'),null,'No debe haber formulario colapsado');
   assert.equal(cards[0].querySelector('.scStepPrimary').textContent,'Kafka se cae');
 });
 
-test('Expandir card muestra controles de edición',()=>{
-  const {ctx,register}=makeScenarioUIContext();
-  buildExample(ctx);
-  setupPanel(ctx,register);
-  ensureUI(ctx);
-  ctx.run(`scNewScenario();`);
-  ctx.run(`createStep(P().scenarios[0], {at:0, action:"SET_STATE", nodeId:nodeId, state:"DOWN"});`);
-  ctx.run(`scRenderStoryboard(); stepId=P().scenarios[0].steps[0].id;`);
-  let cards=ctx.document.querySelectorAll('.scStepCard');
-  expandCard(ctx, ctx.stepId);
-  cards=ctx.document.querySelectorAll('.scStepCard');
-  assert.ok(findField(cards[0],'Elemento'),'Debe existir campo Elemento');
-  assert.ok(findField(cards[0],'Estado'),'Debe existir campo Estado');
-  assert.ok(findField(cards[0],'Tiempo'),'Debe existir campo Tiempo');
+test('La edición usa menú y no expande formularios',()=>{
+  const {ctx,register}=makeScenarioUIContext();buildExample(ctx);setupPanel(ctx,register);ensureUI(ctx);ctx.run('scNewScenario();');
+  ctx.run(`createStep(scActiveScenario(),{at:0,action:"SET_STATE",nodeId:nodeId,state:"DOWN"});scRenderStoryboard();`);
+  const row=ctx.document.querySelector('.scStoryRow');
+  assert.equal(row.querySelector('.scStepForm'),null);
+  assert.ok(row.querySelector('button'),'La frase es una acción accesible');
+  assert.ok(row.querySelector('.scMore'),'Edición bajo demanda');
 });
 
 /* ===================== Tests de edición de delay ===================== */
@@ -342,59 +340,17 @@ test('Editar delay desplaza step y posteriores manteniendo distancias relativas'
 
 /* ===================== Tests de mapping y formulario ===================== */
 test('Mapping SET_STATE: seleccionar Kafka persiste nodeId de Kafka',()=>{
-  const {ctx,register}=makeScenarioUIContext();
-  const ids=buildExample(ctx);
-  setupPanel(ctx,register);
-  ensureUI(ctx);
-  ctx.run(`scNewScenario();`);
-  ctx.run(`createStep(P().scenarios[0], {at:0, action:"SET_STATE", nodeId:producerId, state:"DOWN"});`);
-  ctx.run(`scRenderStoryboard(); stepId=P().scenarios[0].steps[0].id;`);
-  expandCard(ctx, ctx.stepId);
-  const cards=ctx.document.querySelectorAll('.scStepCard');
-  const nodeField=findField(cards[0],'Elemento');
-  assert.ok(nodeField,'Debe existir el campo Elemento');
-  const nodeSel=fieldControl(nodeField);
-  assert.ok(nodeSel,'Debe existir el select de Elemento');
-  assert.ok(nodeSel.children.some(o=>String(o.value)===String(ids.nodeId) && o.textContent==='Kafka'),'Selector debe contener Kafka');
-  selectOption(nodeSel,ids.nodeId);
-  ctx.run(`result=P().scenarios[0].steps[0];`);
-  const updated=ctx.result;
-  assert.equal(updated.nodeId,ids.nodeId);
-  ctx.run(`result=FluyoScenarios.runScenario({nodes:P().nodes, edges:P().edges}, P().behaviors, P().scenarios[0]);`);
-  const res=ctx.result;
-  assert.equal(res.ok,true);
-  const first=res.trace.events[0];
-  assert.equal(first.type,'state_changed');
-  assert.equal(first.nodeId,ids.nodeId);
-  assert.equal(first.from,'UP');
-  assert.equal(first.to,'DOWN');
+  const {ctx,register}=makeScenarioUIContext();buildExample(ctx);setupPanel(ctx,register);ensureUI(ctx);ctx.run('scNewScenario();');
+  ctx.run(`const st=createStep(scActiveScenario(),{at:0,action:"SET_STATE",nodeId:producerId,state:"DOWN"});scPlacement={kind:"retarget",stepId:st.id,targetType:"node"};scUseTarget(nodeId);result=scActiveScenario().steps[0];`);
+  assert.equal(ctx.result.nodeId,ctx.nodeId);
+  ctx.run(`result=FluyoScenarios.runScenario({nodes:P().nodes,edges:P().edges},P().behaviors,scActiveScenario());`);
+  assert.equal(ctx.result.trace.events[0].nodeId,ctx.nodeId);assert.equal(ctx.result.trace.events[0].to,'DOWN');
 });
 
 test('Mapping SEND: seleccionar Producer → Kafka persiste edge correcto',()=>{
-  const {ctx,register}=makeScenarioUIContext();
-  const ids=buildExample(ctx);
-  setupPanel(ctx,register);
-  ensureUI(ctx);
-  ctx.run(`scNewScenario();`);
-  ctx.run(`createStep(P().scenarios[0], {at:0, action:"SEND", edgeId:edgeId});`);
-  ctx.run(`scRenderStoryboard(); stepId=P().scenarios[0].steps[0].id;`);
-  expandCard(ctx, ctx.stepId);
-  let cards=ctx.document.querySelectorAll('.scStepCard');
-  const edgeField=findField(cards[0],'Conexión');
-  assert.ok(edgeField,'Debe existir el campo Conexión');
-  const edgeSel=fieldControl(edgeField);
-  assert.ok(edgeSel,'Debe existir el select de Conexión');
-  const opt=edgeSel.children.find(o=>String(o.value)===String(ids.edgeId));
-  assert.ok(opt,'Selector debe contener la conexión');
-  assert.ok(opt.textContent.includes('Producer'),'Label debe incluir Producer');
-  assert.ok(opt.textContent.includes('Kafka'),'Label debe incluir Kafka');
-  selectOption(edgeSel,ids.edgeId);
-  ctx.run(`result=P().scenarios[0].steps[0];`);
-  const updated=ctx.result;
-  assert.equal(updated.action,'SEND');
-  assert.equal(updated.edgeId,ids.edgeId);
-  assert.equal(updated.nodeId,undefined);
-  assert.equal(updated.state,undefined);
+  const {ctx,register}=makeScenarioUIContext();buildExample(ctx);setupPanel(ctx,register);ensureUI(ctx);ctx.run('scNewScenario();');
+  ctx.run(`const st=createStep(scActiveScenario(),{at:1000,action:"SEND",edgeId:edgeId});scPlacement={kind:"retarget",stepId:st.id,targetType:"edge"};scUseTarget(edgeId);result=scActiveScenario().steps[0];`);
+  assert.equal(ctx.result.edgeId,ctx.edgeId);assert.equal(ctx.result.at,1000);assert.equal(ctx.result.nodeId,undefined);
 });
 
 /* ===================== Tests de playback storyboard ===================== */
@@ -409,14 +365,14 @@ test('Playback storyboard: Caída de Kafka muestra estados correctos',()=>{
   ctx.run(`createStep(P().scenarios[0], {at:5000, action:"SET_STATE", nodeId:nodeId, state:"UP"});`);
   ctx.run(`createStep(P().scenarios[0], {at:6000, action:"SEND", edgeId:edgeId});`);
   ctx.run(`scRun();`);
-  ctx.run(`FluyoScenarioPlayback.tick(scPlayback, 7000); scRenderStoryboard();`);
-  const cards=ctx.document.querySelectorAll('.scStepCard');
+  ctx.run(`FluyoScenarioPlayback.tick(scPlayback, 7100); scRenderStoryboard();`);
+  const cards=ctx.document.querySelectorAll('.scStoryRow');
   assert.ok(cards[0].classList.contains('scStatus_completed'),'Kafka DOWN completado');
   assert.ok(cards[1].classList.contains('scStatus_failed'),'SEND fallido');
   assert.ok(cards[2].classList.contains('scStatus_completed'),'Kafka UP completado');
   assert.ok(cards[3].classList.contains('scStatus_success'),'SEND exitoso');
   const detail=cards[1].querySelector('.scStepDetail');
-  assert.ok(detail && detail.textContent==='Destino no disponible','Detalle de fallo humano');
+  assert.ok(detail && detail.textContent==='Kafka no está disponible','Detalle de fallo humano');
 });
 
 test('Reset vuelve storyboard a editable/pending',()=>{
@@ -430,7 +386,7 @@ test('Reset vuelve storyboard a editable/pending',()=>{
   ctx.run(`scRun();`);
   ctx.run(`FluyoScenarioPlayback.tick(scPlayback, 7000);`);
   ctx.run(`scReset(); scRenderStoryboard();`);
-  const cards=ctx.document.querySelectorAll('.scStepCard');
+  const cards=ctx.document.querySelectorAll('.scStoryRow');
   assert.ok(cards.every(c=>c.classList.contains('scStatus_pending')),'Todos pending tras reset');
 });
 
@@ -492,36 +448,57 @@ test('Canvas authoring timing: segundo momento usa DEFAULT_STEP_DELAY',()=>{
 });
 
 /* ===================== Tests de mapping visual→modelo ===================== */
-test('Formulario SEND muestra Conexión y no Elemento/Estado',()=>{
-  const {ctx,register}=makeScenarioUIContext();
-  buildExample(ctx);
-  setupPanel(ctx,register);
-  ensureUI(ctx);
-  ctx.run(`scNewScenario();`);
-  ctx.run(`createStep(P().scenarios[0], {at:0, action:"SEND", edgeId:edgeId});`);
-  ctx.run(`scRenderStoryboard(); stepId=P().scenarios[0].steps[0].id;`);
-  let cards=ctx.document.querySelectorAll('.scStepCard');
-  expandCard(ctx, ctx.stepId);
-  cards=ctx.document.querySelectorAll('.scStepCard');
-  assert.ok(findField(cards[0],'Conexión'));
-  assert.equal(findField(cards[0],'Elemento'),null,'No debe quedar campo Elemento');
-  assert.equal(findField(cards[0],'Estado'),null,'No debe quedar campo Estado');
+test('Aparición sobre conexión no presenta formulario permanente',()=>{
+  const {ctx,register}=makeScenarioUIContext();buildExample(ctx);setupPanel(ctx,register);ensureUI(ctx);ctx.run('scNewScenario();');
+  ctx.run(`createStep(scActiveScenario(),{at:0,action:"SEND",edgeId:edgeId});scRenderStoryboard();`);
+  const row=ctx.document.querySelector('.scStoryRow');assert.equal(row.querySelector('select'),null);assert.equal(row.querySelector('input'),null);
+  assert.equal(row.querySelector('.scStorySentence').tagName,'BUTTON');
 });
 
-test('Readability: cada Step contiene número, frase y acciones',()=>{
-  const {ctx,register}=makeScenarioUIContext();
-  buildExample(ctx);
-  setupPanel(ctx,register);
-  ensureUI(ctx);
-  ctx.run(`scNewScenario();`);
-  ctx.run(`createStep(P().scenarios[0], {at:0, action:"SET_STATE", nodeId:nodeId, state:"DOWN"});`);
-  ctx.run(`scRenderStoryboard();`);
-  const cards=ctx.document.querySelectorAll('.scStepCard');
-  assert.equal(cards.length,1);
-  const card=cards[0];
-  assert.ok(card.querySelector('.scStepMain'),'Debe tener main');
-  assert.ok(card.querySelector('.scStepNumber'),'Debe mostrar número');
-  assert.ok(textNodesFlat(card).some(t=>t.includes('Kafka se cae')),'Debe mostrar frase humana');
-  const actions=card.querySelector('.scStepActions');
-  assert.ok(actions,'Debe tener acciones');
+test('Cada aparición tiene frase y opciones sin numeración',()=>{
+  const {ctx,register}=makeScenarioUIContext();buildExample(ctx);setupPanel(ctx,register);ensureUI(ctx);ctx.run('scNewScenario();');
+  ctx.run(`createStep(scActiveScenario(),{at:0,action:"SET_STATE",nodeId:nodeId,state:"DOWN"});scRenderStoryboard();`);
+  const row=ctx.document.querySelector('.scStoryRow');assert.equal(row.querySelector('.scStepNumber'),null);assert.ok(row.querySelector('.scMore'));assert.ok(row.textContent.includes('Kafka se cae'));
+});
+
+/* FLUYO-011 — regresiones del contrato de composición. */
+function composition(){const h=makeScenarioUIContext();buildExample(h.ctx);setupPanel(h.ctx,h.register);ensureUI(h.ctx);h.ctx.run(`scNewScenario();et=createEventType({name:'Pago',primitive:'FLOW',sentenceTemplate:'{source} paga a {target}',visual:{value:'💵'}});`);return h;}
+test('FLUYO-011: biblioteca → historia → quitar conserva definición',()=>{
+ const {ctx}=composition();assert.equal(ctx.run('doc.eventTypes.length'),1);assert.equal(ctx.run('scActiveScenario().steps.length'),0);
+ ctx.run('scApplyTargets(et.id,[edgeId]);');assert.equal(ctx.run('scActiveScenario().steps.length'),1);assert.equal(ctx.run('doc.eventTypes.length'),1);
+ ctx.run('scDeleteStep(scActiveScenario().steps[0].id);');assert.equal(ctx.run('scActiveScenario().steps.length'),0);assert.equal(ctx.run('doc.eventTypes.length'),1);
+});
+test('FLUYO-011: drop vacío no usa selección previa',()=>{
+ const {ctx}=composition();ctx.hitEdge=()=>null;ctx.hitNode=()=>null;ctx.run('selE.add(edgeId);selN.add(nodeId);scDropEventTypeAt(et.id,900,900);');assert.equal(ctx.run('scActiveScenario().steps.length'),0);
+ assert.equal(JSON.stringify(ctx.run('scFindDropTargets("edge",900,900,et.id)')),'[]');
+});
+test('FLUYO-011: incompatibilidad y multiselección limitada al objetivo real',()=>{
+ const {ctx}=composition();ctx.hitNode=()=>null;ctx.hitEdge=()=>({id:ctx.edgeId});ctx.run('P().edges.push({id:44,from:producerId,to:nodeId});selE.add(edgeId);selE.add(44);');
+ assert.equal(JSON.stringify(ctx.run('scFindDropTargets("edge",0,0,et.id)')),JSON.stringify([ctx.edgeId,44]));
+ ctx.hitEdge=()=>({id:88});assert.equal(JSON.stringify(ctx.run('scFindDropTargets("edge",0,0,et.id)')),'[88]');
+ ctx.hitNode=()=>({id:ctx.nodeId});assert.equal(JSON.stringify(ctx.run('scFindDropTargets("edge",0,0,et.id)')),'[]');
+});
+test('FLUYO-011: editar frase actualiza dos usos sin tocar acciones',()=>{
+ const {ctx}=composition();ctx.run('scApplyTargets(et.id,[edgeId]);scApplyTargets(et.id,[edgeId]);before=JSON.stringify(scActiveScenario().steps);updateEventType(et.id,{sentenceTemplate:"{source} abona a {target}"});scRenderStoryboard();');
+  assert.equal(ctx.run('JSON.stringify(scActiveScenario().steps)'),ctx.before);assert.equal(ctx.document.querySelectorAll('.scStepSecondary').filter(e=>e.textContent.includes('abona a')).length,2);
+});
+test('FLUYO-011: intervalo desplaza grupo simultáneo completo y posteriores',()=>{
+ const {ctx}=composition();ctx.run(`createStep(scActiveScenario(),{at:0,action:'SEND',edgeId});createStep(scActiveScenario(),{at:1000,action:'SEND',edgeId});createStep(scActiveScenario(),{at:1000,action:'SEND',edgeId});createStep(scActiveScenario(),{at:5000,action:'SEND',edgeId});scSetStepDelay(scActiveScenario().steps[2].id,2000);`);
+ assert.equal(JSON.stringify(ctx.run('scActiveScenario().steps.map(s=>s.at)')),'[0,2000,2000,6000]');
+ ctx.run('scSetStepDelay(scActiveScenario().steps[1].id,0);');assert.equal(JSON.stringify(ctx.run('scActiveScenario().steps.map(s=>s.at)')),'[0,0,0,4000]');assert.equal(ctx.document.querySelectorAll('.scStoryGroup').length,2);
+});
+test('FLUYO-011: orden cronológico conserva array order en empates',()=>{
+ const {ctx}=composition();ctx.run(`createStep(scActiveScenario(),{at:2000,action:'SEND',edgeId});createStep(scActiveScenario(),{at:0,action:'SET_STATE',nodeId,state:'DOWN'});createStep(scActiveScenario(),{at:0,action:'SEND',edgeId});scRenderStoryboard();`);
+ assert.equal(JSON.stringify(ctx.run('scOrderedSteps().map(s=>s.id)')),'[2,3,1]');assert.deepEqual(ctx.document.querySelectorAll('.scStoryRow').map(r=>r.dataset.stepId),[2,3,1]);
+ ctx.run('scMoveStep(3,-1);');assert.equal(JSON.stringify(ctx.run('scOrderedSteps().map(s=>s.id)')),'[3,2,1]');
+});
+test('FLUYO-011: phrase builder preserva orden, literales y nombres repetidos',()=>{
+ const {ctx}=composition();const input='Texto <seguro> {target} / {source} / {name} / {target} final';ctx.input=input;ctx.run('scPhraseParts=scParsePhrase(input);');assert.equal(ctx.run('scReadPhrase()'),input);
+});
+test('FLUYO-011: quitar conserva tiempos de las demás apariciones',()=>{
+ const {ctx}=composition();ctx.run(`createStep(scActiveScenario(),{at:0,action:'SEND',edgeId});createStep(scActiveScenario(),{at:1000,action:'SEND',edgeId});createStep(scActiveScenario(),{at:4000,action:'SEND',edgeId});scDeleteStep(scActiveScenario().steps[1].id);`);assert.equal(JSON.stringify(ctx.run('scActiveScenario().steps.map(s=>s.at)')),'[0,4000]');
+});
+test('FLUYO-011: interfaz normal no contiene primitivas ni campos administrativos',()=>{
+ const {ctx}=composition();ctx.run('scApplyTargets(et.id,[edgeId]);');const text=ctx.document.getElementById('scEventLibrary').textContent+ctx.document.getElementById('scStoryboard').textContent;assert.doesNotMatch(text,/\b(FLOW|OCCURRENCE|SET_AVAILABILITY|UP|DOWN|override)\b/);assert.equal(ctx.document.querySelectorAll('.scStepCard').length,0);assert.equal(ctx.document.querySelectorAll('.scStepForm').length,0);
+ const html=read('index.html');const panel=html.slice(html.indexOf('<div id="panelScenarios"'),html.indexOf('</aside>',html.indexOf('<div id="panelScenarios"')));assert.match(panel,/>Eventos</);assert.match(panel,/>Historia</);assert.match(panel,/id="scEventNew"/);assert.doesNotMatch(panel,/<dialog|scTraceLog|scBehaviors/);
 });

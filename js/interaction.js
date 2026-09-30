@@ -299,6 +299,7 @@ function startPinch(){
 }
 
 cv.addEventListener("pointerdown", ev=>{
+  if(typeof scCanvasPlacementPointer === "function" && scCanvasPlacementPointer(ev)) return;
   if(typeof scDrag!=="undefined" && scDrag) return;
   lastPointerType = ev.pointerType || "mouse";
   /* En un equipo híbrido se alterna dedo y ratón con la misma selección puesta:
@@ -829,6 +830,7 @@ editBox.addEventListener("keydown", ev=>{
 editBox.addEventListener("blur", commitEditBox);
 
 document.addEventListener("keydown", ev=>{
+  if(ev.target.closest?.(".scDialog,.scPopover")) return;
   if(ev.target.tagName==="TEXTAREA"||ev.target.tagName==="INPUT") return;
   const k=ev.key.toLowerCase(), ctl=ev.ctrlKey||ev.metaKey;
   /* presentando manda el mando de diapositivas y se cierran los atajos de

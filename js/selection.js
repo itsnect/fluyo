@@ -129,6 +129,8 @@ function applySnap(s){
   pg.nextScenarioId=Math.max(prevNextScenarioId, restored.nextScenarioId);
   for(const sc of pg.scenarios) sc.nextStepId=Math.max(prevNextStepIds.get(sc.id)||1, sc.nextStepId);
   clearSel(); renderTabs();
+  /* El panel de Escenarios lee el documento: sin esto queda mostrando Scenarios/Steps ya deshechos. */
+  if(typeof scRefreshIfVisible==="function") scRefreshIfVisible();
 }
 function undo(){ if(!undoStack.length) return; redoStack.push(snapPage()); applySnap(undoStack.pop()); scheduleAutosave(); }
 function redo(){ if(!redoStack.length) return; undoStack.push(snapPage()); applySnap(redoStack.pop()); scheduleAutosave(); }

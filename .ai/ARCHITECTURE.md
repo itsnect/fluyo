@@ -55,7 +55,8 @@ Los `id` son únicos por página para nodos/edges; los contadores `nextId`, `nex
 ## EventTypes
 
 - Project-scoped: viven en `doc.eventTypes`.
-- Cada uno define `name`, `primitive`, `sentenceTemplate`, `visual` y, para `SET_AVAILABILITY`, `availability`.
+- Cada uno define `name`, `primitive`, `sentenceTemplate`, `visual`, `motion` y, para `SET_AVAILABILITY`, `availability`.
+- `presentation.nodeEffects` guarda el efecto visual opcional sobre nodos (icono, mensaje, colores, resaltado, parpadeo, atenuación). No altera el Trace.
 - Las primitivas son: `FLOW`, `OCCURRENCE`, `SET_AVAILABILITY`.
 - Los templates solo permiten placeholders allowlisted: `{source}`, `{target}`, `{name}`.
 
@@ -72,3 +73,17 @@ Los `id` son únicos por página para nodos/edges; los contadores `nextId`, `nex
 - Sin backend ni almacenamiento remoto.
 - Service worker cache-first: cualquier cambio en assets requiere bump de `CACHE`.
 - Cualquier PR que toque un archivo servido debe subir la constante `CACHE` en `sw.js`.
+
+## Composición de escenarios (FLUYO-011)
+
+- `editor-scenarios.js` presenta Eventos → Canvas → Historia. No añade primitivas ni altera el schema.
+- La biblioteca es del proyecto; las apariciones pertenecen al escenario. Nombre/frase/símbolo/efectos visuales se editan globalmente, objetivos/tiempo se editan localmente.
+- Si no hay Scenario, colocar un evento crea uno por defecto; la acción se deshace junto con la colocación.
+- El modal nativo de eventos vive fuera de `aside`. Un único cuerpo tiene scroll y cabecera/pie quedan accesibles.
+- La frase se edita como segmentos de texto y botones de nombres. La conversión conserva el template existente, incluidos orden, repeticiones y literales; no interpreta HTML.
+- La historia deriva grupos por `at`, ordenados cronológicamente; dentro de cada grupo conserva el orden de array que usa el motor. No se persisten entidades de agrupación.
+- `scPlacement`, `scContext`, `scDrag` y feedback visual son estado efímero. Los targets usan `edgePoints`, coordenadas de mundo y tolerancia en píxeles. No hay fallback de selección al soltar en vacío.
+- `interaction.js` deja que Scenarios consuma la colocación antes de iniciar un gesto normal del canvas. `render.js` consulta compatibilidad/hover y mantiene los overlays de reproducción fuera del estado persistido.
+- Las mutaciones usan `pushUndo` y `scheduleAutosave`. Cambiar el intervalo mueve el grupo completo y los posteriores; quitar una aparición conserva los tiempos restantes.
+- El panel mide su ancho real con ResizeObserver: debajo de 300 px la biblioteca pasa a palette flotante. Durante reproducción la biblioteca se compacta.
+- `test/fluyo-011-browser.cjs` prueba el flujo real en Chrome, texto pintado en canvas, responsive y upgrade de la caché anterior a la actual. Playwright se proporciona externamente mediante NODE_PATH, sin dependencia de runtime ni build.

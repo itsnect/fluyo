@@ -176,7 +176,7 @@ if(location.protocol==="http:" || location.protocol==="https:"){
   <aside id="propPanel">
     <div class="panelTabs">
       <button id="tabProperties" class="active" type="button">Propiedades</button>
-      <button id="tabScenarios" type="button">Scenarios</button>
+      <button id="tabScenarios" type="button">Escenarios</button>
     </div>
     <div id="panelProperties">
     <section>
@@ -206,10 +206,6 @@ if(location.protocol==="http:" || location.protocol==="https:"){
         </div>
       </div>
       <div id="selBody" style="display:none">
-        <div id="scCanvasActions" class="scCanvasActions" style="display:none;">
-          <p class="hint">Añadir al Scenario</p>
-          <div class="btnGrid" id="scCanvasActionButtons"></div>
-        </div>
         <div class="row" style="flex-direction:column; align-items:stretch;">
           <label for="lblEdit">Texto (Enter = nueva línea)</label>
           <textarea id="lblEdit"></textarea>
@@ -407,110 +403,141 @@ if(location.protocol==="http:" || location.protocol==="https:"){
     </div>
 
     <div id="panelScenarios" style="display:none;">
-      <section class="scHeader">
-        <div class="row scSelectorRow">
-          <select id="scSel" title="Scenario activo"></select>
-          <button id="scNew" type="button" title="Nuevo Scenario">＋</button>
-          <button id="scDel" type="button" title="Eliminar Scenario" class="danger">✕</button>
-        </div>
-        <div class="scNameRunRow">
-          <input type="text" id="scName" maxlength="120" placeholder="Nombre del Scenario">
-          <button id="scRun" type="button" class="primary">▶ Run</button>
-          <button id="scReset" type="button" style="display:none;">Reset</button>
-        </div>
-        <p id="scUnsupported" class="hint" style="display:none; color:#e0c070;">Este Scenario usa una versión de ejecución no soportada por esta versión de Fluyo.</p>
-        <p id="scErrors" class="hint" style="display:none; color:#e08585;"></p>
-      </section>
-
-      <section class="scEventLibrarySection">
-        <div class="scSectionHeader">
-          <h3>Eventos del proyecto</h3>
-          <button id="scEventNew" type="button" class="mini">＋ Crear evento</button>
-        </div>
+      <header class="scHeader">
+        <div class="scHeaderRow"><button id="scScenarioTitle" type="button" aria-haspopup="true">Elegir escenario ▾</button><button id="scScenarioMenu" type="button" aria-label="Opciones del escenario">⋯</button></div>
+        <div class="scPlaybackControls"><button id="scRun" type="button" class="primary">▶ Reproducir</button><button id="scReset" type="button" hidden>Volver a editar</button></div>
+        <p id="scStatus" role="status"></p>
+        <p id="scUnsupported" class="hint" hidden>Este escenario necesita una versión compatible de Fluyo.</p>
+        <p id="scErrors" role="alert" hidden></p>
+        <button id="scPaletteToggle" type="button" aria-expanded="false">Eventos · 0</button>
+      </header>
+      <section id="scLibrarySection" class="scEventLibrarySection" aria-label="Eventos">
+        <div class="scSectionHeader"><h3>Eventos</h3><button id="scEventNew" type="button">+ Crear evento</button></div>
+        <input id="scEventSearch" type="search" placeholder="Buscar eventos…" aria-label="Buscar eventos" hidden>
         <div id="scEventLibrary" class="scEventLibrary"></div>
-        <p class="hint">Arrastra un evento al canvas para crear una instancia.</p>
+        <p class="hint scLibraryHint">Arrastra al sistema o elige un evento.</p>
       </section>
-
-      <section class="scStoryboardSection">
-        <div id="scEmptyState" class="scEmptyState" style="display:none;">
-          <p>Todavía no ocurre nada.</p>
-          <p class="hint">Selecciona un nodo o conexión en el canvas, o añade un momento.</p>
-        </div>
-        <div id="scStoryboard"></div>
-        <button id="scAddMoment" type="button" class="wfull">＋ Añadir momento</button>
+      <section class="scStorySection" aria-label="Historia">
+        <h3>Historia</h3>
+        <div class="scStoryboardSection"><div id="scEmptyState" class="scEmptyState"></div><div id="scStoryboard"></div></div>
       </section>
-
-      <section class="scConfigSection">
-        <button id="scToggleConfig" type="button" class="wfull scCollapseBtn">Configuración</button>
-        <div id="scConfig" style="display:none;">
-          <h3>Estado inicial</h3>
-          <div id="scBehaviors"></div>
-          <button id="scAddBehavior" type="button" class="mini wfull">＋ Añadir override</button>
-        </div>
-      </section>
-
-      <section class="scTraceSection">
-        <button id="scToggleTrace" type="button" class="wfull scCollapseBtn">Detalles técnicos</button>
-        <div id="scTraceWrap" style="display:none;">
-          <div id="scTraceLog" class="traceLog"></div>
-        </div>
-      </section>
-
-      <!-- Diálogo semántico para añadir un momento -->
-      <div id="scMomentDialog" class="scMomentDialog" style="display:none;">
-        <div class="scMomentDialogBody">
-          <p class="scMomentQuestion">¿Qué ocurre?</p>
-          <button id="scMomentState" type="button" class="wfull">Un elemento cambia de estado</button>
-          <button id="scMomentSend" type="button" class="wfull">Se envía algo</button>
-          <button id="scMomentCancel" type="button" class="wfull scSecondaryBtn">Cancelar</button>
-        </div>
-      </div>
-
-      <!-- Diálogo de creación/edición de EventType -->
-      <div id="scEventDialog" class="scMomentDialog" style="display:none;">
-        <div class="scMomentDialogBody">
-          <h3 id="scEventDialogTitle">Crear evento</h3>
-          <div class="row" style="flex-direction:column; align-items:stretch;">
-            <label for="scEventName">Nombre</label>
-            <input type="text" id="scEventName" maxlength="60" placeholder="Pago">
-          </div>
-          <div class="row" style="flex-direction:column; align-items:stretch;">
-            <label for="scEventPrimitive">¿Qué hace?</label>
-            <select id="scEventPrimitive">
-              <option value="FLOW">Recorre una conexión</option>
-              <option value="OCCURRENCE">Ocurre en un elemento</option>
-              <option value="SET_AVAILABILITY">Cambia disponibilidad</option>
-            </select>
-          </div>
-          <div id="scEventAvailabilityRow" class="row" style="flex-direction:column; align-items:stretch; display:none;">
-            <label for="scEventAvailability">Resultado</label>
-            <select id="scEventAvailability">
-              <option value="DOWN">No disponible</option>
-              <option value="UP">Disponible</option>
-            </select>
-          </div>
-          <div class="row" style="flex-direction:column; align-items:stretch;">
-            <label for="scEventTemplate">Texto</label>
-            <input type="text" id="scEventTemplate" maxlength="200" placeholder="{source} paga a {target}">
-          </div>
-          <div class="row" style="flex-direction:column; align-items:stretch;">
-            <label for="scEventVisual">Visual</label>
-            <input type="text" id="scEventVisual" maxlength="8" placeholder="💵">
-          </div>
-          <div class="row" style="flex-direction:column; align-items:stretch;">
-            <label>Preview</label>
-            <p id="scEventPreview" class="hint">—</p>
-          </div>
-          <div class="actions">
-            <button id="scEventDelete" type="button" class="danger" style="display:none;">Eliminar</button>
-            <button id="scEventCancel" type="button">Cancelar</button>
-            <button id="scEventSave" type="button" class="primary">Guardar</button>
-          </div>
-        </div>
-      </div>
     </div>
   </aside>
 </main>
+
+<!-- Superficies de autoría fuera del panel estrecho. -->
+<div id="scPlacementBar" role="status" hidden><span id="scPlacementText"></span><button id="scPlacementConfirm" type="button" hidden>Aplicar</button><button id="scPlacementCancel" type="button">Cancelar</button></div>
+<div id="scNotice" role="status" hidden></div>
+<div id="scPopover" class="scPopover" hidden></div>
+<dialog id="scEventDialog" class="scDialog scEventDialog" aria-labelledby="scEventDialogTitle">
+  <header><div><h2 id="scEventDialogTitle">Crear evento</h2><p id="scEventDialogSubtitle">Disponible en todo este proyecto.</p></div><button id="scEventClose" type="button" aria-label="Cerrar editor de evento">×</button></header>
+  <div class="scDialogBody">
+    <p id="scEventScope" class="scScope" hidden>Los cambios de nombre, frase y apariencia se verán en todos los escenarios que usan este evento.</p>
+    <p id="scEventLocked" class="scScope" hidden>Este evento ya está en uso. Puedes cambiar cómo se ve y cómo se cuenta. Para cambiar dónde ocurre o su comportamiento, duplica el evento.</p>
+    <div class="scEventColumns"><div class="scEventFields">
+      <div class="scFieldGroup">
+        <label for="scEventName">Nombre</label>
+        <input id="scEventName" maxlength="60" placeholder="Por ejemplo, Pago" autocomplete="off">
+      </div>
+      <fieldset id="scWhere" class="scFieldGroup scWhereGroup"><legend>¿Dónde ocurre?</legend>
+        <div class="scSegmented" role="group" aria-label="¿Dónde ocurre?">
+          <label><input type="radio" name="scWhere" value="connection" checked><span>En una conexión</span></label>
+          <label><input type="radio" name="scWhere" value="element"><span>En un elemento</span></label>
+        </div>
+      </fieldset>
+      <div class="scFieldGroup">
+        <label id="scPhraseLabel">¿Cómo lo cuentas?</label>
+        <div id="scPhrase" class="scPhrase" role="group" aria-labelledby="scPhraseLabel"></div>
+        <div id="scPhraseInsert" class="scPhraseInsert"></div>
+        <p class="hint">Estos nombres se reemplazan por los elementos donde uses el evento.</p>
+      </div>
+      <div class="scFieldGroup">
+        <label id="scVisualLabel">Símbolo que recorre la conexión</label>
+        <div id="scVisualPicker" role="group" aria-labelledby="scVisualLabel"></div>
+        <div id="scCustomVisual" hidden>
+          <label for="scEventVisual">Otro símbolo o texto corto</label>
+          <input id="scEventVisual" aria-describedby="scVisualHelp">
+          <small id="scVisualHelp">Un símbolo, emoji o texto corto. Sin imágenes ni archivos.</small>
+        </div>
+      </div>
+      <fieldset id="scMotion" class="scFieldGroup" hidden>
+        <legend>¿Cómo se mueve?</legend>
+        <div class="scSegmented" role="group" aria-label="¿Cómo se mueve?">
+          <label><input type="radio" name="scMotion" value="fast"><span>Rápido</span></label>
+          <label><input type="radio" name="scMotion" value="normal" checked><span>Normal</span></label>
+          <label><input type="radio" name="scMotion" value="slow"><span>Lento</span></label>
+        </div>
+        <p class="hint">Sólo cambia la velocidad visual durante la reproducción. No afecta al tiempo del Scenario.</p>
+      </fieldset>
+
+      <details id="scAppearance" class="scAccordion" hidden>
+        <summary><span class="scAccordionTitle">Personalizar apariencia</span><span class="scAccordionSummary" id="scAppearanceSummary"></span></summary>
+        <div class="scAccordionBody">
+          <p class="scSectionLead">¿Cómo quieres que se vea?</p>
+          <div class="scEffectGrid" role="group" aria-label="Efectos visuales">
+            <label class="scEffectChip"><input type="checkbox" id="scShowSymbol"><span class="scEffectIcon">◎</span><span class="scEffectLabel">Símbolo</span></label>
+            <label class="scEffectChip"><input type="checkbox" id="scUseMessage"><span class="scEffectIcon">T</span><span class="scEffectLabel">Mensaje</span></label>
+            <label class="scEffectChip"><input type="checkbox" id="scHighlight"><span class="scEffectIcon">✦</span><span class="scEffectLabel">Resaltar</span></label>
+            <label class="scEffectChip"><input type="checkbox" id="scDim"><span class="scEffectIcon">◐</span><span class="scEffectLabel">Oscurecer</span></label>
+            <label class="scEffectChip"><input type="checkbox" id="scBlink"><span class="scEffectIcon">✺</span><span class="scEffectLabel">Parpadear</span></label>
+            <label class="scEffectChip"><input type="checkbox" id="scUseFill"><span class="scEffectIcon">●</span><span class="scEffectLabel">Color</span></label>
+          </div>
+          <div id="scShowSymbolConfig" class="scEffectConfig" hidden>
+            <p class="scSymbolUse">Usa: <span id="scSymbolUse" class="scSymbolUseValue">●</span> <button id="scChangeSymbol" type="button" class="scLinkBtn">Cambiar símbolo</button></p>
+          </div>
+          <div id="scMessageConfig" class="scEffectConfig" hidden>
+            <label for="scMessage">Mensaje</label>
+            <input id="scMessage" type="text" maxlength="120" placeholder="Por ejemplo, Fuera de servicio" autocomplete="off">
+            <fieldset class="scMsgField"><legend>Tamaño</legend><div class="scSegmented" role="radiogroup" aria-label="Tamaño">
+              <label><input type="radio" name="scMsgSize" value="small"><span>Pequeño</span></label>
+              <label><input type="radio" name="scMsgSize" value="medium" checked><span>Medio</span></label>
+              <label><input type="radio" name="scMsgSize" value="large"><span>Grande</span></label>
+            </div></fieldset>
+            <fieldset class="scMsgField"><legend>Peso</legend><div class="scSegmented" role="radiogroup" aria-label="Peso">
+              <label><input type="radio" name="scMsgWeight" value="normal" checked><span>Normal</span></label>
+              <label><input type="radio" name="scMsgWeight" value="semibold"><span>Semibold</span></label>
+              <label><input type="radio" name="scMsgWeight" value="bold"><span>Negrita</span></label>
+            </div></fieldset>
+            <fieldset class="scMsgField"><legend>Tipografía</legend><div class="scSegmented" role="radiogroup" aria-label="Tipografía">
+              <label><input type="radio" name="scMsgFont" value="default" checked><span>Predeterminada</span></label>
+              <label><input type="radio" name="scMsgFont" value="sans"><span>Sans</span></label>
+              <label><input type="radio" name="scMsgFont" value="mono"><span>Mono</span></label>
+            </div></fieldset>
+            <fieldset class="scMsgField"><legend>Posición</legend><div class="scSegmented" role="radiogroup" aria-label="Posición">
+              <label><input type="radio" name="scMsgPos" value="above" checked><span>Arriba</span></label>
+              <label><input type="radio" name="scMsgPos" value="center"><span>Centro</span></label>
+              <label><input type="radio" name="scMsgPos" value="below"><span>Abajo</span></label>
+            </div></fieldset>
+            <label id="scMessageColorLabel">Color</label>
+            <div class="scSwatches" id="scMessageSwatches" role="group" aria-labelledby="scMessageColorLabel"></div>
+            <input id="scMessageColorCustom" type="color" class="scColorNative" tabindex="-1" aria-label="Elegir color personalizado">
+          </div>
+          <div id="scFillConfig" class="scEffectConfig" hidden>
+            <label id="scFillColorLabel">Color del elemento</label>
+            <div class="scSwatches" id="scFillSwatches" role="group" aria-labelledby="scFillColorLabel"></div>
+            <input id="scFillColorCustom" type="color" class="scColorNative" tabindex="-1" aria-label="Elegir color personalizado">
+          </div>
+        </div>
+      </details>
+
+      <details id="scBehavior" class="scAccordion" hidden>
+        <summary><span class="scAccordionTitle">Comportamiento</span><span class="scAccordionSummary" id="scBehaviorSummary"></span></summary>
+        <div class="scAccordionBody">
+          <p class="scSectionLead">¿Este evento cambia cómo responde el elemento?</p>
+          <div class="scChoiceStack" role="radiogroup" aria-label="Comportamiento del elemento">
+            <label class="scChoice"><input type="radio" name="scConsequence" value="none" checked><span><strong>No, sólo cambia cómo se ve</strong></span></label>
+            <label class="scChoice"><input type="radio" name="scConsequence" value="down"><span><strong>Deja de responder</strong></span></label>
+            <label class="scChoice"><input type="radio" name="scConsequence" value="up"><span><strong>Vuelve a responder</strong></span></label>
+          </div>
+          <p class="hint">Esto afecta a los eventos que intentan entrar o salir del elemento durante la reproducción.</p>
+        </div>
+      </details>
+    </div><div class="scEventPreview"><h3>Así se verá</h3><div id="scPreviewDiagram"></div><p id="scEventPreview"></p><button id="scPreviewPlay" type="button">▶ Ver ejemplo</button><p class="hint">Ejemplo ilustrativo. No modifica la historia.</p></div></div>
+    <p id="scEventError" role="alert" hidden></p>
+  </div>
+  <footer><button id="scEventCancel" type="button">Cancelar</button><button id="scEventSave" type="button" class="primary">Crear evento</button></footer>
+</dialog>
+<dialog id="scDetailsDialog" class="scDialog scDetailsDialog" aria-labelledby="scDetailsTitle"><header><h2 id="scDetailsTitle"></h2><button id="scDetailsClose" type="button" aria-label="Cerrar detalles">×</button></header><div class="scDialogBody"><div id="scBehaviors" hidden></div><div id="scTraceLog" hidden></div><div id="scEventUses" hidden></div></div><footer><button id="scDetailsDone" type="button">Cerrar</button></footer></dialog>
 
 <div id="bottomBar">
   <footer id="pagesBar"></footer>

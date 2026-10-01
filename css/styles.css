@@ -335,6 +335,15 @@ aside.scenariosOpen{box-sizing:border-box;width:336px;flex:0 0 336px;overflow:hi
 .scPopover{position:fixed;z-index:250;box-sizing:border-box;min-width:230px;max-width:calc(100vw - 24px);max-height:calc(100dvh - 24px);overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px;box-shadow:0 12px 35px #0005;}
 .scPopover>button{display:block;width:100%;text-align:left;background:transparent;border:0;padding:9px 10px;white-space:normal;}
 .scPopover>button:hover{background:var(--panel2);}
+.scPopover>button:disabled{opacity:.4;cursor:default;}
+.scPopover>button:disabled:hover{background:transparent;}
+.scMenuHead{font-weight:600;padding:6px 10px 0;overflow-wrap:anywhere;}
+.scMenuSub{font-size:12px;color:var(--muted);padding:1px 10px 6px;overflow-wrap:anywhere;}
+.scMenuSep{height:1px;background:var(--line);margin:6px 2px;}
+.scMenuHint{display:block;font-size:11.5px;color:var(--muted);margin-top:1px;font-weight:400;}
+.scMenuChevron{float:right;color:var(--muted);}
+.scPopover>button.scMenuBack{color:var(--muted);font-size:12px;}
+.scPopover>button.scMenuDanger{color:#e5706a;}
 .scPopover p{font-size:12px;color:var(--muted);max-width:270px;}
 .scPopover label{display:block;margin:8px 0;}
 .scPopover input,.scPopover select{box-sizing:border-box;max-width:100%;}
@@ -507,4 +516,29 @@ aside.scenariosOpen{box-sizing:border-box;width:336px;flex:0 0 336px;overflow:hi
   .scEventDialog{position:fixed;inset:0;width:100%;max-width:none;height:100%;max-height:none;border-radius:0;border:0;}
   .scEventDialog[open]{display:flex;}
   .scEventDialog::backdrop{background:#000a;}
+}
+
+/* ===== FLUYO-012: Historia manipulable, duración visual, transiciones ===== */
+#scStoryboard{position:relative;}
+.scHandle{flex:none;align-self:flex-start;width:16px;min-width:16px;height:30px;margin-top:5px;padding:0;border:0;background:transparent;color:var(--muted);opacity:.35;cursor:grab;touch-action:none;border-radius:4px;transition:opacity .15s ease;}
+.scHandle::before{content:"";display:block;width:8px;height:14px;margin:0 auto;background:radial-gradient(circle,currentColor 1.1px,transparent 1.5px) 0 0/4px 5px;}
+.scStoryRow:hover .scHandle,.scHandle:focus-visible{opacity:.85;}
+.scHandle:active{cursor:grabbing;}
+.scStoryRow.scDragSource{opacity:.4;}
+.scDragging,.scDragging *{cursor:grabbing;user-select:none;}
+.scStoryGhost{padding:6px 12px;opacity:.95;}
+.scDropLine{position:absolute;left:0;right:0;height:0;border-top:2px solid var(--accent);pointer-events:none;z-index:5;transform:translateY(-1px);}
+.scDropLine span{position:absolute;right:4px;top:-9px;padding:0 6px;font-size:10px;line-height:16px;background:var(--panel);color:var(--accent);border-radius:8px;}
+.scDropLine[data-kind="join"]{border-top-style:dashed;margin-left:12px;}
+.scStoryRow{transition:background-color .25s ease,opacity .15s ease;}
+.scStatusMark{transition:color .25s ease;}
+.scStepDetail{animation:scFadeIn .25s ease;}
+@keyframes scFadeIn{from{opacity:0}to{opacity:1}}
+.scDurationCustom{display:flex;align-items:center;gap:8px;margin-top:8px;}
+.scDurationCustom input{width:84px;}
+.scDurationField .hint{margin:6px 0 0;}
+@media (max-width:480px){.scHandle{width:14px;min-width:14px;}}
+@media (prefers-reduced-motion:reduce){
+  .scStoryRow,.scStatusMark,.scHandle{transition:none;}
+  .scStepDetail{animation:none;}
 }

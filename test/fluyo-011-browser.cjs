@@ -487,7 +487,7 @@ test("FLUYO-011 — composición, accesibilidad y responsive en Chrome", async (
 });
 
 // Upgrade real desde la caché del checkout anterior, sin modificar archivos servidos.
-test("FLUYO-011 — Service Worker v45 → v52 sin assets antiguos", async () => {
+test("FLUYO-011 — Service Worker v45 → v55 sin assets antiguos", async () => {
   const http = require("node:http"),
     { execFileSync } = require("node:child_process");
   const files = [

@@ -512,6 +512,19 @@ if(location.protocol==="http:" || location.protocol==="https:"){
             <div class="scSwatches" id="scMessageSwatches" role="group" aria-labelledby="scMessageColorLabel"></div>
             <input id="scMessageColorCustom" type="color" class="scColorNative" tabindex="-1" aria-label="Elegir color personalizado">
           </div>
+          <fieldset class="scMsgField scDurationField" id="scDurationField"><legend>¿Cuánto tiempo se ve?</legend>
+            <div class="scSegmented" role="radiogroup" aria-label="Cuánto tiempo se ve">
+              <label><input type="radio" name="scVisDur" value="brief"><span>Poco tiempo</span></label>
+              <label><input type="radio" name="scVisDur" value="normal" checked><span>Normal</span></label>
+              <label><input type="radio" name="scVisDur" value="long"><span>Mucho tiempo</span></label>
+              <label><input type="radio" name="scVisDur" value="custom"><span>Personalizado</span></label>
+            </div>
+            <div id="scDurationCustom" class="scDurationCustom" hidden>
+              <label for="scDurationSeconds">Se ve durante</label>
+              <input id="scDurationSeconds" type="number" min="0.3" max="10" step="0.1" value="2.5" inputmode="decimal"> <span>segundos</span>
+            </div>
+            <p class="hint">Esto solo cambia cómo se muestra. No cambia cuándo ocurre.</p>
+          </fieldset>
           <div id="scFillConfig" class="scEffectConfig" hidden>
             <label id="scFillColorLabel">Color del elemento</label>
             <div class="scSwatches" id="scFillSwatches" role="group" aria-labelledby="scFillColorLabel"></div>

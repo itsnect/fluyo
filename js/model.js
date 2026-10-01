@@ -63,6 +63,13 @@ const NODE_MESSAGE_SIZES=["small","medium","large"];
 const NODE_MESSAGE_WEIGHTS=["normal","semibold","bold"];
 const NODE_MESSAGE_FONTS=["default","sans","mono"];
 const NODE_MESSAGE_POSITIONS=["above","center","below"];
+/* Duración VISUAL del cue de un Evento de elemento (presentación pura: nunca
+   toca step.at, Trace ni consecuencias). Presets + personalizado en ms. */
+const NODE_VISUAL_DURATIONS=["brief","normal","long","custom"];
+const NODE_VISUAL_DURATION_MS={brief:700, normal:1500, long:3000};
+const NODE_VISUAL_DURATION_MIN_MS=300;
+const NODE_VISUAL_DURATION_MAX_MS=10000;
+const NODE_VISUAL_DURATION_DEFAULT="normal";
 /* Presets de presentación del mensaje: la UI habla en presets, nunca en px. */
 const NODE_MESSAGE_SIZE_PX={small:11, medium:14, large:18};
 const NODE_MESSAGE_WEIGHT_CSS={normal:"400", semibold:"600", bold:"700"};
@@ -72,7 +79,7 @@ const NODE_MESSAGE_FONT_STACK={
   mono:'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace'
 };
 function defaultNodeEffects(){
-  return { showSymbol:false, message:"", messageColor:"", messageSize:"medium", messageWeight:"normal", messageFont:"default", messagePosition:"above", highlight:false, blink:false, dim:false, fillColor:"" };
+  return { showSymbol:false, message:"", messageColor:"", messageSize:"medium", messageWeight:"normal", messageFont:"default", messagePosition:"above", highlight:false, blink:false, dim:false, fillColor:"", visualDuration:NODE_VISUAL_DURATION_DEFAULT, visualDurationMs:NODE_VISUAL_DURATION_MS.normal };
 }
 function normalizeNodeEffects(effects){
   const out=defaultNodeEffects();
@@ -90,7 +97,33 @@ function normalizeNodeEffects(effects){
   if(typeof effects.blink==="boolean") out.blink=effects.blink;
   if(typeof effects.dim==="boolean") out.dim=effects.dim;
   if(typeof effects.fillColor==="string" && /^#[0-9a-fA-F]{6}$/.test(effects.fillColor)) out.fillColor=effects.fillColor;
+  if(NODE_VISUAL_DURATIONS.includes(effects.visualDuration)){
+    out.visualDuration=effects.visualDuration;
+    if(effects.visualDuration==="custom"){
+      const ms=normalizeVisualDurationMs(effects.visualDurationMs);
+      if(ms===null) out.visualDuration=NODE_VISUAL_DURATION_DEFAULT;
+      else out.visualDurationMs=ms;
+    }
+  }
+  if(out.visualDuration!=="custom") out.visualDurationMs=NODE_VISUAL_DURATION_MS[out.visualDuration];
   return out;
+}
+/* ms válidos (entero dentro de límites) o null. Los fuera de rango se acotan;
+   NaN/no numéricos se rechazan. */
+function normalizeVisualDurationMs(v){
+  if(typeof v!=="number" || !Number.isFinite(v)) return null;
+  return Math.min(NODE_VISUAL_DURATION_MAX_MS, Math.max(NODE_VISUAL_DURATION_MIN_MS, Math.round(v)));
+}
+/* Segundos escritos por la persona → ms o null si inválido (<=0, NaN, fuera de rango). */
+function parseVisualDurationSeconds(value){
+  const n=typeof value==="number"?value:Number(String(value).trim().replace(",","."));
+  if(!Number.isFinite(n) || n<=0) return null;
+  const ms=Math.round(n*1000);
+  if(ms<NODE_VISUAL_DURATION_MIN_MS || ms>NODE_VISUAL_DURATION_MAX_MS) return null;
+  return ms;
+}
+function nodeEffectDurationMs(fx){
+  return normalizeNodeEffects(fx).visualDurationMs;
 }
 /* Única fuente del símbolo de un Evento: EventType.visual.value. */
 function eventSymbol(et){
@@ -509,6 +542,145 @@ function projectFromProjectData(input){
 /* Compatibilidad de la API usada por migración/añadir páginas y deep link. */
 function documentFromProjectData(d){ return projectFromProjectData(d).doc; }
 
+/* ===================== Historia: orden de apariciones (FLUYO-012) =====================
+   Única fuente de la semántica de reordenar. «Mover antes/después» (menú) y el
+   arrastre directo son dos formas de invocar estas mismas funciones.
+
+   Orden efectivo: por step.at y, a igualdad, por POSICIÓN en el array (nunca por id,
+   nombre ni destino). Un «momento» es un grupo de Steps con el mismo at.
+
+   Regla central: los instantes son RANURAS. Al reordenar, el contenido se mueve y las
+   ranuras (los tiempos) se quedan en su sitio; por eso el ritmo de la Historia
+   («1 s después… 4 s después…») se conserva. No se inventan timestamps.
+
+   - Plano (menú Mover antes/después): ranura = posición en la lista de Steps ordenada.
+   - Por momentos (arrastrar a un hueco entre momentos): ranura = momento. Sólo para
+     un Step que es su propio momento; coincide con el plano cuando no hay simultáneos.
+   - Unirse a un momento (soltar entre/sobre filas de un momento): at = at del ancla.
+     Si el momento de origen desaparece, su espera se colapsa y las esperas restantes
+     se conservan (los at posteriores se adelantan). Ver FLUYO-012.1.
+   Sacar un Step de un momento simultáneo hacia un hueco NO está soportado (exigiría
+   inventar un instante); se hace con Mover antes/después o editando la espera. */
+function storyboardOrderedSteps(steps){
+  return (steps||[]).map((s,i)=>({s,i})).sort((a,b)=>a.s.at-b.s.at||a.i-b.i).map(x=>x.s);
+}
+function storyboardGroups(steps){
+  const groups=[];
+  for(const s of storyboardOrderedSteps(steps)){
+    let g=groups[groups.length-1];
+    if(!g||g.at!==s.at){ g={at:s.at,steps:[]}; groups.push(g); }
+    g.steps.push(s);
+  }
+  return groups;
+}
+/* Mueve items[from] a la posición final `to` manteniendo los tiempos en sus ranuras. */
+function storyboardRotateSlots(items, atOf, from, to){
+  const slots=items.map(atOf);
+  const list=items.slice();
+  const [moved]=list.splice(from,1);
+  list.splice(to,0,moved);
+  return {list, slots};
+}
+function storyboardSameArrangement(a,b){
+  return a.length===b.length && a.every((s,i)=>s.id===b[i].id && s.at===b[i].at);
+}
+/* Mover antes/después: intercambio en la lista plana (dir -1 | +1). */
+function storyboardMoveByOne(steps,id,dir){
+  const ordered=storyboardOrderedSteps(steps);
+  const i=ordered.findIndex(s=>s.id===id), j=i+dir;
+  if(i<0||j<0||j>=ordered.length) return null;
+  const {list,slots}=storyboardRotateSlots(ordered,s=>s.at,i,j);
+  const out=list.map((s,k)=>({...s,at:slots[k]}));
+  return {steps:out, changed:true};
+}
+/* Política única de «un momento desaparece» (unirse a otro, o eliminar su única aparición):
+   su espera se colapsa, los momentos posteriores se adelantan esa cantidad y conservan sus
+   propias esperas («3 s después» sigue siendo «3 s después»). El primer momento conserva el
+   arranque de la historia. Si el momento no desaparece (tiene más apariciones), nada cambia.
+   Devuelve los grupos resultantes SIN el Step `id` (puede incluir grupos vacíos). */
+function storyboardCollapsedGroups(groups,gi,id){
+  const vanishes=groups[gi].steps.length===1;
+  const gap=!vanishes?0:(gi>0?groups[gi].at-groups[gi-1].at:(groups[gi+1]?groups[gi+1].at-groups[gi].at:0));
+  return groups.map((g,k)=>{
+    const at=vanishes&&k>gi?g.at-gap:g.at;
+    return {at,steps:g.steps.filter(s=>s.id!==id).map(s=>({...s,at}))};
+  });
+}
+/* Eliminar una aparición: misma política que unirse (no deja esperas absurdas tipo «7 s»). */
+function storyboardRemoveStep(steps,id){
+  const groups=storyboardGroups(steps);
+  const gi=groups.findIndex(g=>g.steps.some(s=>s.id===id));
+  if(gi<0) return null;
+  const out=storyboardCollapsedGroups(groups,gi,id).flatMap(g=>g.steps);
+  return {steps:out, changed:true};
+}
+/* Duplicar: la copia entra en el MISMO momento, justo después del original (mismo `at`,
+   posición de array contigua). No inventa esperas ni desplaza nada. `copy` ya trae su id. */
+function storyboardInsertDuplicate(steps,id,copy){
+  const ordered=storyboardOrderedSteps(steps);
+  const i=ordered.findIndex(s=>s.id===id);
+  if(i<0||!copy) return null;
+  const out=ordered.map(s=>({...s}));
+  out.splice(i+1,0,{...copy,at:ordered[i].at});
+  return {steps:out, changed:true};
+}
+/* Arrastre. target:
+     {kind:"gap", index}            hueco ANTES del momento `index` (0..momentos)
+     {kind:"join", anchorId, after} dentro del momento del ancla, antes/después de ella
+   Devuelve {steps, changed} o null si la operación no está soportada/ es inválida. */
+function storyboardMoveStep(steps,id,target){
+  const groups=storyboardGroups(steps);
+  const gi=groups.findIndex(g=>g.steps.some(s=>s.id===id));
+  if(gi<0||!target) return null;
+  const before=storyboardOrderedSteps(steps);
+  let resultGroups;
+  if(target.kind==="gap"){
+    if(!Number.isInteger(target.index)||target.index<0||target.index>groups.length) return null;
+    if(groups[gi].steps.length!==1) return null;
+    const to=target.index>gi?target.index-1:target.index;
+    const {list,slots}=storyboardRotateSlots(groups,g=>g.at,gi,to);
+    resultGroups=list.map((g,k)=>({at:slots[k],steps:g.steps.map(s=>({...s,at:slots[k]}))}));
+  }else if(target.kind==="join"){
+    if(target.anchorId===id) return null;
+    const ai=groups.findIndex(g=>g.steps.some(s=>s.id===target.anchorId));
+    if(ai<0) return null;
+    /* Si el momento de origen desaparece, su espera se colapsa (storyboardCollapsedGroups). */
+    resultGroups=storyboardCollapsedGroups(groups,gi,id);
+    const at=resultGroups[ai].at;
+    const moved={...groups[gi].steps.find(s=>s.id===id),at};
+    const list=resultGroups[ai].steps;
+    const pos=list.findIndex(s=>s.id===target.anchorId)+(target.after?1:0);
+    list.splice(pos,0,moved);
+    resultGroups=resultGroups.filter(g=>g.steps.length);
+  }else return null;
+  const out=resultGroups.flatMap(g=>g.steps);
+  return {steps:out, changed:!storyboardSameArrangement(before,out)};
+}
+/* Destino de soltado a partir de la geometría de las filas (puro, testeable).
+   rows: [{stepId, groupIndex, groupSize, indexInGroup, top, bottom}] en orden visual.
+   Devuelve {target, line:{y, kind}} o null. `y` es la coordenada vertical del puntero. */
+function storyboardDropTarget(rows, sourceId, y, groupsCount, sourceGroupSize){
+  if(!rows.length) return null;
+  const canGap=sourceGroupSize===1;
+  let row=rows.find(r=>y>=r.top&&y<r.bottom);
+  if(!row) row=y<rows[0].top?rows[0]:rows[rows.length-1];
+  const h=Math.max(1,row.bottom-row.top), k=(y-row.top)/h;
+  const first=row.indexInGroup===0, last=row.indexInGroup===row.groupSize-1;
+  const gapTop={kind:"gap",index:row.groupIndex}, gapBottom={kind:"gap",index:row.groupIndex+1};
+  const lineTop=row.top, lineBottom=row.bottom;
+  if(canGap && first && k<0.35) return {target:gapTop,line:{y:lineTop,kind:"gap"}};
+  if(canGap && last && k>0.65) return {target:gapBottom,line:{y:lineBottom,kind:"gap"}};
+  if(row.stepId===sourceId){
+    return null;
+  }
+  if(row.groupSize===1){
+    // Fila única de otro momento: el centro es «al mismo tiempo» (unirse).
+    if(!canGap || (k>=0.35&&k<=0.65)) return {target:{kind:"join",anchorId:row.stepId,after:k>0.5},line:{y:k>0.5?lineBottom:lineTop,kind:"join",row:row.stepId}};
+  }
+  const after=k>0.5;
+  return {target:{kind:"join",anchorId:row.stepId,after},line:{y:after?lineBottom:lineTop,kind:"join",row:row.stepId}};
+}
+
 /* Exposición mínima para el editor de Scenarios. */
 if(typeof window!=="undefined"){
   window.eventTypeById=eventTypeById;
@@ -525,4 +697,6 @@ if(typeof window!=="undefined"){
   window.NODE_EFFECT_MAX_MESSAGE_LEN=NODE_EFFECT_MAX_MESSAGE_LEN;
   window.defaultNodeEffects=defaultNodeEffects;
   window.normalizeNodeEffects=normalizeNodeEffects;
+  window.nodeEffectDurationMs=nodeEffectDurationMs;
+  window.parseVisualDurationSeconds=parseVisualDurationSeconds;
 }

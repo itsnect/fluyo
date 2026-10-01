@@ -1,6 +1,7 @@
 "use strict";
 /* FLUYO-011. Biblioteca → Canvas → Historia. Estado de interacción efímero;
    las operaciones persistidas usan el modelo, undo y autosave existentes. */
+let scStoryDrag = null;
 let scActiveId = null,
   scPlayback = null,
   scRafId = null,
@@ -305,18 +306,18 @@ function scRenderTraceLog() {
     } else if (ev.type === "event_occurred") {
       const lbl = scNodeLabel(ev.nodeId) || "Nodo #" + ev.nodeId;
       mark.textContent = "●";
-      body.textContent = time + "  " + escapeHtml(lbl) + "  event_occurred";
+      body.textContent = time + "  " + escapeHtml(lbl) + "  Ocurre";
     } else if (ev.type === "send_started") {
       const lbl = scEdgeLabel(ev.edgeId) || "Conexión #" + ev.edgeId;
       mark.textContent = "→";
-      body.textContent = time + "  " + escapeHtml(lbl) + "  Envío";
+      body.textContent = time + "  " + escapeHtml(lbl) + "  Sale";
     } else if (ev.type === "send_succeeded") {
       const lbl = scEdgeLabel(ev.edgeId) || "Conexión #" + ev.edgeId;
       mark.textContent = "✓";
       line.classList.add("success");
       const result = document.createElement("span");
       result.className = "scLogResult";
-      result.textContent = "Éxito";
+      result.textContent = "Llegó";
       body.appendChild(document.createTextNode(time + "  " + escapeHtml(lbl) + "  "));
       body.appendChild(result);
     } else if (ev.type === "send_failed") {
@@ -325,10 +326,10 @@ function scRenderTraceLog() {
       line.classList.add("fail");
       const reasonText =
         ev.reason === "source_down"
-          ? "Origen caído"
+          ? "Origen no disponible"
           : ev.reason === "target_down"
-            ? "Destino caído"
-            : "Falló";
+            ? "Destino no disponible"
+            : "No llegó";
       const result = document.createElement("span");
       result.className = "scLogResult";
       result.textContent = reasonText;
@@ -439,12 +440,14 @@ function scCanvasAddEdgeSend() {
   scAddSendStep(s.obj.id);
 }
 
+/* Eliminar: si el momento desaparece, su espera se colapsa (misma política que unirse, model.js). */
 function scDeleteStep(id) {
-  if (isScenarioPlaybackActive()) return;
-  const sc = scActiveScenario();
-  if (!sc) return;
+  if (!scEditable()) return;
+  const sc = scActiveScenario(),
+    r = storyboardRemoveStep(sc.steps, id);
+  if (!r) return;
   pushUndo();
-  deleteStep(sc, id);
+  sc.steps = r.steps;
   scheduleAutosave();
   scRenderStoryboard();
   scRenderButtons();
@@ -542,7 +545,9 @@ function scTick(now) {
   if (
     scPlayback.nextEventIndex >= (scPlayback.trace.events || []).length &&
     scPlayback.activeSends.length === 0 &&
-    scPlayback.completedSends.length === 0
+    scPlayback.completedSends.length === 0 &&
+    scPlayback.activeOccurrences.length === 0 &&
+    scPlayback.activeNodeEffects.length === 0
   ) {
     scStatus = "completed";
     scRenderButtons();
@@ -641,22 +646,10 @@ function scEditable() {
   return !!s && !isScenarioPlaybackActive() && s.engineVersion === FluyoScenarios.ENGINE_VERSION;
 }
 function scOrderedSteps() {
-  return (scActiveScenario()?.steps || [])
-    .map((s, i) => ({ s, i }))
-    .sort((a, b) => a.s.at - b.s.at || a.i - b.i)
-    .map((x) => x.s);
+  return storyboardOrderedSteps(scActiveScenario()?.steps);
 }
 function scGroups() {
-  const groups = [];
-  for (const s of scOrderedSteps()) {
-    let g = groups[groups.length - 1];
-    if (!g || g.at !== s.at) {
-      g = { at: s.at, steps: [] };
-      groups.push(g);
-    }
-    g.steps.push(s);
-  }
-  return groups;
+  return storyboardGroups(scActiveScenario()?.steps);
 }
 function scStepDefaultTime(sc) {
   return sc?.steps.length ? Math.max(...sc.steps.map((s) => s.at)) + DEFAULT_STEP_DELAY : 0;
@@ -997,11 +990,25 @@ function scStoryRow(step) {
     active: "En curso",
     completed: "Completado",
     success: "Completado",
-    failed: "No pudo realizarse",
+    failed: "No se completó",
   };
   const mark = scEl("span", "scStatusMark", isScenarioPlaybackActive() ? scStatusMark(r.status) : "●");
   mark.setAttribute("aria-label", labels[r.status]);
   row.appendChild(mark);
+  if (!isScenarioPlaybackActive() && !d.missing) {
+    const handle = scButton("", () => {}, "scHandle");
+    handle.type = "button";
+    handle.setAttribute("aria-label", "Reordenar. Arrastra, o usa Alt y las flechas");
+    handle.title = "Arrastra para cambiar el orden";
+    handle.onpointerdown = (ev) => scStoryDragStart(ev, step, row, handle);
+    handle.onkeydown = (ev) => {
+      if (!ev.altKey || (ev.key !== "ArrowUp" && ev.key !== "ArrowDown")) return;
+      ev.preventDefault();
+      if (scMoveStep(step.id, ev.key === "ArrowUp" ? -1 : 1))
+        $("scStoryboard")?.querySelector('[data-step-id="' + step.id + '"] .scHandle')?.focus();
+    };
+    row.appendChild(handle);
+  }
   const text = scEl("div", "scStoryText");
   const missingSentence = d.missing
     ? d.targetType === "edge"
@@ -1020,6 +1027,11 @@ function scStoryRow(step) {
       scSelectTarget(d.targetType, d.targetId);
       scStorySignature = "";
       scRenderStoryboard();
+      // Una aparición es un objeto: al pulsarla se ofrecen sus acciones.
+      if (!isScenarioPlaybackActive()) {
+        const again = $("scStoryboard")?.querySelector('[data-step-id="' + step.id + '"] .scStepPrimary');
+        if (again) scStoryMenu(step, again);
+      }
     },
     "scStorySentence scStepPrimary",
   );
@@ -1069,34 +1081,128 @@ function scRevealTarget(step) {
   scStorySignature = "";
   scRenderStoryboard();
 }
+/* Menú de una aparición. Es un objeto narrativo («💵 Pago · Cliente paga a Comercio»), no una
+   lista de botones: cabecera con el evento y dónde ocurre, cuatro grupos y submenús.
+   Editar ≠ Cambiar: «Editar este evento» modifica el Evento de la biblioteca (afecta a todos
+   sus usos); «Usar otro evento aquí» sólo cambia cuál usa ESTA aparición. */
+function scStepTitle(step) {
+  const d = describeScenarioStep(step);
+  return d.eventType?.name ? (d.eventType.visual.value ? d.eventType.visual.value + " " : "") + d.eventType.name : d.primary;
+}
+function scWhereLabel(step) {
+  if (step.edgeId) {
+    const e = edgeById(step.edgeId),
+      a = e && nodeById(e.from),
+      b = e && nodeById(e.to);
+    return a && b ? scNodeFallback(a.id) + " → " + scNodeFallback(b.id) : "";
+  }
+  return step.nodeId && nodeById(step.nodeId) ? scNodeFallback(step.nodeId) : "";
+}
 function scStoryMenu(step, anchor) {
   const et = eventTypeById(step.eventTypeId),
-    items = [
-      ["Cambiar dónde ocurre…", () => scChangeTarget(step)],
-      ["Cambiar evento…", () => scChangeEvent(step, anchor)],
-    ];
-  if (et?.primitive === "FLOW") items.push(["Aplicar también a…", () => scBeginMulti(step.id)]);
-  items.push(
+    d = describeScenarioStep(step),
+    uses = et ? eventTypeUseCount(et.id) : 0,
+    ordered = scOrderedSteps(),
+    index = ordered.findIndex((x) => x.id === step.id),
+    where = scWhereLabel(step);
+  const sameTime = () => {
+    scCancelPlacement();
+    scContext = { kind: "same", stepId: step.id, scenarioId: scActiveScenario().id, page: P() };
+    scUpdatePlacementBar();
+    if ($("panelScenarios").classList.contains("scCompact")) scTogglePalette();
+  };
+  const others = ordered.filter((x) => x.id !== step.id && !scIsTargetMissing(x));
+  const moveItems = [
+    { label: "Antes", fn: () => scMoveStep(step.id, -1), disabled: index <= 0 },
+    { label: "Después", fn: () => scMoveStep(step.id, 1), disabled: index < 0 || index >= ordered.length - 1 },
+    {
+      label: "Al mismo tiempo que…",
+      disabled: !others.length,
+      sub: {
+        title: "Al mismo tiempo que…",
+        items: others.map((x) => ({ label: scStepTitle(x), hint: scWhereLabel(x), fn: () => scMoveStepTo(step.id, { kind: "join", anchorId: x.id, after: true }) })),
+      },
+    },
+  ];
+  const addItems = [{ label: "Otro evento…", fn: sameTime }];
+  if (et?.primitive === "FLOW") addItems.push({ label: "Esta misma acción en otras conexiones…", fn: () => scBeginMulti(step.id) });
+  const sections = [
     [
-      "Añadir otro evento al mismo tiempo…",
-      () => {
-        scCancelPlacement();
-        scContext = { kind: "same", stepId: step.id, scenarioId: scActiveScenario().id, page: P() };
-        scUpdatePlacementBar();
-        if ($("panelScenarios").classList.contains("scCompact")) scTogglePalette();
+      ...(et ? [{ label: "Editar este evento…", hint: uses > 1 ? "Cambia «" + et.name + "» en sus " + uses + " usos" : "Cambia «" + et.name + "»", fn: () => scOpenEventDialog(et.id) }] : []),
+      { label: "Usar otro evento aquí…", hint: "Sólo cambia esta aparición", fn: () => scChangeEvent(step, anchor) },
+    ],
+    [{ label: "Cambiar dónde ocurre…", hint: where ? "Ahora: " + where : "", fn: () => scChangeTarget(step) }],
+    [
+      { label: "Duplicar", hint: "Al mismo tiempo, justo debajo", fn: () => scDuplicateStep(step.id) },
+      { label: "Mover", sub: { title: "Mover", items: moveItems } },
+      { label: "Añadir al mismo tiempo", sub: { title: "Añadir al mismo tiempo", items: addItems } },
+    ],
+    [
+      {
+        label: "Eliminar",
+        danger: true,
+        fn: () => {
+          scDeleteStep(step.id);
+          scNotice("Quitado de esta historia. El evento sigue en la biblioteca.");
+        },
       },
     ],
-    ["Mover antes", () => scMoveStep(step.id, -1)],
-    ["Mover después", () => scMoveStep(step.id, 1)],
-    [
-      "Quitar de esta historia",
-      () => {
-        scDeleteStep(step.id);
-        scNotice("Quitado de esta historia. El evento sigue en la biblioteca.");
-      },
-    ],
-  );
-  scMenu(anchor, items);
+  ];
+  scMenuSections(anchor, { title: scStepTitle(step), subtitle: d.primary !== scStepTitle(step) ? d.primary : "", sections });
+}
+/* Menú agrupado: cabecera opcional, secciones separadas y submenús que sustituyen el contenido
+   (con «‹ Volver»). Cada entrada: {label, hint?, fn?, sub?:{title,items}, disabled?, danger?}. */
+function scMenuSections(anchor, menu) {
+  const p = scOpenPopover(anchor);
+  if (!p) return;
+  const fill = (m, back) => {
+    p.replaceChildren();
+    if (back) p.appendChild(scButton("‹ Volver", () => { fill(back, null); p.querySelector("button")?.focus(); }, "scMenuBack"));
+    if (m.title) p.appendChild(scEl("div", "scMenuHead", m.title));
+    if (m.subtitle) p.appendChild(scEl("div", "scMenuSub", m.subtitle));
+    const sections = m.sections || [m.items];
+    sections.forEach((items, si) => {
+      if (si > 0) p.appendChild(scEl("div", "scMenuSep"));
+      for (const it of items) {
+        const b = scButton(it.label, () => {
+          if (it.sub) {
+            fill({ title: it.sub.title, sections: [it.sub.items] }, m);
+            p.querySelector(".scMenuBack")?.focus();
+            return;
+          }
+          scClosePopover();
+          it.fn?.();
+        }, it.danger ? "scMenuDanger" : "");
+        if (it.hint) b.appendChild(scEl("span", "scMenuHint", it.hint));
+        if (it.sub) b.appendChild(scEl("span", "scMenuChevron", "▸"));
+        b.disabled = !!it.disabled;
+        p.appendChild(b);
+      }
+    });
+  };
+  fill(menu, null);
+}
+/* Duplicar: la copia entra en el MISMO momento, justo después del original («Al mismo
+   tiempo»). Razón de producto: el usuario no pidió ninguna espera y el modelo no tiene dónde
+   guardar una «espera por defecto» sin inventar tiempo ni desplazar el resto de la historia.
+   Si quiere la copia en otro momento, la mueve (Mover ▸) o cambia su espera. */
+function scDuplicateStep(id) {
+  if (!scEditable()) return;
+  const sc = scActiveScenario(),
+    src = sc.steps.find((s) => s.id === id);
+  if (!src) return;
+  if (sc.steps.length >= FluyoScenarios.MAX_SCENARIO_STEPS) {
+    scNotice("La historia ya tiene el máximo de eventos.");
+    return;
+  }
+  pushUndo();
+  const { id: _id, ...rest } = src;
+  const copy = createStep(sc, { ...rest });
+  const r = storyboardInsertDuplicate(sc.steps.filter((s) => s.id !== copy.id), id, copy);
+  sc.steps = r.steps;
+  scSelectedStep = copy.id;
+  scCommit();
+  scNotice("Duplicado al mismo tiempo, justo debajo.");
 }
 function scEditTime(id, anchor) {
   if (!scEditable()) return;
@@ -1158,22 +1264,124 @@ function scSetStepDelay(id, delay) {
   affected.forEach((s) => (s.at += delta));
   scCommit();
 }
+/* Mover antes/después y arrastre comparten la semántica de model.js (storyboard*). */
 function scMoveStep(id, dir) {
-  if (!scEditable()) return;
-  const ordered = scOrderedSteps(),
-    i = ordered.findIndex((s) => s.id === id),
-    j = i + dir;
-  if (i < 0 || j < 0 || j >= ordered.length) return;
+  if (!scEditable()) return false;
+  const r = storyboardMoveByOne(scActiveScenario().steps, id, dir);
+  if (!r) return false;
   pushUndo();
-  const a = ordered[i],
-    b = ordered[j],
-    at = a.at;
-  a.at = b.at;
-  b.at = at;
-  ordered[i] = b;
-  ordered[j] = a;
-  scActiveScenario().steps = ordered;
+  scActiveScenario().steps = r.steps;
   scCommit();
+  return true;
+}
+function scMoveStepTo(id, target) {
+  if (!scEditable()) return false;
+  const r = storyboardMoveStep(scActiveScenario().steps, id, target);
+  if (!r || !r.changed) return false;
+  pushUndo();
+  scActiveScenario().steps = r.steps;
+  scCommit();
+  return true;
+}
+/* Arrastre directo en Historia. Nada se escribe en el documento hasta soltar:
+   cancelar (Escape / pointercancel) no crea undo ni cambia la selección. */
+function scStoryRowRects() {
+  const board = $("scStoryboard"),
+    rows = [];
+  if (!board) return rows;
+  const groups = [...board.querySelectorAll(".scStoryGroup")];
+  groups.forEach((section, gi) => {
+    const sr = section.getBoundingClientRect(),
+      els = [...section.querySelectorAll(".scStoryRow")];
+    els.forEach((el, k) => {
+      const r = el.getBoundingClientRect();
+      rows.push({
+        stepId: Number(el.dataset.stepId),
+        groupIndex: gi,
+        groupSize: els.length,
+        indexInGroup: k,
+        // la primera/última fila absorben la espera y el aire del momento
+        top: k === 0 ? sr.top : r.top,
+        bottom: k === els.length - 1 ? sr.bottom : r.bottom,
+      });
+    });
+  });
+  return rows;
+}
+function scStoryDragCleanup() {
+  const d = scStoryDrag;
+  if (!d) return;
+  scStoryDrag = null;
+  d.ghost?.remove();
+  d.line?.remove();
+  d.row?.classList.remove("scDragSource");
+  $("scStoryboard")?.classList.remove("scDragging");
+  try { d.handle.releasePointerCapture(d.pointerId); } catch {}
+  d.handle.removeEventListener("pointermove", scStoryDragMove);
+  d.handle.removeEventListener("pointerup", scStoryDragEnd);
+  d.handle.removeEventListener("pointercancel", scStoryDragCancel);
+}
+function scStoryDragStart(ev, step, row, handle) {
+  if ((ev.pointerType === "mouse" && ev.button !== 0) || scStoryDrag || !scEditable()) return;
+  ev.preventDefault();
+  scStoryDrag = { id: step.id, pointerId: ev.pointerId, x: ev.clientX, y: ev.clientY, active: false, ghost: null, line: null, target: null, row, handle };
+  try { handle.setPointerCapture(ev.pointerId); } catch {}
+  handle.addEventListener("pointermove", scStoryDragMove);
+  handle.addEventListener("pointerup", scStoryDragEnd);
+  handle.addEventListener("pointercancel", scStoryDragCancel);
+}
+function scStoryDragMove(ev) {
+  const d = scStoryDrag;
+  if (!d || ev.pointerId !== d.pointerId) return;
+  if (!d.active) {
+    if (Math.hypot(ev.clientX - d.x, ev.clientY - d.y) < 4) return;
+    if (!scEditable()) return scStoryDragCleanup();
+    d.active = true;
+    const step = scActiveScenario().steps.find((s) => s.id === d.id),
+      info = describeScenarioStep(step);
+    d.ghost = scEl("div", "scDragGhost scStoryGhost", (info.eventType ? eventSymbol(info.eventType) + " " + info.eventType.name : info.primary));
+    document.body.appendChild(d.ghost);
+    d.row.classList.add("scDragSource");
+    $("scStoryboard").classList.add("scDragging");
+  }
+  d.ghost.style.left = Math.min(ev.clientX + 12, innerWidth - 240) + "px";
+  d.ghost.style.top = Math.max(8, ev.clientY - 14) + "px";
+  const scroller = $("scStoryboard").parentElement;
+  if (scroller) {
+    const sr = scroller.getBoundingClientRect();
+    if (ev.clientY < sr.top + 28) scroller.scrollTop -= 10;
+    else if (ev.clientY > sr.bottom - 28) scroller.scrollTop += 10;
+  }
+  const groups = scGroups(),
+    src = groups.find((g) => g.steps.some((s) => s.id === d.id)),
+    hit = storyboardDropTarget(scStoryRowRects(), d.id, ev.clientY, groups.length, src ? src.steps.length : 0),
+    change = hit && storyboardMoveStep(scActiveScenario().steps, d.id, hit.target);
+  d.target = change && change.changed ? hit.target : null;
+  if (!d.target) {
+    d.line?.remove();
+    d.line = null;
+    return;
+  }
+  const board = $("scStoryboard"),
+    br = board.getBoundingClientRect();
+  if (!d.line) {
+    d.line = scEl("div", "scDropLine");
+    d.line.appendChild(scEl("span", "", ""));
+    board.appendChild(d.line);
+  }
+  d.line.dataset.kind = hit.line.kind;
+  d.line.firstChild.textContent = hit.line.kind === "join" ? "al mismo tiempo" : "soltar aquí";
+  d.line.style.top = hit.line.y - br.top + "px";
+}
+function scStoryDragEnd(ev) {
+  const d = scStoryDrag;
+  if (!d || ev.pointerId !== d.pointerId) return;
+  const moved = d.active && d.target ? { id: d.id, target: d.target } : null;
+  scStoryDragCleanup();
+  if (moved && scMoveStepTo(moved.id, moved.target)) scNotice("Historia reordenada.");
+}
+function scStoryDragCancel() {
+  scStoryDragCleanup();
 }
 function scChangeEvent(step, anchor) {
   const want =
@@ -1226,7 +1434,24 @@ function scNodeEffectsFromUI() {
     blink: $("scBlink").checked,
     dim: $("scDim").checked,
     fillColor: $("scUseFill").checked ? ($("scFillColorCustom").value || scFillColor) : "",
+    ...scDurationFromUI(),
   };
+}
+/* «¿Cuánto tiempo se ve?» (presentación). Custom inválido → normal; el guardado lo rechaza antes. */
+function scDurationFromUI() {
+  const preset = scRadioValue("scVisDur", NODE_VISUAL_DURATIONS, NODE_VISUAL_DURATION_DEFAULT);
+  if (preset !== "custom") return { visualDuration: preset, visualDurationMs: NODE_VISUAL_DURATION_MS[preset] };
+  const ms = parseVisualDurationSeconds($("scDurationSeconds").value);
+  return ms === null
+    ? { visualDuration: NODE_VISUAL_DURATION_DEFAULT, visualDurationMs: NODE_VISUAL_DURATION_MS.normal }
+    : { visualDuration: "custom", visualDurationMs: ms };
+}
+function scDurationInvalid() {
+  return (
+    scWhereValue() === "element" &&
+    scRadioValue("scVisDur", NODE_VISUAL_DURATIONS, NODE_VISUAL_DURATION_DEFAULT) === "custom" &&
+    parseVisualDurationSeconds($("scDurationSeconds").value) === null
+  );
 }
 function scEditorDefinition() {
   const connection = scWhereValue() === "connection",
@@ -1365,6 +1590,8 @@ function scOpenEventDialog(id, duplicate = false) {
   $("scMessage").value = effects.message || "";
   scMessageColor = effects.messageColor || "#d0576a";
   $("scMessageColorCustom").value = scMessageColor;
+  document.querySelectorAll('input[name="scVisDur"]').forEach((e) => { e.checked = e.value === effects.visualDuration; });
+  $("scDurationSeconds").value = effects.visualDurationMs / 1000;
   $("scHighlight").checked = effects.highlight;
   $("scBlink").checked = effects.blink;
   $("scDim").checked = effects.dim;
@@ -1417,6 +1644,8 @@ function scEditorLayout() {
   if (messageConfig) messageConfig.hidden = !$("scUseMessage").checked;
   const fillConfig = $("scFillConfig");
   if (fillConfig) fillConfig.hidden = !$("scUseFill").checked;
+  const durationCustom = $("scDurationCustom");
+  if (durationCustom) durationCustom.hidden = scRadioValue("scVisDur", NODE_VISUAL_DURATIONS, NODE_VISUAL_DURATION_DEFAULT) !== "custom";
   scUpdateAccordionSummaries();
 }
 function scSetAccordionOpen(id, open) {
@@ -1574,6 +1803,10 @@ function scSaveEventType() {
   else if (def.sentenceTemplate.length > 200) message = "Acorta la frase a 200 caracteres.";
   else if ([...scVisual].length > EVENT_TOKEN_MAX_LEN)
     message = "Este símbolo es demasiado largo. Elige otro.";
+  else if (scDurationInvalid()) {
+    message = "Escribe cuántos segundos se ve, entre 0,3 y 10.";
+    scSetAccordionOpen("scAppearance", true);
+  }
   if (message) {
     error.textContent = message;
     error.hidden = false;
@@ -2099,6 +2332,8 @@ function scInitUI() {
   if ($("scMessage")) $("scMessage").oninput = scUpdateEventPreview;
   for (const name of ["scMsgSize", "scMsgWeight", "scMsgFont", "scMsgPos"])
     document.querySelectorAll('input[name="' + name + '"]').forEach((input) => (input.onchange = scUpdateEventPreview));
+  document.querySelectorAll('input[name="scVisDur"]').forEach((input) => (input.onchange = () => { scEditorLayout(); scUpdateEventPreview(); }));
+  if ($("scDurationSeconds")) $("scDurationSeconds").oninput = scUpdateEventPreview;
   bind("scChangeSymbol", () => {
     const first = $("scVisualPicker").querySelector("button");
     $("scVisualPicker").scrollIntoView?.({ block: "center" });
@@ -2149,6 +2384,12 @@ function scInitUI() {
           return;
         }
         if ($("scDetailsDialog")?.open) return;
+        if (scStoryDrag) {
+          ev.preventDefault();
+          ev.stopImmediatePropagation();
+          scStoryDragCleanup();
+          return;
+        }
         if (scPlacement || scContext || scDrag) {
           ev.preventDefault();
           ev.stopImmediatePropagation();

@@ -4,8 +4,10 @@
 
 var FluyoScenarioPlayback = (function(){
   const DEFAULT_SEND_MS = 1100;   // duración visual por defecto de la partícula SEND (normal)
-  const NODE_EFFECT_CUE_MS = 1100; // duración visual de los efectos sobre nodos
-  const TERMINAL_MS = 700;        // tiempo visible del marcador de resultado
+  const NODE_EFFECT_CUE_MS = 1500; // duración visual por defecto (Normal) de los efectos sobre nodos
+  const TERMINAL_MS = 700;        // ventana del cue breve de éxito/fallo en el Canvas (no configurable)
+  const CUE_FADE_IN_MS = 140;     // entrada de un cue de nodo
+  const CUE_FADE_OUT_MS = 280;    // salida de un cue de nodo
   const MOTION_MS = {fast:500, normal:1100, slow:1800};
 
   function sendDuration(stepMeta, stepId){
@@ -13,13 +15,29 @@ var FluyoScenarioPlayback = (function(){
     if(meta && meta.motion && MOTION_MS[meta.motion]) return MOTION_MS[meta.motion];
     return DEFAULT_SEND_MS;
   }
+  /* Duración VISUAL del cue de un Evento de elemento. Es presentación pura:
+     no interviene en el Trace ni en el orden; sólo en cuánto se ve el cue. */
+  function cueDuration(stepMeta, stepId){
+    const fx = nodeEffects(stepMeta, stepId);
+    const ms = fx && fx.visualDurationMs;
+    return (typeof ms==="number" && Number.isFinite(ms) && ms>0) ? ms : NODE_EFFECT_CUE_MS;
+  }
+  /* Envolvente de entrada/salida de un cue: alpha 0..1 y progreso de entrada 0..1.
+     Los fades se acotan a un tercio de la duración para que un cue breve siga legible. */
+  function cueEnvelope(elapsedMs, durationMs){
+    const d = Math.max(1, durationMs);
+    const fin = Math.min(CUE_FADE_IN_MS, d/3), fout = Math.min(CUE_FADE_OUT_MS, d/3);
+    const enter = fin>0 ? Math.min(1, Math.max(0, elapsedMs/fin)) : 1;
+    const exit = fout>0 ? Math.min(1, Math.max(0, (d-elapsedMs)/fout)) : 1;
+    return {alpha: Math.min(enter, exit), enter};
+  }
   function sendToken(stepMeta, stepId){
     const meta = stepMeta && stepMeta[stepId];
     return (meta && meta.token) || "";
   }
   function nodeEffects(stepMeta, stepId){
     const meta = stepMeta && stepMeta[stepId];
-    return (meta && meta.nodeEffects) || {showSymbol:false,message:"",messageColor:"",messageSize:"medium",messageWeight:"normal",messageFont:"default",messagePosition:"above",highlight:false,blink:false,dim:false,fillColor:""};
+    return (meta && meta.nodeEffects) || {showSymbol:false,message:"",messageColor:"",messageSize:"medium",messageWeight:"normal",messageFont:"default",messagePosition:"above",highlight:false,blink:false,dim:false,fillColor:"",visualDuration:"normal",visualDurationMs:NODE_EFFECT_CUE_MS};
   }
 
   function makePlayback(trace, stepMeta){
@@ -44,12 +62,12 @@ var FluyoScenarioPlayback = (function(){
     switch(ev.type){
       case "state_changed":
         pb.nodeStates[ev.nodeId] = ev.to;
-        pb.activeNodeEffects.push({stepId:ev.stepId, nodeId:ev.nodeId, virtualAt:ev.at, startedReal:pb.startedAtReal + ev.at, duration:NODE_EFFECT_CUE_MS, effects:nodeEffects(pb.stepMeta, ev.stepId), token:sendToken(pb.stepMeta, ev.stepId)});
+        pb.activeNodeEffects.push({stepId:ev.stepId, nodeId:ev.nodeId, virtualAt:ev.at, startedReal:pb.startedAtReal + ev.at, duration:cueDuration(pb.stepMeta, ev.stepId), effects:nodeEffects(pb.stepMeta, ev.stepId), token:sendToken(pb.stepMeta, ev.stepId)});
         pb.logEvents.push({at:ev.at, type:"state_changed", nodeId:ev.nodeId, from:ev.from, to:ev.to, stepId:ev.stepId});
         break;
       case "event_occurred":
-        pb.activeOccurrences.push({stepId:ev.stepId, nodeId:ev.nodeId, virtualAt:ev.at, startedReal:pb.startedAtReal + ev.at, token:sendToken(pb.stepMeta, ev.stepId)});
-        pb.activeNodeEffects.push({stepId:ev.stepId, nodeId:ev.nodeId, virtualAt:ev.at, startedReal:pb.startedAtReal + ev.at, duration:NODE_EFFECT_CUE_MS, effects:nodeEffects(pb.stepMeta, ev.stepId), token:sendToken(pb.stepMeta, ev.stepId)});
+        pb.activeOccurrences.push({stepId:ev.stepId, nodeId:ev.nodeId, virtualAt:ev.at, startedReal:pb.startedAtReal + ev.at, duration:cueDuration(pb.stepMeta, ev.stepId), token:sendToken(pb.stepMeta, ev.stepId)});
+        pb.activeNodeEffects.push({stepId:ev.stepId, nodeId:ev.nodeId, virtualAt:ev.at, startedReal:pb.startedAtReal + ev.at, duration:cueDuration(pb.stepMeta, ev.stepId), effects:nodeEffects(pb.stepMeta, ev.stepId), token:sendToken(pb.stepMeta, ev.stepId)});
         pb.logEvents.push({at:ev.at, type:"event_occurred", nodeId:ev.nodeId, stepId:ev.stepId});
         break;
       case "send_started":
@@ -105,7 +123,7 @@ var FluyoScenarioPlayback = (function(){
 
     // Promover occurrences cuyo cue ya ha terminado
     pb.activeOccurrences = pb.activeOccurrences.filter(occ => {
-      const cueEnd = occ.startedReal + NODE_EFFECT_CUE_MS;
+      const cueEnd = occ.startedReal + occ.duration;
       if(nowReal >= cueEnd){
         pb.completedOccurrences.push({
           stepId: occ.stepId,
@@ -150,13 +168,15 @@ var FluyoScenarioPlayback = (function(){
         edgeId: send.edgeId,
         progress: Math.min(1, (nowReal - send.startedReal) / send.duration),
         duration: send.duration,
-        token: send.token
+        token: send.token,
+        terminalType: send.terminal ? send.terminal.type : null,
+        terminalReason: send.terminal ? send.terminal.reason : null
       })),
-      completedSends: pb.completedSends.map(s => ({...s})),
+      completedSends: pb.completedSends.map(s => ({...s, ageMs: Math.max(0, nowReal - s.doneReal), cueMs: TERMINAL_MS})),
       activeOccurrences: pb.activeOccurrences.map(occ => ({
         stepId: occ.stepId,
         nodeId: occ.nodeId,
-        progress: Math.min(1, (nowReal - occ.startedReal) / NODE_EFFECT_CUE_MS),
+        progress: Math.min(1, (nowReal - occ.startedReal) / occ.duration),
         token: occ.token
       })),
       completedOccurrences: pb.completedOccurrences.map(o => ({...o})),
@@ -165,6 +185,9 @@ var FluyoScenarioPlayback = (function(){
         nodeId: fx.nodeId,
         progress: Math.min(1, (nowReal - fx.startedReal) / fx.duration),
         duration: fx.duration,
+        elapsedMs: Math.max(0, nowReal - fx.startedReal),
+        alpha: cueEnvelope(nowReal - fx.startedReal, fx.duration).alpha,
+        enter: cueEnvelope(nowReal - fx.startedReal, fx.duration).enter,
         effects: fx.effects,
         token: fx.token
       })),
@@ -175,5 +198,5 @@ var FluyoScenarioPlayback = (function(){
     };
   }
 
-  return {makePlayback, tick, SEND_PARTICLE_MS: DEFAULT_SEND_MS, NODE_EFFECT_CUE_MS, TERMINAL_MS, MOTION_MS};
+  return {makePlayback, tick, cueEnvelope, SEND_PARTICLE_MS: DEFAULT_SEND_MS, NODE_EFFECT_CUE_MS, TERMINAL_MS, CUE_FADE_IN_MS, CUE_FADE_OUT_MS, MOTION_MS};
 })();

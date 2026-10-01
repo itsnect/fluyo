@@ -212,16 +212,16 @@ function setupPanel(ctx, register) {
     "scVisualLabel", "scPhraseLabel", "scMessageColorLabel", "scFillColorLabel",
     "scWhere", "scConsequence", "scAppearance", "scAppearanceSummary", "scBehavior", "scBehaviorSummary", "scShowSymbol",
     "scMessage", "scMessageColorCustom", "scHighlight", "scBlink", "scDim", "scUseFill", "scFillColorCustom",
-    "scUseMessage", "scFillConfig", "scMessageConfig", "scShowSymbolConfig", "scMessageSwatches", "scFillSwatches", "scSymbolUse", "scChangeSymbol",
+    "scUseMessage", "scFillConfig", "scMessageConfig", "scShowSymbolConfig", "scMessageSwatches", "scFillSwatches", "scSymbolUse", "scChangeSymbol", "scDurationSeconds", "scDurationCustom",
   ];
   for (const id of ids) {
-    const tag = ["scWhere", "scConsequence", "scMotion", "scShowSymbol", "scUseMessage", "scHighlight", "scBlink", "scDim", "scUseFill", "scMessageColorCustom", "scFillColorCustom"].includes(id) ? "input" : "div";
+    const tag = ["scWhere", "scConsequence", "scMotion", "scShowSymbol", "scUseMessage", "scHighlight", "scBlink", "scDim", "scUseFill", "scMessageColorCustom", "scFillColorCustom", "scDurationSeconds"].includes(id) ? "input" : "div";
     const el = ctx.document.createElement(tag);
     if (id === "scSel") {
       Object.defineProperty(el, "value", { get() { return String(el._value || ""); }, set(v) { el._value = String(v); }, configurable: true });
       el.onchange = null;
     }
-    if (tag === "input") el.setAttribute("type", ["scShowSymbol", "scUseMessage", "scHighlight", "scBlink", "scDim", "scUseFill"].includes(id) ? "checkbox" : "radio");
+    if (tag === "input") el.setAttribute("type", ["scShowSymbol", "scUseMessage", "scHighlight", "scBlink", "scDim", "scUseFill"].includes(id) ? "checkbox" : (id === "scDurationSeconds" ? "number" : "radio"));
     if (id === "scWhere") { el.setAttribute("name", "scWhere"); el.setAttribute("value", "element"); }
     if (id === "scConsequence") { el.setAttribute("name", "scConsequence"); el.setAttribute("value", "none"); }
     if (id === "scMotion") { el.setAttribute("name", "scMotion"); el.setAttribute("value", "normal"); }
@@ -883,4 +883,109 @@ test("Auto-crear: Scenario no soportado activo no se oculta creando otro", () =>
   ctx.run("const sc=createScenario(P(),'Futuro'); sc.engineVersion=99; scActiveId=sc.id;");
   ctx.run("scApplyTargets(flowEt.id,[edgeId])");
   assert.equal(scCount(ctx), 1); assert.equal(stepCount(ctx), 0);
+});
+
+/* ─────────── FLUYO-012: Historia manipulable (capa UI sobre la semántica compartida) ─────────── */
+
+function story012(ctx) {
+  ctx.run(`
+    pushCount = 0; pushUndo = () => { pushCount++; };
+    const et = createEventType({name:"Recibir",primitive:"OCCURRENCE",sentenceTemplate:"{target} recibe",visual:{value:"📦"}});
+    sc = createScenario(P(), "S"); scActiveId = sc.id;
+    mk = (at) => createStep(sc, {at, action:"OCCURRENCE", nodeId:nodeId, eventTypeId:et.id});
+    a = mk(0); b = mk(1000); c = mk(5000);
+    order = () => sc.steps.map(s => s.id + "@" + s.at).join(" ");
+  `);
+}
+
+test("FLUYO-012: drag = una operación de undo, semántica de Mover antes, selección intacta", () => {
+  const { ctx } = makeScenarioUIContext();
+  buildExample(ctx);
+  story012(ctx);
+  const ids = ctx.run("[a.id,b.id,c.id].join(',')").split(",").map(Number);
+  ctx.run("scSelectedStep = 12345");
+  assert.equal(ctx.run(`scMoveStepTo(${ids[2]}, {kind:"gap", index:1})`), true);
+  assert.equal(ctx.run("pushCount"), 1);
+  assert.equal(ctx.run("order()"), `${ids[0]}@0 ${ids[2]}@1000 ${ids[1]}@5000`);
+  assert.equal(ctx.run("scSelectedStep"), 12345);
+  // equivale a Mover antes aplicado al estado original
+  ctx.run("sc.steps = [a,b,c].map(s=>({...s, at:s.at}));");
+  ctx.run(`sc.steps = [{...a,at:0},{...b,at:1000},{...c,at:5000}]`);
+  ctx.run(`pushCount=0; scMoveStep(${ids[2]}, -1)`);
+  assert.equal(ctx.run("order()"), `${ids[0]}@0 ${ids[2]}@1000 ${ids[1]}@5000`);
+  assert.equal(ctx.run("pushCount"), 1);
+});
+
+test("FLUYO-012: drop sin cambios o inválido no crea undo ni toca el documento", () => {
+  const { ctx } = makeScenarioUIContext();
+  buildExample(ctx);
+  story012(ctx);
+  const before = ctx.run("JSON.stringify(sc)");
+  const b = ctx.run("b.id");
+  assert.equal(ctx.run(`scMoveStepTo(${b}, {kind:"gap", index:1})`), false);   // hueco adyacente
+  assert.equal(ctx.run(`scMoveStepTo(${b}, {kind:"join", anchorId:${b}, after:true})`), false);
+  assert.equal(ctx.run(`scMoveStepTo(9999, {kind:"gap", index:0})`), false);
+  assert.equal(ctx.run("pushCount"), 0);
+  assert.equal(ctx.run("JSON.stringify(sc)"), before);
+});
+
+test("FLUYO-012: cancelar un arrastre activo (scStoryDragCleanup) deja documento y undo intactos", () => {
+  const { ctx } = makeScenarioUIContext();
+  buildExample(ctx);
+  story012(ctx);
+  const before = ctx.run("JSON.stringify(sc)");
+  ctx.run(`
+    handle = document.createElement("button"); handle.setPointerCapture = () => {}; handle.releasePointerCapture = () => {};
+    row = document.createElement("div");
+    scStoryDrag = { id: a.id, pointerId: 1, x: 0, y: 0, active: true, ghost: Object.assign(document.createElement("div"), {remove(){}}), line: Object.assign(document.createElement("div"), {remove(){}}), target: {kind:"gap", index:3}, row, handle };
+    scStoryDragCancel();
+  `);
+  assert.equal(ctx.run("scStoryDrag"), null);
+  assert.equal(ctx.run("JSON.stringify(sc)"), before);
+  assert.equal(ctx.run("pushCount"), 0);
+});
+
+test("FLUYO-012: durante Playback no se reordena (scMoveStepTo / scMoveStep / inicio de drag)", () => {
+  const { ctx } = makeScenarioUIContext();
+  buildExample(ctx);
+  story012(ctx);
+  ctx.run(`scStatus = "running"`);
+  const before = ctx.run("JSON.stringify(sc)");
+  assert.equal(ctx.run(`scMoveStepTo(c.id, {kind:"gap", index:0})`), false);
+  assert.equal(ctx.run(`scMoveStep(c.id, -1)`), false);
+  ctx.run(`scStoryDragStart({pointerType:"mouse", button:0, pointerId:1, clientX:0, clientY:0, preventDefault(){}}, c, document.createElement("div"), document.createElement("button"))`);
+  assert.equal(ctx.run("scStoryDrag"), null);
+  assert.equal(ctx.run("JSON.stringify(sc)"), before);
+  assert.equal(ctx.run("pushCount"), 0);
+});
+
+test("FLUYO-012: soltar dentro de un momento conserva el at y las filas vacías desaparecen de Historia", () => {
+  const { ctx } = makeScenarioUIContext();
+  buildExample(ctx);
+  story012(ctx);
+  ctx.run(`scMoveStepTo(c.id, {kind:"join", anchorId:a.id, after:true})`);
+  assert.equal(ctx.run("scGroups().length"), 2);
+  assert.equal(ctx.run("scGroups()[0].steps.map(s=>s.id).join()"), ctx.run("[a.id,c.id].join()"));
+  assert.equal(ctx.run("sc.steps.every(s => s.id === a.id || s.id === c.id ? s.at === 0 : s.at === 1000)"), true);
+});
+
+test("FLUYO-012: Historia sigue ofreciendo Mover antes/después (alternativa accesible) y handle con teclado", () => {
+  const src = read("js/editor-scenarios.js");
+  assert.ok(src.includes('label: "Mover"') && src.includes('label: "Antes"') && src.includes('label: "Después"'));
+  assert.ok(src.includes("Alt y las flechas"));
+  assert.ok(src.includes("scStoryDragCleanup") && src.includes("pointercancel"));
+  const row = src.slice(src.indexOf("function scStoryRow"), src.indexOf("function scNormText"));
+  assert.ok(/!isScenarioPlaybackActive\(\)[^]*scHandle/.test(row), "el handle no existe durante Playback");
+});
+
+test("FLUYO-012.1: Duplicar crea la copia en el mismo momento, sin inventar espera ni desplazar nada, y es un único undo", () => {
+  const { ctx } = makeScenarioUIContext();
+  buildExample(ctx);
+  story012(ctx);
+  ctx.run("pushCount = 0; scDuplicateStep(a.id)");
+  assert.equal(ctx.run("pushCount"), 1);
+  assert.equal(ctx.run("sc.steps.length"), 4);
+  // a@0, copia@0 (al mismo tiempo), b@1000, c@5000: ni espera inventada ni desplazamiento
+  assert.equal(ctx.run("scOrderedSteps().map(s => s.at).join()"), "0,0,1000,5000");
+  assert.equal(ctx.run("scOrderedSteps()[1].eventTypeId === a.eventTypeId && scOrderedSteps()[1].nodeId === a.nodeId"), true);
 });

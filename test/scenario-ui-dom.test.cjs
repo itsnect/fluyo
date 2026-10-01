@@ -495,8 +495,8 @@ test('FLUYO-011: orden cronológico conserva array order en empates',()=>{
 test('FLUYO-011: phrase builder preserva orden, literales y nombres repetidos',()=>{
  const {ctx}=composition();const input='Texto <seguro> {target} / {source} / {name} / {target} final';ctx.input=input;ctx.run('scPhraseParts=scParsePhrase(input);');assert.equal(ctx.run('scReadPhrase()'),input);
 });
-test('FLUYO-011: quitar conserva tiempos de las demás apariciones',()=>{
- const {ctx}=composition();ctx.run(`createStep(scActiveScenario(),{at:0,action:'SEND',edgeId});createStep(scActiveScenario(),{at:1000,action:'SEND',edgeId});createStep(scActiveScenario(),{at:4000,action:'SEND',edgeId});scDeleteStep(scActiveScenario().steps[1].id);`);assert.equal(JSON.stringify(ctx.run('scActiveScenario().steps.map(s=>s.at)')),'[0,4000]');
+test('FLUYO-012.1: quitar un momento colapsa su espera y conserva las demás (A·1 s·B·3 s·C → A·3 s·C)',()=>{
+ const {ctx}=composition();ctx.run(`createStep(scActiveScenario(),{at:0,action:'SEND',edgeId});createStep(scActiveScenario(),{at:1000,action:'SEND',edgeId});createStep(scActiveScenario(),{at:4000,action:'SEND',edgeId});scDeleteStep(scActiveScenario().steps[1].id);`);assert.equal(JSON.stringify(ctx.run('scActiveScenario().steps.map(s=>s.at)')),'[0,3000]');
 });
 test('FLUYO-011: interfaz normal no contiene primitivas ni campos administrativos',()=>{
  const {ctx}=composition();ctx.run('scApplyTargets(et.id,[edgeId]);');const text=ctx.document.getElementById('scEventLibrary').textContent+ctx.document.getElementById('scStoryboard').textContent;assert.doesNotMatch(text,/\b(FLOW|OCCURRENCE|SET_AVAILABILITY|UP|DOWN|override)\b/);assert.equal(ctx.document.querySelectorAll('.scStepCard').length,0);assert.equal(ctx.document.querySelectorAll('.scStepForm').length,0);

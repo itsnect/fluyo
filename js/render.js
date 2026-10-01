@@ -238,107 +238,174 @@ function drawCodeNode(c,n,theme,glow){
   c.restore();
 }
 function colHex(c){ return (typeof c==="string" && c[0]==="#")? c : "#3aa7e8"; }
-function nodeRuntimeEffects(n, sr, t){
-  const fx = defaultNodeEffects();
-  let token = "";
+function prefersReducedMotion(){
+  try{ return !!(typeof window!=="undefined" && window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches); }
+  catch(e){ return false; }
+}
+/* Cues activos de un nodo, en orden de aparición. Cada cue conserva su propia
+   identidad, alpha y duración: nada se comparte entre cues solapados. */
+function nodeRuntimeCues(n, sr){
+  const out = [];
   for(const item of sr.activeNodeEffects || []){
     if(item.nodeId !== n.id) continue;
-    const e = item.effects || defaultNodeEffects();
-    if(e.showSymbol){ fx.showSymbol = true; token = item.token || token; }
-    if(e.message){
-      fx.message = e.message; fx.messageColor = e.messageColor;
-      fx.messageSize = e.messageSize; fx.messageWeight = e.messageWeight;
-      fx.messageFont = e.messageFont; fx.messagePosition = e.messagePosition;
-    }
-    if(e.highlight) fx.highlight = true;
-    if(e.blink) fx.blink = true;
-    if(e.dim) fx.dim = true;
-    if(e.fillColor){ fx.fillColor = e.fillColor; }
+    out.push({
+      fx: Object.assign(defaultNodeEffects(), item.effects || {}),
+      token: item.token || "",
+      alpha: typeof item.alpha==="number" ? item.alpha : 1,
+      enter: typeof item.enter==="number" ? item.enter : 1
+    });
   }
-  const blinkAlpha = fx.blink ? (Math.sin(t*Math.PI*2)+1)/2*0.7+0.3 : 1;
-  return { fx, token, blinkAlpha };
+  return out;
 }
-function drawWrappedMessage(c, text, x, y, maxWidth, lineHeight){
-  const words = text.split(/\s+/).filter(Boolean);
-  let line = "", lines = [];
-  for(const w of words){
-    const test = line ? line + " " + w : w;
-    if(c.measureText(test).width > maxWidth && line){
-      lines.push(line);
-      line = w;
-    } else {
-      line = test;
+/* Política de composición (FLUYO-012.1): los cues con símbolo o mensaje de un mismo
+   nodo se APILAN, el más reciente pegado al elemento y los anteriores más lejos, hasta
+   NODE_CUE_STACK_MAX. Cada uno conserva su propio fade y duración, así que al terminar
+   el reciente los demás bajan de sitio sin perderse. Un cue con mensaje en «Centro» sólo
+   se dibuja si es el más reciente de los centrales. */
+const NODE_CUE_STACK_MAX = 3;
+function nodeTextCues(cues){
+  const out = [];
+  let centerTaken = false;
+  for(let i=cues.length-1;i>=0 && out.length<NODE_CUE_STACK_MAX;i--){
+    const q=cues[i];
+    if(!((q.fx.showSymbol && q.token) || q.fx.message)) continue;
+    if(q.fx.message && q.fx.messagePosition==="center"){
+      if(centerTaken) continue;
+      centerTaken = true;
     }
+    out.push(q);
   }
-  if(line) lines.push(line);
-  for(let i=0;i<lines.length;i++) c.fillText(lines[i], x, y + i*lineHeight);
-  return lines.length;
+  return out;   // del más reciente al más antiguo
 }
-function drawScenarioNodeOverlay(c,n,t,state,theme,rs){
-  if(!rs || !rs.scenarioRuntime) return;
-  const sr = rs.scenarioRuntime;
-  const { fx, token, blinkAlpha } = nodeRuntimeEffects(n, sr, t);
-  const isDown = state === "DOWN";
-  if(!fx.showSymbol && !fx.message && !fx.highlight && !fx.blink && !fx.dim && !fx.fillColor && !isDown) return;
-  c.save();
-  c.globalAlpha = blinkAlpha;
-  // Color temporal
-  if(fx.fillColor){
-    c.globalCompositeOperation = "source-atop";
-    c.fillStyle = hexA(fx.fillColor, 0.35);
-    shapePath(c,n); c.fill();
-    c.globalCompositeOperation = "source-over";
-  }
-  // Oscurecimiento persistente por estado DOWN o efecto dim
-  if(isDown || fx.dim){
-    c.fillStyle = isDown ? "rgba(0,0,0,0.28)" : "rgba(0,0,0,0.40)";
-    shapePath(c,n); c.fill();
-  }
-  // Resaltar
-  if(fx.highlight){
-    c.shadowColor = "#3aa7e8"; c.shadowBlur = 14;
-    c.strokeStyle = "rgba(58,167,232,.85)"; c.lineWidth = 2.5;
-    shapePath(c,n); c.stroke();
-    c.shadowBlur = 0;
-  }
+const NODE_CUE_SYMBOL_PX = 22, NODE_CUE_GAP = 6, NODE_CUE_NODE_GAP = 8, NODE_CUE_PAD = 7;
+/* Layout puro de símbolo + mensaje de un nodo (sin dibujar). `measure(text,font)`
+   devuelve el ancho en px. Símbolo y mensaje se componen juntos: nunca se
+   superponen. Devuelve rectángulos en coordenadas de mundo. */
+function computeNodeCueLayout(n, fx, token, measure, offset){
   const top = n.y - n.h/2, bottom = n.y + n.h/2;
-  // Símbolo principal del Evento (única fuente: EventType.visual.value), sobre el elemento
-  let symTop = top;
-  if(fx.showSymbol && token){
-    c.font = '20px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", Georgia, serif';
-    c.textAlign = "center"; c.textBaseline = "middle";
-    c.fillStyle = "#fff"; c.strokeStyle = "rgba(0,0,0,.55)"; c.lineWidth = 3;
-    const iy = top - 14;
-    c.strokeText(token, n.x, iy); c.fillText(token, n.x, iy);
-    symTop = top - 28;
+  const off = Object.assign({above:0, below:0}, offset);
+  const out = { symbol:null, message:null, extent:{above:off.above, below:off.below} };
+  const hasSymbol = !!(fx.showSymbol && token);
+  let cursorTop = top - off.above;   // borde superior libre sobre el nodo (o sobre el cue anterior)
+  if(hasSymbol){
+    const size = NODE_CUE_SYMBOL_PX;
+    const gap = off.above>0 ? NODE_CUE_GAP : NODE_CUE_NODE_GAP;
+    out.symbol = { x:n.x, y:cursorTop - gap - size/2, size, text:token };
+    cursorTop = cursorTop - gap - size;
+    out.extent.above = top - cursorTop;
   }
-  // Mensaje: tamaño, peso, tipografía y posición vienen de nodeMessageStyle
   if(fx.message){
     const st = nodeMessageStyle(fx);
-    const maxW = Math.min(260, Math.max(120, n.w + 40));
-    c.font = st.weight + " " + st.px + 'px ' + st.family;
-    const pad = 6, lineH = Math.round(st.px * 1.3);
+    const pad = NODE_CUE_PAD;
+    const center = st.position === "center";
+    const maxW = center ? Math.max(96, n.w - 10) : Math.min(260, Math.max(140, n.w + 60));
+    const font = st.weight + " " + st.px + "px " + st.family;
     const lines = [];
     let line = "";
-    for(const w of fx.message.split(/\s+/).filter(Boolean)){
+    for(const w of String(fx.message).split(/\s+/).filter(Boolean)){
       const test = line ? line + " " + w : w;
-      if(c.measureText(test).width > maxW - pad*2 && line){ lines.push(line); line = w; }
+      if(measure(test,font) > maxW - pad*2 && line){ lines.push(line); line = w; }
       else line = test;
     }
     if(line) lines.push(line);
-    const msgW = Math.min(maxW, Math.max(...lines.map(l=>c.measureText(l).width)) + pad*2);
-    const msgH = lines.length*lineH + pad*2;
-    const mx = n.x - msgW/2;
-    let my;
-    if(st.position === "below") my = bottom + 8;
-    else if(st.position === "center") my = n.y - msgH/2;
-    else my = symTop - 6 - msgH;
-    c.fillStyle = fx.messageColor || "#d0576a";
-    c.beginPath(); roundRect(c,mx,my,msgW,msgH,5); c.fill();
-    c.fillStyle = "#fff"; c.textAlign = "center"; c.textBaseline = "top";
-    for(let i=0;i<lines.length;i++) c.fillText(lines[i], n.x, my+pad+i*lineH);
+    const lineH = Math.round(st.px * 1.3);
+    const w = Math.min(maxW, Math.max(0, ...lines.map(l=>measure(l,font))) + pad*2);
+    const h = lines.length*lineH + pad*2 - 2;
+    let y;
+    if(st.position === "below") y = bottom + off.below + NODE_CUE_NODE_GAP + 4;
+    else if(center) y = n.y - h/2;
+    else y = cursorTop - (hasSymbol || off.above>0 ? NODE_CUE_GAP : NODE_CUE_NODE_GAP + 2) - h;
+    if(st.position === "below") out.extent.below = y + h - bottom;
+    else if(!center) out.extent.above = top - y;
+    out.message = { x:n.x - w/2, y, w, h, lines, lineH, font, pad, position:st.position };
   }
+  return out;
+}
+function drawNodeCueMessage(c, m, fx){
+  const col = fx.messageColor || "#d0576a";
+  c.save();
+  c.shadowColor = "rgba(0,0,0,.22)"; c.shadowBlur = 8; c.shadowOffsetY = 2;
+  c.fillStyle = m.position === "center" ? hexA(col, 0.92) : col;
+  c.beginPath(); roundRect(c,m.x,m.y,m.w,m.h,7); c.fill();
+  c.shadowBlur = 0; c.shadowOffsetY = 0;
+  // colita hacia el elemento: hace que el mensaje pertenezca al diagrama
+  if(m.position === "above" || m.position === "below"){
+    const cx = m.x + m.w/2, tip = 5;
+    c.beginPath();
+    if(m.position === "above"){ c.moveTo(cx-5,m.y+m.h-0.5); c.lineTo(cx+5,m.y+m.h-0.5); c.lineTo(cx,m.y+m.h+tip); }
+    else { c.moveTo(cx-5,m.y+0.5); c.lineTo(cx+5,m.y+0.5); c.lineTo(cx,m.y-tip); }
+    c.closePath(); c.fill();
+  }
+  c.font = m.font; c.fillStyle = "#fff"; c.textAlign = "center"; c.textBaseline = "top";
+  for(let i=0;i<m.lines.length;i++) c.fillText(m.lines[i], m.x + m.w/2, m.y + m.pad - 1 + i*m.lineH);
   c.restore();
+}
+/* Segundo pase: símbolo y mensaje por encima de conexiones, tokens y nodos. */
+function drawScenarioNodeCue(c,n,t,rs){
+  if(!rs || !rs.scenarioRuntime) return;
+  const stack = nodeTextCues(nodeRuntimeCues(n, rs.scenarioRuntime));
+  if(!stack.length) return;
+  const reduced = prefersReducedMotion();
+  const measure = (text,font)=>{ c.font = font; return c.measureText(text).width; };
+  const offset = {above:0, below:0};
+  for(const cue of stack){
+    const layout = computeNodeCueLayout(n, cue.fx, cue.token, measure, offset);
+    offset.above = layout.extent.above; offset.below = layout.extent.below;
+    if(cue.alpha <= 0) continue;
+    const fx = cue.fx;
+    const s = reduced ? 1 : 0.92 + 0.08*cue.enter;
+    c.save();
+    c.globalAlpha = cue.alpha;
+    c.translate(n.x, n.y); c.scale(s,s); c.translate(-n.x, -n.y);
+    if(layout.message) drawNodeCueMessage(c, layout.message, fx);
+    if(layout.symbol){
+      const sy = layout.symbol;
+      c.font = sy.size + 'px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", Georgia, serif';
+      c.textAlign = "center"; c.textBaseline = "middle";
+      c.shadowColor = "rgba(0,0,0,.35)"; c.shadowBlur = 5; c.shadowOffsetY = 1;
+      c.fillStyle = "#fff";
+      c.fillText(sy.text, sy.x, sy.y);
+    }
+    c.restore();
+  }
+}
+/* Primer pase (dentro de drawNode): color temporal, oscurecido y resaltado,
+   recortados a la geometría real del nodo. Runtime-only: no toca el documento. */
+function drawScenarioNodeOverlay(c,n,t,state,theme,rs){
+  if(!rs || !rs.scenarioRuntime) return;
+  const cues = nodeRuntimeCues(n, rs.scenarioRuntime);
+  const isDown = state === "DOWN";
+  if(!cues.length && !isDown) return;
+  const reduced = prefersReducedMotion();
+  const box = [n.x-n.w/2-2, n.y-n.h/2-2, n.w+4, n.h+4];
+  if(isDown){
+    c.save(); shapePath(c,n); c.clip();
+    c.fillStyle = "rgba(0,0,0,0.26)"; c.fillRect(...box);
+    c.restore();
+  }
+  for(const q of cues){
+    const fx = q.fx;
+    if(!fx.fillColor && !fx.dim && !fx.highlight && !fx.blink) continue;
+    const blink = fx.blink && !reduced ? (Math.sin(t*Math.PI*2)+1)/2*0.6+0.4 : 1;
+    c.save();
+    c.globalAlpha = q.alpha * blink;
+    if(fx.fillColor){
+      c.save(); shapePath(c,n); c.clip();
+      c.fillStyle = hexA(fx.fillColor, 0.38); c.fillRect(...box);
+      c.restore();
+    }
+    if(fx.dim){
+      c.save(); shapePath(c,n); c.clip();
+      c.fillStyle = "rgba(0,0,0,0.30)"; c.fillRect(...box);
+      c.restore();
+    }
+    if(fx.highlight || (fx.blink && !fx.fillColor && !fx.dim)){
+      c.shadowColor = "#3aa7e8"; c.shadowBlur = 14;
+      c.strokeStyle = "rgba(58,167,232,.9)"; c.lineWidth = 2.5;
+      shapePath(c,n); c.stroke();
+    }
+    c.restore();
+  }
 }
 
 function drawNode(c,n,t,theme,isExport,rs){
@@ -582,6 +649,11 @@ function drawScenarioEdgeOverlay(c,e,pts,active,completed,theme,rs){
       token = et && et.visual.value ? et.visual.value : "";
     }
     c.save();
+    /* Un SEND que va a fallar se desvanece en el último tramo en vez de desaparecer de golpe. */
+    if(send.terminalType==="send_failed"){
+      const fade = send.terminalReason==="source_down" ? 0 : Math.min(1, Math.max(0, (1-send.progress)/0.3));
+      c.globalAlpha = Math.max(0.25, fade);
+    }
     if(token){
       c.font = 'bold 20px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", Georgia, serif';
       c.textAlign = "center"; c.textBaseline = "middle";
@@ -592,8 +664,22 @@ function drawScenarioEdgeOverlay(c,e,pts,active,completed,theme,rs){
     }
     c.restore();
   }
-  // Los resultados terminados se comunican principalmente en Historia.
-  // El canvas solo conserva partículas activas; no dibuja badges permanentes.
+  // Los resultados se comunican principalmente en Historia. En el Canvas sólo hay un
+  // cue breve (pulso que se expande y se desvanece); nunca un badge permanente.
+  for(const s of completed){
+    const k = Math.min(1, Math.max(0, (s.ageMs||0)/(s.cueMs||700)));
+    if(k>=1) continue;
+    const failed = s.terminalType==="send_failed";
+    const at = failed && s.terminalReason==="source_down" ? pts[0] : pts[pts.length-1];
+    const reduced = prefersReducedMotion();
+    const r = reduced ? 16 : 7 + 16*k;
+    c.save();
+    c.globalAlpha = (1-k)*(failed?0.85:0.7);
+    c.strokeStyle = failed ? "#d0576a" : "#7bb85b";
+    c.lineWidth = failed ? 2.6 : 2.2;
+    c.beginPath(); c.arc(at.x,at.y,r,0,Math.PI*2); c.stroke();
+    c.restore();
+  }
 }
 
 function drawEdge(c,e,t,theme,isExport,rs){
@@ -821,6 +907,9 @@ function render(c,t,opts={}){
   for(const e of P().edges) drawEdge(c,e,t,theme,isExport,rs);
   if(!rs.scenarioRuntime) drawFlowBalls(c,t);
   for(const n of P().nodes) drawNode(c,n,t,theme,isExport,rs);
+  /* Z-order de Scenarios: base → fill/dim/highlight (drawNode) → conexiones y tokens
+     → símbolo/mensaje del cue → UI de selección/interacción. */
+  if(rs.scenarioRuntime) for(const n of P().nodes) drawScenarioNodeCue(c,n,t,rs);
 
   const I=rs.interaction, S=rs.selection;
   if(!vp.presenting && I.mode==="select" && !I.drag && !I.resizing && !I.wpDrag && !I.connectDrag && !I.endDrag && !I.marquee && !I.pendingShape && !I.pendingIcon && !I.pendingAnim){

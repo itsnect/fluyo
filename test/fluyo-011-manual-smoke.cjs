@@ -29,6 +29,8 @@ async function cleanState(page) {
 }
 
 async function pickSegmented(page, name, value) {
+  /* FLUYO-015: la velocidad (scMotion) vive en «Más detalles», cerrado por defecto. */
+  if (name === "scMotion") await page.evaluate(() => document.getElementById("scFlowMore")?.setAttribute("open", ""));
   await page.locator(`.scSegmented label:has(input[name=${name}][value=${value}]) span`).click();
 }
 async function pickChoice(page, name, value) {

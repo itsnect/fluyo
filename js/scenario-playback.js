@@ -35,6 +35,11 @@ var FluyoScenarioPlayback = (function(){
     const meta = stepMeta && stepMeta[stepId];
     return (meta && meta.token) || "";
   }
+  /* FLUYO-015: especificación visual del símbolo en movimiento (presentación pura). */
+  function sendConnection(stepMeta, stepId){
+    const meta = stepMeta && stepMeta[stepId];
+    return (meta && meta.connection) || null;
+  }
   function nodeEffects(stepMeta, stepId){
     const meta = stepMeta && stepMeta[stepId];
     return (meta && meta.nodeEffects) || {showSymbol:false,message:"",messageColor:"",messageSize:"medium",messageWeight:"normal",messageFont:"default",messagePosition:"above",highlight:false,blink:false,dim:false,fillColor:"",visualDuration:"normal",visualDurationMs:NODE_EFFECT_CUE_MS};
@@ -73,7 +78,7 @@ var FluyoScenarioPlayback = (function(){
       case "send_started":
         // El tiempo real de inicio de la partícula deriva del tiempo virtual,
         // para que saltos del cursor conserven la duración visual correcta.
-        pb.activeSends.push({stepId:ev.stepId, edgeId:ev.edgeId, virtualAt:ev.at, terminal:null, startedReal:pb.startedAtReal + ev.at, duration:sendDuration(pb.stepMeta, ev.stepId), token:sendToken(pb.stepMeta, ev.stepId)});
+        pb.activeSends.push({stepId:ev.stepId, edgeId:ev.edgeId, virtualAt:ev.at, terminal:null, startedReal:pb.startedAtReal + ev.at, duration:sendDuration(pb.stepMeta, ev.stepId), token:sendToken(pb.stepMeta, ev.stepId), connection:sendConnection(pb.stepMeta, ev.stepId)});
         pb.logEvents.push({at:ev.at, type:"send_started", edgeId:ev.edgeId, stepId:ev.stepId});
         break;
       case "send_succeeded":
@@ -83,7 +88,7 @@ var FluyoScenarioPlayback = (function(){
           send.terminal = {type:ev.type, reason:ev.reason};
         } else {
           // Terminal sin started previo (no debería ocurrir en v1): mostrar como completado inmediato
-          pb.completedSends.push({stepId:ev.stepId, edgeId:ev.edgeId, virtualAt:ev.at, terminalType:ev.type, terminalReason:ev.reason, doneReal:nowReal, token:sendToken(pb.stepMeta, ev.stepId)});
+          pb.completedSends.push({stepId:ev.stepId, edgeId:ev.edgeId, virtualAt:ev.at, terminalType:ev.type, terminalReason:ev.reason, doneReal:nowReal, token:sendToken(pb.stepMeta, ev.stepId), connection:sendConnection(pb.stepMeta, ev.stepId)});
         }
         pb.logEvents.push({at:ev.at, type:ev.type, edgeId:ev.edgeId, stepId:ev.stepId, reason:ev.reason});
         break;
@@ -114,7 +119,8 @@ var FluyoScenarioPlayback = (function(){
           terminalType: send.terminal.type,
           terminalReason: send.terminal.reason,
           doneReal: particleEnd,
-          token: send.token
+          token: send.token,
+          connection: send.connection
         });
         return false;
       }
@@ -169,6 +175,7 @@ var FluyoScenarioPlayback = (function(){
         progress: Math.min(1, (nowReal - send.startedReal) / send.duration),
         duration: send.duration,
         token: send.token,
+        connection: send.connection || null,
         terminalType: send.terminal ? send.terminal.type : null,
         terminalReason: send.terminal ? send.terminal.reason : null
       })),

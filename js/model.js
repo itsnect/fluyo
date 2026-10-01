@@ -63,6 +63,16 @@ const NODE_MESSAGE_SIZES=["small","medium","large"];
 const NODE_MESSAGE_WEIGHTS=["normal","semibold","bold"];
 const NODE_MESSAGE_FONTS=["default","sans","mono"];
 const NODE_MESSAGE_POSITIONS=["above","center","below"];
+/* FLUYO-015: lenguaje visual del símbolo en movimiento. Presentación pura: el
+   motor y el Trace no conocen estos valores. Listas cerradas, sin valores libres. */
+const SYMBOL_SIZES=["small","medium","large"];
+const SYMBOL_SIZE_PX={small:15, medium:20, large:28};
+const SYMBOL_NODE_PX={small:16, medium:22, large:32};   // símbolo de un Evento de elemento (cue sobre el nodo)
+const SYMBOL_SIZE_DEFAULT="medium";
+const FLOW_STYLES=["direct","smooth","impulse"];
+const FLOW_TRAILS=["none","subtle","marked"];
+const FLOW_ARRIVALS=["none","pulse","glow","bounce"];
+const FLOW_DURINGS=["none","halo","breathe"];
 /* Duración VISUAL del cue de un Evento de elemento (presentación pura: nunca
    toca step.at, Trace ni consecuencias). Presets + personalizado en ms. */
 const NODE_VISUAL_DURATIONS=["brief","normal","long","custom"];
@@ -78,8 +88,35 @@ const NODE_MESSAGE_FONT_STACK={
   sans:"'Segoe UI', system-ui, Arial, Helvetica, sans-serif",
   mono:'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace'
 };
+function defaultConnectionEffects(){
+  return { size:SYMBOL_SIZE_DEFAULT, style:"direct", trail:"none", arrival:"none", during:"none" };
+}
+/* Campo a campo: lo inválido vuelve al defecto (nunca lanza). */
+function normalizeConnectionEffects(fx){
+  const out=defaultConnectionEffects();
+  if(!projectObject(fx)) return out;
+  if(SYMBOL_SIZES.includes(fx.size)) out.size=fx.size;
+  if(FLOW_STYLES.includes(fx.style)) out.style=fx.style;
+  if(FLOW_TRAILS.includes(fx.trail)) out.trail=fx.trail;
+  if(FLOW_ARRIVALS.includes(fx.arrival)) out.arrival=fx.arrival;
+  if(FLOW_DURINGS.includes(fx.during)) out.during=fx.during;
+  return out;
+}
+/* Única especificación que consumen Playback (Editor/Present/Viewer) y el preview del modal. */
+function connectionVisualSpec(et){
+  const fx=normalizeConnectionEffects(et && et.presentation && et.presentation.connectionEffects);
+  return Object.assign({}, fx, { symbol: eventSymbol(et), px: SYMBOL_SIZE_PX[fx.size] });
+}
+/* Presentación completa de un EventType: conserva ambas ramas, sólo escribe las presentes. */
+function normalizePresentation(p){
+  const out={};
+  if(!projectObject(p)) return out;
+  if(p.nodeEffects!==undefined) out.nodeEffects=normalizeNodeEffects(p.nodeEffects);
+  if(p.connectionEffects!==undefined) out.connectionEffects=normalizeConnectionEffects(p.connectionEffects);
+  return out;
+}
 function defaultNodeEffects(){
-  return { showSymbol:false, message:"", messageColor:"", messageSize:"medium", messageWeight:"normal", messageFont:"default", messagePosition:"above", highlight:false, blink:false, dim:false, fillColor:"", visualDuration:NODE_VISUAL_DURATION_DEFAULT, visualDurationMs:NODE_VISUAL_DURATION_MS.normal };
+  return { showSymbol:false, symbolSize:SYMBOL_SIZE_DEFAULT, message:"", messageColor:"", messageSize:"medium", messageWeight:"normal", messageFont:"default", messagePosition:"above", highlight:false, blink:false, dim:false, fillColor:"", visualDuration:NODE_VISUAL_DURATION_DEFAULT, visualDurationMs:NODE_VISUAL_DURATION_MS.normal };
 }
 function normalizeNodeEffects(effects){
   const out=defaultNodeEffects();
@@ -87,6 +124,7 @@ function normalizeNodeEffects(effects){
   /* showIcon es el nombre previo (FLUYO-011 sin publicar): mismo booleano. */
   if(typeof effects.showSymbol==="boolean") out.showSymbol=effects.showSymbol;
   else if(typeof effects.showIcon==="boolean") out.showSymbol=effects.showIcon;
+  if(SYMBOL_SIZES.includes(effects.symbolSize)) out.symbolSize=effects.symbolSize;
   if(typeof effects.message==="string") out.message=effects.message.slice(0,NODE_EFFECT_MAX_MESSAGE_LEN);
   if(typeof effects.messageColor==="string" && /^#[0-9a-fA-F]{6}$/.test(effects.messageColor)) out.messageColor=effects.messageColor;
   if(NODE_MESSAGE_SIZES.includes(effects.messageSize)) out.messageSize=effects.messageSize;
@@ -152,6 +190,9 @@ function normalizeEventTypePresentation(et){
       et.visual.value=raw.icon;
     }
     et.presentation.nodeEffects=norm;
+  }
+  if(et.presentation.connectionEffects!==undefined){
+    et.presentation.connectionEffects=normalizeConnectionEffects(et.presentation.connectionEffects);
   }
 }
 
@@ -258,6 +299,8 @@ function createEventType(definition){
   let presentation;
   if(definition.presentation!==undefined){
     presentation={ nodeEffects: normalizeNodeEffects(definition.presentation&&definition.presentation.nodeEffects) };
+    if(projectObject(definition.presentation) && definition.presentation.connectionEffects!==undefined)
+      presentation.connectionEffects=normalizeConnectionEffects(definition.presentation.connectionEffects);
   }
   let maxId=0;
   for(const et of doc.eventTypes) maxId=Math.max(maxId,et.id);
@@ -302,7 +345,10 @@ function updateEventType(id, changes){
     et.motion=m;
   }
   if(changes.presentation!==undefined){
-    et.presentation={ nodeEffects: normalizeNodeEffects(changes.presentation&&changes.presentation.nodeEffects) };
+    const np={ nodeEffects: normalizeNodeEffects(changes.presentation&&changes.presentation.nodeEffects) };
+    if(projectObject(changes.presentation) && changes.presentation.connectionEffects!==undefined)
+      np.connectionEffects=normalizeConnectionEffects(changes.presentation.connectionEffects);
+    et.presentation=np;
   }
   if(changes.primitive!==undefined && !used){
     if(!EVENT_TYPE_PRIMITIVES.has(changes.primitive)) throw projectDataError();
@@ -697,6 +743,9 @@ if(typeof window!=="undefined"){
   window.NODE_EFFECT_MAX_MESSAGE_LEN=NODE_EFFECT_MAX_MESSAGE_LEN;
   window.defaultNodeEffects=defaultNodeEffects;
   window.normalizeNodeEffects=normalizeNodeEffects;
+  window.normalizeConnectionEffects=normalizeConnectionEffects;
+  window.defaultConnectionEffects=defaultConnectionEffects;
+  window.connectionVisualSpec=connectionVisualSpec;
   window.nodeEffectDurationMs=nodeEffectDurationMs;
   window.parseVisualDurationSeconds=parseVisualDurationSeconds;
 }

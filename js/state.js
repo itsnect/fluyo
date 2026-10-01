@@ -136,6 +136,9 @@ function syncProjectControls(){
 }
 function applyProjectData(d){
   const normalized=projectFromProjectData(d);
+  /* FLUYO-015 (QA): un Playback en curso pertenece al documento anterior; al cambiar de documento
+     no puede quedar ningún símbolo animándose sobre el nuevo. */
+  if(typeof isScenarioPlaybackActive==="function" && isScenarioPlaybackActive() && typeof scReset==="function") scReset();
   runWithoutAutosave(()=>{
     doc=normalized.doc;
     undoStack.length=0; redoStack.length=0;

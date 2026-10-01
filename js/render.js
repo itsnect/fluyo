@@ -288,7 +288,7 @@ function computeNodeCueLayout(n, fx, token, measure, offset){
   const hasSymbol = !!(fx.showSymbol && token);
   let cursorTop = top - off.above;   // borde superior libre sobre el nodo (o sobre el cue anterior)
   if(hasSymbol){
-    const size = NODE_CUE_SYMBOL_PX;
+    const size = SYMBOL_NODE_PX[fx.symbolSize] || NODE_CUE_SYMBOL_PX;
     const gap = off.above>0 ? NODE_CUE_GAP : NODE_CUE_NODE_GAP;
     out.symbol = { x:n.x, y:cursorTop - gap - size/2, size, text:token };
     cursorTop = cursorTop - gap - size;
@@ -635,33 +635,116 @@ function drawFlowBalls(c,t){
     }
   }
 }
-function drawScenarioEdgeOverlay(c,e,pts,active,completed,theme,rs){
-  if(pts.length<2) return;
-  const T=THEMES[theme];
-  // Partículas SEND activas
-  const scenario = rs.scenarioRuntime && rs.scenarioRuntime.scenario ? rs.scenarioRuntime.scenario : null;
-  for(const send of active){
-    const p=pointAt(pts, send.progress);
-    let token = send.token || "";
-    if(!token){
-      const step = scenario ? scenario.steps.find(s => s.id === send.stepId) : null;
-      const et = step && step.eventTypeId ? eventTypeById(step.eventTypeId) : null;
-      token = et && et.visual.value ? et.visual.value : "";
+/* ===== FLUYO-015: lenguaje visual del símbolo en movimiento =====
+   ÚNICO pintor del símbolo que recorre una conexión. Lo usan Playback (Editor,
+   Present, Viewer) y el preview del modal de Evento: misma función, mismos datos.
+   Es función pura de progress/ageMs: sin timers, estado ni listeners. El motor y
+   el Trace no conocen nada de esto. */
+const FLOW_EMOJI_FONT = '"Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", Georgia, serif';
+const FLOW_ACCENT = "#3aa7e8";
+const FLOW_EASINGS = {
+  direct: t => t,
+  smooth: t => 0.5 - 0.5*Math.cos(Math.PI*t),
+  impulse: t => t<0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2, 3)/2
+};
+const FLOW_TRAIL_SPEC = { subtle:{len:34, w:5, a:0.32, ghosts:0}, marked:{len:86, w:7, a:0.5, ghosts:3} };
+function flowEase(style, t){
+  const k = Math.min(1, Math.max(0, t));
+  return (FLOW_EASINGS[style] || FLOW_EASINGS.direct)(k);
+}
+function flowSpec(connection){
+  const fx = normalizeConnectionEffects(connection);
+  fx.px = SYMBOL_SIZE_PX[fx.size];
+  return fx;
+}
+function flowText(c, text, x, y, px, T, alpha){
+  c.save();
+  if(alpha!==undefined) c.globalAlpha *= alpha;
+  c.font = `bold ${px}px ${FLOW_EMOJI_FONT}`;
+  c.textAlign = "center"; c.textBaseline = "middle";
+  c.fillStyle = T.text; c.fillText(text, x, y);
+  c.restore();
+}
+function flowGlow(c, x, y, r, a){
+  const g = c.createRadialGradient(x, y, 0, x, y, r);
+  g.addColorStop(0, hexA(FLOW_ACCENT, a)); g.addColorStop(1, hexA(FLOW_ACCENT, 0));
+  c.save(); c.fillStyle = g; c.beginPath(); c.arc(x, y, r, 0, Math.PI*2); c.fill(); c.restore();
+}
+/* Símbolo en tránsito: forma de moverse + rastro + efecto durante el viaje. */
+function drawEventToken(c, pts, send, T){
+  const spec = flowSpec(send.connection);
+  const e = flowEase(spec.style, send.progress);
+  const p = pointAt(pts, e);
+  const reduced = prefersReducedMotion();
+  const token = send.token || "";
+  const px = spec.px;
+  if(spec.trail !== "none"){
+    const tr = FLOW_TRAIL_SPEC[spec.trail], L = polyLen(pts) || 1;
+    const f0 = Math.max(0, e - tr.len/L);
+    if(e > f0){
+      const N = 8;
+      c.save(); c.strokeStyle = T.text; c.lineCap = "round";
+      let prev = pointAt(pts, f0);
+      for(let i=1;i<=N;i++){
+        const q = pointAt(pts, f0 + (e-f0)*i/N), k = i/N;
+        c.save(); c.globalAlpha = c.globalAlpha * tr.a * k * k; c.lineWidth = Math.max(1, tr.w*k*px/20);
+        c.beginPath(); c.moveTo(prev.x, prev.y); c.lineTo(q.x, q.y); c.stroke(); c.restore();
+        prev = q;
+      }
+      c.restore();
+      if(tr.ghosts && token){
+        for(let g=1; g<=tr.ghosts; g++){
+          const gf = e - (tr.len/L)*(g/tr.ghosts);
+          if(gf <= 0) continue;
+          const gp = pointAt(pts, gf);
+          flowText(c, token, gp.x, gp.y, px*(1-0.12*g), T, 0.34/g);
+        }
+      }
     }
+  }
+  const elapsed = send.progress * (send.duration || 1100);
+  if(spec.during === "halo") flowGlow(c, p.x, p.y, px*1.15, 0.45);
+  const scale = (spec.during === "breathe" && !reduced) ? 1 + 0.1*Math.sin(elapsed/1000*Math.PI*2*1.3) : 1;
+  if(token){
+    flowText(c, token, p.x, p.y, px*scale, T);
+  } else {
+    c.save(); c.fillStyle = "#d08b5b"; c.shadowColor = "#d08b5b"; c.shadowBlur = 12;
+    c.beginPath(); c.arc(p.x, p.y, 6*px/20*scale, 0, Math.PI*2); c.fill(); c.restore();
+  }
+}
+/* Reacción breve en el destino (ventana existente de 700 ms). Sólo si llegó. */
+function drawEventArrival(c, pts, done, T){
+  if(!done || done.terminalType !== "send_succeeded" || !done.token) return;
+  const spec = flowSpec(done.connection);
+  if(spec.arrival === "none") return;
+  const k = Math.min(1, Math.max(0, (done.ageMs||0)/(done.cueMs||700)));
+  if(k >= 1) return;
+  const at = pts[pts.length-1], px = spec.px, reduced = prefersReducedMotion();
+  let dy = 0, alpha = 1 - k*k;
+  if(spec.arrival === "pulse"){
+    const r = px*(0.7 + (reduced ? 0.6 : 1.1)*k);
+    c.save(); c.globalAlpha *= (1-k)*0.7; c.strokeStyle = FLOW_ACCENT; c.lineWidth = 2.4;
+    c.beginPath(); c.arc(at.x, at.y, r, 0, Math.PI*2); c.stroke(); c.restore();
+  } else if(spec.arrival === "glow"){
+    flowGlow(c, at.x, at.y, px*(1.0 + (reduced ? 0 : 0.9*k)), 0.7*(1-k));
+  } else if(spec.arrival === "bounce" && !reduced){
+    dy = -Math.abs(Math.sin(k*Math.PI*2.5)) * px*0.7 * (1-k);
+  }
+  flowText(c, done.token, at.x, at.y + dy, px, T, alpha);
+}
+
+/* Pinta envíos activos y su cue de llegada sobre `pts`. Lo comparten el overlay de
+   Playback y el preview del modal de Evento (mismos datos, mismo código). */
+function drawFlowOverlay(c,pts,active,completed,T){
+  if(pts.length<2) return;
+  for(const send of active){
     c.save();
     /* Un SEND que va a fallar se desvanece en el último tramo en vez de desaparecer de golpe. */
     if(send.terminalType==="send_failed"){
       const fade = send.terminalReason==="source_down" ? 0 : Math.min(1, Math.max(0, (1-send.progress)/0.3));
       c.globalAlpha = Math.max(0.25, fade);
     }
-    if(token){
-      c.font = 'bold 20px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", Georgia, serif';
-      c.textAlign = "center"; c.textBaseline = "middle";
-      c.fillStyle = T.text; c.fillText(token, p.x, p.y);
-    } else {
-      c.fillStyle="#d08b5b"; c.shadowColor="#d08b5b"; c.shadowBlur=12;
-      c.beginPath(); c.arc(p.x,p.y,6,0,Math.PI*2); c.fill();
-    }
+    drawEventToken(c, pts, send, T);
     c.restore();
   }
   // Los resultados se comunican principalmente en Historia. En el Canvas sólo hay un
@@ -670,6 +753,7 @@ function drawScenarioEdgeOverlay(c,e,pts,active,completed,theme,rs){
     const k = Math.min(1, Math.max(0, (s.ageMs||0)/(s.cueMs||700)));
     if(k>=1) continue;
     const failed = s.terminalType==="send_failed";
+    if(!failed && flowSpec(s.connection).arrival!=="none" && s.token){ drawEventArrival(c,pts,s,T); continue; }
     const at = failed && s.terminalReason==="source_down" ? pts[0] : pts[pts.length-1];
     const reduced = prefersReducedMotion();
     const r = reduced ? 16 : 7 + 16*k;
@@ -680,6 +764,18 @@ function drawScenarioEdgeOverlay(c,e,pts,active,completed,theme,rs){
     c.beginPath(); c.arc(at.x,at.y,r,0,Math.PI*2); c.stroke();
     c.restore();
   }
+}
+function drawScenarioEdgeOverlay(c,e,pts,active,completed,theme,rs){
+  if(pts.length<2) return;
+  const T=THEMES[theme];
+  const scenario = rs.scenarioRuntime && rs.scenarioRuntime.scenario ? rs.scenarioRuntime.scenario : null;
+  const withToken = active.map(send => {
+    if(send.token) return send;
+    const step = scenario ? scenario.steps.find(s => s.id === send.stepId) : null;
+    const et = step && step.eventTypeId ? eventTypeById(step.eventTypeId) : null;
+    return Object.assign({}, send, {token: et && et.visual.value ? et.visual.value : ""});
+  });
+  drawFlowOverlay(c,pts,withToken,completed,T);
 }
 
 function drawEdge(c,e,t,theme,isExport,rs){

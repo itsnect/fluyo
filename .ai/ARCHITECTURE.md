@@ -57,7 +57,7 @@ Los `id` son únicos por página para nodos/edges; los contadores `nextId`, `nex
 
 - Project-scoped: viven en `doc.eventTypes`.
 - Cada uno define `name`, `primitive`, `sentenceTemplate`, `visual`, `motion` y, para `SET_AVAILABILITY`, `availability`.
-- `presentation.nodeEffects` guarda el efecto visual opcional sobre nodos (icono, mensaje, colores, resaltado, parpadeo, atenuación). No altera el Trace.
+- `presentation.nodeEffects` guarda el efecto visual opcional sobre nodos (icono, tamaño del símbolo, mensaje, colores, resaltado, parpadeo, atenuación). `presentation.connectionEffects` (FLUYO-015) guarda cómo viaja el símbolo por una conexión (tamaño, forma de moverse, rastro, al llegar, mientras viaja). Ninguno altera el Trace.
 - Las primitivas son: `FLOW`, `OCCURRENCE`, `SET_AVAILABILITY`.
 - Los templates solo permiten placeholders allowlisted: `{source}`, `{target}`, `{name}`.
 
@@ -111,3 +111,17 @@ Scenario ──→ js/story-playback.js (FluyoStory) ──→ scenario-engine �
 - **Viewer**: carga `scenario-engine`, `scenario-playback` y `story-playback` además del core; no carga `editor-scenarios` ni `present-story`. La Historia de una página es `scenarios[0]` con pasos (no hay selector). Su runtime (`story`) es efímero, vive en `viewer.js`, se pinta dentro del único `viewerLoop` y se descarta en `clearViewerDocument` (hashchange/error/arranque), `goPage`, `enterPresent` y antes de «Abrir en Fluyo». El documento instalado nunca se modifica.
 - **UI**: sección `#story` bajo el lienzo (nombre de la Historia, mensaje, «▶ Reproducir historia» / «■ Detener» / «↻ Repetir» / «Abrir en Fluyo»), oculta si la página no tiene Historia. El diálogo de compartir del editor ofrece «Compartir historia» / «Compartir sólo el diagrama» sólo si hay Historia.
 - **Tests**: `test/fluyo-014.test.cjs` (contrato, vm) y `test/fluyo-014-browser.cjs` (Chrome real: casos Negocio/Humano/Sistema/Simultáneo/Efectos, paridad con Present, navegación y carreras, Abrir en Fluyo, 4 viewports, offline y upgrade del SW v56→v57).
+
+## Lenguaje visual de eventos en movimiento (FLUYO-015)
+
+```text
+EventType.presentation.connectionEffects ─→ connectionVisualSpec(et)  (model.js, única especificación)
+   → FluyoStory.stepMeta (meta.connection) → scenario-playback (lo copia en activeSends/completedSends)
+   → render.js: drawEventToken / drawEventArrival (único pintor) ← drawFlowOverlay
+                      ▲ Playback (Editor, Present, Viewer)    ▲ preview del modal (canvas)
+```
+
+- Campos (listas cerradas, normalizados campo a campo, sin schema nuevo): `size` small|medium|large (15/20/28 px), `style` direct|smooth|impulse, `trail` none|subtle|marked, `arrival` none|pulse|glow|bounce, `during` none|halo|breathe. Eventos de elemento: `nodeEffects.symbolSize` (16/22/32 px). `motion` (velocidad Rápido/Normal/Lento) no cambia.
+- Es presentación pura: la forma de moverse transforma el `progress` (misma duración ⇒ mismo fin, Trace y orden), rastro/halo/llegada son función de `progress`/`ageMs`. Sin timers, listeners ni estado persistente. El motor y `scenario-playback` no interpretan estos campos (sólo los transportan).
+- El preview del modal es un `<canvas>` que llama a `drawFlowOverlay`, el mismo pintor de Playback; un único RAF mientras el diálogo está abierto (`scPreviewStop` al cerrar); con «reducir movimiento» pinta un fotograma y sólo anima con «Ver ejemplo».
+- Tests: `test/fluyo-015.test.cjs` (vm; incluye «Trace antes = Trace después») y `test/fluyo-015-browser.cjs` (Chrome real).

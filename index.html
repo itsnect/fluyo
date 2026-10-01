@@ -460,15 +460,36 @@ if(location.protocol==="http:" || location.protocol==="https:"){
           <small id="scVisualHelp">Un símbolo, emoji o texto corto. Sin imágenes ni archivos.</small>
         </div>
       </div>
-      <fieldset id="scMotion" class="scFieldGroup" hidden>
-        <legend>¿Cómo se mueve?</legend>
-        <div class="scSegmented" role="group" aria-label="¿Cómo se mueve?">
-          <label><input type="radio" name="scMotion" value="fast"><span>Rápido</span></label>
-          <label><input type="radio" name="scMotion" value="normal" checked><span>Normal</span></label>
-          <label><input type="radio" name="scMotion" value="slow"><span>Lento</span></label>
-        </div>
-        <p class="hint">Sólo cambia la velocidad visual durante la reproducción. No afecta al tiempo del Scenario.</p>
-      </fieldset>
+      <div id="scFlowLook" class="scFieldGroup scFlowLook" hidden>
+        <p class="scFlowLead">¿Cómo viaja este evento?</p>
+        <fieldset class="scFlowField"><legend>¿De qué tamaño?</legend>
+          <div class="scSegmented scVisualSeg" role="radiogroup" aria-label="¿De qué tamaño?"><label><input type="radio" name="scFlowSize" value="small" checked><span><i class="scSizeDot s1">●</i>Pequeño</span></label><label><input type="radio" name="scFlowSize" value="medium"><span><i class="scSizeDot s2">●</i>Mediano</span></label><label><input type="radio" name="scFlowSize" value="large"><span><i class="scSizeDot s3">●</i>Grande</span></label></div>
+        </fieldset>
+        <fieldset class="scFlowField"><legend>¿Cómo se mueve?</legend>
+          <div class="scSegmented scVisualSeg" role="radiogroup" aria-label="¿Cómo se mueve?"><label><input type="radio" name="scFlowStyle" value="direct" checked><span><svg class="scMiniCurve" viewBox="0 0 28 12" aria-hidden="true"><path d="M1 10 L25 2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="26" cy="2" r="1.8" fill="currentColor"/></svg>Directo</span></label><label><input type="radio" name="scFlowStyle" value="smooth"><span><svg class="scMiniCurve" viewBox="0 0 28 12" aria-hidden="true"><path d="M1 10 C12 10 14 2 25 2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="26" cy="2" r="1.8" fill="currentColor"/></svg>Suave</span></label><label><input type="radio" name="scFlowStyle" value="impulse"><span><svg class="scMiniCurve" viewBox="0 0 28 12" aria-hidden="true"><path d="M1 10 C3 10 5 9 8 6 C12 1 18 2 25 2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="26" cy="2" r="1.8" fill="currentColor"/></svg>Impulso</span></label></div>
+        </fieldset>
+        <fieldset class="scFlowField"><legend>¿Deja rastro?</legend>
+          <div class="scSegmented scVisualSeg" role="radiogroup" aria-label="¿Deja rastro?"><label><input type="radio" name="scFlowTrail" value="none" checked><span>Sin rastro</span></label><label><input type="radio" name="scFlowTrail" value="subtle"><span>Rastro sutil</span></label><label><input type="radio" name="scFlowTrail" value="marked"><span>Rastro marcado</span></label></div>
+        </fieldset>
+        <fieldset class="scFlowField"><legend>¿Qué pasa al llegar?</legend>
+          <div class="scSegmented scVisualSeg" role="radiogroup" aria-label="¿Qué pasa al llegar?"><label><input type="radio" name="scFlowArrival" value="none" checked><span>Nada</span></label><label><input type="radio" name="scFlowArrival" value="pulse"><span>Pulso</span></label><label><input type="radio" name="scFlowArrival" value="glow"><span>Brillo</span></label><label><input type="radio" name="scFlowArrival" value="bounce"><span>Rebote</span></label></div>
+        </fieldset>
+        <details id="scFlowMore" class="scFlowMore">
+          <summary>Más detalles</summary>
+          <fieldset id="scMotion" class="scFlowField">
+            <legend>¿Qué tan rápido?</legend>
+            <div class="scSegmented" role="group" aria-label="¿Qué tan rápido?">
+              <label><input type="radio" name="scMotion" value="fast"><span>Rápido</span></label>
+              <label><input type="radio" name="scMotion" value="normal" checked><span>Normal</span></label>
+              <label><input type="radio" name="scMotion" value="slow"><span>Lento</span></label>
+            </div>
+            <p class="hint">Sólo cambia la velocidad visual durante la reproducción. No afecta al tiempo del Scenario.</p>
+          </fieldset>
+        <fieldset class="scFlowField"><legend>¿Y mientras viaja?</legend>
+          <div class="scSegmented scVisualSeg" role="radiogroup" aria-label="¿Y mientras viaja?"><label><input type="radio" name="scFlowDuring" value="none" checked><span>Nada</span></label><label><input type="radio" name="scFlowDuring" value="halo"><span>Halo</span></label><label><input type="radio" name="scFlowDuring" value="breathe"><span>Respirar</span></label></div>
+        </fieldset>
+        </details>
+      </div>
 
       <details id="scAppearance" class="scAccordion" hidden>
         <summary><span class="scAccordionTitle">Personalizar apariencia</span><span class="scAccordionSummary" id="scAppearanceSummary"></span></summary>
@@ -484,6 +505,11 @@ if(location.protocol==="http:" || location.protocol==="https:"){
           </div>
           <div id="scShowSymbolConfig" class="scEffectConfig" hidden>
             <p class="scSymbolUse">Usa: <span id="scSymbolUse" class="scSymbolUseValue">●</span> <button id="scChangeSymbol" type="button" class="scLinkBtn">Cambiar símbolo</button></p>
+            <fieldset class="scMsgField"><legend>¿De qué tamaño?</legend><div class="scSegmented scVisualSeg" role="radiogroup" aria-label="Tamaño del símbolo">
+              <label><input type="radio" name="scSymbolSize" value="small"><span><i class="scSizeDot s1">●</i>Pequeño</span></label>
+              <label><input type="radio" name="scSymbolSize" value="medium" checked><span><i class="scSizeDot s2">●</i>Mediano</span></label>
+              <label><input type="radio" name="scSymbolSize" value="large"><span><i class="scSizeDot s3">●</i>Grande</span></label>
+            </div></fieldset>
           </div>
           <div id="scMessageConfig" class="scEffectConfig" hidden>
             <label for="scMessage">Mensaje</label>

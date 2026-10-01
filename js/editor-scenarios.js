@@ -1370,10 +1370,25 @@ function scRadioValue(name, allowed, fallback) {
 function scPlaybackEffects(et) {
   return FluyoStory.playbackEffects(et);
 }
+const SYMBOLS_SIZES_UI = SYMBOL_SIZES;
+/* Cómo viaja el símbolo por una conexión (presentación pura; ver FLUYO-015). */
+function scConnectionEffectsFromUI() {
+  return {
+    size: scRadioValue("scFlowSize", SYMBOL_SIZES, SYMBOL_SIZE_DEFAULT),
+    style: scRadioValue("scFlowStyle", FLOW_STYLES, "direct"),
+    trail: scRadioValue("scFlowTrail", FLOW_TRAILS, "none"),
+    arrival: scRadioValue("scFlowArrival", FLOW_ARRIVALS, "none"),
+    during: scRadioValue("scFlowDuring", FLOW_DURINGS, "none"),
+  };
+}
+function scSetRadio(name, value) {
+  document.querySelectorAll('input[name="' + name + '"]').forEach((e) => { e.checked = e.value === value; });
+}
 function scNodeEffectsFromUI() {
   const useMessage = $("scUseMessage").checked;
   return {
     showSymbol: $("scShowSymbol").checked,
+    symbolSize: scRadioValue("scSymbolSize", SYMBOLS_SIZES_UI, SYMBOL_SIZE_DEFAULT),
     message: useMessage ? $("scMessage").value.trim().slice(0, NODE_EFFECT_MAX_MESSAGE_LEN) : "",
     messageColor: useMessage ? ($("scMessageColorCustom").value || scMessageColor) : "",
     messageSize: scRadioValue("scMsgSize", NODE_MESSAGE_SIZES, "medium"),
@@ -1413,7 +1428,9 @@ function scEditorDefinition() {
     visual: { value: scVisual },
     motion: connection ? scMotionValue() : DEFAULT_EVENT_MOTION,
   };
-  if (!connection) {
+  if (connection) {
+    def.presentation = { connectionEffects: scConnectionEffectsFromUI() };
+  } else {
     def.presentation = { nodeEffects: scNodeEffectsFromUI() };
     if (consequence !== "none") def.availability = consequence === "up" ? "UP" : "DOWN";
   }
@@ -1534,6 +1551,13 @@ function scOpenEventDialog(id, duplicate = false) {
   });
   const effects = normalizeNodeEffects(et?.presentation?.nodeEffects);
   $("scShowSymbol").checked = effects.showSymbol;
+  scSetRadio("scSymbolSize", effects.symbolSize);
+  const flow = normalizeConnectionEffects(et?.presentation?.connectionEffects);
+  scSetRadio("scFlowSize", flow.size);
+  scSetRadio("scFlowStyle", flow.style);
+  scSetRadio("scFlowTrail", flow.trail);
+  scSetRadio("scFlowArrival", flow.arrival);
+  scSetRadio("scFlowDuring", flow.during);
   for (const [name, value] of [["scMsgSize", effects.messageSize], ["scMsgWeight", effects.messageWeight], ["scMsgFont", effects.messageFont], ["scMsgPos", effects.messagePosition]])
     document.querySelectorAll('input[name="' + name + '"]').forEach((e) => { e.checked = e.value === value; });
   $("scUseMessage").checked = !!effects.message;
@@ -1558,6 +1582,7 @@ function scOpenEventDialog(id, duplicate = false) {
   document.querySelectorAll('input[name="scMotion"]').forEach((e) => {
     e.checked = e.value === motion;
   });
+  scSetAccordionOpen("scFlowMore", !!et && (flow.during !== "none" || (et.motion || DEFAULT_EVENT_MOTION) !== DEFAULT_EVENT_MOTION));
   scPhraseParts = scParsePhrase(et?.sentenceTemplate ?? "{source} envía a {target}");
   const hasAppearance = effects.showSymbol || effects.message || effects.highlight || effects.blink || effects.dim || effects.fillColor;
   scSetAccordionOpen("scAppearance", !!et && hasAppearance);
@@ -1573,14 +1598,15 @@ function scOpenEventDialog(id, duplicate = false) {
 }
 function scCloseEventDialog() {
   clearTimeout(scPreviewTimer);
+  scPreviewStop();
   $("scEventDialog").close();
   scEditingEventTypeId = null;
   if (scFocusReturn?.isConnected) scFocusReturn.focus();
 }
 function scEditorLayout() {
   const connection = scWhereValue() === "connection";
-  const motionField = $("scMotion");
-  if (motionField) motionField.hidden = !connection;
+  const flowLook = $("scFlowLook");
+  if (flowLook) flowLook.hidden = !connection;
   const appearance = $("scAppearance");
   if (appearance) appearance.hidden = connection;
   const behavior = $("scBehavior");
@@ -1684,17 +1710,77 @@ function scPickColor(color, inputId, containerId) {
   if (input) input.value = color;
   if (containerId) scRenderColorSwatches(containerId, color, inputId);
 }
+/* Preview vivo de una conexión: un canvas que llama al MISMO pintor que Playback
+   (`drawFlowOverlay`). Un único RAF mientras el diálogo está abierto; se cancela al
+   cerrar. Con «reducir movimiento» pinta un fotograma y sólo anima con «Ver ejemplo». */
+const SC_PREVIEW_ARRIVE_MS = 700, SC_PREVIEW_PAUSE_MS = 500;
+let scPreviewRaf = null, scPreviewT0 = 0, scPreviewSpec = null, scPreviewCanvas = null, scPreviewOnce = false;
+function scPreviewStop() {
+  if (scPreviewRaf !== null) cancelAnimationFrame(scPreviewRaf);
+  scPreviewRaf = null;
+  scPreviewSpec = null;
+  scPreviewCanvas = null;
+  scPreviewOnce = false;
+}
+function scPreviewFrame(now) {
+  scPreviewRaf = null;
+  const canvas = scPreviewCanvas;
+  if (!canvas || !canvas.isConnected || !scPreviewSpec) return;
+  const { token, connection, motion } = scPreviewSpec;
+  const dur = EVENT_MOTION_MS[motion] || EVENT_MOTION_MS.normal;
+  const total = dur + SC_PREVIEW_ARRIVE_MS + SC_PREVIEW_PAUSE_MS;
+  const reduced = prefersReducedMotion();
+  let t = now - scPreviewT0;
+  if (scPreviewOnce && t >= total) { scPreviewOnce = false; t = dur * 0.55; }
+  else if (!scPreviewOnce && reduced) t = dur * 0.55;
+  else t = t % total;
+  const w = canvas.clientWidth || 260, h = canvas.clientHeight || 110, dpr = window.devicePixelRatio || 1;
+  if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+    canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+  }
+  const c = canvas.getContext("2d"), T = THEMES[doc.theme] || THEMES.dark;
+  c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  c.clearRect(0, 0, w, h);
+  c.fillStyle = T.bg; c.fillRect(0, 0, w, h);
+  const nw = Math.min(64, w * 0.24), nh = 34, y = h / 2, x0 = 12 + nw, x1 = w - 12 - nw;
+  c.strokeStyle = T.edge; c.lineWidth = 2;
+  c.beginPath(); c.moveTo(x0, y); c.lineTo(x1, y); c.stroke();
+  c.font = "600 11px 'Segoe UI', system-ui, sans-serif"; c.textAlign = "center"; c.textBaseline = "middle";
+  for (const [cx, label] of [[12 + nw / 2, "Cliente"], [w - 12 - nw / 2, "Comercio"]]) {
+    c.fillStyle = T.lblBg; c.strokeStyle = T.edge; c.lineWidth = 1.5;
+    c.beginPath(); c.roundRect(cx - nw / 2, y - nh / 2, nw, nh, 8); c.fill(); c.stroke();
+    c.fillStyle = T.text; c.fillText(label, cx, y);
+  }
+  const pts = [{ x: x0, y }, { x: x1, y }];
+  const base = { stepId: 0, edgeId: 0, token, connection, duration: dur, terminalType: "send_succeeded", terminalReason: null };
+  if (t < dur) drawFlowOverlay(c, pts, [{ ...base, progress: t / dur }], [], T);
+  else if (t < dur + SC_PREVIEW_ARRIVE_MS) drawFlowOverlay(c, pts, [], [{ ...base, ageMs: t - dur, cueMs: SC_PREVIEW_ARRIVE_MS }], T);
+  if (!reduced || scPreviewOnce) scPreviewRaf = requestAnimationFrame(scPreviewFrame);
+}
+function scPreviewKick(restart) {
+  if (restart) scPreviewT0 = performance.now();
+  if (scPreviewRaf === null) scPreviewRaf = requestAnimationFrame(scPreviewFrame);
+}
 function scUpdateEventPreview() {
   const def = scEditorDefinition(),
     connection = def.primitive === "FLOW",
     box = $("scPreviewDiagram");
-  box.replaceChildren();
-  const motionClass = def.motion || DEFAULT_EVENT_MOTION;
+  if (!connection) scPreviewStop();
+  if (!(connection && box.querySelector(".scPreviewCanvas"))) box.replaceChildren();
   if (connection) {
-    box.appendChild(scEl("span", "scPreviewNode", "Cliente"));
-    const path = scEl("span", "scPreviewPath " + motionClass);
-    path.appendChild(scEl("span", "scPreviewToken", scVisual));
-    box.append(path, scEl("span", "scPreviewNode", "Comercio"));
+    const spec = connectionVisualSpec({ visual: { value: scVisual }, presentation: def.presentation });
+    const next = { token: scVisual, connection: spec, motion: def.motion };
+    let canvas = box.querySelector(".scPreviewCanvas");
+    if (!canvas) {
+      canvas = scEl("canvas", "scPreviewCanvas");
+      canvas.setAttribute("role", "img");
+      canvas.setAttribute("aria-label", "Ejemplo animado de cómo viajará el evento");
+      box.appendChild(canvas);
+    }
+    const changed = JSON.stringify(next) !== JSON.stringify(scPreviewSpec);
+    scPreviewCanvas = canvas;
+    scPreviewSpec = next;
+    scPreviewKick(changed);
   } else {
     const spec = nodeEffectsVisualSpec({ visual: { value: scVisual }, presentation: def.presentation });
     const classes = ["scPreviewNode"];
@@ -1723,7 +1809,11 @@ function scUpdateEventPreview() {
       msg.dataset.position = spec.messagePosition;
     }
     if (msg && spec.messagePosition === "above") stack.appendChild(msg);
-    if (spec.showSymbol) stack.appendChild(scEl("span", "scPreviewToken", spec.symbol));
+    if (spec.showSymbol) {
+      const sym = scEl("span", "scPreviewToken", spec.symbol);
+      sym.style.fontSize = SYMBOL_NODE_PX[spec.symbolSize] + "px";
+      stack.appendChild(sym);
+    }
     if (msg && spec.messagePosition === "center") node.appendChild(msg);
     stack.appendChild(node);
     if (msg && spec.messagePosition === "below") stack.appendChild(msg);
@@ -1738,6 +1828,11 @@ function scUpdateEventPreview() {
 function scPlayExample() {
   clearTimeout(scPreviewTimer);
   scUpdateEventPreview();
+  if (scPreviewSpec) {
+    scPreviewOnce = prefersReducedMotion();
+    scPreviewKick(true);
+    return;
+  }
   const item = $("scPreviewDiagram").querySelector(".scPreviewPath,.scPreviewNode");
   item?.classList.add("animate");
   scPreviewTimer = setTimeout(() => item?.classList.remove("animate"), 1200);
@@ -2268,9 +2363,8 @@ function scInitUI() {
   document
     .querySelectorAll('input[name="scConsequence"]')
     .forEach((input) => (input.onchange = scUpdateEventPreview));
-  document
-    .querySelectorAll('input[name="scMotion"]')
-    .forEach((input) => (input.onchange = scUpdateEventPreview));
+  for (const name of ["scMotion", "scFlowSize", "scFlowStyle", "scFlowTrail", "scFlowArrival", "scFlowDuring", "scSymbolSize"])
+    document.querySelectorAll('input[name="' + name + '"]').forEach((input) => (input.onchange = scUpdateEventPreview));
   for (const id of ["scShowSymbol", "scHighlight", "scBlink", "scDim", "scUseMessage", "scUseFill"]) {
     const el = $(id);
     if (el)

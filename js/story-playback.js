@@ -6,7 +6,7 @@
 
    Puro: sin DOM, RAF, timers, almacenamiento ni estado del editor. Sólo lee las
    globales de model.js (eventTypeById, eventSymbol, nodeEffectsVisualSpec,
-   defaultNodeEffects, DEFAULT_EVENT_MOTION). Cargar tras model.js,
+   connectionVisualSpec, defaultNodeEffects, DEFAULT_EVENT_MOTION). Cargar tras model.js,
    scenario-engine.js y scenario-playback.js. Ejecutable en Node (vm). */
 
 var FluyoStory = (function(){
@@ -24,6 +24,7 @@ var FluyoStory = (function(){
         token: et ? eventSymbol(et) : "",
         motion: et && et.motion ? et.motion : DEFAULT_EVENT_MOTION,
         nodeEffects: et ? playbackEffects(et) : defaultNodeEffects(),
+        connection: et ? connectionVisualSpec(et) : null,
         name: et ? et.name : ""
       };
     }

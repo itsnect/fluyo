@@ -3,7 +3,7 @@
 const shareDialog=document.getElementById("shareDialog");
 const shareControl=id=>document.getElementById(id);
 let shareBusy=false;
-/* Historia que viajaría en el enlace: el Scenario activo de la página, si tiene pasos. */
+/* Historia que viajaría en el enlace: la Historia seleccionada de la página, si tiene pasos. */
 function shareStory(){
   if(typeof scActiveScenario!=="function") return null;
   const sc=scActiveScenario();
@@ -14,7 +14,9 @@ function selectedShareKind(){
 }
 function showShareDialog(){
   if(typeof isScenarioPlaybackActive==="function" && isScenarioPlaybackActive()){
-    shareControl("shareMessage").textContent="Detén la reproducción de la historia antes de compartir.";
+    shareControl("shareMessage").textContent=typeof scStatus!=="undefined" && scStatus==="completed"
+      ?"Pulsa «Volver a editar» antes de compartir."
+      :"Detén la reproducción de la historia antes de compartir.";
     shareControl("shareConfirm").hidden=true;
     shareControl("shareResult").hidden=true;
     shareControl("shareCreate").hidden=true;
@@ -54,7 +56,8 @@ async function confirmShare(){
     let project;
     try{project=serializeProject();}catch{throw shareUrlError("serialization_failed");}
     const kind=selectedShareKind(), story=shareStory();
-    const url=await createShareUrl(project,location.href,{kind,scenarioId:story&&story.id});
+    /* La unidad que se comparte es la Historia seleccionada; sin Historia con momentos, sólo el diagrama. */
+    const url=await createShareUrl(project,location.href,story?{kind,scenarioId:story.id}:{kind:"diagram"});
     shareControl("shareResultNote").textContent=kind==="story"&&story
       ?"Quien abra este enlace verá el diagrama y podrá reproducir la historia. Los cambios posteriores no modificarán este enlace."
       :"Este enlace contiene una copia del diagrama actual. Los cambios posteriores no modificarán este enlace.";

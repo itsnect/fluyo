@@ -811,13 +811,13 @@ function autoSetup() {
 const scCount = (ctx) => ctx.run("P().scenarios.length");
 const stepCount = (ctx) => ctx.run("P().scenarios.reduce((n,s)=>n+s.steps.length,0)");
 
-test("Auto-crear: aplicar FLOW válido sin Scenario crea Escenario 1 + Step, activo, y Historia lo muestra", () => {
+test("Auto-crear: aplicar FLOW válido sin Scenario crea Historia 1 + Step, activo, y Historia lo muestra", () => {
   const ctx = autoSetup();
   assert.equal(scCount(ctx), 0);
   ctx.run("scApplyTargets(flowEt.id,[edgeId])");
   assert.equal(scCount(ctx), 1);
   assert.equal(stepCount(ctx), 1);
-  assert.equal(ctx.run("P().scenarios[0].name"), "Escenario 1");
+  assert.equal(ctx.run("P().scenarios[0].name"), "Historia 1");
   assert.equal(ctx.run("scActiveScenario().id === P().scenarios[0].id"), true);
   assert.equal(ctx.run("P().scenarios[0].engineVersion"), ctx.run("FluyoScenarios.ENGINE_VERSION"));
   assert.equal(ctx.document.querySelectorAll(".scStoryRow").length, 1);

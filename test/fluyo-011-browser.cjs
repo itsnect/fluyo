@@ -111,7 +111,7 @@ test("FLUYO-011 — composición, accesibilidad y responsive en Chrome", async (
       viewZoom = 1;
     });
     await page.locator("#tabScenarios").click();
-    await page.locator("#scEmptyState").getByRole("button", { name: "Crear escenario" }).click();
+    await page.locator("#scEmptyState").getByRole("button", { name: "+ Nueva historia" }).click();
     await t.test("Vacío y arquitectura: biblioteca e historia; modal fuera del panel", async () => {
       assert.match(await page.locator("#scEventLibrary").innerText(), /Qué puede ocurrir/);
       await screenshot("01-vacio-1366");
@@ -487,7 +487,7 @@ test("FLUYO-011 — composición, accesibilidad y responsive en Chrome", async (
 });
 
 // Upgrade real desde la caché del checkout anterior, sin modificar archivos servidos.
-test("FLUYO-011 — Service Worker v45 → v59 sin assets antiguos", async () => {
+test("FLUYO-011 — Service Worker v45 → v60 sin assets antiguos", async () => {
   const http = require("node:http"),
     { execFileSync } = require("node:child_process");
   const files = [

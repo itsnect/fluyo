@@ -391,12 +391,12 @@ $("bgCustom").oninput=()=>{ doc.customBg=$("bgCustom").value; scheduleAutosave()
 $("btnBgClear").onclick=()=>{ doc.customBg=""; scheduleAutosave(); };
 $("btnClear").onclick=()=>{
   if(typeof isScenarioPlaybackActive==="function" && isScenarioPlaybackActive()){ if(typeof scReset==="function") scReset(); return; }
-  if(confirm("Limpiar página\n\nSe eliminarán los elementos y escenarios de esta página.\n\nLos Eventos del proyecto se conservarán.\n\n¿Limpiar página?")){
+  if(confirm("Limpiar página\n\nSe eliminarán los elementos y las historias de esta página.\n\nLos Eventos del proyecto se conservarán.\n\n¿Limpiar página?")){
     if(typeof scReset==="function") scReset();
     pushUndo();
     clearPageContents(P());
     clearSel();
-    if(typeof scActiveId!=="undefined") scActiveId=null;
+    if(typeof scSelectStory==="function") scSelectStory(null); else if(typeof scActiveId!=="undefined") scActiveId=null;
     if(typeof scRenderPanel==="function") scRenderPanel();
   }
 };
@@ -457,6 +457,8 @@ $("btnAnims").onclick=()=>{
 
 /* ===================== Páginas ===================== */
 function renderTabs(){
+  /* FLUYO-016: la Historia seleccionada es de la página; un cambio de página la descarta. */
+  if(typeof scSyncPage==="function") scSyncPage();
   const bar=$("pagesBar"); bar.innerHTML="";
   doc.pages.forEach((pg,i)=>{
     const t=document.createElement("div");

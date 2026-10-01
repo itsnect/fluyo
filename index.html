@@ -176,7 +176,7 @@ if(location.protocol==="http:" || location.protocol==="https:"){
   <aside id="propPanel">
     <div class="panelTabs">
       <button id="tabProperties" class="active" type="button">Propiedades</button>
-      <button id="tabScenarios" type="button">Escenarios</button>
+      <button id="tabScenarios" type="button">Historias</button>
     </div>
     <div id="panelProperties">
     <section>
@@ -404,10 +404,11 @@ if(location.protocol==="http:" || location.protocol==="https:"){
 
     <div id="panelScenarios" style="display:none;">
       <header class="scHeader">
-        <div class="scHeaderRow"><button id="scScenarioTitle" type="button" aria-haspopup="true">Elegir escenario ▾</button><button id="scScenarioMenu" type="button" aria-label="Opciones del escenario">⋯</button></div>
+        <div class="scStoriesLabel" id="scStoriesLabel">Historias</div>
+        <div class="scHeaderRow"><button id="scScenarioTitle" type="button" aria-haspopup="true" aria-labelledby="scStoriesLabel scScenarioTitle" title="Elegir historia">Sin historias ▾</button><button id="scStoryAdd" type="button" aria-label="Nueva historia" title="Nueva historia">+</button><button id="scScenarioMenu" type="button" aria-label="Opciones de la historia" title="Opciones de la historia">⋯</button></div>
         <div class="scPlaybackControls"><button id="scRun" type="button" class="primary">▶ Reproducir</button><button id="scReset" type="button" hidden>Volver a editar</button></div>
         <p id="scStatus" role="status"></p>
-        <p id="scUnsupported" class="hint" hidden>Este escenario necesita una versión compatible de Fluyo.</p>
+        <p id="scUnsupported" class="hint" hidden>Esta historia necesita una versión compatible de Fluyo.</p>
         <p id="scErrors" role="alert" hidden></p>
         <button id="scPaletteToggle" type="button" aria-expanded="false">Eventos · 0</button>
       </header>
@@ -432,7 +433,7 @@ if(location.protocol==="http:" || location.protocol==="https:"){
 <dialog id="scEventDialog" class="scDialog scEventDialog" aria-labelledby="scEventDialogTitle">
   <header><div><h2 id="scEventDialogTitle">Crear evento</h2><p id="scEventDialogSubtitle">Disponible en todo este proyecto.</p></div><button id="scEventClose" type="button" aria-label="Cerrar editor de evento">×</button></header>
   <div class="scDialogBody">
-    <p id="scEventScope" class="scScope" hidden>Los cambios de nombre, frase y apariencia se verán en todos los escenarios que usan este evento.</p>
+    <p id="scEventScope" class="scScope" hidden>Los cambios de nombre, frase y apariencia se verán en todas las historias que usan este evento.</p>
     <p id="scEventLocked" class="scScope" hidden>Este evento ya está en uso. Puedes cambiar cómo se ve y cómo se cuenta. Para cambiar dónde ocurre o su comportamiento, duplica el evento.</p>
     <div class="scEventColumns"><div class="scEventFields">
       <div class="scFieldGroup">
@@ -483,7 +484,7 @@ if(location.protocol==="http:" || location.protocol==="https:"){
               <label><input type="radio" name="scMotion" value="normal" checked><span>Normal</span></label>
               <label><input type="radio" name="scMotion" value="slow"><span>Lento</span></label>
             </div>
-            <p class="hint">Sólo cambia la velocidad visual durante la reproducción. No afecta al tiempo del Scenario.</p>
+            <p class="hint">Sólo cambia la velocidad visual durante la reproducción. No afecta al tiempo de la historia.</p>
           </fieldset>
         <fieldset class="scFlowField"><legend>¿Y mientras viaja?</legend>
           <div class="scSegmented scVisualSeg" role="radiogroup" aria-label="¿Y mientras viaja?"><label><input type="radio" name="scFlowDuring" value="none" checked><span>Nada</span></label><label><input type="radio" name="scFlowDuring" value="halo"><span>Halo</span></label><label><input type="radio" name="scFlowDuring" value="breathe"><span>Respirar</span></label></div>

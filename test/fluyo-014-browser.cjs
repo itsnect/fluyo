@@ -273,7 +273,7 @@ const LARGO = `(() => { ${RESET}
     assert.equal(await editor.evaluate(() => JSON.stringify(serializeProject())), docMulti, "documento original intacto");
     const vm = await openViewer(urlMulti);
     assert.equal(await vm.locator("#stTitle").innerText(), "Segunda historia");
-    assert.equal(await vm.evaluate(() => doc.pages[0].scenarios.length), 2);
+    assert.equal(await vm.evaluate(() => doc.pages[0].scenarios.length), 1, "FLUYO-016: sólo la Historia compartida");
     await vm.close();
     ok("varios Scenarios: el activo del autor es scenarios[0]");
 

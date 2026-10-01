@@ -69,9 +69,9 @@ const checkDefinitions=data=>{for(const key of Object.keys(definitions)) assert.
     await open(p,over);assert.deepEqual((await save(p)).doc.pages[0].scenarios,over.doc.pages[0].scenarios);
     await p.locator('#btnShare').click();await p.locator('#shareCreate').click();await p.waitForFunction(()=>!shareBusy&&document.getElementById('shareLink').value);
     const overUrl=await p.locator('#shareLink').inputValue();const {c:oc,p:o}=await fresh();
-    await o.goto(overUrl);await o.waitForFunction(()=>window.__viewer?.phase==='ready');assert.deepEqual(await o.evaluate(()=>doc.pages[0].scenarios),over.doc.pages[0].scenarios);
-    await o.locator('#btnOpen').click();await o.waitForFunction(()=>typeof newNode==='function'&&doc.pages[0].scenarios?.length===2);
-    assert.deepEqual((await save(o)).doc.pages[0].scenarios,over.doc.pages[0].scenarios);await oc.close();
+    await o.goto(overUrl);await o.waitForFunction(()=>window.__viewer?.phase==='ready');assert.deepEqual(await o.evaluate(()=>doc.pages[0].scenarios),[over.doc.pages[0].scenarios[0]],'FLUYO-016: el Share lleva sólo la Historia seleccionada');
+    await o.locator('#btnOpen').click();await o.waitForFunction(()=>typeof newNode==='function'&&doc.pages[0].scenarios?.length===1);
+    assert.deepEqual((await save(o)).doc.pages[0].scenarios,[over.doc.pages[0].scenarios[0]]);await oc.close();
     console.log('PASS: Ctrl+D/undo/redo remapea Behavior; Save→Share→viewer→Open conserva 1001 steps, missing y engineVersion 2.');
     console.log('HTTP PASS: histórico → save v4 → archivo v4 → Share → viewer → Open in Fluyo → editar/save; #d= directo.');
     const {c:fc,p:f}=await fresh();await f.goto(pathToFileURL(path.join(root,'index.html')).href);await f.waitForFunction(()=>typeof newNode==='function');

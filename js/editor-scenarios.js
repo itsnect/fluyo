@@ -26,7 +26,9 @@ let scSuppressClick = false,
   scFillColor = "#3aa7e8",
   scPreviewTimer = null;
 let scResizeObserver = null,
-  scStorySignature = "";
+  scStorySignature = "",
+  scLastPage = null,
+  scPrevActiveId = null;
 const DEFAULT_STEP_DELAY = 1000;
 
 function isScenarioPlaybackActive() {
@@ -40,7 +42,9 @@ function scActiveScenario() {
     const found = pg.scenarios.find((s) => s.id === scActiveId);
     if (found) return found;
   }
-  return pg.scenarios[0] || null;
+  /* Si la seleccionada ya no existe (p. ej. Undo de «Duplicar»/«Nueva»), vuelve a la anterior antes que a la primera. */
+  const prev = scPrevActiveId != null && pg.scenarios.find((s) => s.id === scPrevActiveId);
+  return prev || pg.scenarios[0] || null;
 }
 
 function scFormatTime(ms) {
@@ -288,7 +292,7 @@ function scRenderTraceLog() {
   if (!events.length) {
     const p = document.createElement("p");
     p.className = "hint";
-    p.textContent = "El Trace aparecerá aquí al ejecutar.";
+    p.textContent = "El registro aparecerá aquí al reproducir la historia.";
     cont.appendChild(p);
     return;
   }
@@ -343,25 +347,81 @@ function scRenderTraceLog() {
   cont.scrollTop = cont.scrollHeight;
 }
 
+/* FLUYO-016. La Historia activa es estado del editor (nunca del documento) y pertenece a UNA página:
+   los ids de Scenario/Step sólo son únicos por página/Historia. Se invoca desde renderTabs() en cada
+   cambio de página o de documento: la selección se descarta y se cae en una Historia válida de la
+   página nueva (la primera). */
+function scSyncPage() {
+  let pg = null;
+  try { pg = P(); } catch { return; }
+  if (scLastPage === pg) return;
+  const first = scLastPage === null;
+  scLastPage = pg;
+  if (first) return;
+  scActiveId = null;
+  scPrevActiveId = null;
+  scSelectedStep = null;
+  scContext = null;
+  scStorySignature = "";
+  if (isScenarioPlaybackActive()) scReset();
+  if (scUiReady) {
+    scCancelPlacement();
+    scErrors = [];
+    scRefreshIfVisible();
+  }
+}
+
+/* Selecciona una Historia: un solo punto para el estado efímero que depende de ella. */
+function scSelectStory(id) {
+  const from = scLastPage === P() ? scActiveScenario() : null;
+  scPrevActiveId = from && from.id !== id ? from.id : null;
+  scActiveId = id;
+  scLastPage = P();
+  scSelectedStep = null;
+  scContext = null;
+  scStorySignature = "";
+  scErrors = [];
+}
+
 function scNewScenario() {
-  if (isScenarioPlaybackActive()) return;
+  if (isScenarioPlaybackActive()) scReset();
+  scCancelPlacement();
   const pg = P();
   pushUndo();
-  const sc = createScenario(pg, "Escenario " + (pg.scenarios.length + 1));
-  scActiveId = sc.id;
+  const sc = createScenario(pg, defaultScenarioName(pg));
+  scSelectStory(sc.id);
   scheduleAutosave();
   scRenderPanel();
+  scNotice(sc.name + " creada");
+}
+
+function scDuplicateScenario() {
+  const src = scActiveScenario();
+  if (!src) return;
+  if (isScenarioPlaybackActive()) scReset();
+  scCancelPlacement();
+  const pg = P();
+  pushUndo();
+  const copy = duplicateScenario(pg, src.id);
+  scSelectStory(copy.id);
+  scheduleAutosave();
+  scRenderPanel();
+  scNotice("Historia duplicada: " + copy.name);
 }
 
 function scDeleteScenario() {
-  if (isScenarioPlaybackActive()) scReset();
   const sc = scActiveScenario();
   if (!sc) return;
-  if (!confirm("¿Eliminar el escenario «" + sc.name + "»?")) return;
+  if (isScenarioPlaybackActive()) scReset();
+  const moments = storyboardGroups(sc.steps).length;
+  const detail = moments ? " Tiene " + moments + (moments === 1 ? " momento." : " momentos.") : "";
+  if (!confirm("¿Eliminar la historia «" + sc.name + "»?" + detail + " Los eventos de la biblioteca se conservan.")) return;
   const pg = P();
+  const index = pg.scenarios.findIndex((s) => s.id === sc.id);
   pushUndo();
   deleteScenario(pg, sc.id);
-  scActiveId = pg.scenarios.length ? pg.scenarios[0].id : null;
+  const next = pg.scenarios[Math.min(index, pg.scenarios.length - 1)];
+  scSelectStory(next ? next.id : null);
   scheduleAutosave();
   scRenderPanel();
 }
@@ -369,17 +429,18 @@ function scDeleteScenario() {
 function scSwitchScenario(id) {
   if (isScenarioPlaybackActive()) scReset();
   scCancelPlacement();
-  scActiveId = +id;
-  scErrors = [];
+  scStoryDragCleanup();
+  scSelectStory(+id);
   scRenderPanel();
 }
 
 function scRenameScenario(name) {
   const sc = scActiveScenario();
-  if (!sc || isScenarioPlaybackActive()) return;
+  if (!sc) return;
   const trimmed = String(name).trim();
   if (!trimmed || trimmed.length > 120) return;
   if (sc.name === trimmed) return;
+  if (isScenarioPlaybackActive()) scReset();
   pushUndo();
   sc.name = trimmed;
   scheduleAutosave();
@@ -460,7 +521,7 @@ function scRun(opts) {
   if (scStatus === "completed") scReset();
   scCancelPlacement();
   const sc = scActiveScenario();
-  if (!sc) return;
+  if (!sc || !sc.steps.length) return; /* una Historia vacía no se reproduce (el botón ya está deshabilitado) */
   scErrors = [];
   /* Una sola receta de ejecución, compartida con Present y el Viewer (story-playback.js). */
   const started = FluyoStory.start(P(), sc, performance.now());
@@ -557,6 +618,13 @@ function scClosePopover(restore = true) {
   if (restore && scPopoverReturn?.isConnected) scPopoverReturn.focus();
   scPopoverReturn = null;
 }
+/* Los menús (⋯, selector, momento) son interruptores: pulsar de nuevo su botón con el menú abierto lo cierra. */
+function scMenuToggledOff(anchor) {
+  const p = $("scPopover");
+  if (!anchor || !p || p.hidden || scPopoverReturn !== anchor) return false;
+  scClosePopover();
+  return true;
+}
 function scOpenPopover(anchor) {
   scClosePopover(false);
   const p = $("scPopover");
@@ -575,6 +643,7 @@ function scOpenPopover(anchor) {
   return p;
 }
 function scMenu(anchor, items) {
+  if (scMenuToggledOff(anchor)) return;
   const p = scOpenPopover(anchor);
   if (!p) return;
   for (const [label, fn, disabled] of items) {
@@ -621,7 +690,7 @@ function scRenderPanel() {
 function scRenderHeader() {
   const s = scActiveScenario(),
     title = $("scScenarioTitle");
-  if (title) title.textContent = (s ? s.name : "Elegir escenario") + " ▾";
+  if (title) title.textContent = (s ? s.name : "Sin historias") + " ▾";
   const u = $("scUnsupported");
   if (u) u.hidden = !s || s.engineVersion === FluyoScenarios.ENGINE_VERSION;
 }
@@ -640,6 +709,7 @@ function scRenderButtons() {
     run.textContent = scStatus === "completed" ? "↻ Repetir" : "▶ Reproducir";
     run.hidden = scStatus === "running";
     run.disabled = !s || !s.steps.length || s.engineVersion !== FluyoScenarios.ENGINE_VERSION;
+    run.title = !run.disabled ? "" : !s ? "Crea una historia para poder reproducirla." : !s.steps.length ? "Añade un evento a la historia para poder reproducirla." : "Esta historia necesita una versión compatible de Fluyo.";
   }
   if (reset) {
     reset.hidden = scStatus === "idle";
@@ -661,24 +731,26 @@ function scRenderStatus() {
         : "Reproducción terminada";
 }
 function scScenarioMenu(anchor) {
+  const none = !scActiveScenario();
   scMenu(anchor, [
-    ["Nuevo escenario", scNewScenario, isScenarioPlaybackActive()],
-    ["Renombrar", () => scRenameUI(anchor), !scEditable()],
-    ["Eliminar escenario", scDeleteScenario, !scActiveScenario() || isScenarioPlaybackActive()],
+    ["Renombrar", () => scRenameUI(anchor), none],
+    ["Duplicar historia", scDuplicateScenario, none],
+    ["Eliminar historia", scDeleteScenario, none],
     ["Condiciones iniciales de esta página", () => scOpenDetails("conditions")],
-    ["Detalles técnicos", () => scOpenDetails("trace")],
+    ["Detalles", () => scOpenDetails("trace")],
   ]);
 }
 function scChooseScenario(anchor) {
+  const active = scActiveScenario();
   scMenu(anchor, [
-    ...(P().scenarios || []).map((s) => [s.name, () => scSwitchScenario(s.id)]),
-    ["+ Crear escenario", scNewScenario, isScenarioPlaybackActive()],
+    ...(P().scenarios || []).map((s) => [(active && s.id === active.id ? "● " : "○ ") + s.name, () => scSwitchScenario(s.id)]),
+    ["+ Nueva historia", scNewScenario],
   ]);
 }
 function scRenameUI(anchor) {
   const p = scOpenPopover(anchor);
   if (!p) return;
-  const label = scEl("label", "", "Nombre del escenario"),
+  const label = scEl("label", "", "Nombre de la historia"),
     input = scEl("input");
   input.value = scActiveScenario()?.name || "";
   input.maxLength = 120;
@@ -691,7 +763,11 @@ function scRenameUI(anchor) {
   };
   p.appendChild(scButton("Guardar nombre", save));
   input.onkeydown = (e) => {
-    if (e.key === "Enter") save();
+    if (e.key === "Enter") {
+      /* Sin esto, el foco vuelve al botón ⋯ durante la misma pulsación y Enter lo activa: el menú se reabría. */
+      e.preventDefault();
+      save();
+    }
   };
 }
 function scRenderCanvasActions() {} // La autoría ya no vive en el inspector de propiedades.
@@ -703,7 +779,7 @@ function scOpenDetails(kind) {
       ? "Condiciones iniciales de esta página"
       : kind === "uses"
         ? "Dónde se usa este evento"
-        : "Detalles técnicos";
+        : "Detalles";
   $("scBehaviors").hidden = kind !== "conditions";
   $("scTraceLog").hidden = kind !== "trace";
   $("scEventUses").hidden = kind !== "uses";
@@ -714,7 +790,7 @@ function scOpenDetails(kind) {
 function scRenderBehaviors() {
   const box = $("scBehaviors");
   if (!box) return;
-  box.replaceChildren(scEl("p", "hint", "Estas condiciones afectan a los escenarios de esta página."));
+  box.replaceChildren(scEl("p", "hint", "Estas condiciones afectan a las historias de esta página."));
   if (!P().nodes.length)
     box.appendChild(scEl("p", "hint", "Añade un elemento al sistema para definir sus condiciones."));
   for (const n of P().nodes) {
@@ -751,10 +827,10 @@ function scShowUses(id) {
               () => {
                 scReset();
                 doc.cur = pi;
-                scActiveId = s.id;
                 $("scDetailsDialog").close();
                 renderTabs();
                 refreshPanel();
+                scSelectStory(s.id);
                 scRenderPanel();
                 scSelectedStep = step.id;
                 scStorySignature = "";
@@ -886,8 +962,8 @@ function scRenderStoryboard() {
     empty.hidden = !!groups.length;
     if (!s) {
       empty.append(
-        scEl("p", "", "Elige un escenario para ver su historia."),
-        scButton("Crear escenario", scNewScenario),
+        scEl("p", "", "Aún no hay historias."),
+        scButton("+ Nueva historia", scNewScenario),
       );
     } else
       empty.textContent = doc.eventTypes?.length
@@ -1104,6 +1180,7 @@ function scStoryMenu(step, anchor) {
 /* Menú agrupado: cabecera opcional, secciones separadas y submenús que sustituyen el contenido
    (con «‹ Volver»). Cada entrada: {label, hint?, fn?, sub?:{title,items}, disabled?, danger?}. */
 function scMenuSections(anchor, menu) {
+  if (scMenuToggledOff(anchor)) return;
   const p = scOpenPopover(anchor);
   if (!p) return;
   const fill = (m, back) => {
@@ -1901,7 +1978,7 @@ function scBeginPlacement(id, kind = "place", stepId = null) {
   /* Sin Scenario no se crea nada aquí: se crea al aplicar un destino válido (scApplyTargets),
      dentro de la misma operación de undo que el Step. Así cancelar/soltar en vacío no deja rastro. */
   if (scActiveScenario() ? !scEditable() : kind !== "place") {
-    scNotice("No se puede colocar eventos en este escenario.");
+    scNotice("No se puede colocar eventos en esta historia.");
     return;
   }
   const et = eventTypeById(id);
@@ -2212,10 +2289,8 @@ function scApplyTargets(id, targets) {
   let created = false;
   if (!sc) {
     const pg = P();
-    let n = pg.scenarios.length + 1;
-    while (pg.scenarios.some((x) => x.name === "Escenario " + n)) n++;
-    sc = createScenario(pg, "Escenario " + n);
-    scActiveId = sc.id;
+    sc = createScenario(pg, defaultScenarioName(pg));
+    scSelectStory(sc.id);
     created = true;
   }
   const at = scContext ? sc.steps.find((s) => s.id === scContext.stepId).at : scStepDefaultTime(sc);
@@ -2238,7 +2313,7 @@ function scApplyTargets(id, targets) {
     ?.scrollIntoView({ block: "nearest" });
   scNotice(
     created
-      ? sc.name + " creado"
+      ? sc.name + " creada"
       : valid.length === 1 ? "Añadido a la historia." : valid.length + " eventos añadidos al mismo tiempo.",
   );
 }
@@ -2329,6 +2404,7 @@ function scInitUI() {
     if (el) el.onclick = fn;
   };
   bind("scScenarioTitle", () => scChooseScenario($("scScenarioTitle")));
+  bind("scStoryAdd", scNewScenario);
   bind("scScenarioMenu", () => scScenarioMenu($("scScenarioMenu")));
   bind("scRun", scRun);
   bind("scReset", scReset);
@@ -2496,7 +2572,7 @@ function scInitUI() {
     });
     scResizeObserver.observe($("panelScenarios").closest("aside"));
   }
-  scActiveId = P().scenarios?.[0]?.id ?? null;
+  scSelectStory(P().scenarios?.[0]?.id ?? null);
   scRenderPanel();
 }
 function ensureScenariosUI() {
@@ -2510,6 +2586,7 @@ function scRefreshIfVisible() {
 window.buildScenarioRenderState = buildScenarioRenderState;
 window.isScenarioPlaybackActive = isScenarioPlaybackActive;
 window.scReset = scReset;
+window.scSyncPage = scSyncPage;
 window.ensureScenariosUI = ensureScenariosUI;
 window.scRefreshIfVisible = scRefreshIfVisible;
 window.eventTypeById = eventTypeById;

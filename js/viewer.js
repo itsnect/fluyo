@@ -160,6 +160,7 @@ function storyRefresh(){
   if(!sc) return;
   const phase=!story ? "ready" : story.status==="running" ? "playing" : "finished";
   const d=FluyoStory.describe(phase, sc, story && story.playback, storyNodeName, id=>edgeById(id));
+  storySet("stKicker","text",phase==="ready" ? "Historia" : "Historia · "+sc.name);
   storySet("stTitle","text",d.title);
   storySet("stCaption","text",storyError || d.caption);
   storySet("stSummary","text",d.summary);

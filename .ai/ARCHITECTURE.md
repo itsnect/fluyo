@@ -24,7 +24,7 @@
 | `js/scenario-engine.js` | Motor determinista puro de Scenarios (v1/v2). |
 | `js/scenario-playback.js` | Proyección de Trace a datos visuales (sin DOM). |
 | `js/story-playback.js` | Receta ÚNICA de reproducción (`FluyoStory`): metadata por Step, ejecución, fin, estado de pintura y texto humano. Compartida por editor, Present y Viewer. |
-| `js/editor-scenarios.js` | Panel de Scenarios, storyboard, autoría, playback UI. |
+| `js/editor-scenarios.js` | Panel de Historias (Scenarios), selección de la Historia activa, storyboard, autoría, playback UI. |
 | `js/ui.js` | Panel lateral, pestañas, cajones, controles de propiedades. |
 | `js/export.js` | Guardar/abrir `.fluyo.json`, exportar GIF/PNG/JPG/SVG. |
 | `js/deeplink.js` | Carga de documentos desde `#d=`. |
@@ -125,3 +125,19 @@ EventType.presentation.connectionEffects ─→ connectionVisualSpec(et)  (model
 - Es presentación pura: la forma de moverse transforma el `progress` (misma duración ⇒ mismo fin, Trace y orden), rastro/halo/llegada son función de `progress`/`ageMs`. Sin timers, listeners ni estado persistente. El motor y `scenario-playback` no interpretan estos campos (sólo los transportan).
 - El preview del modal es un `<canvas>` que llama a `drawFlowOverlay`, el mismo pintor de Playback; un único RAF mientras el diálogo está abierto (`scPreviewStop` al cerrar); con «reducir movimiento» pinta un fotograma y sólo anima con «Ver ejemplo».
 - Tests: `test/fluyo-015.test.cjs` (vm; incluye «Trace antes = Trace después») y `test/fluyo-015-browser.cjs` (Chrome real).
+
+## Historias como entidad de primer nivel (FLUYO-016)
+
+```text
+documento: page.scenarios[]  (la Historia = Scenario; sin stories[] ni schema nuevo)
+editor:    scActiveId + scLastPage (efímeros)  ──→ scActiveScenario()  ──→ Run / Present / Share
+```
+
+- **Visible = «Historia»; interno = `Scenario`.** Panel: `HISTORIAS · [● nombre ▾] [+] [⋯]`; `+` crea «Historia N» al instante (sin modal); `⋯` = Renombrar · Duplicar historia · Eliminar historia · Condiciones · Detalles. Estado vacío «Aún no hay historias» + «+ Nueva historia»; arrastrar un Evento sin Historias sigue auto-creándola.
+- **Modelo** (`model.js`, puro): `defaultScenarioName(pg)`, `copyScenarioName`, `duplicateScenario(pg,id)` (copia profunda, id de Scenario nuevo e irreutilizable, `nextStepId` conservado —los ids de Step son por Historia—, se inserta justo detrás del original; «X copia», «X copia 2»…).
+- **Selección** (`editor-scenarios.js`): `scSelectStory(id)` es el único punto que cambia la Historia activa y limpia `scSelectedStep`/`scContext`/firma del storyboard. `scSyncPage()` se llama desde `renderTabs()`: al cambiar de página o de documento descarta la selección (los ids de Scenario son **por página**: sin esto el id 2 de una página «seleccionaba» el id 2 de otra) y cae en la primera Historia de la página nueva. Cambiar de Historia no es una operación de Undo; crear/duplicar/eliminar/renombrar son **una** (`pushUndo`, que ya snapshotea `page.scenarios`).
+- **Playback**: cambiar, crear, duplicar, eliminar o renombrar una Historia hace `scReset()` antes de actuar: sin overlays ni RAF residuales. Sin cambios en `story-playback.js`, `scenario-engine.js`, `scenario-playback.js` ni `render.js`.
+- **Share** (`share-url.js#applyShareKind`): «Compartir historia» = `{kind:"story", scenarioId}` → la copia lleva **sólo** esa Historia como `scenarios[0]` de la página abierta; todas las demás Historias (de esa página y de las demás) se vacían. Id inexistente → ninguna (falla cerrado). «Sólo el diagrama» → ninguna. `createShareUrl` sin opciones (o `kind:"story"` sin id) = copia tal cual (snapshot crudo; el editor nunca lo usa). Los EventTypes del proyecto viajan completos.
+- **Viewer**: sin cambios de lógica (`scenarios[0]` de la página abierta; sin selector). Añade la etiqueta «Historia» (`#stKicker`; durante/tras reproducir, «Historia · nombre»). **Legacy**: un Share anterior con N Scenarios sigue reproduciendo `scenarios[0]`; los Shares nuevos llevan uno.
+- **Present**: lee `scActiveScenario()`; cambiar de diapositiva ya hacía `scReset()`.
+- Tests: `test/fluyo-016.test.cjs` (vm), `test/fluyo-016-browser.cjs` (Chrome real), `test/fluyo-016-mutations.cjs` (18 mutaciones sobre copias), arnés `test/fluyo-016-harness.cjs`.

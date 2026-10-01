@@ -323,7 +323,10 @@ aside.scenariosOpen{box-sizing:border-box;width:336px;flex:0 0 336px;overflow:hi
 .scHeaderRow,.scPlaybackControls,.scSectionHeader{display:flex;align-items:center;justify-content:space-between;gap:8px;}
 .scHeaderRow{margin-bottom:10px;}
 #scScenarioTitle{min-width:0;flex:1;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:650;border-color:transparent;}
-#scScenarioMenu{flex:none;}
+#scScenarioMenu,#scStoryAdd{flex:none;}
+#scRun:disabled{opacity:.45;cursor:not-allowed;filter:saturate(.3);}
+#scRun:disabled:hover{filter:saturate(.3);}
+.scStoriesLabel{font-size:11px;font-weight:650;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 4px;}
 .scPlaybackControls{justify-content:flex-start;flex-wrap:wrap;}
 #scStatus:empty{display:none;}
 #scStatus{font-size:12px;color:var(--muted);margin:8px 0 0;}

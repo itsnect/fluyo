@@ -20,10 +20,16 @@ function buildShareUrl(baseUrl,payload){
   }
   return url.href;
 }
-/* Qué viaja en el enlace (FLUYO-014). Opera sobre la COPIA ya normalizada:
+/* Qué viaja en el enlace (FLUYO-014/016). Opera sobre la COPIA ya normalizada:
    - kind "diagram": sin Historias (más pequeño, sin «Reproducir»).
-   - kind "story" (por defecto): el Scenario activo del autor (scenarioId) pasa a ser
-     el primero de la página abierta; el viewer reproduce scenarios[0] de cada página.
+   - kind "story" con scenarioId: SÓLO esa Historia (la seleccionada por el autor), como
+     scenarios[0] de la página abierta; ninguna otra Historia de esa página ni de las demás
+     páginas viaja en el enlace. Si el id no existe en la página abierta no se comparte
+     ninguna Historia (falla cerrado: nunca se «adivina» otra).
+   - Sin options, o kind "story" sin scenarioId: copia tal cual (snapshot crudo; el editor
+     nunca lo usa: siempre pasa scenarioId o kind "diagram"). El viewer reproduce
+     scenarios[0] de cada página, así que los enlaces anteriores a 016 (con N Historias)
+     siguen reproduciendo la primera, como antes.
    El documento del autor nunca se modifica y no hay campo de schema nuevo. */
 function applyShareKind(normalized,options){
   const kind=options&&options.kind==="diagram"?"diagram":"story";
@@ -32,9 +38,11 @@ function applyShareKind(normalized,options){
     return normalized;
   }
   const id=options&&options.scenarioId;
-  const page=normalized.doc.pages[normalized.doc.cur];
-  const index=id==null||!page?-1:(page.scenarios||[]).findIndex(s=>s.id===id);
-  if(index>0) page.scenarios.unshift(...page.scenarios.splice(index,1));
+  if(id==null) return normalized;
+  const current=normalized.doc.pages[normalized.doc.cur];
+  const selected=current&&(current.scenarios||[]).find(s=>s.id===id);
+  for(const page of normalized.doc.pages) page.scenarios=[];
+  if(selected) current.scenarios=[selected];
   return normalized;
 }
 async function createShareUrl(projectData,baseUrl,options){

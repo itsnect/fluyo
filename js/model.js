@@ -457,6 +457,34 @@ function createScenario(pg,name="Escenario"){
   pg.scenarios.push(sc); return sc;
 }
 function deleteScenario(pg,id){ pg.scenarios=pg.scenarios.filter(sc=>sc.id!==id); }
+/* FLUYO-016. Una Historia es un Scenario; estas dos funciones sólo dan nombres y copia al modelo
+   (puras, sin DOM ni undo). Los ids de Step son por Scenario: la copia conserva los de sus Steps
+   y su contador, pero recibe un id de Scenario nuevo e irreutilizable. */
+function defaultScenarioName(pg){
+  const names=new Set((pg.scenarios||[]).map(sc=>sc.name));
+  let n=(pg.scenarios||[]).length+1;
+  while(names.has("Historia "+n)) n++;
+  return "Historia "+n;
+}
+function copyScenarioName(pg,name){
+  const names=new Set(pg.scenarios.map(sc=>sc.name));
+  const clip=base=>base.slice(0,120-" copia 999".length);
+  const base=clip(name);
+  let candidate=base+" copia", n=2;
+  while(names.has(candidate)) candidate=base+" copia "+n++;
+  return candidate;
+}
+function duplicateScenario(pg,id){
+  const index=pg.scenarios.findIndex(sc=>sc.id===id);
+  if(index<0) return null;
+  let maxId=0; for(const sc of pg.scenarios) maxId=Math.max(maxId,sc.id);
+  const minimum=projectCounter(pg.nextScenarioId,maxId);
+  const copy=JSON.parse(JSON.stringify(pg.scenarios[index]));
+  copy.id=reserveProjectIds(pg,"nextScenarioId",1,minimum);
+  copy.name=copyScenarioName(pg,pg.scenarios[index].name);
+  pg.scenarios.splice(index+1,0,copy);
+  return copy;
+}
 function createStep(sc,definition){
   if(sc.engineVersion>SCENARIO_ENGINE_VERSION) throw projectDataError("unsupported_engine_version");
   if(!projectObject(definition) || projectOwn(definition,"id")) throw projectDataError();

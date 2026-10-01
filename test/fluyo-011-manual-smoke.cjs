@@ -149,7 +149,7 @@ test("Manual Playback Review — Pago / Despacho / concurrente / clear page", as
       viewZoom = 1;
     });
     await page.locator("#tabScenarios").click();
-    await page.locator("#scEmptyState").getByRole("button", { name: "Crear escenario" }).click();
+    await page.locator("#scEmptyState").getByRole("button", { name: "+ Nueva historia" }).click();
 
     const cliente = await newRect(page, 190, 260, "Cliente");
     const comercio = await newRect(page, 570, 260, "Comercio");
@@ -323,7 +323,7 @@ test("Manual Playback Review — Pago / Despacho / concurrente / clear page", as
       }));
       assert.equal(after.scenarios, 1);
       assert.equal(after.steps, 1);
-      assert.match(after.name, /Escenario/);
+      assert.match(after.name, /Historia/);
       assert.match(await page.locator("#scStoryboard").innerText(), /Auto/);
       await page.keyboard.press("Control+z");
       assert.equal(await page.evaluate(() => P().scenarios.length), 0);

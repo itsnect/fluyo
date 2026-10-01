@@ -149,7 +149,7 @@ test('Varios Scenarios: scenarios[0] es la Historia; el autor lo decide al compa
   const second=multi.doc.pages[0].scenarios[1].id;
   const v=await open(multi,{kind:'story',scenarioId:second});
   assert.equal(v.el('stTitle').textContent,'Segunda historia');
-  assert.equal(v.run('doc.pages[0].scenarios.length'),2,'la copia conserva todos los Scenarios');
+  assert.equal(v.run('doc.pages[0].scenarios.length'),1,'FLUYO-016: la copia lleva sólo la Historia compartida');
   assert.equal(v.run('doc.pages[0].scenarios[0].name'),'Segunda historia');
   assert.equal(JSON.stringify(multi),original,'el documento original no se modifica');
   assert.equal(v.run('typeof storySwitch'),'undefined','el viewer no ofrece cambiar de Historia');
@@ -166,9 +166,9 @@ test('applyShareKind: puro y sin mutar la entrada',()=>{
   const c=makeViewer();c.run(read('js/share-url.js'));
   c.context.mk=()=>({doc:{cur:1,pages:[{scenarios:[{id:1},{id:2}]},{scenarios:[{id:7},{id:8},{id:9}]}]}});
   const ids=expr=>JSON.parse(JSON.stringify(c.run(expr).doc.pages.map(p=>p.scenarios.map(s=>s.id))));
-  assert.deepEqual(ids('applyShareKind(mk(),{kind:"story",scenarioId:9})'),[[1,2],[9,7,8]],'sólo la página abierta');
+  assert.deepEqual(ids('applyShareKind(mk(),{kind:"story",scenarioId:9})'),[[],[9]],'FLUYO-016: sólo la Historia seleccionada de la página abierta');
   assert.deepEqual(ids('applyShareKind(mk(),undefined)'),[[1,2],[7,8,9]],'sin opciones: igual');
-  assert.deepEqual(ids('applyShareKind(mk(),{kind:"story",scenarioId:99})'),[[1,2],[7,8,9]],'id desconocido: igual');
+  assert.deepEqual(ids('applyShareKind(mk(),{kind:"story",scenarioId:99})'),[[],[]],'id desconocido: falla cerrado, ninguna Historia');
   assert.deepEqual(ids('applyShareKind(mk(),{kind:"diagram"})'),[[],[]]);
   assert.deepEqual(ids('applyShareKind(mk(),{kind:"raro"})'),[[1,2],[7,8,9]],'kind desconocido = historia');
 });
@@ -279,7 +279,7 @@ test('Arquitectura: una sola receta de reproducción compartida; el viewer no ca
 
 test('Service worker: assets nuevos precacheados y versión subida',()=>{
   const sw=read('sw.js');
-  assert.match(sw,/fluyo-static-v59/);
+  assert.match(sw,/fluyo-static-v60/);
   for(const f of ['story-playback','scenario-engine','scenario-playback','viewer'])
     assert.ok(sw.includes('"./js/'+f+'.js"'),f);
   const idx=read('index.html');

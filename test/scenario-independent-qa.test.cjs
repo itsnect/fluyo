@@ -133,7 +133,7 @@ test('CONTROL: Share real → viewer READY → copia editable conserva v4, orden
   const viewer=makeViewer({search:'',hash:new URL(url).hash});await viewer.boot();
   await viewer.waitForPhase(p=>p==='ready'||p==='error');
   assert.equal(viewer.viewer().phase,'ready');
-  assert.equal(viewer.run('typeof FluyoScenarios'),'undefined');
+  assert.equal(viewer.run('typeof FluyoScenarios'),'object');
   assert.deepEqual(json(viewer.run('doc.pages[0].scenarios')),input.doc.pages[0].scenarios);
   assert.deepEqual(json(viewer.run('doc.pages[0].behaviors')),input.doc.pages[0].behaviors);
   const data=await viewer.run('decodeDeepLink(location.hash.slice(3))');

@@ -6,10 +6,8 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const read=p=>fs.readFileSync(path.join(__dirname,'..',p),'utf8');
 
-/* Sólo la parte pura de present-story.js (sin DOM). */
-const src=read('js/present-story.js');
-const pure=src.slice(0,src.indexOf('/* ───────────────────────── DOM'));
-const ctx={};vm.createContext(ctx);vm.runInContext(pure+';this.F=FluyoPresentStory;',ctx);
+/* La parte pura vive en story-playback.js (FLUYO-014), compartida con el Viewer. */
+const ctx={};vm.createContext(ctx);vm.runInContext(read('js/story-playback.js')+';this.F=FluyoPresentStory;',ctx);
 const F=ctx.F;
 
 const names={1:'Pago',2:'Despacho',3:'Pago recibido'};
@@ -71,7 +69,7 @@ test('assets: present-story.js se carga y se precachea (SW subido)',()=>{
   assert.match(read('index.html'),/<script src="js\/present-story\.js"><\/script>/);
   assert.ok(read('index.html').indexOf('editor-scenarios.js')<read('index.html').indexOf('present-story.js'));
   assert.match(read('sw.js'),/"\.\/js\/present-story\.js"/);
-  assert.match(read('sw.js'),/fluyo-static-v56/);
+  assert.match(read('sw.js'),/fluyo-static-v58/);
 });
 test('Present sale limpiando: exitPresent y goSlide detienen el playback',()=>{
   const ui=read('js/ui.js');

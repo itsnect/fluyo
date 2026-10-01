@@ -52,6 +52,21 @@ button:disabled{ opacity:.4; cursor:default; }
 #prBar[hidden]{ display:none; }
 #prPos{ color:var(--muted); min-width:52px; text-align:center; }
 
+/* ── Historia compartida ── */
+#story{
+  display:flex; flex-direction:column; align-items:center; gap:6px; text-align:center;
+  padding:10px 16px 12px; background:var(--panel); border-top:1px solid var(--line);
+}
+#story[hidden], #story button[hidden]{ display:none; }
+#story .stTitle{ font-size:16px; font-weight:600; line-height:1.25; overflow-wrap:anywhere; max-width:100%; }
+#story .stCaption{ font-size:14px; overflow-wrap:anywhere; max-width:100%; }
+#story .stSummary{ font-size:12px; color:var(--muted); overflow-wrap:anywhere; }
+#story .stCaption:empty, #story .stSummary:empty{ display:none; }
+#story .stActions{ display:flex; gap:8px; flex-wrap:wrap; justify-content:center; max-width:100%; }
+#story .stActions button{ min-height:40px; padding:0 18px; border-radius:999px; font-size:14px; }
+#story #stPlay{ font-weight:600; }
+body.presenting #story{ display:none; }
+
 /* ── Branding ── */
 #brand{
   padding:6px 12px; text-align:center; background:var(--panel);

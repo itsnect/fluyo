@@ -175,6 +175,7 @@ function makeScenarioUIContext() {
   vm.runInContext(read("js/model.js"), ctx);
   vm.runInContext(read("js/scenario-engine.js"), ctx);
   vm.runInContext(read("js/scenario-playback.js"), ctx);
+  vm.runInContext(read("js/story-playback.js"), ctx);
   vm.runInContext(read("js/editor-scenarios.js"), ctx);
   vm.runInContext(read("js/selection.js"), ctx);
   return { ctx, doc, register };

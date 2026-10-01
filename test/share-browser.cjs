@@ -112,13 +112,15 @@ function asset(url){
     const fileContext=await browser.newContext();const filePage=await fileContext.newPage();capture(filePage);
     await filePage.goto(require('node:url').pathToFileURL(path.join(root,'index.html')).href);
     await filePage.locator('#btnShare').click();
-    assert.equal(await filePage.locator('#shareCreate').isDisabled(),true);
-    assert.match(await filePage.locator('#shareMessage').textContent(),/versión web/);
+    assert.equal(await filePage.locator('#shareCreate').isDisabled(),false);
+    assert.match(await filePage.locator('#shareMessage').textContent(),/archivo local/);
+    await filePage.locator('#shareCreate').click();
+    assert.match(await filePage.locator('#shareLink').inputValue(),/^https:\/\/fluyo\.space\/s\/#d=/);
     await filePage.locator('#shareClose').click();
     await filePage.evaluate(()=>newNode('rect',100,100));
     assert.equal(await filePage.evaluate(()=>P().nodes.length),1);
     await filePage.locator('#btnPresent').click();await filePage.keyboard.press('Escape');
-    await fileContext.close();console.log('file://: editor y bloqueo de enlace público PASS');
+    await fileContext.close();console.log('file://: editor y enlace al visor público PASS');
     if(process.argv[2]){
       const providerScript=fs.readFileSync(process.argv[2],'utf8');
       const privateContext=await browser.newContext({serviceWorkers:'block'});

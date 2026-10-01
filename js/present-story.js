@@ -6,65 +6,10 @@
    Fase de Present (derivada, nunca persistida ni duplicada):
      sin historia · ready (scStatus idle) · playing (running) · finished (completed)
 
-   Parte pura (FluyoPresentStory): sin DOM; se ejecuta en Node.
-   Parte DOM (presentStoryRefresh): pinta #presentStory y #presentBar. */
+   Sólo la parte DOM (presentStoryRefresh): pinta #presentStory y #presentBar. */
 
-var FluyoPresentStory = (function(){
-  const CAPTION_MS = 2600;   // cuánto se mantiene un mensaje de consecuencia
-  const MAX_DOTS = 12;       // por encima, el progreso se resume en «n / total»
-
-  /* Momentos de la Historia (grupos por `at`) con un nombre humano:
-     los nombres de sus Eventos, sin repetir, en el orden de resolución. */
-  function moments(groups, nameOfStep){
-    return (groups||[]).map(g=>{
-      const names=[];
-      for(const s of g.steps){
-        const n=(nameOfStep(s)||"").trim();
-        if(n && !names.includes(n)) names.push(n);
-      }
-      return {at:g.at, label:names.join(" · ")};
-    });
-  }
-
-  /* Índice del último momento alcanzado (−1 si aún no empezó). */
-  function currentIndex(ms, virtualTime){
-    let idx=-1;
-    for(let i=0;i<ms.length;i++){ if(ms[i].at<=virtualTime) idx=i; else break; }
-    return idx;
-  }
-
-  /* Mensaje de consecuencia vigente, en lenguaje humano. Nunca expone razones
-     internas: «target_down» → «Kafka no está disponible». */
-  function caption(logEvents, virtualTime, nodeName, edgeEnds){
-    let found=null;
-    for(const ev of (logEvents||[])){
-      if(ev.at>virtualTime || virtualTime-ev.at>=CAPTION_MS) continue;
-      if(ev.type==="send_failed"){
-        const e=edgeEnds(ev.edgeId)||{};
-        const who=nodeName(ev.reason==="source_down"?e.from:e.to);
-        found="No se completó · "+who+" no está disponible";
-      } else if(ev.type==="state_changed"){
-        const who=nodeName(ev.nodeId);
-        found= ev.to==="DOWN" ? who+" no está disponible" : who+" vuelve a estar disponible";
-      }
-    }
-    return found;
-  }
-
-  /* Eventos que no se completaron (pasos distintos), para el cierre. */
-  function failedCount(logEvents){
-    const ids=new Set();
-    for(const ev of (logEvents||[])) if(ev.type==="send_failed") ids.add(ev.stepId);
-    return ids.size;
-  }
-
-  function summary(failed){
-    if(!failed) return "";
-    return failed===1 ? "1 evento no pudo realizarse" : failed+" eventos no pudieron realizarse";
-  }
-
-  return {moments, currentIndex, caption, failedCount, summary, CAPTION_MS, MAX_DOTS};
-})();
+/* La parte pura (momentos, mensajes, cierre) vive en story-playback.js y se
+   comparte con el Viewer: FluyoPresentStory === FluyoStory. */
 
 /* ───────────────────────── DOM ───────────────────────── */
 
@@ -132,15 +77,10 @@ function presentStoryRefresh(){
     psSet("psSummary","text","");
     return;
   }
-  const groups=storyboardGroups(sc.steps);
-  const ms=FluyoPresentStory.moments(groups, s=>{
-    const et=s.eventTypeId?eventTypeById(s.eventTypeId):null;
-    return et?et.name:"";
-  });
-  const vt=scPlayback?scPlayback.cursorVirtual:0;
-  const idx= phase==="finished" ? ms.length-1 : phase==="playing" ? FluyoPresentStory.currentIndex(ms,vt) : -1;
+  const d=FluyoStory.describe(phase, sc, scPlayback, id=>scNodeFallback(id), id=>edgeById(id));
+  const ms=d.moments, idx=d.idx;
 
-  psSet("psTitle","text", phase==="ready" ? sc.name : (idx>=0 && ms[idx].label ? ms[idx].label : sc.name));
+  psSet("psTitle","text", d.title);
   psSet("psTitle","className", "psTitle "+(phase==="ready"?"psTitleReady":""));
 
   /* progreso: puntos si caben; si no, «n / total» */
@@ -164,15 +104,8 @@ function presentStoryRefresh(){
   }
 
   /* mensaje: consecuencia vigente o cierre */
-  let cap="", sum="";
-  if(phase==="playing"){
-    cap=FluyoPresentStory.caption(scPlayback.logEvents, vt, id=>scNodeFallback(id), id=>edgeById(id))||"";
-  } else if(phase==="finished"){
-    cap="Reproducción terminada";
-    sum=FluyoPresentStory.summary(FluyoPresentStory.failedCount(scPlayback&&scPlayback.logEvents));
-  } else if(scErrors.length){
-    cap=scErrors[0];
-  }
+  let cap=d.caption, sum=d.summary;
+  if(phase!=="playing" && phase!=="finished" && scErrors.length) cap=scErrors[0];
   psSet("psCaption","text",cap);
   psSet("psSummary","text",sum);
 }

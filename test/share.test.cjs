@@ -65,15 +65,33 @@ test('Share: límite inclusivo aplicado a la URL final y rechazo real por tamañ
   assert.equal(c.el('shareLink').value,'');
   assert.ok(!c.names().includes('share_created'));
 });
-test('Share: file:// sólo informa que se requiere la web',async()=>{
+test('Share: file:// avisa pero no bloquea; el enlace apunta al visor público',async()=>{
   const c=creator('file:');
+  c.run('doc=deep(SHARE_FIXTURES.demo.doc);settings=deep(SHARE_FIXTURES.demo.settings)');
   c.el('btnShare').onclick();
-  assert.match(c.el('shareMessage').textContent,/versión web/);
-  assert.equal(c.el('shareCreate').disabled,true);
+  assert.match(c.el('shareMessage').textContent,/archivo local/);
+  assert.equal(c.el('shareCreate').disabled,false);
   await c.el('shareCreate').onclick();
-  assert.equal(c.el('shareLink').value,'');
-  await assert.rejects(c.run('createShareUrl(serializeProject(),location.href)'),e=>e.code==='web_required');
-  assert.ok(!c.names().includes('share_created'));
+  const url=c.el('shareLink').value;
+  assert.match(url,/^https:\/\/fluyo\.space\/s\/#d=[A-Za-z0-9_-]+$/);
+  assert.equal(c.el('shareResult').hidden,false);
+  assert.ok(c.names().includes('share_created'));
+  // El payload es autocontenido: idéntico al generado desde https.
+  const web=creator('https:');
+  web.run('doc=deep(SHARE_FIXTURES.demo.doc);settings=deep(SHARE_FIXTURES.demo.settings)');
+  web.el('btnShare').onclick();await web.el('shareCreate').onclick();
+  assert.equal(new URL(url).hash,new URL(web.el('shareLink').value).hash);
+});
+test('Share: createShareUrl desde file:// usa el origen público; http(s)/localhost conservan el suyo',async()=>{
+  const c=creator('file:');
+  c.run('doc=deep(SHARE_FIXTURES.demo.doc);settings=deep(SHARE_FIXTURES.demo.settings)');
+  for(const kind of ['story','diagram']){
+    const u=await c.run(`createShareUrl(serializeProject(),"file:///C:/fluyo/index.html",{kind:"${kind}"})`);
+    assert.ok(u.startsWith('https://fluyo.space/s/#d='));
+  }
+  assert.ok((await c.run('createShareUrl(serializeProject(),"http://localhost:8123/index.html")')).startsWith('http://localhost:8123/s/#d='));
+  assert.ok((await c.run('createShareUrl(serializeProject(),"https://fluyo.space/")')).startsWith('https://fluyo.space/s/#d='));
+  assert.throws(()=>c.run('buildShareUrl("file:///C:/fluyo/index.html","AA")'),e=>e.code==='web_required');
 });
 test('Share: clipboard sólo confirma éxito real y conserva copia manual',async()=>{
   const c=creator();c.el('btnShare').onclick();await c.el('shareCreate').onclick();

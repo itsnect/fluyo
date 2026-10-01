@@ -105,7 +105,7 @@ test('1001 steps y versión futura se guardan, comparten, abren y preservan ínt
   const viewer=makeViewer({search:'',hash:new URL(url).hash});await viewer.boot();
   await viewer.waitForPhase(p=>p==='ready'||p==='error');
   assert.equal(viewer.viewer().phase,'ready');
-  assert.deepEqual(json(viewer.run('doc.pages[0].scenarios')),scenarios);assert.equal(viewer.run('typeof FluyoScenarios'),'undefined');
+  assert.deepEqual(json(viewer.run('doc.pages[0].scenarios')),scenarios);assert.equal(viewer.run('typeof FluyoScenarios'),'object');
   await viewer.el('btnOpen').onclick();const decoded=await viewer.run('decodeDeepLink(location.hash.slice(3))');
   assert.deepEqual(json(model().load(decoded).doc.pages[0].scenarios),scenarios);
 });

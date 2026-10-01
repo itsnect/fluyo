@@ -462,53 +462,15 @@ function scRun(opts) {
   const sc = scActiveScenario();
   if (!sc) return;
   scErrors = [];
-  const structure = { nodes: P().nodes, edges: P().edges };
-  const result = FluyoScenarios.runScenario(structure, P().behaviors || [], sc);
-  if (!result.ok) {
-    const map = {
-      missing_node: "Un evento apunta a un elemento que ya no existe.",
-      missing_edge: "Un evento apunta a una conexión que ya no existe.",
-      missing_edge_endpoint: "Una conexión del diagrama tiene un extremo perdido.",
-      duplicate_structure_id: "Hay elementos o conexiones duplicados.",
-      duplicate_node_id: "Hay elementos duplicados.",
-      duplicate_edge_id: "Hay conexiones duplicadas.",
-      unsupported_engine_version: "Este escenario usa una versión de ejecución no soportada.",
-      guard_exceeded: "El escenario excede un límite operativo de ejecución.",
-      invalid_timestamp: "Un evento tiene un tiempo fuera de rango.",
-      invalid_structure: "La estructura de la página no es válida.",
-      invalid_behavior: "El estado inicial de un nodo no es válido.",
-      invalid_scenario: "El escenario tiene datos inválidos.",
-      invalid_state: "Un evento tiene una disponibilidad no válida.",
-      unknown_action: "Un evento tiene una acción desconocida.",
-      duplicate_step_id: "Hay eventos duplicados en la historia.",
-    };
-    const seen = new Set();
-    scErrors = result.errors
-      .map(
-        (err) =>
-          map[err.code] || "No se pudo reproducir. Revisa la historia y consulta los detalles técnicos.",
-      )
-      .filter((msg) => {
-        if (seen.has(msg)) return false;
-        seen.add(msg);
-        return true;
-      });
+  /* Una sola receta de ejecución, compartida con Present y el Viewer (story-playback.js). */
+  const started = FluyoStory.start(P(), sc, performance.now());
+  if (!started.ok) {
+    scErrors = started.errors;
     scRenderErrors();
     if (typeof presentStoryRefresh === "function") presentStoryRefresh();
     return;
   }
-  const stepMeta = {};
-  for (const step of sc.steps) {
-    const et = step.eventTypeId ? eventTypeById(step.eventTypeId) : null;
-    stepMeta[step.id] = {
-      token: et ? eventSymbol(et) : "",
-      motion: et && et.motion ? et.motion : DEFAULT_EVENT_MOTION,
-      nodeEffects: et ? scPlaybackEffects(et) : defaultNodeEffects(),
-      name: et ? et.name : "",
-    };
-  }
-  scPlayback = FluyoScenarioPlayback.makePlayback(result.trace, stepMeta);
-  scPlayback.startedAtReal = performance.now();
+  scPlayback = started.playback;
   scStatus = "running";
   if (!inPresent && typeof switchPanelTab === "function") switchPanelTab("scenarios");
   const tabProp = $("tabProperties");
@@ -547,13 +509,7 @@ function scTick(now) {
   scRenderStoryboard();
   scRenderTraceLog();
   if (typeof presentStoryRefresh === "function") presentStoryRefresh();
-  if (
-    scPlayback.nextEventIndex >= (scPlayback.trace.events || []).length &&
-    scPlayback.activeSends.length === 0 &&
-    scPlayback.completedSends.length === 0 &&
-    scPlayback.activeOccurrences.length === 0 &&
-    scPlayback.activeNodeEffects.length === 0
-  ) {
+  if (FluyoStory.isFinished(scPlayback)) {
     scStatus = "completed";
     scRenderButtons();
     scRenderStatus();
@@ -565,18 +521,7 @@ function scTick(now) {
 
 function buildScenarioRenderState() {
   if (!scPlayback) return null;
-  const rs = FluyoScenarioPlayback.tick(scPlayback, performance.now());
-  return {
-    nodeStates: rs.nodeStates,
-    activeSends: rs.activeSends,
-    completedSends: rs.completedSends,
-    activeOccurrences: rs.activeOccurrences,
-    completedOccurrences: rs.completedOccurrences,
-    activeNodeEffects: rs.activeNodeEffects,
-    completedNodeEffects: rs.completedNodeEffects,
-    scenario: scActiveScenario(),
-    suppressFlow: true,
-  };
+  return FluyoStory.renderState(scPlayback, scActiveScenario(), performance.now());
 }
 
 function scIsScenariosTabActive() {
@@ -1423,8 +1368,7 @@ function scRadioValue(name, allowed, fallback) {
 }
 /* Metadata que consume Playback (sin el símbolo, que sale de eventSymbol). */
 function scPlaybackEffects(et) {
-  const { symbol, ...fx } = nodeEffectsVisualSpec(et);
-  return fx;
+  return FluyoStory.playbackEffects(et);
 }
 function scNodeEffectsFromUI() {
   const useMessage = $("scUseMessage").checked;

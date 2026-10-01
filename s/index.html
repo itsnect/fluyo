@@ -45,6 +45,19 @@
   <div id="status" role="status"></div>
 </main>
 
+<!-- Historia compartida (FLUYO-014). Se muestra sólo si la página tiene una
+     Historia; el lenguaje es el de la persona, no el del motor. -->
+<section id="story" aria-label="Historia" hidden>
+  <div id="stTitle" class="stTitle"></div>
+  <div id="stCaption" class="stCaption" role="status"></div>
+  <div id="stSummary" class="stSummary"></div>
+  <div class="stActions">
+    <button id="stPlay" type="button" class="primary">▶ Reproducir historia</button>
+    <button id="stStop" type="button" hidden>■ Detener</button>
+    <button id="stOpen" type="button" hidden title="Abrir una copia editable de este diagrama en el editor">Abrir en Fluyo</button>
+  </div>
+</section>
+
 <footer id="brand">
   <a href="../">Hecho con Fluyo</a>
 </footer>
@@ -58,6 +71,10 @@
 <script src="../js/link-codec.js"></script>
 <script src="../js/geometry.js"></script>
 <script src="../js/render.js"></script>
+<!-- Reproducción de la Historia: el MISMO motor, playback y receta que el editor y Present. -->
+<script src="../js/scenario-engine.js"></script>
+<script src="../js/scenario-playback.js"></script>
+<script src="../js/story-playback.js"></script>
 <!-- Transporte de telemetría puro (sin instrumentación de edición). -->
 <script src="../js/analytics.js"></script>
 <!-- Viewer: loader del share, viewport y runtime read-only. -->

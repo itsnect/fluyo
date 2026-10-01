@@ -31,7 +31,7 @@ let viewerGeneration=0,viewerRaf=null,presentationRaf=null,viewerInputKey=null;
 let viewportWired=false;
 const viewerPointers=new Map();
 let viewerPinch=null;
-const VIEWER_CONTROLS=["btnFit","btnZoomIn","btnZoomOut","btnPresent","btnOpen"];
+const VIEWER_CONTROLS=["btnFit","btnZoomIn","btnZoomOut","btnPresent","btnOpen","stPlay","stStop","stOpen"];
 function setViewerPhase(phase){
   viewerPhase=phase;
   for(const id of VIEWER_CONTROLS) $(id).disabled=phase!=="ready";
@@ -60,6 +60,8 @@ function clearViewerDocument(){
     try{sv?.releasePointerCapture?.(id);}catch(e){/* Puntero ya liberado. */}
   }
   viewerPointers.clear();viewerPinch=null;
+  story=null;storyError=null;storyLast={};
+  $("story").hidden=true;
   viewerPayload=null;shareViewed=false;
   doc={theme:"dark",customBg:"",pages:[{name:"",nodes:[],edges:[],nextId:1,behaviors:[],scenarios:[],nextScenarioId:1}],cur:0};
   settings={...DEFAULT_SETTINGS};
@@ -98,7 +100,12 @@ function viewerRenderState(){
 function renderViewerFrame(){
   resizeCanvas(sv, $("wrap"));
   canvasDirty=true;
-  render(sctx, now(), {renderState:viewerRenderState(), emptyHint:"Esta página no contiene elementos."});
+  const rs=viewerRenderState();
+  /* La Historia se pinta con el mismo runtime que el editor (story-playback.js). */
+  if(story) rs.scenarioRuntime=FluyoStory.renderState(story.playback, story.scenario, performance.now());
+  render(sctx, now(), {renderState:rs, emptyHint:"Esta página no contiene elementos."});
+  if(story && story.status==="running" && FluyoStory.isFinished(story.playback)) story.status="completed";
+  storyRefresh();
 }
 /* Un fallo de render es terminal y no programa otro RAF. */
 function viewerLoop(generation=viewerGeneration){
@@ -108,6 +115,58 @@ function viewerLoop(generation=viewerGeneration){
   try{ renderViewerFrame(); }
   catch(e){ showShareError("invalid_document"); return; }
   viewerRaf=requestAnimationFrame(()=>viewerLoop(generation));
+}
+
+/* ─────────────────────── Historia compartida (FLUYO-014) ───────────────────────
+   La Historia de una página es SU primer Scenario con pasos: el autor decide
+   cuál es al compartir (editor-share.js lo coloca primero en la copia). Aquí no
+   hay selección. El viewer sólo reproduce con FluyoStory (receta compartida con
+   el editor y Present) y nunca modifica el documento: el runtime es efímero,
+   pertenece a esta generación del viewer y se descarta al cambiar de documento
+   o de página. */
+let story=null, storyError=null, storyLast={};
+function storyScenario(){
+  const pg=doc.pages[doc.cur], sc=pg && pg.scenarios && pg.scenarios[0];
+  return sc && sc.steps.length ? sc : null;
+}
+function storyNodeName(id){
+  const n=nodeById(id);
+  return (n && String(n.label||"").split("\n")[0].trim()) || "Elemento sin nombre";
+}
+function storyPlay(){
+  if(viewerPhase!=="ready" || presenting) return;
+  const sc=storyScenario();
+  if(!sc || (story && story.status==="running")) return;
+  storyReset();
+  const started=FluyoStory.start(P(), sc, performance.now());
+  if(!started.ok){ storyError=started.errors[0]||null; storyRefresh(); return; }
+  story={scenario:sc, playback:started.playback, status:"running"};
+  storyRefresh();
+}
+function storyReset(){
+  story=null; storyError=null;
+  if(viewerPhase==="ready") storyRefresh();
+}
+function storySet(id, prop, value){
+  const key=id+"."+prop;
+  if(storyLast[key]===value) return;
+  storyLast[key]=value;
+  const el=$(id);
+  if(prop==="text") el.textContent=value; else el[prop]=value;
+}
+function storyRefresh(){
+  const sc=viewerPhase==="ready" ? storyScenario() : null;
+  storySet("story","hidden",!sc);
+  if(!sc) return;
+  const phase=!story ? "ready" : story.status==="running" ? "playing" : "finished";
+  const d=FluyoStory.describe(phase, sc, story && story.playback, storyNodeName, id=>edgeById(id));
+  storySet("stTitle","text",d.title);
+  storySet("stCaption","text",storyError || d.caption);
+  storySet("stSummary","text",d.summary);
+  storySet("stPlay","hidden",phase==="playing");
+  storySet("stPlay","text",phase==="finished" ? "↻ Repetir" : "▶ Reproducir historia");
+  storySet("stStop","hidden",phase!=="playing");
+  storySet("stOpen","hidden",phase!=="finished");
 }
 
 /* ─────────────────────── Navegación de páginas ─────────────────────── */
@@ -137,12 +196,14 @@ function goPage(i){
   try{
     const j=clamp(i, 0, doc.pages.length-1);
     if(j===doc.cur) return;
+    storyReset();
     doc.cur=j;
     /* la aparición escalonada se reinicia en cada página, como en el editor */
     if(settings.build) restartClock();
     fitView();
     updateTabs();
     updatePresentBar();
+    storyRefresh();
   }catch(e){ showShareError("invalid_document"); }
 }
 function nextSlide(){ goPage(doc.cur+1); }
@@ -221,6 +282,7 @@ function updatePresentBar(){
 }
 function enterPresent(){
   if(viewerPhase!=="ready" || presenting) return;
+  storyReset();
   preView={x:view.x, y:view.y, zoom:view.zoom};
   presenting=true;
   document.body.classList.add("presenting");
@@ -272,7 +334,10 @@ function openInFluyo(){
   trackEvent("share_opened_in_editor");
   return buildOpenInFluyoURL(serializeProject(), location.href, viewerPayload)
     .then(url=>{
-      if(generation===viewerGeneration && viewerPhase==="ready" && viewerSourceKey()===viewerInputKey) location.href=url;
+      if(generation===viewerGeneration && viewerPhase==="ready" && viewerSourceKey()===viewerInputKey){
+        storyReset();
+        location.href=url;
+      }
     })
     .catch(err=>{
       if(generation!==viewerGeneration) return;
@@ -285,7 +350,8 @@ function openInFluyo(){
 
 document.addEventListener("keydown", ev=>{
   if(viewerPhase!=="ready") return;
-  if(ev.key===" "){ ev.preventDefault(); togglePlay(); }
+  /* Espacio sobre un botón lo activa (Reproducir/Detener); en otro sitio pausa el movimiento ambiental. */
+  if(ev.key===" " && !(ev.target && ev.target.tagName==="BUTTON")){ ev.preventDefault(); togglePlay(); }
   if(ev.key==="Escape" && presenting) exitPresent();
   if(!presenting) return;
   if(ev.key==="ArrowRight" || ev.key==="PageDown"){ ev.preventDefault(); nextSlide(); }
@@ -344,7 +410,11 @@ async function bootViewer(){
     $("prNext").onclick=nextSlide;
     $("prExit").onclick=exitPresent;
     $("btnOpen").onclick=openInFluyo;
+    $("stOpen").onclick=openInFluyo;
+    $("stPlay").onclick=storyPlay;
+    $("stStop").onclick=storyReset;
     setViewerPhase("ready");
+    storyRefresh();
     setStatus("");
     shareViewed=true;
     trackEvent("share_viewed");
@@ -371,5 +441,6 @@ window.__viewer={
   get playing(){ return playing; },
   get cur(){ return doc.cur; },
   get pages(){ return doc.pages.length; },
-  get shareViewed(){ return shareViewed; }
+  get shareViewed(){ return shareViewed; },
+  get story(){ return story ? story.status : (storyScenario() ? "ready" : "none"); }
 };

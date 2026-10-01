@@ -3,9 +3,18 @@
 const shareDialog=document.getElementById("shareDialog");
 const shareControl=id=>document.getElementById(id);
 let shareBusy=false;
+/* Historia que viajaría en el enlace: el Scenario activo de la página, si tiene pasos. */
+function shareStory(){
+  if(typeof scActiveScenario!=="function") return null;
+  const sc=scActiveScenario();
+  return sc && sc.steps.length ? sc : null;
+}
+function selectedShareKind(){
+  return shareStory() && shareControl("shareKindDiagram").checked ? "diagram" : "story";
+}
 function showShareDialog(){
   if(typeof isScenarioPlaybackActive==="function" && isScenarioPlaybackActive()){
-    shareControl("shareMessage").textContent="Finaliza el Scenario con Reset antes de compartir.";
+    shareControl("shareMessage").textContent="Detén la reproducción de la historia antes de compartir.";
     shareControl("shareConfirm").hidden=true;
     shareControl("shareResult").hidden=true;
     shareControl("shareCreate").hidden=true;
@@ -22,9 +31,16 @@ function showShareDialog(){
   shareControl("shareCreate").disabled=false;
   shareControl("shareClose").textContent="Cancelar";
   shareControl("shareLink").value="";
-  const web=["http:","https:"].includes(location.protocol);
-  shareControl("shareMessage").textContent=web? "" : "Compartir mediante enlace requiere abrir Fluyo desde su versión web.";
-  shareControl("shareCreate").disabled=!web;
+  const story=shareStory();
+  shareControl("shareKind").hidden=!story;
+  shareControl("shareTitle").textContent=story?"Compartir":"Compartir diagrama";
+  if(story){
+    shareControl("shareStoryName").textContent=story.name;
+    shareControl("shareKindStory").checked=true;
+    shareControl("shareKindDiagram").checked=false;
+  }
+  /* Desde un archivo local el enlace apunta al visor público: se avisa, no se bloquea. */
+  shareControl("shareMessage").textContent=isWebOrigin(location.href)? "" : "Estás usando Fluyo desde un archivo local: el enlace se creará para el visor público (fluyo.space).";
   shareDialog.showModal();
 }
 async function confirmShare(){
@@ -37,22 +53,24 @@ async function confirmShare(){
     commitEditBox();
     let project;
     try{project=serializeProject();}catch{throw shareUrlError("serialization_failed");}
-    const url=await createShareUrl(project,location.href);
+    const kind=selectedShareKind(), story=shareStory();
+    const url=await createShareUrl(project,location.href,{kind,scenarioId:story&&story.id});
+    shareControl("shareResultNote").textContent=kind==="story"&&story
+      ?"Quien abra este enlace verá el diagrama y podrá reproducir la historia. Los cambios posteriores no modificarán este enlace."
+      :"Este enlace contiene una copia del diagrama actual. Los cambios posteriores no modificarán este enlace.";
     shareControl("shareLink").value=url;
     shareControl("shareConfirm").hidden=true;
     shareControl("shareResult").hidden=false;
     shareControl("shareCreate").hidden=true;
     shareControl("shareCopy").hidden=false;
     shareControl("shareClose").textContent="Cerrar";
-    shareControl("shareMessage").textContent="";
+    shareControl("shareMessage").textContent=isWebOrigin(location.href)? "" : "El enlace abre el visor público de fluyo.space.";
     trackEvent("share_created");
     shareControl("shareCopy").focus();
   }catch(e){
     shareControl("shareMessage").textContent=e.code==="too_large" && e.stage==="url"
       ? "Este diagrama es demasiado grande para compartir mediante enlace. Puedes exportarlo como archivo por ahora."
-      : e.code==="web_required"
-        ? "Compartir mediante enlace requiere abrir Fluyo desde su versión web."
-        : "No se pudo crear el enlace. Puedes exportar el diagrama como archivo.";
+      : "No se pudo crear el enlace. Puedes exportar el diagrama como archivo.";
     shareControl("shareCreate").disabled=false;
   }finally{
     shareBusy=false;

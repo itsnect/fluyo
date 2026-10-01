@@ -50,7 +50,7 @@ const checkDefinitions=data=>{for(const key of Object.keys(definitions)) assert.
     await p.locator('#btnShare').click();await p.locator('#shareCreate').click();await p.waitForFunction(()=>!shareBusy&&document.getElementById('shareLink').value);
     const url=await p.locator('#shareLink').inputValue();assert.ok(url.length<=65536);
     const {c:vc,p:v}=await fresh();await v.goto(url);await v.waitForFunction(()=>window.__viewer?.phase==='ready');
-    checkDefinitions(await v.evaluate(()=>serializeProject()));assert.equal(await v.evaluate(()=>typeof FluyoScenarios),'undefined');assert.equal(await v.evaluate(()=>typeof newNode),'undefined');
+    checkDefinitions(await v.evaluate(()=>serializeProject()));assert.equal(await v.evaluate(()=>typeof FluyoScenarios),'object');assert.equal(await v.evaluate(()=>typeof newNode),'undefined');
     await v.locator('#btnOpen').click();await v.waitForFunction(()=>typeof newNode==='function'&&doc.pages[0].scenarios?.length===1);
     checkDefinitions(await save(v));await v.evaluate(()=>{P().nodes[0].label='Copia editada QA';scheduleAutosave();});checkDefinitions(await save(v));
     const {c:dc,p:d}=await fresh();await d.goto(base+'/#d='+new URL(url).hash.slice(3));await d.waitForFunction(()=>typeof newNode==='function'&&doc.pages[0].scenarios?.length===1);checkDefinitions(await save(d));

@@ -585,6 +585,13 @@ if(location.protocol==="http:" || location.protocol==="https:"){
 <dialog id="shareDialog" class="card" aria-labelledby="shareTitle">
   <h2 id="shareTitle">Compartir diagrama</h2>
   <div id="shareConfirm">
+    <fieldset id="shareKind" class="shareKind" hidden>
+      <legend>¿Qué quieres compartir?</legend>
+      <label><input id="shareKindStory" type="radio" name="shareKind" value="story" checked>
+        <span><b>Compartir historia</b><small>Quien abra el enlace podrá verla suceder: «<span id="shareStoryName"></span>».</small></span></label>
+      <label><input id="shareKindDiagram" type="radio" name="shareKind" value="diagram">
+        <span><b>Compartir sólo el diagrama</b><small>Sin la historia.</small></span></label>
+    </fieldset>
     <p>Se creará un enlace que contiene una copia de este diagrama.</p>
     <p>Cualquiera que tenga el enlace podrá verlo.</p>
     <p>Fluyo no almacenará esta copia en un servidor. El enlace no podrá revocarse desde Fluyo en esta versión.</p>
@@ -592,7 +599,7 @@ if(location.protocol==="http:" || location.protocol==="https:"){
   <div id="shareResult" hidden>
     <label for="shareLink">Enlace creado</label>
     <textarea id="shareLink" readonly rows="3" spellcheck="false"></textarea>
-    <p>Este enlace contiene una copia del diagrama actual. Los cambios posteriores no modificarán este enlace.</p>
+    <p id="shareResultNote">Este enlace contiene una copia del diagrama actual. Los cambios posteriores no modificarán este enlace.</p>
   </div>
   <p id="shareMessage" role="status" aria-live="polite"></p>
   <div class="actions">
@@ -689,6 +696,7 @@ if(location.protocol==="http:" || location.protocol==="https:"){
 <script src="js/editor-runtime.js"></script>
 <script src="js/scenario-engine.js"></script>
 <script src="js/scenario-playback.js"></script>
+<script src="js/story-playback.js"></script>
 <script src="js/editor-scenarios.js"></script>
 <script src="js/present-story.js"></script>
 <script src="js/ui.js"></script>

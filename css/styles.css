@@ -164,6 +164,12 @@ footer .tab .x:hover{opacity:1; color:#c97070;}
 #shareDialog{color:var(--text); width:min(480px, calc(100vw - 32px)); min-width:0; margin:auto;}
 #shareDialog::backdrop{background:#000c;}
 #shareDialog p{font-size:13px; line-height:1.6; margin:12px 0;}
+#shareDialog .shareKind{border:0; padding:0; margin:12px 0 0;}
+#shareDialog .shareKind legend{font-size:13px; padding:0; margin-bottom:6px;}
+#shareDialog .shareKind label{display:flex; gap:10px; align-items:flex-start; padding:8px 10px; border:1px solid var(--line); border-radius:8px; margin-bottom:6px; cursor:pointer; font-size:13px;}
+#shareDialog .shareKind label:has(input:checked){border-color:var(--accent);}
+#shareDialog .shareKind small{display:block; color:var(--muted); margin-top:2px; overflow-wrap:anywhere;}
+#shareDialog .shareKind[hidden]{display:none;}
 #shareLink{display:block; box-sizing:border-box; width:100%; margin-top:8px; padding:10px; resize:vertical; color:var(--text); background:var(--panel2); border:1px solid var(--line); border-radius:6px;}
 /* Tres salidas con etiquetas que dicen lo que hacen no caben en una fila sin
    quedar ilegibles en móvil. En columna cada una se lee entera, que es el

@@ -7,10 +7,10 @@ const {CompressionStream,DecompressionStream}=require("node:stream/web");
 const read=p=>fs.readFileSync(path.join(__dirname,'..',p),'utf8');
 
 const VIEWER_SCRIPTS=[
-  'js/config.js','js/safe-svg.js','js/model.js','js/link-codec.js','js/geometry.js','js/render.js',
+  'js/config.js','js/safe-svg.js','js/model.js','js/link-codec.js','js/geometry.js','js/render.js','js/scenario-engine.js','js/scenario-playback.js','js/story-playback.js',
   'js/analytics.js','js/share-loader.js','js/viewer-viewport.js','js/viewer.js'
 ];
-const FORBIDDEN_SCRIPTS=['state.js','editor-runtime.js','selection.js','interaction.js','ui.js','export.js','deeplink.js','examples.js','editor-analytics.js'];
+const FORBIDDEN_SCRIPTS=['editor-scenarios.js','present-story.js','state.js','editor-runtime.js','selection.js','interaction.js','ui.js','export.js','deeplink.js','examples.js','editor-analytics.js'];
 const FORBIDDEN_GLOBALS=['newNode','newEdge','pushUndo','undo','redo','copySel','pasteClip','pasteSel','clearSel','setMode','scheduleAutosave','saveAutosave','clearAutosave','applyProjectData','presentIncomingDocument','exportStatic','exportSVG','exportGIF','buildSVGDocument','syncEditBoxIfMoved','buildEditorRenderState','renderEditorFrame','loadDeepLinkFromURL'];
 
 /* ─────────────────────────── Harness ─────────────────────────── */

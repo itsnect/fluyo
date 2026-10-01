@@ -23,13 +23,14 @@
 | `js/editor-runtime.js` | Bucle del editor, renderState, integración con playback. |
 | `js/scenario-engine.js` | Motor determinista puro de Scenarios (v1/v2). |
 | `js/scenario-playback.js` | Proyección de Trace a datos visuales (sin DOM). |
+| `js/story-playback.js` | Receta ÚNICA de reproducción (`FluyoStory`): metadata por Step, ejecución, fin, estado de pintura y texto humano. Compartida por editor, Present y Viewer. |
 | `js/editor-scenarios.js` | Panel de Scenarios, storyboard, autoría, playback UI. |
 | `js/ui.js` | Panel lateral, pestañas, cajones, controles de propiedades. |
 | `js/export.js` | Guardar/abrir `.fluyo.json`, exportar GIF/PNG/JPG/SVG. |
 | `js/deeplink.js` | Carga de documentos desde `#d=`. |
 | `js/share-url.js` | Codificación de enlaces compartidos. |
 | `js/editor-share.js` | Diálogo de compartir. |
-| `js/viewer.js` | Viewer read-only de `/s/`. |
+| `js/viewer.js` | Viewer read-only de `/s/` (con reproducción de la Historia compartida). |
 | `sw.js` | Service worker y cache. |
 
 ## Formato `.fluyo.json`
@@ -96,3 +97,17 @@ Los `id` son únicos por página para nodos/edges; los contadores `nextId`, `nex
 - `js/present-story.js` (clásico, tras `editor-scenarios.js`) traduce el estado del Playback existente a la UI de Present: `presentPhase()` deriva de `scStatus`; `presentPlay()` → `scRun({present:true})`; `presentStop()`/`exitPresent()`/`goSlide()` → `scReset()`. `FluyoPresentStory` es puro y testeable en `vm`.
 - `presentStoryRefresh()` se llama desde `scTick`, `scReset` y errores de `scRun`, y sólo escribe el DOM cuando cambia el valor. `fitViewPresent()` encaja el diagrama con margen y reserva encabezado y barra.
 - Present es read-only: sin undo, autosave ni mutación de Steps/EventTypes. Test real: `test/fluyo-013-browser.cjs`.
+
+## Share Playback (FLUYO-014)
+
+```text
+Scenario ──→ js/story-playback.js (FluyoStory) ──→ scenario-engine ──→ Trace ──→ scenario-playback ──→ render.js
+              ▲            ▲            ▲
+          Editor       Present       Viewer (/s/)
+```
+
+- **Una sola receta**: `FluyoStory.start(page, scenario, now)` (valida, ejecuta el motor, construye `stepMeta` y el Playback), `isFinished`, `renderState` (el `scenarioRuntime` que pinta `render.js`) y `describe` (título, momento, mensaje humano y cierre). `scRun`/`scTick`/`buildScenarioRenderState` del editor, `presentStoryRefresh` y el Viewer **llaman** a estas funciones; nadie más ejecuta el motor ni construye Playback. Es puro (sin DOM, RAF, timers ni almacenamiento): se prueba en `vm`.
+- **Qué se comparte**: el mismo snapshot `/s/#d=` (sin schema nuevo). `createShareUrl(project, base, {kind, scenarioId})` aplica `applyShareKind` a la **copia** normalizada: `"story"` (por defecto) coloca el Scenario activo del autor como `scenarios[0]` de la página abierta; `"diagram"` vacía `scenarios` en todas las páginas. Sin opciones, el comportamiento anterior no cambia.
+- **Viewer**: carga `scenario-engine`, `scenario-playback` y `story-playback` además del core; no carga `editor-scenarios` ni `present-story`. La Historia de una página es `scenarios[0]` con pasos (no hay selector). Su runtime (`story`) es efímero, vive en `viewer.js`, se pinta dentro del único `viewerLoop` y se descarta en `clearViewerDocument` (hashchange/error/arranque), `goPage`, `enterPresent` y antes de «Abrir en Fluyo». El documento instalado nunca se modifica.
+- **UI**: sección `#story` bajo el lienzo (nombre de la Historia, mensaje, «▶ Reproducir historia» / «■ Detener» / «↻ Repetir» / «Abrir en Fluyo»), oculta si la página no tiene Historia. El diálogo de compartir del editor ofrece «Compartir historia» / «Compartir sólo el diagrama» sólo si hay Historia.
+- **Tests**: `test/fluyo-014.test.cjs` (contrato, vm) y `test/fluyo-014-browser.cjs` (Chrome real: casos Negocio/Humano/Sistema/Simultáneo/Efectos, paridad con Present, navegación y carreras, Abrir en Fluyo, 4 viewports, offline y upgrade del SW v56→v57).

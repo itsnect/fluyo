@@ -27,6 +27,7 @@ function makeContext(){
   // Motor y playback
   vm.runInContext(read('js/scenario-engine.js'), ctx);
   vm.runInContext(read('js/scenario-playback.js'), ctx);
+  vm.runInContext(read('js/story-playback.js'), ctx);
   return ctx;
 }
 

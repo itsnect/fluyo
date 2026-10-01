@@ -31,6 +31,7 @@ function makeModelContext(){
     vm.runInContext(read(f), ctx);
   vm.runInContext(read('js/scenario-engine.js'), ctx);
   vm.runInContext(read('js/scenario-playback.js'), ctx);
+  vm.runInContext(read('js/story-playback.js'), ctx);
   vm.runInContext(read('js/state.js').split('/* ===================== Viewport')[0], ctx);
   return ctx;
 }
@@ -671,7 +672,7 @@ test('Share/viewer roundtrip preserves EventTypes and v5 structure',async()=>{
   await viewer.boot();
   await viewer.waitForPhase(phase=>phase==='ready'||phase==='error');
   assert.equal(viewer.viewer().phase, 'ready');
-  assert.equal(viewer.run('typeof FluyoScenarios'), 'undefined');
+  assert.equal(viewer.run('typeof FluyoScenarios'), 'object');
   assert.deepEqual(json(viewer.run('doc.eventTypes')), input.doc.eventTypes);
   assert.deepEqual(json(viewer.run('doc.pages[0].scenarios')), input.doc.pages[0].scenarios);
 });
@@ -694,8 +695,8 @@ test('Legacy v1 SEND/SET_STATE without eventTypeId execute and save',()=>{
 
 test('Viewer script list does not include editor or engine scripts',()=>{
   const viewerScripts=new Set(require('./viewer-harness.cjs').VIEWER_SCRIPTS);
-  assert.equal(viewerScripts.has('js/scenario-engine.js'), false);
-  assert.equal(viewerScripts.has('js/scenario-playback.js'), false);
+  assert.equal(viewerScripts.has('js/scenario-engine.js'), true);
+  assert.equal(viewerScripts.has('js/scenario-playback.js'), true);
   assert.equal(viewerScripts.has('js/editor-scenarios.js'), false);
   assert.equal(viewerScripts.has('js/interaction.js'), false);
   assert.equal(viewerScripts.has('js/state.js'), false);
@@ -769,9 +770,9 @@ test('scFindDropTargets filters incompatible primitive for direct hit',()=>{
 
 /* ─────────────────────────── 23. Service Worker cache version and assets ─────────────────────────── */
 
-test('Service Worker cache is v56 and includes new scenario assets',()=>{
+test('Service Worker cache is v58 and includes new scenario assets',()=>{
   const sw=read('sw.js');
-  assert.ok(sw.includes('fluyo-static-v56'));
+  assert.ok(sw.includes('fluyo-static-v58'));
   assert.ok(sw.includes('"./js/scenario-engine.js"'));
   assert.ok(sw.includes('"./js/scenario-playback.js"'));
   assert.ok(sw.includes('"./js/editor-scenarios.js"'));

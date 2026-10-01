@@ -836,7 +836,16 @@ document.addEventListener("keydown", ev=>{
   /* presentando manda el mando de diapositivas y se cierran los atajos de
      edición: nadie quiere borrar un nodo delante de la sala por pulsar Supr */
   if(presenting){
-    if(ev.key==="Escape"){ ev.preventDefault(); exitPresent(); return; }
+    /* con Historia: Esc detiene la reproducción; Espacio/Enter reproduce o repite */
+    const phase=typeof presentPhase==="function"?presentPhase():"none";
+    if(ev.key==="Escape"){ ev.preventDefault(); if(phase==="playing") presentStop(); else exitPresent(); return; }
+    if(phase!=="none" && (ev.key===" "||ev.key==="Enter")){
+      /* un botón de la barra enfocado gestiona su propia tecla */
+      if(ev.target.closest && ev.target.closest("#presentBar")) return;
+      ev.preventDefault();
+      if(phase!=="playing") presentPlay();
+      return;
+    }
     if(["ArrowRight","ArrowDown","PageDown"," ","Enter"].includes(ev.key)){ ev.preventDefault(); nextSlide(); return; }
     if(["ArrowLeft","ArrowUp","PageUp","Backspace"].includes(ev.key)){ ev.preventDefault(); prevSlide(); return; }
     if(ev.key==="Home"){ ev.preventDefault(); goSlide(0); return; }

@@ -569,7 +569,17 @@ if(location.protocol==="http:" || location.protocol==="https:"){
   <button id="prPrev" title="Diapositiva anterior (←)" aria-label="Diapositiva anterior">◀</button>
   <span id="prPos" aria-live="polite"></span>
   <button id="prNext" title="Diapositiva siguiente (→)" aria-label="Diapositiva siguiente">▶</button>
-  <button id="prExit" title="Salir de la presentación (Esc)" aria-label="Salir de la presentación">✕</button>
+  <button id="psPlay" title="Reproducir la historia (Espacio)" hidden>▶ Reproducir</button>
+  <button id="psStop" title="Detener (Esc)" hidden>■ Detener</button>
+  <button id="psEdit" title="Salir de la presentación y volver al editor" hidden>← Volver a editar</button>
+  <button id="prExit" title="Salir de la presentación (Esc)" aria-label="Salir de la presentación">✕ Salir</button>
+</div>
+<!-- Encabezado de la Historia en Present: qué está pasando ahora (secundario al Canvas) -->
+<div id="presentStory" hidden>
+  <div id="psTitle" class="psTitle"></div>
+  <div id="psDots" class="psDots" hidden></div>
+  <div id="psCaption" class="psCaption" role="status" aria-live="polite"></div>
+  <div id="psSummary" class="psSummary"></div>
 </div>
 
 <dialog id="shareDialog" class="card" aria-labelledby="shareTitle">
@@ -680,6 +690,7 @@ if(location.protocol==="http:" || location.protocol==="https:"){
 <script src="js/scenario-engine.js"></script>
 <script src="js/scenario-playback.js"></script>
 <script src="js/editor-scenarios.js"></script>
+<script src="js/present-story.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/export.js"></script>
 <script src="js/share-url.js"></script>

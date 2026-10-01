@@ -453,7 +453,9 @@ function scDeleteStep(id) {
   scRenderButtons();
 }
 
-function scRun() {
+function scRun(opts) {
+  /* opts.present: Present reproduce con este mismo motor sin tocar el panel del editor. */
+  const inPresent = !!(opts && opts.present);
   if (scStatus === "running") return;
   if (scStatus === "completed") scReset();
   scCancelPlacement();
@@ -492,6 +494,7 @@ function scRun() {
         return true;
       });
     scRenderErrors();
+    if (typeof presentStoryRefresh === "function") presentStoryRefresh();
     return;
   }
   const stepMeta = {};
@@ -507,7 +510,7 @@ function scRun() {
   scPlayback = FluyoScenarioPlayback.makePlayback(result.trace, stepMeta);
   scPlayback.startedAtReal = performance.now();
   scStatus = "running";
-  if (typeof switchPanelTab === "function") switchPanelTab("scenarios");
+  if (!inPresent && typeof switchPanelTab === "function") switchPanelTab("scenarios");
   const tabProp = $("tabProperties");
   if (tabProp) tabProp.disabled = true;
   scRenderButtons();
@@ -528,6 +531,7 @@ function scReset() {
   const tabProp = $("tabProperties");
   if (tabProp) tabProp.disabled = false;
   scRenderPanel();
+  if (typeof presentStoryRefresh === "function") presentStoryRefresh();
 }
 
 function scScheduleTick() {
@@ -542,6 +546,7 @@ function scTick(now) {
   scRenderStatus();
   scRenderStoryboard();
   scRenderTraceLog();
+  if (typeof presentStoryRefresh === "function") presentStoryRefresh();
   if (
     scPlayback.nextEventIndex >= (scPlayback.trace.events || []).length &&
     scPlayback.activeSends.length === 0 &&
@@ -552,6 +557,7 @@ function scTick(now) {
     scStatus = "completed";
     scRenderButtons();
     scRenderStatus();
+    if (typeof presentStoryRefresh === "function") presentStoryRefresh();
   } else {
     scScheduleTick();
   }

@@ -506,15 +506,18 @@ function updatePresentBar(){
   $("prPos").textContent=(doc.cur+1)+" / "+doc.pages.length;
   $("prPrev").disabled=doc.cur===0;
   $("prNext").disabled=doc.cur===doc.pages.length-1;
+  if(typeof presentStoryRefresh==="function") presentStoryRefresh();
 }
 function goSlide(i){
   const j=clamp(i,0,doc.pages.length-1);
   if(j===doc.cur) return;
+  /* la Historia pertenece a la página: al cambiar de diapositiva se detiene */
+  if(typeof isScenarioPlaybackActive==="function" && isScenarioPlaybackActive()){ if(typeof scReset==="function") scReset(); }
   doc.cur=j; clearSel(); renderTabs();
   /* la aparición se reinicia en cada diapositiva: si no, a partir de la segunda
      ya habría terminado y el diagrama saldría montado de golpe */
   if(settings.build){ t0=performance.now(); pausedAt=0; }
-  fitView();
+  fitViewPresent();
   updatePresentBar();
 }
 function nextSlide(){ goSlide(doc.cur+1); }
@@ -524,6 +527,8 @@ function enterPresent(){
   if(typeof isScenarioPlaybackActive==="function" && isScenarioPlaybackActive()){ if(typeof scReset==="function") scReset(); }
   commitEditBox();
   checkAnalyticsEdit();
+  /* el foco no debe quedarse en «Presentar» (oculto): Espacio/Enter son de Present */
+  if(document.activeElement && document.activeElement.blur) document.activeElement.blur();
   preView={x:viewX, y:viewY, z:viewZoom};
   presenting=true;
   clearSel();
@@ -539,7 +544,7 @@ function enterPresent(){
   if(settings.build){ t0=performance.now(); pausedAt=0; }
   /* el layout aún no se ha rehecho tras esconder la interfaz: sin esperar un
      fotograma, fitView mediría el lienzo con el tamaño viejo */
-  scheduleEditorResize(fitView);
+  scheduleEditorResize(fitViewPresent);
   updatePresentBar();
   /* Sin propiedades a propósito. Llevaba `pages`, el número de páginas del
      documento: el único dato de toda la telemetría derivado del contenido del
@@ -550,16 +555,24 @@ function enterPresent(){
 }
 function exitPresent(){
   if(!presenting) return;
+  /* salir limpia el runtime de la Historia: sin tokens, cues ni RAF residuales */
+  if(typeof isScenarioPlaybackActive==="function" && isScenarioPlaybackActive()){ if(typeof scReset==="function") scReset(); }
   presenting=false;
   document.body.classList.remove("presenting");
   if(document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(()=>{});
   if(preView){ viewX=preView.x; viewY=preView.y; viewZoom=preView.z; preView=null; }
   scheduleEditorResize();
+  if(typeof presentStoryRefresh==="function") presentStoryRefresh();
 }
 $("btnPresent").onclick=enterPresent;
 $("prNext").onclick=nextSlide;
 $("prPrev").onclick=prevSlide;
 $("prExit").onclick=exitPresent;
+$("psPlay").onclick=presentPlay;
+$("psStop").onclick=presentStop;
+$("psEdit").onclick=exitPresent;
+/* el diagrama se vuelve a encajar si cambia el viewport mientras se presenta */
+window.addEventListener("resize", ()=>{ if(presenting) scheduleEditorResize(fitViewPresent); });
 /* salir de la pantalla completa por la vía del navegador (Esc, F11) también
    tiene que deshacer el modo; si no, la interfaz se quedaría escondida */
 document.addEventListener("fullscreenchange", ()=>{

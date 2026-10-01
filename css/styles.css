@@ -195,6 +195,39 @@ body.presenting #animDrawer{display:none !important;}
 body.presenting #presentBar{display:flex;}
 @media (prefers-reduced-motion: reduce){ #presentBar{transition:none;} }
 
+/* ---- Present con Historia (FLUYO-013) ----
+   El Canvas es el protagonista: el encabezado es un velo pequeño arriba y la
+   barra sigue siendo mínima. Fuera de la reproducción la barra se ve entera
+   (es la invitación a empezar); durante ella vuelve a apartarse. */
+#presentBar[hidden], #presentBar button[hidden], #presentStory[hidden]{display:none !important;}
+/* left:50% limita el ancho «shrink-to-fit» a media pantalla: sin max-content la barra se parte en filas en móvil */
+#presentBar{width:max-content; max-width:calc(100vw - 16px); flex-wrap:wrap; justify-content:center;}
+#presentBar.psAttention{opacity:1;}
+#presentBar #psPlay{background:var(--accent,#3aa7e8); color:#06121c; border-color:transparent; font-weight:600; padding:0 18px;}
+#presentBar #prExit, #presentBar #psEdit, #presentBar #psStop{padding:0 14px;}
+#presentStory{
+  display:none; position:fixed; left:50%; top:14px; transform:translateX(-50%);
+  width:max-content; max-width:min(92vw, 640px); text-align:center; z-index:59; pointer-events:none;
+  flex-direction:column; align-items:center; gap:4px;
+  background:#000000a0; border:1px solid var(--line); border-radius:14px; padding:8px 18px;
+}
+body.presenting #presentStory:not([hidden]){display:flex;}
+#presentStory .psTitle{font-size:16px; font-weight:600; line-height:1.25; overflow-wrap:anywhere;}
+#presentStory .psTitleReady{font-weight:500; color:var(--muted);}
+#presentStory .psDots{display:flex; gap:6px; align-items:center; color:var(--muted); font-size:12px;}
+#presentStory .psDot{width:9px; height:9px; border-radius:50%; border:1.5px solid var(--muted); box-sizing:border-box;}
+#presentStory .psDot.done{background:var(--muted);}
+#presentStory .psDot.now{background:#fff; border-color:#fff; transform:scale(1.25);}
+#presentStory .psCaption{font-size:14px; min-height:0; overflow-wrap:anywhere;}
+#presentStory .psCaption:empty, #presentStory .psSummary:empty{display:none;}
+#presentStory .psSummary{font-size:12px; color:var(--muted);}
+@media (max-width: 480px){
+  #presentStory{top:8px; padding:6px 12px;}
+  #presentStory .psTitle{font-size:14px;}
+  #presentBar{bottom:10px; gap:6px; padding:5px 8px;}
+}
+@media (prefers-reduced-motion: reduce){ #presentStory .psDot{transform:none !important;} }
+
 /* ============ Responsive ============ */
 @media (max-width: 700px) {
   header { gap: 4px; padding: 5px 8px; }

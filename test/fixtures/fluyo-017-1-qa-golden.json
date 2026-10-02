@@ -1,0 +1,1012 @@
+{
+  "0:1": {
+    "trace": {
+      "engineVersion": 2,
+      "scenarioId": 1,
+      "events": [
+        {
+          "at": 0,
+          "type": "send_started",
+          "stepId": 1,
+          "edgeId": 5
+        },
+        {
+          "at": 0,
+          "type": "send_succeeded",
+          "stepId": 1,
+          "edgeId": 5
+        },
+        {
+          "at": 500,
+          "type": "event_occurred",
+          "stepId": 2,
+          "nodeId": 2
+        },
+        {
+          "at": 2500,
+          "type": "send_started",
+          "stepId": 3,
+          "edgeId": 7
+        },
+        {
+          "at": 2500,
+          "type": "send_failed",
+          "stepId": 3,
+          "edgeId": 7,
+          "reason": "target_down"
+        },
+        {
+          "at": 2500,
+          "type": "send_started",
+          "stepId": 4,
+          "edgeId": 6
+        },
+        {
+          "at": 2500,
+          "type": "send_succeeded",
+          "stepId": 4,
+          "edgeId": 6
+        },
+        {
+          "at": 2500,
+          "type": "event_occurred",
+          "stepId": 5,
+          "nodeId": 3
+        },
+        {
+          "at": 7000,
+          "type": "send_started",
+          "stepId": 6,
+          "edgeId": 8
+        },
+        {
+          "at": 7000,
+          "type": "send_succeeded",
+          "stepId": 6,
+          "edgeId": 8
+        },
+        {
+          "at": 7000,
+          "type": "state_changed",
+          "stepId": 7,
+          "nodeId": 4,
+          "from": "DOWN",
+          "to": "UP"
+        }
+      ]
+    },
+    "stepMeta": {
+      "1": {
+        "token": "💵",
+        "motion": "slow",
+        "nodeEffects": {
+          "showSymbol": false,
+          "symbolSize": "medium",
+          "message": "",
+          "messageColor": "",
+          "messageSize": "medium",
+          "messageWeight": "normal",
+          "messageFont": "default",
+          "messagePosition": "above",
+          "highlight": false,
+          "blink": false,
+          "dim": false,
+          "fillColor": "",
+          "visualDuration": "normal",
+          "visualDurationMs": 1500
+        },
+        "connection": {
+          "size": "large",
+          "style": "impulse",
+          "trail": "subtle",
+          "arrival": "bounce",
+          "during": "breathe",
+          "symbol": "💵",
+          "px": 28
+        },
+        "name": "Pago"
+      },
+      "2": {
+        "token": "⚙️",
+        "motion": "normal",
+        "nodeEffects": {
+          "showSymbol": true,
+          "symbolSize": "medium",
+          "message": "Procesando…",
+          "messageColor": "",
+          "messageSize": "medium",
+          "messageWeight": "normal",
+          "messageFont": "default",
+          "messagePosition": "above",
+          "highlight": true,
+          "blink": true,
+          "dim": false,
+          "fillColor": "",
+          "visualDuration": "long",
+          "visualDurationMs": 3000
+        },
+        "connection": {
+          "size": "large",
+          "style": "smooth",
+          "trail": "marked",
+          "arrival": "glow",
+          "during": "halo",
+          "symbol": "⚙️",
+          "px": 28
+        },
+        "name": "Procesamiento"
+      },
+      "3": {
+        "token": "📣",
+        "motion": "fast",
+        "nodeEffects": {
+          "showSymbol": false,
+          "symbolSize": "medium",
+          "message": "",
+          "messageColor": "",
+          "messageSize": "medium",
+          "messageWeight": "normal",
+          "messageFont": "default",
+          "messagePosition": "above",
+          "highlight": false,
+          "blink": false,
+          "dim": false,
+          "fillColor": "",
+          "visualDuration": "normal",
+          "visualDurationMs": 1500
+        },
+        "connection": {
+          "size": "medium",
+          "style": "direct",
+          "trail": "none",
+          "arrival": "none",
+          "during": "none",
+          "symbol": "📣",
+          "px": 20
+        },
+        "name": "Notificación"
+      },
+      "4": {
+        "token": "✅",
+        "motion": "fast",
+        "nodeEffects": {
+          "showSymbol": false,
+          "symbolSize": "medium",
+          "message": "",
+          "messageColor": "",
+          "messageSize": "medium",
+          "messageWeight": "normal",
+          "messageFont": "default",
+          "messagePosition": "above",
+          "highlight": false,
+          "blink": false,
+          "dim": false,
+          "fillColor": "",
+          "visualDuration": "normal",
+          "visualDurationMs": 1500
+        },
+        "connection": {
+          "size": "medium",
+          "style": "direct",
+          "trail": "none",
+          "arrival": "none",
+          "during": "none",
+          "symbol": "✅",
+          "px": 20
+        },
+        "name": "Confirmación"
+      },
+      "5": {
+        "token": "⚙️",
+        "motion": "normal",
+        "nodeEffects": {
+          "showSymbol": true,
+          "symbolSize": "medium",
+          "message": "Procesando…",
+          "messageColor": "",
+          "messageSize": "medium",
+          "messageWeight": "normal",
+          "messageFont": "default",
+          "messagePosition": "above",
+          "highlight": true,
+          "blink": true,
+          "dim": false,
+          "fillColor": "",
+          "visualDuration": "long",
+          "visualDurationMs": 3000
+        },
+        "connection": {
+          "size": "large",
+          "style": "smooth",
+          "trail": "marked",
+          "arrival": "glow",
+          "during": "halo",
+          "symbol": "⚙️",
+          "px": 28
+        },
+        "name": "Procesamiento"
+      },
+      "6": {
+        "token": "📣",
+        "motion": "fast",
+        "nodeEffects": {
+          "showSymbol": false,
+          "symbolSize": "medium",
+          "message": "",
+          "messageColor": "",
+          "messageSize": "medium",
+          "messageWeight": "normal",
+          "messageFont": "default",
+          "messagePosition": "above",
+          "highlight": false,
+          "blink": false,
+          "dim": false,
+          "fillColor": "",
+          "visualDuration": "normal",
+          "visualDurationMs": 1500
+        },
+        "connection": {
+          "size": "medium",
+          "style": "direct",
+          "trail": "none",
+          "arrival": "none",
+          "during": "none",
+          "symbol": "📣",
+          "px": 20
+        },
+        "name": "Notificación"
+      },
+      "7": {
+        "token": "",
+        "motion": "normal",
+        "nodeEffects": {
+          "showSymbol": false,
+          "symbolSize": "medium",
+          "message": "",
+          "messageColor": "",
+          "messageSize": "medium",
+          "messageWeight": "normal",
+          "messageFont": "default",
+          "messagePosition": "above",
+          "highlight": false,
+          "blink": false,
+          "dim": false,
+          "fillColor": "",
+          "visualDuration": "normal",
+          "visualDurationMs": 1500
+        },
+        "connection": null,
+        "name": ""
+      }
+    },
+    "outcomes": [
+      {
+        "stepId": 1,
+        "at": 0,
+        "action": "SEND",
+        "eventIndexes": [
+          0,
+          1
+        ],
+        "eventTypeId": 1,
+        "edgeId": 5,
+        "status": "completed"
+      },
+      {
+        "stepId": 2,
+        "at": 500,
+        "action": "OCCURRENCE",
+        "eventIndexes": [
+          2
+        ],
+        "eventTypeId": 2,
+        "nodeId": 2,
+        "status": "narrated",
+        "nodeAvailability": "UP",
+        "note": "El motor registra la ocurrencia; no comprueba disponibilidad ni efecto."
+      },
+      {
+        "stepId": 3,
+        "at": 2500,
+        "action": "SEND",
+        "eventIndexes": [
+          3,
+          4
+        ],
+        "eventTypeId": 6,
+        "edgeId": 7,
+        "status": "not_completed",
+        "reason": "target_down",
+        "reasonNodeId": 4
+      },
+      {
+        "stepId": 4,
+        "at": 2500,
+        "action": "SEND",
+        "eventIndexes": [
+          5,
+          6
+        ],
+        "eventTypeId": 3,
+        "edgeId": 6,
+        "status": "completed"
+      },
+      {
+        "stepId": 5,
+        "at": 2500,
+        "action": "OCCURRENCE",
+        "eventIndexes": [
+          7
+        ],
+        "eventTypeId": 2,
+        "nodeId": 3,
+        "status": "narrated",
+        "nodeAvailability": "UP",
+        "note": "El motor registra la ocurrencia; no comprueba disponibilidad ni efecto."
+      },
+      {
+        "stepId": 6,
+        "at": 7000,
+        "action": "SEND",
+        "eventIndexes": [
+          8,
+          9
+        ],
+        "eventTypeId": 6,
+        "edgeId": 8,
+        "status": "completed"
+      },
+      {
+        "stepId": 7,
+        "at": 7000,
+        "action": "SET_STATE",
+        "eventIndexes": [
+          10
+        ],
+        "nodeId": 4,
+        "state": "UP",
+        "status": "state_changed",
+        "from": "DOWN",
+        "to": "UP"
+      }
+    ],
+    "finalAvailability": {
+      "1": "UP",
+      "2": "UP",
+      "3": "UP",
+      "4": "UP"
+    },
+    "finalNodeStates": {
+      "4": "UP"
+    }
+  },
+  "0:2": {
+    "trace": {
+      "engineVersion": 2,
+      "scenarioId": 2,
+      "events": [
+        {
+          "at": 0,
+          "type": "send_started",
+          "stepId": 1,
+          "edgeId": 5
+        },
+        {
+          "at": 0,
+          "type": "send_succeeded",
+          "stepId": 1,
+          "edgeId": 5
+        },
+        {
+          "at": 1500,
+          "type": "state_changed",
+          "stepId": 2,
+          "nodeId": 2,
+          "from": "UP",
+          "to": "DOWN"
+        },
+        {
+          "at": 1500,
+          "type": "send_started",
+          "stepId": 3,
+          "edgeId": 6
+        },
+        {
+          "at": 1500,
+          "type": "send_failed",
+          "stepId": 3,
+          "edgeId": 6,
+          "reason": "source_down"
+        },
+        {
+          "at": 3000,
+          "type": "send_started",
+          "stepId": 4,
+          "edgeId": 5
+        },
+        {
+          "at": 3000,
+          "type": "send_failed",
+          "stepId": 4,
+          "edgeId": 5,
+          "reason": "target_down"
+        },
+        {
+          "at": 3000,
+          "type": "event_occurred",
+          "stepId": 5,
+          "nodeId": 2
+        },
+        {
+          "at": 4500,
+          "type": "state_changed",
+          "stepId": 6,
+          "nodeId": 2,
+          "from": "DOWN",
+          "to": "UP"
+        },
+        {
+          "at": 4500,
+          "type": "state_changed",
+          "stepId": 7,
+          "nodeId": 4,
+          "from": "DOWN",
+          "to": "UP"
+        },
+        {
+          "at": 6000,
+          "type": "send_started",
+          "stepId": 8,
+          "edgeId": 7
+        },
+        {
+          "at": 6000,
+          "type": "send_succeeded",
+          "stepId": 8,
+          "edgeId": 7
+        }
+      ]
+    },
+    "stepMeta": {
+      "1": {
+        "token": "💵",
+        "motion": "slow",
+        "nodeEffects": {
+          "showSymbol": false,
+          "symbolSize": "medium",
+          "message": "",
+          "messageColor": "",
+          "messageSize": "medium",
+          "messageWeight": "normal",
+          "messageFont": "default",
+          "messagePosition": "above",
+          "highlight": false,
+          "blink": false,
+          "dim": false,
+          "fillColor": "",
+          "visualDuration": "normal",
+          "visualDurationMs": 1500
+        },
+        "connection": {
+          "size": "large",
+          "style": "impulse",
+          "trail": "subtle",
+          "arrival": "bounce",
+          "during": "breathe",
+          "symbol": "💵",
+          "px": 28
+        },
+        "name": "Pago"
+      },
+      "2": {
+        "token": "⛔",
+        "motion": "normal",
+        "nodeEffects": {
+          "showSymbol": true,
+          "symbolSize": "medium",
+          "message": "Caído",
+          "messageColor": "",
+          "messageSize": "medium",
+          "messageWeight": "normal",
+          "messageFont": "default",
+          "messagePosition": "above",
+          "highlight": false,
+          "blink": false,
+          "dim": true,
+          "fillColor": "",
+          "visualDuration": "normal",
+          "visualDurationMs": 1500
+        },
+        "connection": {
+          "size": "medium",
+          "style": "direct",
+          "trail": "none",
+          "arrival": "none",
+          "during": "none",
+          "symbol": "⛔",
+          "px": 20
+        },
+        "name": "Caída"
+      },
+      "3": {
+        "token": "✅",
+        "motion": "fast",
+        "nodeEffects": {
+          "showSymbol": false,
+          "symbolSize": "medium",
+          "message": "",
+          "messageColor": "",
+          "messageSize": "medium",
+          "messageWeight": "normal",
+          "messageFont": "default",
+          "messagePosition": "above",
+          "highlight": false,
+          "blink": false,
+          "dim": false,
+          "fillColor": "",
+          "visualDuration": "normal",
+          "visualDurationMs": 1500
+        },
+        "connection": {
+          "size": "medium",
+          "style": "direct",
+          "trail": "none",
+          "arrival": "none",
+          "during": "none",
+          "symbol": "✅",
+          "px": 20
+        },
+        "name": "Confirmación"
+      },
+      "4": {
+        "token": "💵",
+        "motion": "slow",
+        "nodeEffects": {
+          "showSymbol": false,
+          "symbolSize": "medium",
+          "message": "",
+          "messageColor": "",
+          "messageSize": "medium",
+          "messageWeight": "normal",
+          "messageFont": "default",
+          "messagePosition": "above",
+          "highlight": false,
+          "blink": false,
+          "dim": false,
+          "fillColor": "",
+          "visualDuration": "normal",
+          "visualDurationMs": 1500
+        },
+        "connection": {
+          "size": "large",
+          "style": "impulse",
+          "trail": "subtle",
+          "arrival": "bounce",
+          "during": "breathe",
+          "symbol": "💵",
+          "px": 28
+        },
+        "name": "Pago"
+      },
+      "5": {
+        "token": "⚙️",
+        "motion": "normal",
+        "nodeEffects": {
+          "showSymbol": true,
+          "symbolSize": "medium",
+          "message": "Procesando…",
+          "messageColor": "",
+          "messageSize": "medium",
+          "messageWeight": "normal",
+          "messageFont": "default",
+          "messagePosition": "above",
+          "highlight": true,
+          "blink": true,
+          "dim": false,
+          "fillColor": "",
+          "visualDuration": "long",
+          "visualDurationMs": 3000
+        },
+        "connection": {
+          "size": "large",
+          "style": "smooth",
+          "trail": "marked",
+          "arrival": "glow",
+          "during": "halo",
+          "symbol": "⚙️",
+          "px": 28
+        },
+        "name": "Procesamiento"
+      },
+      "6": {
+        "token": "🟢",
+        "motion": "normal",
+        "nodeEffects": {
+          "showSymbol": false,
+          "symbolSize": "medium",
+          "message": "",
+          "messageColor": "",
+          "messageSize": "medium",
+          "messageWeight": "normal",
+          "messageFont": "default",
+          "messagePosition": "above",
+          "highlight": false,
+          "blink": false,
+          "dim": false,
+          "fillColor": "",
+          "visualDuration": "normal",
+          "visualDurationMs": 1500
+        },
+        "connection": {
+          "size": "medium",
+          "style": "direct",
+          "trail": "none",
+          "arrival": "none",
+          "during": "none",
+          "symbol": "🟢",
+          "px": 20
+        },
+        "name": "Recuperación"
+      },
+      "7": {
+        "token": "🟢",
+        "motion": "normal",
+        "nodeEffects": {
+          "showSymbol": false,
+          "symbolSize": "medium",
+          "message": "",
+          "messageColor": "",
+          "messageSize": "medium",
+          "messageWeight": "normal",
+          "messageFont": "default",
+          "messagePosition": "above",
+          "highlight": false,
+          "blink": false,
+          "dim": false,
+          "fillColor": "",
+          "visualDuration": "normal",
+          "visualDurationMs": 1500
+        },
+        "connection": {
+          "size": "medium",
+          "style": "direct",
+          "trail": "none",
+          "arrival": "none",
+          "during": "none",
+          "symbol": "🟢",
+          "px": 20
+        },
+        "name": "Recuperación"
+      },
+      "8": {
+        "token": "📣",
+        "motion": "fast",
+        "nodeEffects": {
+          "showSymbol": false,
+          "symbolSize": "medium",
+          "message": "",
+          "messageColor": "",
+          "messageSize": "medium",
+          "messageWeight": "normal",
+          "messageFont": "default",
+          "messagePosition": "above",
+          "highlight": false,
+          "blink": false,
+          "dim": false,
+          "fillColor": "",
+          "visualDuration": "normal",
+          "visualDurationMs": 1500
+        },
+        "connection": {
+          "size": "medium",
+          "style": "direct",
+          "trail": "none",
+          "arrival": "none",
+          "during": "none",
+          "symbol": "📣",
+          "px": 20
+        },
+        "name": "Notificación"
+      }
+    },
+    "outcomes": [
+      {
+        "stepId": 1,
+        "at": 0,
+        "action": "SEND",
+        "eventIndexes": [
+          0,
+          1
+        ],
+        "eventTypeId": 1,
+        "edgeId": 5,
+        "status": "completed"
+      },
+      {
+        "stepId": 2,
+        "at": 1500,
+        "action": "SET_STATE",
+        "eventIndexes": [
+          2
+        ],
+        "eventTypeId": 4,
+        "nodeId": 2,
+        "state": "DOWN",
+        "status": "state_changed",
+        "from": "UP",
+        "to": "DOWN"
+      },
+      {
+        "stepId": 3,
+        "at": 1500,
+        "action": "SEND",
+        "eventIndexes": [
+          3,
+          4
+        ],
+        "eventTypeId": 3,
+        "edgeId": 6,
+        "status": "not_completed",
+        "reason": "source_down",
+        "reasonNodeId": 2
+      },
+      {
+        "stepId": 4,
+        "at": 3000,
+        "action": "SEND",
+        "eventIndexes": [
+          5,
+          6
+        ],
+        "eventTypeId": 1,
+        "edgeId": 5,
+        "status": "not_completed",
+        "reason": "target_down",
+        "reasonNodeId": 2
+      },
+      {
+        "stepId": 5,
+        "at": 3000,
+        "action": "OCCURRENCE",
+        "eventIndexes": [
+          7
+        ],
+        "eventTypeId": 2,
+        "nodeId": 2,
+        "status": "narrated",
+        "nodeAvailability": "DOWN",
+        "note": "El motor registra la ocurrencia; no comprueba disponibilidad ni efecto."
+      },
+      {
+        "stepId": 6,
+        "at": 4500,
+        "action": "SET_STATE",
+        "eventIndexes": [
+          8
+        ],
+        "eventTypeId": 5,
+        "nodeId": 2,
+        "state": "UP",
+        "status": "state_changed",
+        "from": "DOWN",
+        "to": "UP"
+      },
+      {
+        "stepId": 7,
+        "at": 4500,
+        "action": "SET_STATE",
+        "eventIndexes": [
+          9
+        ],
+        "eventTypeId": 5,
+        "nodeId": 4,
+        "state": "UP",
+        "status": "state_changed",
+        "from": "DOWN",
+        "to": "UP"
+      },
+      {
+        "stepId": 8,
+        "at": 6000,
+        "action": "SEND",
+        "eventIndexes": [
+          10,
+          11
+        ],
+        "eventTypeId": 6,
+        "edgeId": 7,
+        "status": "completed"
+      }
+    ],
+    "finalAvailability": {
+      "1": "UP",
+      "2": "UP",
+      "3": "UP",
+      "4": "UP"
+    },
+    "finalNodeStates": {
+      "2": "UP",
+      "4": "UP"
+    }
+  },
+  "0:3": {
+    "trace": {
+      "engineVersion": 2,
+      "scenarioId": 3,
+      "events": [
+        {
+          "at": 0,
+          "type": "send_started",
+          "stepId": 1,
+          "edgeId": 5
+        },
+        {
+          "at": 0,
+          "type": "send_succeeded",
+          "stepId": 1,
+          "edgeId": 5
+        },
+        {
+          "at": 1000,
+          "type": "state_changed",
+          "stepId": 2,
+          "nodeId": 3,
+          "from": "UP",
+          "to": "DOWN"
+        }
+      ]
+    },
+    "stepMeta": {
+      "1": {
+        "token": "",
+        "motion": "normal",
+        "nodeEffects": {
+          "showSymbol": false,
+          "symbolSize": "medium",
+          "message": "",
+          "messageColor": "",
+          "messageSize": "medium",
+          "messageWeight": "normal",
+          "messageFont": "default",
+          "messagePosition": "above",
+          "highlight": false,
+          "blink": false,
+          "dim": false,
+          "fillColor": "",
+          "visualDuration": "normal",
+          "visualDurationMs": 1500
+        },
+        "connection": null,
+        "name": ""
+      },
+      "2": {
+        "token": "",
+        "motion": "normal",
+        "nodeEffects": {
+          "showSymbol": false,
+          "symbolSize": "medium",
+          "message": "",
+          "messageColor": "",
+          "messageSize": "medium",
+          "messageWeight": "normal",
+          "messageFont": "default",
+          "messagePosition": "above",
+          "highlight": false,
+          "blink": false,
+          "dim": false,
+          "fillColor": "",
+          "visualDuration": "normal",
+          "visualDurationMs": 1500
+        },
+        "connection": null,
+        "name": ""
+      }
+    },
+    "outcomes": [
+      {
+        "stepId": 1,
+        "at": 0,
+        "action": "SEND",
+        "eventIndexes": [
+          0,
+          1
+        ],
+        "edgeId": 5,
+        "status": "completed"
+      },
+      {
+        "stepId": 2,
+        "at": 1000,
+        "action": "SET_STATE",
+        "eventIndexes": [
+          2
+        ],
+        "nodeId": 3,
+        "state": "DOWN",
+        "status": "state_changed",
+        "from": "UP",
+        "to": "DOWN"
+      }
+    ],
+    "finalAvailability": {
+      "1": "UP",
+      "2": "UP",
+      "3": "DOWN",
+      "4": "DOWN"
+    },
+    "finalNodeStates": {
+      "3": "DOWN"
+    }
+  },
+  "1:1": {
+    "trace": {
+      "engineVersion": 2,
+      "scenarioId": 1,
+      "events": [
+        {
+          "at": 0,
+          "type": "send_started",
+          "stepId": 1,
+          "edgeId": 3
+        },
+        {
+          "at": 0,
+          "type": "send_succeeded",
+          "stepId": 1,
+          "edgeId": 3
+        }
+      ]
+    },
+    "stepMeta": {
+      "1": {
+        "token": "💵",
+        "motion": "slow",
+        "nodeEffects": {
+          "showSymbol": false,
+          "symbolSize": "medium",
+          "message": "",
+          "messageColor": "",
+          "messageSize": "medium",
+          "messageWeight": "normal",
+          "messageFont": "default",
+          "messagePosition": "above",
+          "highlight": false,
+          "blink": false,
+          "dim": false,
+          "fillColor": "",
+          "visualDuration": "normal",
+          "visualDurationMs": 1500
+        },
+        "connection": {
+          "size": "large",
+          "style": "impulse",
+          "trail": "subtle",
+          "arrival": "bounce",
+          "during": "breathe",
+          "symbol": "💵",
+          "px": 28
+        },
+        "name": "Pago"
+      }
+    },
+    "outcomes": [
+      {
+        "stepId": 1,
+        "at": 0,
+        "action": "SEND",
+        "eventIndexes": [
+          0,
+          1
+        ],
+        "eventTypeId": 1,
+        "edgeId": 3,
+        "status": "completed"
+      }
+    ],
+    "finalAvailability": {
+      "1": "UP",
+      "2": "UP"
+    },
+    "finalNodeStates": {}
+  }
+}

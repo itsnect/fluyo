@@ -1,0 +1,511 @@
+{
+  "1": {
+    "trace": {
+      "engineVersion": 2,
+      "scenarioId": 1,
+      "events": [
+        {
+          "at": 0,
+          "type": "send_started",
+          "stepId": 1,
+          "edgeId": 4
+        },
+        {
+          "at": 0,
+          "type": "send_succeeded",
+          "stepId": 1,
+          "edgeId": 4
+        },
+        {
+          "at": 1000,
+          "type": "event_occurred",
+          "stepId": 2,
+          "nodeId": 2
+        },
+        {
+          "at": 2000,
+          "type": "send_started",
+          "stepId": 3,
+          "edgeId": 5
+        },
+        {
+          "at": 2000,
+          "type": "send_succeeded",
+          "stepId": 3,
+          "edgeId": 5
+        }
+      ]
+    },
+    "stepMeta": {
+      "1": {
+        "token": "💵",
+        "motion": "normal",
+        "nodeEffects": {
+          "showSymbol": false,
+          "symbolSize": "medium",
+          "message": "",
+          "messageColor": "",
+          "messageSize": "medium",
+          "messageWeight": "normal",
+          "messageFont": "default",
+          "messagePosition": "above",
+          "highlight": false,
+          "blink": false,
+          "dim": false,
+          "fillColor": "",
+          "visualDuration": "normal",
+          "visualDurationMs": 1500
+        },
+        "connection": {
+          "size": "medium",
+          "style": "direct",
+          "trail": "none",
+          "arrival": "none",
+          "during": "none",
+          "symbol": "💵",
+          "px": 20
+        },
+        "name": "Pago"
+      },
+      "2": {
+        "token": "⚙️",
+        "motion": "normal",
+        "nodeEffects": {
+          "showSymbol": false,
+          "symbolSize": "medium",
+          "message": "",
+          "messageColor": "",
+          "messageSize": "medium",
+          "messageWeight": "normal",
+          "messageFont": "default",
+          "messagePosition": "above",
+          "highlight": false,
+          "blink": false,
+          "dim": false,
+          "fillColor": "",
+          "visualDuration": "normal",
+          "visualDurationMs": 1500
+        },
+        "connection": {
+          "size": "medium",
+          "style": "direct",
+          "trail": "none",
+          "arrival": "none",
+          "during": "none",
+          "symbol": "⚙️",
+          "px": 20
+        },
+        "name": "Procesamiento"
+      },
+      "3": {
+        "token": "✅",
+        "motion": "normal",
+        "nodeEffects": {
+          "showSymbol": false,
+          "symbolSize": "medium",
+          "message": "",
+          "messageColor": "",
+          "messageSize": "medium",
+          "messageWeight": "normal",
+          "messageFont": "default",
+          "messagePosition": "above",
+          "highlight": false,
+          "blink": false,
+          "dim": false,
+          "fillColor": "",
+          "visualDuration": "normal",
+          "visualDurationMs": 1500
+        },
+        "connection": {
+          "size": "medium",
+          "style": "direct",
+          "trail": "none",
+          "arrival": "none",
+          "during": "none",
+          "symbol": "✅",
+          "px": 20
+        },
+        "name": "Confirmación"
+      }
+    },
+    "outcomes": [
+      {
+        "stepId": 1,
+        "at": 0,
+        "action": "SEND",
+        "eventIndexes": [
+          0,
+          1
+        ],
+        "eventTypeId": 1,
+        "edgeId": 4,
+        "status": "completed"
+      },
+      {
+        "stepId": 2,
+        "at": 1000,
+        "action": "OCCURRENCE",
+        "eventIndexes": [
+          2
+        ],
+        "eventTypeId": 2,
+        "nodeId": 2,
+        "status": "narrated",
+        "nodeAvailability": "UP",
+        "note": "El motor registra la ocurrencia; no comprueba disponibilidad ni efecto."
+      },
+      {
+        "stepId": 3,
+        "at": 2000,
+        "action": "SEND",
+        "eventIndexes": [
+          3,
+          4
+        ],
+        "eventTypeId": 3,
+        "edgeId": 5,
+        "status": "completed"
+      }
+    ]
+  },
+  "2": {
+    "trace": {
+      "engineVersion": 2,
+      "scenarioId": 2,
+      "events": [
+        {
+          "at": 0,
+          "type": "state_changed",
+          "stepId": 1,
+          "nodeId": 2,
+          "from": "UP",
+          "to": "DOWN"
+        },
+        {
+          "at": 1000,
+          "type": "send_started",
+          "stepId": 2,
+          "edgeId": 4
+        },
+        {
+          "at": 1000,
+          "type": "send_failed",
+          "stepId": 2,
+          "edgeId": 4,
+          "reason": "target_down"
+        },
+        {
+          "at": 2000,
+          "type": "event_occurred",
+          "stepId": 3,
+          "nodeId": 2
+        },
+        {
+          "at": 3000,
+          "type": "send_started",
+          "stepId": 4,
+          "edgeId": 5
+        },
+        {
+          "at": 3000,
+          "type": "send_failed",
+          "stepId": 4,
+          "edgeId": 5,
+          "reason": "source_down"
+        }
+      ]
+    },
+    "stepMeta": {
+      "1": {
+        "token": "⛔",
+        "motion": "normal",
+        "nodeEffects": {
+          "showSymbol": false,
+          "symbolSize": "medium",
+          "message": "",
+          "messageColor": "",
+          "messageSize": "medium",
+          "messageWeight": "normal",
+          "messageFont": "default",
+          "messagePosition": "above",
+          "highlight": false,
+          "blink": false,
+          "dim": false,
+          "fillColor": "",
+          "visualDuration": "normal",
+          "visualDurationMs": 1500
+        },
+        "connection": {
+          "size": "medium",
+          "style": "direct",
+          "trail": "none",
+          "arrival": "none",
+          "during": "none",
+          "symbol": "⛔",
+          "px": 20
+        },
+        "name": "Caída"
+      },
+      "2": {
+        "token": "💵",
+        "motion": "normal",
+        "nodeEffects": {
+          "showSymbol": false,
+          "symbolSize": "medium",
+          "message": "",
+          "messageColor": "",
+          "messageSize": "medium",
+          "messageWeight": "normal",
+          "messageFont": "default",
+          "messagePosition": "above",
+          "highlight": false,
+          "blink": false,
+          "dim": false,
+          "fillColor": "",
+          "visualDuration": "normal",
+          "visualDurationMs": 1500
+        },
+        "connection": {
+          "size": "medium",
+          "style": "direct",
+          "trail": "none",
+          "arrival": "none",
+          "during": "none",
+          "symbol": "💵",
+          "px": 20
+        },
+        "name": "Pago"
+      },
+      "3": {
+        "token": "⚙️",
+        "motion": "normal",
+        "nodeEffects": {
+          "showSymbol": false,
+          "symbolSize": "medium",
+          "message": "",
+          "messageColor": "",
+          "messageSize": "medium",
+          "messageWeight": "normal",
+          "messageFont": "default",
+          "messagePosition": "above",
+          "highlight": false,
+          "blink": false,
+          "dim": false,
+          "fillColor": "",
+          "visualDuration": "normal",
+          "visualDurationMs": 1500
+        },
+        "connection": {
+          "size": "medium",
+          "style": "direct",
+          "trail": "none",
+          "arrival": "none",
+          "during": "none",
+          "symbol": "⚙️",
+          "px": 20
+        },
+        "name": "Procesamiento"
+      },
+      "4": {
+        "token": "✅",
+        "motion": "normal",
+        "nodeEffects": {
+          "showSymbol": false,
+          "symbolSize": "medium",
+          "message": "",
+          "messageColor": "",
+          "messageSize": "medium",
+          "messageWeight": "normal",
+          "messageFont": "default",
+          "messagePosition": "above",
+          "highlight": false,
+          "blink": false,
+          "dim": false,
+          "fillColor": "",
+          "visualDuration": "normal",
+          "visualDurationMs": 1500
+        },
+        "connection": {
+          "size": "medium",
+          "style": "direct",
+          "trail": "none",
+          "arrival": "none",
+          "during": "none",
+          "symbol": "✅",
+          "px": 20
+        },
+        "name": "Confirmación"
+      }
+    },
+    "outcomes": [
+      {
+        "stepId": 1,
+        "at": 0,
+        "action": "SET_STATE",
+        "eventIndexes": [
+          0
+        ],
+        "eventTypeId": 4,
+        "nodeId": 2,
+        "state": "DOWN",
+        "status": "state_changed",
+        "from": "UP",
+        "to": "DOWN"
+      },
+      {
+        "stepId": 2,
+        "at": 1000,
+        "action": "SEND",
+        "eventIndexes": [
+          1,
+          2
+        ],
+        "eventTypeId": 1,
+        "edgeId": 4,
+        "status": "not_completed",
+        "reason": "target_down",
+        "reasonNodeId": 2
+      },
+      {
+        "stepId": 3,
+        "at": 2000,
+        "action": "OCCURRENCE",
+        "eventIndexes": [
+          3
+        ],
+        "eventTypeId": 2,
+        "nodeId": 2,
+        "status": "narrated",
+        "nodeAvailability": "DOWN",
+        "note": "El motor registra la ocurrencia; no comprueba disponibilidad ni efecto."
+      },
+      {
+        "stepId": 4,
+        "at": 3000,
+        "action": "SEND",
+        "eventIndexes": [
+          4,
+          5
+        ],
+        "eventTypeId": 3,
+        "edgeId": 5,
+        "status": "not_completed",
+        "reason": "source_down",
+        "reasonNodeId": 2
+      }
+    ]
+  },
+  "3": {
+    "trace": {
+      "engineVersion": 2,
+      "scenarioId": 3,
+      "events": [
+        {
+          "at": 0,
+          "type": "state_changed",
+          "stepId": 1,
+          "nodeId": 2,
+          "from": "UP",
+          "to": "DOWN"
+        },
+        {
+          "at": 1000,
+          "type": "event_occurred",
+          "stepId": 2,
+          "nodeId": 2
+        }
+      ]
+    },
+    "stepMeta": {
+      "1": {
+        "token": "⛔",
+        "motion": "normal",
+        "nodeEffects": {
+          "showSymbol": false,
+          "symbolSize": "medium",
+          "message": "",
+          "messageColor": "",
+          "messageSize": "medium",
+          "messageWeight": "normal",
+          "messageFont": "default",
+          "messagePosition": "above",
+          "highlight": false,
+          "blink": false,
+          "dim": false,
+          "fillColor": "",
+          "visualDuration": "normal",
+          "visualDurationMs": 1500
+        },
+        "connection": {
+          "size": "medium",
+          "style": "direct",
+          "trail": "none",
+          "arrival": "none",
+          "during": "none",
+          "symbol": "⛔",
+          "px": 20
+        },
+        "name": "Caída"
+      },
+      "2": {
+        "token": "⚙️",
+        "motion": "normal",
+        "nodeEffects": {
+          "showSymbol": false,
+          "symbolSize": "medium",
+          "message": "",
+          "messageColor": "",
+          "messageSize": "medium",
+          "messageWeight": "normal",
+          "messageFont": "default",
+          "messagePosition": "above",
+          "highlight": false,
+          "blink": false,
+          "dim": false,
+          "fillColor": "",
+          "visualDuration": "normal",
+          "visualDurationMs": 1500
+        },
+        "connection": {
+          "size": "medium",
+          "style": "direct",
+          "trail": "none",
+          "arrival": "none",
+          "during": "none",
+          "symbol": "⚙️",
+          "px": 20
+        },
+        "name": "Procesamiento"
+      }
+    },
+    "outcomes": [
+      {
+        "stepId": 1,
+        "at": 0,
+        "action": "SET_STATE",
+        "eventIndexes": [
+          0
+        ],
+        "eventTypeId": 4,
+        "nodeId": 2,
+        "state": "DOWN",
+        "status": "state_changed",
+        "from": "UP",
+        "to": "DOWN"
+      },
+      {
+        "stepId": 2,
+        "at": 1000,
+        "action": "OCCURRENCE",
+        "eventIndexes": [
+          1
+        ],
+        "eventTypeId": 2,
+        "nodeId": 2,
+        "status": "narrated",
+        "nodeAvailability": "DOWN",
+        "note": "El motor registra la ocurrencia; no comprueba disponibilidad ni efecto."
+      }
+    ]
+  }
+}

@@ -59,15 +59,105 @@ var FluyoStory = (function(){
     return out;
   }
 
-  /* Única ejecución: página + Scenario → Playback listo (o mensajes humanos).
-     `nowReal` es el origen del reloj de la reproducción. */
-  function start(page, scenario, nowReal){
+  /* Única ejecución del motor: página + Scenario → Trace (o errores con el código del motor).
+     No construye Playback ni toca presentación. Lo usan `start` (editor, Present, Viewer)
+     y los consumidores sin DOM (p. ej. fluyo-mcp, FLUYO-017.1). */
+  function run(page, scenario){
     const structure = {nodes: page.nodes, edges: page.edges};
     const result = FluyoScenarios.runScenario(structure, page.behaviors || [], scenario);
+    return result.ok ? {ok:true, trace:result.trace} : {ok:false, errors:result.errors};
+  }
+
+  /* Única ejecución con Playback: página + Scenario → Playback listo (o mensajes humanos).
+     `nowReal` es el origen del reloj de la reproducción. */
+  function start(page, scenario, nowReal){
+    const result = run(page, scenario);
     if(!result.ok) return {ok:false, errors:errorMessages(result.errors)};
     const playback = FluyoScenarioPlayback.makePlayback(result.trace, stepMeta(scenario.steps));
     playback.startedAtReal = nowReal;
     return {ok:true, playback};
+  }
+
+  /* Resultado por Step, derivado SÓLO del Trace (FLUYO-017.1). No ejecuta ni decide nada:
+     lee los eventos que emitió el motor. Un OCCURRENCE es siempre «narrated»: el motor lo
+     registra aunque el elemento esté DOWN; no comprueba disponibilidad ni efecto.
+     `nodeAvailability` (sólo en OCCURRENCE) se lee de los `state_changed` del propio Trace
+     sobre los Behaviors iniciales de la página. Orden = orden efectivo de la Historia. */
+  /* Disponibilidad de cada elemento según el Trace: Behaviors iniciales de la página + los
+     `state_changed` que emitió el motor. Sólo LEE el Trace (no recalcula resultados).
+     perEvent[i] = disponibilidad del elemento del evento i tras ese evento; final = {nodeId: "UP"|"DOWN"}. */
+  function availabilityTimeline(events, page){
+    const avail = new Map();
+    for(const n of page.nodes) avail.set(n.id, "UP");
+    for(const b of page.behaviors || []) avail.set(b.nodeId, b.initialState);
+    const perEvent = events.map(ev=>{
+      if(ev.type==="state_changed") avail.set(ev.nodeId, ev.to);
+      return avail.get(ev.nodeId);
+    });
+    return {perEvent, final:Object.fromEntries(avail)};
+  }
+  function finalAvailability(trace, page){
+    return availabilityTimeline((trace && trace.events) || [], page).final;
+  }
+
+  const NARRATED_NOTE = "El motor registra la ocurrencia; no comprueba disponibilidad ni efecto.";
+  function outcomes(trace, scenario, page){
+    const events = (trace && trace.events) || [];
+    const byStep = new Map();
+    events.forEach((ev, i)=>{
+      if(!byStep.has(ev.stepId)) byStep.set(ev.stepId, []);
+      byStep.get(ev.stepId).push(i);
+    });
+    const edgeOf = id => page.edges.find(e=>e.id===id) || null;
+    const availAt = availabilityTimeline(events, page).perEvent;
+    return storyboardOrderedSteps(scenario.steps).map(step=>{
+      const idx = byStep.get(step.id) || [];
+      const evs = idx.map(i=>events[i]);
+      const out = {stepId:step.id, at:step.at, action:step.action, eventIndexes:idx};
+      if(step.eventTypeId!==undefined) out.eventTypeId = step.eventTypeId;
+      if(step.action==="SEND"){
+        out.edgeId = step.edgeId;
+        const end = evs.find(e=>e.type==="send_succeeded" || e.type==="send_failed");
+        if(!end) out.status = "not_executed";
+        else if(end.type==="send_succeeded") out.status = "completed";
+        else{
+          const e = edgeOf(step.edgeId);
+          out.status = "not_completed";
+          out.reason = end.reason;
+          if(e) out.reasonNodeId = end.reason==="source_down" ? e.from : e.to;
+        }
+      }else if(step.action==="SET_STATE"){
+        out.nodeId = step.nodeId; out.state = step.state;
+        const ch = evs.find(e=>e.type==="state_changed");
+        if(ch){ out.status = "state_changed"; out.from = ch.from; out.to = ch.to; }
+        else out.status = "no_change";
+      }else{
+        out.nodeId = step.nodeId;
+        const ocIdx = idx.find(i=>events[i].type==="event_occurred");
+        if(ocIdx===undefined) out.status = "not_executed";
+        else{
+          out.status = "narrated";
+          out.nodeAvailability = availAt[ocIdx];
+          out.note = NARRATED_NOTE;
+        }
+      }
+      return out;
+    });
+  }
+
+  /* Frase humana de un Step (misma regla que el panel de Historia): FLOW usa origen y destino
+     de la conexión; los eventos de elemento sólo el elemento. `et` puede ser null. */
+  function nodeText(page, id){
+    const n = page.nodes.find(x=>x.id===id);
+    return n ? ((n.label || "").split("\n")[0].trim() || "Elemento sin nombre") : "Elemento sin nombre";
+  }
+  function sentence(page, step, et){
+    if(!et) return "";
+    if(step.action==="SEND"){
+      const e = page.edges.find(x=>x.id===step.edgeId);
+      return renderEventSentence(et, e ? nodeText(page,e.from) : "?", e ? nodeText(page,e.to) : "?");
+    }
+    return renderEventSentence(et, null, nodeText(page, step.nodeId));
   }
 
   /* ¿Ya no queda nada por emitir ni por verse? */
@@ -166,7 +256,8 @@ var FluyoStory = (function(){
   }
 
   return {describe, playbackEffects, stepMeta, errorMessages, start, isFinished, renderState,
-          moments, currentIndex, caption, failedCount, summary, CAPTION_MS, MAX_DOTS};
+          moments, currentIndex, caption, failedCount, summary, CAPTION_MS, MAX_DOTS,
+          run, outcomes, finalAvailability, sentence, NARRATED_NOTE};
 })();
 
 /* API histórica de Present (FLUYO-013): mismas funciones, ahora compartidas. */

@@ -1,0 +1,532 @@
+{
+  "version": 5,
+  "app": "fluyo",
+  "doc": {
+    "theme": "dark",
+    "customBg": "",
+    "cur": 0,
+    "eventTypes": [
+      {
+        "id": 1,
+        "name": "Pago",
+        "primitive": "FLOW",
+        "sentenceTemplate": "{source} paga a {target}",
+        "visual": {
+          "kind": "token",
+          "value": "💵"
+        },
+        "motion": "slow",
+        "presentation": {
+          "nodeEffects": {
+            "showSymbol": false,
+            "symbolSize": "medium",
+            "message": "",
+            "messageColor": "",
+            "messageSize": "medium",
+            "messageWeight": "normal",
+            "messageFont": "default",
+            "messagePosition": "above",
+            "highlight": false,
+            "blink": false,
+            "dim": false,
+            "fillColor": "",
+            "visualDuration": "normal",
+            "visualDurationMs": 1500
+          },
+          "connectionEffects": {
+            "size": "large",
+            "style": "impulse",
+            "trail": "subtle",
+            "arrival": "bounce",
+            "during": "breathe"
+          }
+        }
+      },
+      {
+        "id": 2,
+        "name": "Procesamiento",
+        "primitive": "OCCURRENCE",
+        "sentenceTemplate": "{target} procesa el evento",
+        "visual": {
+          "kind": "token",
+          "value": "⚙️"
+        },
+        "motion": "normal",
+        "presentation": {
+          "nodeEffects": {
+            "showSymbol": true,
+            "symbolSize": "medium",
+            "message": "Procesando…",
+            "messageColor": "",
+            "messageSize": "medium",
+            "messageWeight": "normal",
+            "messageFont": "default",
+            "messagePosition": "above",
+            "highlight": true,
+            "blink": true,
+            "dim": false,
+            "fillColor": "",
+            "visualDuration": "long",
+            "visualDurationMs": 3000
+          },
+          "connectionEffects": {
+            "size": "large",
+            "style": "smooth",
+            "trail": "marked",
+            "arrival": "glow",
+            "during": "halo"
+          }
+        }
+      },
+      {
+        "id": 3,
+        "name": "Confirmación",
+        "primitive": "FLOW",
+        "sentenceTemplate": "{target} recibe confirmación de {source}",
+        "visual": {
+          "kind": "token",
+          "value": "✅"
+        },
+        "motion": "fast"
+      },
+      {
+        "id": 4,
+        "name": "Caída",
+        "primitive": "SET_AVAILABILITY",
+        "sentenceTemplate": "{target} deja de responder",
+        "visual": {
+          "kind": "token",
+          "value": "⛔"
+        },
+        "motion": "normal",
+        "availability": "DOWN",
+        "presentation": {
+          "nodeEffects": {
+            "showSymbol": true,
+            "symbolSize": "medium",
+            "message": "Caído",
+            "messageColor": "",
+            "messageSize": "medium",
+            "messageWeight": "normal",
+            "messageFont": "default",
+            "messagePosition": "above",
+            "highlight": false,
+            "blink": false,
+            "dim": true,
+            "fillColor": "",
+            "visualDuration": "normal",
+            "visualDurationMs": 1500
+          }
+        }
+      },
+      {
+        "id": 5,
+        "name": "Recuperación",
+        "primitive": "SET_AVAILABILITY",
+        "sentenceTemplate": "{target} vuelve a responder",
+        "visual": {
+          "kind": "token",
+          "value": "🟢"
+        },
+        "motion": "normal",
+        "availability": "UP"
+      },
+      {
+        "id": 6,
+        "name": "Notificación",
+        "primitive": "FLOW",
+        "sentenceTemplate": "{source} notifica a {target}",
+        "visual": {
+          "kind": "token",
+          "value": "📣"
+        },
+        "motion": "fast"
+      }
+    ],
+    "nextEventTypeId": 7,
+    "pages": [
+      {
+        "name": "Pago complejo",
+        "nodes": [
+          {
+            "id": 1,
+            "label": "Cliente",
+            "shape": "rect",
+            "x": 150,
+            "y": 200,
+            "font": null,
+            "bold": false,
+            "w": 180,
+            "h": 70,
+            "order": 0,
+            "color": "#6a9fb5",
+            "fill": null,
+            "border": "solid",
+            "lblPos": "center",
+            "textBg": null,
+            "textColor": null
+          },
+          {
+            "id": 2,
+            "label": "Kafka",
+            "shape": "rect",
+            "x": 450,
+            "y": 200,
+            "font": null,
+            "bold": false,
+            "w": 180,
+            "h": 70,
+            "order": 1,
+            "color": "#6a9fb5",
+            "fill": null,
+            "border": "solid",
+            "lblPos": "center",
+            "textBg": null,
+            "textColor": null
+          },
+          {
+            "id": 3,
+            "label": "Comercio",
+            "shape": "rect",
+            "x": 750,
+            "y": 120,
+            "font": null,
+            "bold": false,
+            "w": 180,
+            "h": 70,
+            "order": 2,
+            "color": "#6a9fb5",
+            "fill": null,
+            "border": "solid",
+            "lblPos": "center",
+            "textBg": null,
+            "textColor": null
+          },
+          {
+            "id": 4,
+            "label": "Banco",
+            "shape": "rect",
+            "x": 750,
+            "y": 300,
+            "font": null,
+            "bold": false,
+            "w": 180,
+            "h": 70,
+            "order": 3,
+            "color": "#6a9fb5",
+            "fill": null,
+            "border": "solid",
+            "lblPos": "center",
+            "textBg": null,
+            "textColor": null
+          }
+        ],
+        "edges": [
+          {
+            "id": 5,
+            "from": 1,
+            "to": 2,
+            "label": "pago",
+            "font": null,
+            "bold": false,
+            "fromSide": null,
+            "toSide": null,
+            "endArrow": true,
+            "startArrow": false,
+            "flowDir": "normal",
+            "waypoints": [],
+            "route": "straight"
+          },
+          {
+            "id": 6,
+            "from": 2,
+            "to": 3,
+            "label": "confirmación",
+            "font": null,
+            "bold": false,
+            "fromSide": null,
+            "toSide": null,
+            "endArrow": true,
+            "startArrow": false,
+            "flowDir": "normal",
+            "waypoints": [],
+            "route": "straight"
+          },
+          {
+            "id": 7,
+            "from": 2,
+            "to": 4,
+            "label": "cobro",
+            "font": null,
+            "bold": false,
+            "fromSide": null,
+            "toSide": null,
+            "endArrow": true,
+            "startArrow": false,
+            "flowDir": "normal",
+            "waypoints": [],
+            "route": "straight"
+          },
+          {
+            "id": 8,
+            "from": 3,
+            "to": 1,
+            "label": "aviso",
+            "font": null,
+            "bold": false,
+            "fromSide": null,
+            "toSide": null,
+            "endArrow": true,
+            "startArrow": false,
+            "flowDir": "normal",
+            "waypoints": [],
+            "route": "straight"
+          }
+        ],
+        "nextId": 9,
+        "behaviors": [
+          {
+            "nodeId": 4,
+            "initialState": "DOWN"
+          }
+        ],
+        "nextScenarioId": 4,
+        "scenarios": [
+          {
+            "id": 1,
+            "engineVersion": 2,
+            "name": "Banco caído desde el inicio",
+            "nextStepId": 8,
+            "steps": [
+              {
+                "id": 1,
+                "at": 0,
+                "action": "SEND",
+                "edgeId": 5,
+                "eventTypeId": 1
+              },
+              {
+                "id": 2,
+                "at": 500,
+                "action": "OCCURRENCE",
+                "nodeId": 2,
+                "eventTypeId": 2
+              },
+              {
+                "id": 3,
+                "at": 2500,
+                "action": "SEND",
+                "edgeId": 7,
+                "eventTypeId": 6
+              },
+              {
+                "id": 4,
+                "at": 2500,
+                "action": "SEND",
+                "edgeId": 6,
+                "eventTypeId": 3
+              },
+              {
+                "id": 5,
+                "at": 2500,
+                "action": "OCCURRENCE",
+                "nodeId": 3,
+                "eventTypeId": 2
+              },
+              {
+                "id": 6,
+                "at": 7000,
+                "action": "SEND",
+                "edgeId": 8,
+                "eventTypeId": 6
+              },
+              {
+                "id": 7,
+                "at": 7000,
+                "action": "SET_STATE",
+                "nodeId": 4,
+                "state": "UP"
+              }
+            ]
+          },
+          {
+            "id": 2,
+            "engineVersion": 2,
+            "name": "Kafka cae y vuelve",
+            "nextStepId": 9,
+            "steps": [
+              {
+                "id": 1,
+                "at": 0,
+                "action": "SEND",
+                "edgeId": 5,
+                "eventTypeId": 1
+              },
+              {
+                "id": 2,
+                "at": 1500,
+                "action": "SET_STATE",
+                "nodeId": 2,
+                "state": "DOWN",
+                "eventTypeId": 4
+              },
+              {
+                "id": 3,
+                "at": 1500,
+                "action": "SEND",
+                "edgeId": 6,
+                "eventTypeId": 3
+              },
+              {
+                "id": 4,
+                "at": 3000,
+                "action": "SEND",
+                "edgeId": 5,
+                "eventTypeId": 1
+              },
+              {
+                "id": 5,
+                "at": 3000,
+                "action": "OCCURRENCE",
+                "nodeId": 2,
+                "eventTypeId": 2
+              },
+              {
+                "id": 6,
+                "at": 4500,
+                "action": "SET_STATE",
+                "nodeId": 2,
+                "state": "UP",
+                "eventTypeId": 5
+              },
+              {
+                "id": 7,
+                "at": 4500,
+                "action": "SET_STATE",
+                "nodeId": 4,
+                "state": "UP",
+                "eventTypeId": 5
+              },
+              {
+                "id": 8,
+                "at": 6000,
+                "action": "SEND",
+                "edgeId": 7,
+                "eventTypeId": 6
+              }
+            ]
+          },
+          {
+            "id": 3,
+            "engineVersion": 1,
+            "name": "Historia v1 (sin OCCURRENCE)",
+            "nextStepId": 3,
+            "steps": [
+              {
+                "id": 1,
+                "at": 0,
+                "action": "SEND",
+                "edgeId": 5
+              },
+              {
+                "id": 2,
+                "at": 1000,
+                "action": "SET_STATE",
+                "nodeId": 3,
+                "state": "DOWN"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Segunda página",
+        "nodes": [
+          {
+            "id": 1,
+            "label": "Otro",
+            "shape": "rect",
+            "x": 100,
+            "y": 100,
+            "font": null,
+            "bold": false,
+            "w": 180,
+            "h": 70,
+            "order": 0,
+            "color": "#6a9fb5",
+            "fill": null,
+            "border": "solid",
+            "lblPos": "center",
+            "textBg": null,
+            "textColor": null
+          },
+          {
+            "id": 2,
+            "label": "Destino",
+            "shape": "rect",
+            "x": 400,
+            "y": 100,
+            "font": null,
+            "bold": false,
+            "w": 180,
+            "h": 70,
+            "order": 1,
+            "color": "#6a9fb5",
+            "fill": null,
+            "border": "solid",
+            "lblPos": "center",
+            "textBg": null,
+            "textColor": null
+          }
+        ],
+        "edges": [
+          {
+            "id": 3,
+            "from": 1,
+            "to": 2,
+            "label": "x",
+            "font": null,
+            "bold": false,
+            "fromSide": null,
+            "toSide": null,
+            "endArrow": true,
+            "startArrow": false,
+            "flowDir": "normal",
+            "waypoints": [],
+            "route": "straight"
+          }
+        ],
+        "nextId": 4,
+        "behaviors": [],
+        "nextScenarioId": 2,
+        "scenarios": [
+          {
+            "id": 1,
+            "engineVersion": 2,
+            "name": "Misma id que en la página 1",
+            "nextStepId": 2,
+            "steps": [
+              {
+                "id": 1,
+                "at": 0,
+                "action": "SEND",
+                "edgeId": 3,
+                "eventTypeId": 1
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "settings": {
+    "speed": 0.5,
+    "dots": 3,
+    "build": false,
+    "stagger": 0.45,
+    "grid": true,
+    "snap": false,
+    "font": "Georgia, serif",
+    "single": false
+  }
+}

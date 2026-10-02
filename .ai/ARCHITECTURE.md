@@ -24,6 +24,8 @@
 | `js/scenario-engine.js` | Motor determinista puro de Scenarios (v1/v2). |
 | `js/scenario-playback.js` | Proyección de Trace a datos visuales (sin DOM). |
 | `js/story-playback.js` | Receta ÚNICA de reproducción (`FluyoStory`): metadata por Step, ejecución, fin, estado de pintura y texto humano. Compartida por editor, Present y Viewer. |
+| `js/document-integrity.js` | `FluyoIntegrity` (FLUYO-017.1): autoridad única de integridad del documento. Pura, sin DOM; no cargada por el editor todavía (la consume fluyo-mcp). |
+| `js/story-authoring.js` | `FluyoAuthoring` (FLUYO-017.2): lote atómico de operaciones de Historia sobre una copia. Pura; no cargada por el editor (la consume fluyo-mcp). |
 | `js/editor-scenarios.js` | Panel de Historias (Scenarios), selección de la Historia activa, storyboard, autoría, playback UI. |
 | `js/ui.js` | Panel lateral, pestañas, cajones, controles de propiedades. |
 | `js/export.js` | Guardar/abrir `.fluyo.json`, exportar GIF/PNG/JPG/SVG. |
@@ -141,3 +143,47 @@ editor:    scActiveId + scLastPage (efímeros)  ──→ scActiveScenario()  �
 - **Viewer**: sin cambios de lógica (`scenarios[0]` de la página abierta; sin selector). Añade la etiqueta «Historia» (`#stKicker`; durante/tras reproducir, «Historia · nombre»). **Legacy**: un Share anterior con N Scenarios sigue reproduciendo `scenarios[0]`; los Shares nuevos llevan uno.
 - **Present**: lee `scActiveScenario()`; cambiar de diapositiva ya hacía `scReset()`.
 - Tests: `test/fluyo-016.test.cjs` (vm), `test/fluyo-016-browser.cjs` (Chrome real), `test/fluyo-016-mutations.cjs` (18 mutaciones sobre copias), arnés `test/fluyo-016-harness.cjs`.
+
+## Kernel compartido e integridad (FLUYO-017.1)
+
+```text
+js/{config,safe-svg,model,scenario-engine,scenario-playback,story-playback,document-integrity}.js   ← el kernel
+        │ editor / Present / Viewer los cargan con <script>
+        └ fluyo-mcp: `sync:kernel` los copia VERBATIM (sha256 + kernelId) y los ejecuta en un `vm` nuevo por llamada
+```
+
+- **`FluyoStory.run(page, scenario)`** es la única ejecución del motor (`start` la invoca y añade Playback). **`FluyoStory.outcomes(trace, scenario, page)`** deriva el resultado por Step sólo del Trace (`completed`, `not_completed`+razón, `state_changed`, `no_change`, `narrated`); `FluyoStory.finalAvailability(trace, page)` da la disponibilidad al terminar y `FluyoStory.sentence` la frase de un Step.
+- **`FluyoIntegrity.validateProject(project)`** → `{valid, schemaVersion, engineVersion, errors[], stories[]}`. Compone `projectFromProjectData` (forma/ids/contadores) y `FluyoScenarios.runScenario` (estructura, Behaviors, referencias de Steps, tiempos, versión, límites); añade `missing_event_type` y `event_type_action_mismatch`. Error: `{code, message, scope: document|page|story|step, pageIndex?, storyId?, stepId?, entityId?, entityKind?}`. Las páginas se identifican por posición.
+- **`FluyoIntegrity.removalImpact(project, {pageIndex, nodeIds?, edgeIds?})` (B2, sólo detección)**: simula sobre una copia lo que hacen `deleteSel` y `remove_node` y devuelve qué Historias/Steps quedarían inválidos. No modifica nada ni lo consulta el editor.
+- Pruebas: `test/fluyo-017-1.test.cjs` (fixture `test/fixtures/fluyo-017-1-*.json`; el golden lo generan el camino real del editor, `scRun`, y el kernel). El mismo golden se verifica en fluyo-mcp.
+
+## Autoría de Historias compartida (FLUYO-017.2)
+
+```text
+editor-scenarios.js ──┐                                     ┌── fluyo-mcp: author_document (copia, lote atómico, revisión)
+ (undo, UI, autosave) ├── model.js (dominio compartido) ────┤
+                      │   storyboardSetWait · duplicateStep │
+                      │   retargetStep · stepDefinitionForEvent · defaultStepTime · setInitialAvailability
+                      │   eventTypeActionSpec · projectToSerializable
+                      └── story-authoring.js (FluyoAuthoring.apply) ──→ FluyoIntegrity (estado final) ──→ FluyoStory.run
+```
+
+- **Extraído del editor a `model.js`** (el editor ahora llama a estas mismas funciones; ya no tiene copia): `storyboardSetWait(steps,id,delay,maxAt)` (esperas narrativas: el momento y los posteriores se desplazan), `duplicateStep`, `retargetStep` (sólo cambia el objetivo), `stepDefinitionForEvent(et,target,at)` (la acción sale del EventType), `defaultStepTime`, `setInitialAvailability` (disponibilidad INICIAL = Behavior de la **página**) y `eventTypeActionSpec` (la única tabla primitiva→acción; `FluyoIntegrity.eventActionSpec` delega en ella).
+- **`FluyoAuthoring.apply(project, operations)`** (`js/story-authoring.js`, clásico, sin DOM, sin tocar la global `doc`): normaliza una COPIA, aplica el lote en orden, evalúa **el estado final** con `FluyoIntegrity` y devuelve `{ok, project, changes, touched, validation}` o `{ok:false, errors}` (nunca un documento parcial). Sólo contiene la forma de las operaciones, las `ref` del lote y la explicación de los rechazos; ninguna regla de tiempo/acción/destino/integridad.
+- **Operaciones** (cada una declara su `scope` y se verifica): `story` → `create_story`, `rename_story`, `duplicate_story`, `delete_story`, `add_step`, `remove_step`, `move_step`, `duplicate_step`, `retarget_step`, `set_wait`; `page` → `set_initial_availability`; `eventType` → `create_event_type`, `update_event_type`, `delete_event_type` (FLUYO-017.3; globales al documento, sin `pageIndex`). No hay creación/edición/borrado de elementos o conexiones (`delete_connection`/`delete_node` de 017.2 se retiraron en 017.3). Los campos desconocidos se rechazan (nadie escribe `action`, `state` ni `at`).
+- **Tiempo narrativo**: `add_step` añade al final tras `waitMs` (por defecto 1 s; el primero entra en 0) o «al mismo tiempo» (`placement.sameMomentAs`, con o sin `position`); `set_wait` fija la espera de un momento; `remove_step` colapsa la espera del momento que desaparece; `duplicate_step` entra en el mismo momento sin desplazar; `move_step` rota ranuras (los instantes no se inventan).
+- **B2 aplicado**: un lote que deje una Historia inválida (respecto del documento base) se rechaza con `REFERENCED_ENTITY {entity, affectedStories[{storyId,storyName,stepIds}], affectedSteps, operationIndex}`; retargetear/quitar pasos y borrar en el mismo lote es válido (estado final). Además, toda Historia creada/editada por el lote debe quedar ejecutable.
+- **fluyo-mcp** (`author_document`): `revision` = sha256 del JSON canónico (claves ordenadas) del documento **normalizado**; `baseRevision` obligatoria (control optimista, sin estado); `resultRevision` determinista; `dryRun`. Rechazos con `isError:true` y sin documento. Equivalencias de editor y MCP: `test/fluyo-017-2*.test.cjs` (editor real vs kernel, secuencias aleatorias) y `fluyo-mcp/test/fluyo-017-2*.test.ts` (mismo golden).
+
+## EventTypes compartidos entre el editor y MCP (FLUYO-017.3)
+
+```text
+Editor (modal) ─────►  model.js:  eventTypeDefinition · eventTypePrimitiveFor · createEventTypeIn · updateEventTypeIn · deleteEventTypeIn
+                                  eventTypeUsagesIn · eventTypePresentationDiff
+MCP author_document ─► FluyoAuthoring (forma de la operación) ──► las MISMAS funciones ──► FluyoIntegrity (estado final / impacto)
+```
+
+- **Extraído del modal a `model.js`**: la forma por primitiva (`eventTypeDefinition`) y la traducción dónde/consecuencia → primitiva (`eventTypePrimitiveFor`). `createEventType`/`updateEventType`/`deleteEventType`/`eventTypeById`/`eventTypeUseCount` delegan con la global `doc` en las variantes `…In(d, …)`: el editor no cambia de API.
+- **Operaciones MCP** (scope `eventType`): `create_event_type`, `update_event_type` (parche; si cambia la primitiva se reconstruye la definición completa, como el modal), `delete_event_type` (impacto por `FluyoIntegrity.eventTypeImpact`). `add_step` acepta `eventTypeId: {ref}` de un evento creado en el mismo lote.
+- **Reglas**: ver decisiones 78–82 en `.ai/DECISIONS.md`. Rechazos estructurados: `EVENT_TYPE_LOCKED` (campo + usos), `REFERENCED_ENTITY` (EventType, Historias, Steps), `INVALID_EVENT_TYPE` (con `field`), aviso `DUPLICATE_EVENT_TYPE_NAME`.
+- **Pruebas**: `test/fluyo-017-3.test.cjs` y `test/fluyo-017-3-qa.test.cjs` (dominio, autoría, paridad con el modal real; el golden incluye la `revision` del documento del editor), `test/fluyo-017-3-mutations.cjs` (mutaciones sobre copias), `test/fluyo-017-3-browser.cjs` (Chrome real: modal, Undo/Redo, Present, Share/Viewer, documentos antiguos; Playwright externo vía NODE_PATH). En fluyo-mcp: `test/fluyo-017-3*.test.ts` y `scripts/mutate-017-3.ts` (mutaciones del kernel regenerado y de `src/`).

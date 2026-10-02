@@ -29,7 +29,6 @@ let scResizeObserver = null,
   scStorySignature = "",
   scLastPage = null,
   scPrevActiveId = null;
-const DEFAULT_STEP_DELAY = 1000;
 
 function isScenarioPlaybackActive() {
   return scStatus === "running" || scStatus === "completed";
@@ -203,8 +202,7 @@ function scSetBehavior(nodeId, state) {
   const pg = P();
   if (!pg) return;
   pushUndo();
-  pg.behaviors = pg.behaviors.filter((b) => b.nodeId !== nodeId);
-  if (state === "DOWN") pg.behaviors.push({ nodeId, initialState: "DOWN" });
+  setInitialAvailability(pg, nodeId, state);
   scheduleAutosave();
   scRenderBehaviors();
 }
@@ -672,7 +670,7 @@ function scGroups() {
   return storyboardGroups(scActiveScenario()?.steps);
 }
 function scStepDefaultTime(sc) {
-  return sc?.steps.length ? Math.max(...sc.steps.map((s) => s.at)) + DEFAULT_STEP_DELAY : 0;
+  return defaultStepTime(sc);
 }
 function scRenderPanel() {
   scValidatePlacement();
@@ -1224,10 +1222,7 @@ function scDuplicateStep(id) {
     return;
   }
   pushUndo();
-  const { id: _id, ...rest } = src;
-  const copy = createStep(sc, { ...rest });
-  const r = storyboardInsertDuplicate(sc.steps.filter((s) => s.id !== copy.id), id, copy);
-  sc.steps = r.steps;
+  const copy = duplicateStep(sc, id);
   scSelectedStep = copy.id;
   scCommit();
   scNotice("Duplicado al mismo tiempo, justo debajo.");
@@ -1270,26 +1265,16 @@ function scEditTime(id, anchor) {
 }
 function scSetStepDelay(id, delay) {
   if (!Number.isSafeInteger(delay) || delay < 0 || !scEditable()) return;
-  const groups = scGroups(),
-    i = groups.findIndex((g) => g.steps.some((s) => s.id === id)),
-    g = groups[i];
-  if (!g) return;
-  const delta = (groups[i - 1]?.at || 0) + delay - g.at;
-  if (!delta) return;
-  const affected = scActiveScenario().steps.filter((s) => s.at >= g.at);
-  if (
-    affected.some(
-      (s) =>
-        !Number.isSafeInteger(s.at + delta) ||
-        s.at + delta < 0 ||
-        s.at + delta > FluyoScenarios.MAX_VIRTUAL_TIME_MS,
-    )
-  ) {
+  const sc = scActiveScenario(),
+    r = storyboardSetWait(sc.steps, id, delay, FluyoScenarios.MAX_VIRTUAL_TIME_MS);
+  if (!r) return;
+  if (r.error) {
     scNotice("El tiempo está fuera del rango permitido.");
     return;
   }
+  if (!r.changed) return;
   pushUndo();
-  affected.forEach((s) => (s.at += delta));
+  sc.steps = r.steps;
   scCommit();
 }
 /* Mover antes/después y arrastre comparten la semántica de model.js (storyboard*). */
@@ -1495,23 +1480,21 @@ function scDurationInvalid() {
     parseVisualDurationSeconds($("scDurationSeconds").value) === null
   );
 }
+/* Lo que edita el modal → definición del EventType. La forma por primitiva (movimiento y efectos de conexión sólo en
+   conexiones, efectos de elemento y disponibilidad sólo en elementos) es de model.js: la misma que usa MCP. */
 function scEditorDefinition() {
   const connection = scWhereValue() === "connection",
     consequence = connection ? "none" : scConsequenceValue();
-  const def = {
+  return eventTypeDefinition({
     name: $("scEventName").value.trim(),
-    primitive: connection ? "FLOW" : consequence === "none" ? "OCCURRENCE" : "SET_AVAILABILITY",
+    primitive: eventTypePrimitiveFor(connection ? "connection" : "element", consequence),
     sentenceTemplate: scReadPhrase(),
-    visual: { value: scVisual },
-    motion: connection ? scMotionValue() : DEFAULT_EVENT_MOTION,
-  };
-  if (connection) {
-    def.presentation = { connectionEffects: scConnectionEffectsFromUI() };
-  } else {
-    def.presentation = { nodeEffects: scNodeEffectsFromUI() };
-    if (consequence !== "none") def.availability = consequence === "up" ? "UP" : "DOWN";
-  }
-  return def;
+    symbol: scVisual,
+    motion: connection ? scMotionValue() : undefined,
+    availability: consequence === "up" ? "UP" : "DOWN",
+    connectionEffects: connection ? scConnectionEffectsFromUI() : undefined,
+    nodeEffects: connection ? undefined : scNodeEffectsFromUI(),
+  });
 }
 function scFillEffectsFromUI() {
   return $("scUseFill").checked ? $("scFillColor").value : "";
@@ -1653,7 +1636,7 @@ function scOpenEventDialog(id, duplicate = false) {
   $("scEventLocked").hidden = !used;
   $("scEventError").hidden = true;
   $("scCustomVisual").hidden = true;
-  scVisual = et?.visual.value ?? "●";
+  scVisual = et?.visual.value ?? DEFAULT_EVENT_SYMBOL;
   $("scEventVisual").value = scVisual;
   const motion = et?.motion || DEFAULT_EVENT_MOTION;
   document.querySelectorAll('input[name="scMotion"]').forEach((e) => {
@@ -1919,7 +1902,7 @@ function scSaveEventType() {
     error = $("scEventError");
   let message = "";
   if (!def.name) message = "Escribe un nombre para reconocer este evento.";
-  else if (scPhraseParts.some((p) => p.text && /[{}]/.test(p.text)))
+  else if (eventSentenceHasStrayBraces(def.sentenceTemplate))
     message = "Para insertar nombres, usa los botones de la frase.";
   else if (!def.sentenceTemplate.trim()) message = "Escribe cómo quieres contar este evento.";
   else if (def.sentenceTemplate.length > 200) message = "Acorta la frase a 200 caracteres.";
@@ -2262,8 +2245,7 @@ function scUseTarget(id, multiSelection = true) {
     const s = scActiveScenario().steps.find((s) => s.id === p.stepId);
     if (!s) return;
     pushUndo();
-    if (p.targetType === "edge") s.edgeId = id;
-    else s.nodeId = id;
+    retargetStep(P(), scActiveScenario(), s.id, id);
     scCancelPlacement();
     scCommit();
     return;
@@ -2295,11 +2277,7 @@ function scApplyTargets(id, targets) {
   }
   const at = scContext ? sc.steps.find((s) => s.id === scContext.stepId).at : scStepDefaultTime(sc);
   for (const target of valid) {
-    const def = { at, eventTypeId: id };
-    if (et.primitive === "FLOW") Object.assign(def, { action: "SEND", edgeId: target });
-    else if (et.primitive === "OCCURRENCE") Object.assign(def, { action: "OCCURRENCE", nodeId: target });
-    else Object.assign(def, { action: "SET_STATE", nodeId: target, state: et.availability });
-    scSelectedStep = createStep(sc, def).id;
+    scSelectedStep = createStep(sc, stepDefinitionForEvent(et, target, at)).id;
   }
   scCancelPlacement();
   scFeedback = {

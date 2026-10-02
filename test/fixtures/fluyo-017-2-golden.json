@@ -1,0 +1,418 @@
+{
+  "operations": [
+    {
+      "op": "create_story",
+      "scope": "story",
+      "pageIndex": 0,
+      "ref": "S"
+    },
+    {
+      "op": "add_step",
+      "scope": "story",
+      "pageIndex": 0,
+      "storyId": {
+        "ref": "S"
+      },
+      "eventTypeId": 1,
+      "target": {
+        "edgeId": 5
+      },
+      "ref": "a"
+    },
+    {
+      "op": "add_step",
+      "scope": "story",
+      "pageIndex": 0,
+      "storyId": {
+        "ref": "S"
+      },
+      "eventTypeId": 2,
+      "target": {
+        "nodeId": 2
+      },
+      "ref": "b"
+    },
+    {
+      "op": "add_step",
+      "scope": "story",
+      "pageIndex": 0,
+      "storyId": {
+        "ref": "S"
+      },
+      "eventTypeId": 3,
+      "target": {
+        "from": 2,
+        "to": 3
+      },
+      "ref": "c"
+    },
+    {
+      "op": "set_wait",
+      "scope": "story",
+      "pageIndex": 0,
+      "storyId": {
+        "ref": "S"
+      },
+      "stepId": {
+        "ref": "c"
+      },
+      "waitMs": 2000
+    },
+    {
+      "op": "add_step",
+      "scope": "story",
+      "pageIndex": 0,
+      "storyId": {
+        "ref": "S"
+      },
+      "eventTypeId": 6,
+      "target": {
+        "edgeId": 7
+      },
+      "placement": {
+        "sameMomentAs": {
+          "ref": "c"
+        }
+      },
+      "ref": "n"
+    },
+    {
+      "op": "duplicate_step",
+      "scope": "story",
+      "pageIndex": 0,
+      "storyId": {
+        "ref": "S"
+      },
+      "stepId": {
+        "ref": "a"
+      },
+      "ref": "a2"
+    },
+    {
+      "op": "move_step",
+      "scope": "story",
+      "pageIndex": 0,
+      "storyId": {
+        "ref": "S"
+      },
+      "stepId": {
+        "ref": "b"
+      },
+      "direction": "later"
+    },
+    {
+      "op": "retarget_step",
+      "scope": "story",
+      "pageIndex": 0,
+      "storyId": {
+        "ref": "S"
+      },
+      "stepId": {
+        "ref": "n"
+      },
+      "target": {
+        "edgeId": 8
+      }
+    },
+    {
+      "op": "remove_step",
+      "scope": "story",
+      "pageIndex": 0,
+      "storyId": {
+        "ref": "S"
+      },
+      "stepId": {
+        "ref": "b"
+      }
+    },
+    {
+      "op": "set_initial_availability",
+      "scope": "page",
+      "pageIndex": 0,
+      "nodeId": 2,
+      "state": "DOWN"
+    }
+  ],
+  "storyId": 4,
+  "steps": [
+    {
+      "id": 1,
+      "at": 0,
+      "eventTypeId": 1,
+      "action": "SEND",
+      "edgeId": 5
+    },
+    {
+      "id": 5,
+      "at": 0,
+      "eventTypeId": 1,
+      "action": "SEND",
+      "edgeId": 5
+    },
+    {
+      "id": 3,
+      "at": 1000,
+      "eventTypeId": 3,
+      "action": "SEND",
+      "edgeId": 6
+    },
+    {
+      "id": 4,
+      "at": 3000,
+      "eventTypeId": 6,
+      "action": "SEND",
+      "edgeId": 8
+    }
+  ],
+  "behaviors": [
+    {
+      "nodeId": 4,
+      "initialState": "DOWN"
+    },
+    {
+      "nodeId": 2,
+      "initialState": "DOWN"
+    }
+  ],
+  "trace": {
+    "engineVersion": 2,
+    "scenarioId": 4,
+    "events": [
+      {
+        "at": 0,
+        "type": "send_started",
+        "stepId": 1,
+        "edgeId": 5
+      },
+      {
+        "at": 0,
+        "type": "send_failed",
+        "stepId": 1,
+        "edgeId": 5,
+        "reason": "target_down"
+      },
+      {
+        "at": 0,
+        "type": "send_started",
+        "stepId": 5,
+        "edgeId": 5
+      },
+      {
+        "at": 0,
+        "type": "send_failed",
+        "stepId": 5,
+        "edgeId": 5,
+        "reason": "target_down"
+      },
+      {
+        "at": 1000,
+        "type": "send_started",
+        "stepId": 3,
+        "edgeId": 6
+      },
+      {
+        "at": 1000,
+        "type": "send_failed",
+        "stepId": 3,
+        "edgeId": 6,
+        "reason": "source_down"
+      },
+      {
+        "at": 3000,
+        "type": "send_started",
+        "stepId": 4,
+        "edgeId": 8
+      },
+      {
+        "at": 3000,
+        "type": "send_succeeded",
+        "stepId": 4,
+        "edgeId": 8
+      }
+    ]
+  },
+  "outcomes": [
+    {
+      "stepId": 1,
+      "at": 0,
+      "action": "SEND",
+      "eventIndexes": [
+        0,
+        1
+      ],
+      "eventTypeId": 1,
+      "edgeId": 5,
+      "status": "not_completed",
+      "reason": "target_down",
+      "reasonNodeId": 2
+    },
+    {
+      "stepId": 5,
+      "at": 0,
+      "action": "SEND",
+      "eventIndexes": [
+        2,
+        3
+      ],
+      "eventTypeId": 1,
+      "edgeId": 5,
+      "status": "not_completed",
+      "reason": "target_down",
+      "reasonNodeId": 2
+    },
+    {
+      "stepId": 3,
+      "at": 1000,
+      "action": "SEND",
+      "eventIndexes": [
+        4,
+        5
+      ],
+      "eventTypeId": 3,
+      "edgeId": 6,
+      "status": "not_completed",
+      "reason": "source_down",
+      "reasonNodeId": 2
+    },
+    {
+      "stepId": 4,
+      "at": 3000,
+      "action": "SEND",
+      "eventIndexes": [
+        6,
+        7
+      ],
+      "eventTypeId": 6,
+      "edgeId": 8,
+      "status": "completed"
+    }
+  ],
+  "finalAvailability": {
+    "1": "UP",
+    "2": "DOWN",
+    "3": "UP",
+    "4": "DOWN"
+  },
+  "stepMeta": {
+    "1": {
+      "token": "💵",
+      "motion": "slow",
+      "nodeEffects": {
+        "showSymbol": false,
+        "symbolSize": "medium",
+        "message": "",
+        "messageColor": "",
+        "messageSize": "medium",
+        "messageWeight": "normal",
+        "messageFont": "default",
+        "messagePosition": "above",
+        "highlight": false,
+        "blink": false,
+        "dim": false,
+        "fillColor": "",
+        "visualDuration": "normal",
+        "visualDurationMs": 1500
+      },
+      "connection": {
+        "size": "large",
+        "style": "impulse",
+        "trail": "subtle",
+        "arrival": "bounce",
+        "during": "breathe",
+        "symbol": "💵",
+        "px": 28
+      },
+      "name": "Pago"
+    },
+    "3": {
+      "token": "✅",
+      "motion": "fast",
+      "nodeEffects": {
+        "showSymbol": false,
+        "symbolSize": "medium",
+        "message": "",
+        "messageColor": "",
+        "messageSize": "medium",
+        "messageWeight": "normal",
+        "messageFont": "default",
+        "messagePosition": "above",
+        "highlight": false,
+        "blink": false,
+        "dim": false,
+        "fillColor": "",
+        "visualDuration": "normal",
+        "visualDurationMs": 1500
+      },
+      "connection": {
+        "size": "medium",
+        "style": "direct",
+        "trail": "none",
+        "arrival": "none",
+        "during": "none",
+        "symbol": "✅",
+        "px": 20
+      },
+      "name": "Confirmación"
+    },
+    "4": {
+      "token": "📣",
+      "motion": "fast",
+      "nodeEffects": {
+        "showSymbol": false,
+        "symbolSize": "medium",
+        "message": "",
+        "messageColor": "",
+        "messageSize": "medium",
+        "messageWeight": "normal",
+        "messageFont": "default",
+        "messagePosition": "above",
+        "highlight": false,
+        "blink": false,
+        "dim": false,
+        "fillColor": "",
+        "visualDuration": "normal",
+        "visualDurationMs": 1500
+      },
+      "connection": {
+        "size": "medium",
+        "style": "direct",
+        "trail": "none",
+        "arrival": "none",
+        "during": "none",
+        "symbol": "📣",
+        "px": 20
+      },
+      "name": "Notificación"
+    },
+    "5": {
+      "token": "💵",
+      "motion": "slow",
+      "nodeEffects": {
+        "showSymbol": false,
+        "symbolSize": "medium",
+        "message": "",
+        "messageColor": "",
+        "messageSize": "medium",
+        "messageWeight": "normal",
+        "messageFont": "default",
+        "messagePosition": "above",
+        "highlight": false,
+        "blink": false,
+        "dim": false,
+        "fillColor": "",
+        "visualDuration": "normal",
+        "visualDurationMs": 1500
+      },
+      "connection": {
+        "size": "large",
+        "style": "impulse",
+        "trail": "subtle",
+        "arrival": "bounce",
+        "during": "breathe",
+        "symbol": "💵",
+        "px": 28
+      },
+      "name": "Pago"
+    }
+  }
+}

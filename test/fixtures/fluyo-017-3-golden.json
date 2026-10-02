@@ -1,0 +1,601 @@
+{
+  "revision": "sha256:c267dd23b38a271fb16f4bdf983692b040b52325532b11cdf8221c90fc166d44",
+  "operations": [
+    {
+      "op": "create_event_type",
+      "scope": "eventType",
+      "name": "Pago rápido",
+      "primitive": "FLOW",
+      "sentence": "{source} abona a {target}",
+      "symbol": "✔",
+      "motion": "slow",
+      "presentation": {
+        "connectionEffects": {
+          "size": "large",
+          "style": "smooth",
+          "trail": "subtle",
+          "arrival": "pulse",
+          "during": "halo"
+        }
+      }
+    },
+    {
+      "op": "create_event_type",
+      "scope": "eventType",
+      "name": "Servicio caído",
+      "primitive": "SET_AVAILABILITY",
+      "availability": "DOWN",
+      "sentence": "{target} cae",
+      "symbol": "⚠",
+      "presentation": {
+        "nodeEffects": {
+          "dim": true
+        }
+      }
+    },
+    {
+      "op": "create_event_type",
+      "scope": "eventType",
+      "name": "Recibir pago",
+      "primitive": "OCCURRENCE",
+      "sentence": "{target} recibe un pago",
+      "symbol": "📦",
+      "presentation": {
+        "nodeEffects": {
+          "showSymbol": true,
+          "symbolSize": "large",
+          "message": "Pago recibido",
+          "messageColor": "#d0576a",
+          "messageSize": "large",
+          "messageWeight": "bold",
+          "messageFont": "mono",
+          "messagePosition": "below",
+          "highlight": true,
+          "blink": true,
+          "fillColor": "#3aa7e8",
+          "visualDuration": "custom",
+          "visualDurationMs": 2500
+        }
+      }
+    },
+    {
+      "op": "create_story",
+      "scope": "story",
+      "pageIndex": 0,
+      "ref": "s"
+    },
+    {
+      "op": "add_step",
+      "scope": "story",
+      "pageIndex": 0,
+      "storyId": {
+        "ref": "s"
+      },
+      "eventTypeId": 5,
+      "target": {
+        "edgeId": 4
+      }
+    },
+    {
+      "op": "add_step",
+      "scope": "story",
+      "pageIndex": 0,
+      "storyId": {
+        "ref": "s"
+      },
+      "eventTypeId": 6,
+      "target": {
+        "nodeId": 2
+      },
+      "ref": "down"
+    },
+    {
+      "op": "set_wait",
+      "scope": "story",
+      "pageIndex": 0,
+      "storyId": {
+        "ref": "s"
+      },
+      "stepId": {
+        "ref": "down"
+      },
+      "waitMs": 2000
+    },
+    {
+      "op": "add_step",
+      "scope": "story",
+      "pageIndex": 0,
+      "storyId": {
+        "ref": "s"
+      },
+      "eventTypeId": 5,
+      "target": {
+        "edgeId": 5
+      }
+    },
+    {
+      "op": "add_step",
+      "scope": "story",
+      "pageIndex": 0,
+      "storyId": {
+        "ref": "s"
+      },
+      "eventTypeId": 7,
+      "target": {
+        "nodeId": 3
+      }
+    }
+  ],
+  "ids": {
+    "sid": 4,
+    "flowId": 5,
+    "downId": 6,
+    "occId": 7
+  },
+  "types": [
+    {
+      "id": 1,
+      "name": "Pago",
+      "primitive": "FLOW",
+      "sentenceTemplate": "{source} paga a {target}",
+      "visual": {
+        "kind": "token",
+        "value": "💵"
+      },
+      "motion": "normal"
+    },
+    {
+      "id": 2,
+      "name": "Procesamiento",
+      "primitive": "OCCURRENCE",
+      "sentenceTemplate": "{target} procesa el evento",
+      "visual": {
+        "kind": "token",
+        "value": "⚙️"
+      },
+      "motion": "normal"
+    },
+    {
+      "id": 3,
+      "name": "Confirmación",
+      "primitive": "FLOW",
+      "sentenceTemplate": "{target} recibe confirmación de {source}",
+      "visual": {
+        "kind": "token",
+        "value": "✅"
+      },
+      "motion": "normal"
+    },
+    {
+      "id": 4,
+      "name": "Caída",
+      "primitive": "SET_AVAILABILITY",
+      "sentenceTemplate": "{target} deja de responder",
+      "visual": {
+        "kind": "token",
+        "value": "⛔"
+      },
+      "motion": "normal",
+      "availability": "DOWN"
+    },
+    {
+      "id": 5,
+      "name": "Pago rápido",
+      "primitive": "FLOW",
+      "sentenceTemplate": "{source} abona a {target}",
+      "visual": {
+        "kind": "token",
+        "value": "✔"
+      },
+      "motion": "slow",
+      "presentation": {
+        "nodeEffects": {
+          "showSymbol": false,
+          "symbolSize": "medium",
+          "message": "",
+          "messageColor": "",
+          "messageSize": "medium",
+          "messageWeight": "normal",
+          "messageFont": "default",
+          "messagePosition": "above",
+          "highlight": false,
+          "blink": false,
+          "dim": false,
+          "fillColor": "",
+          "visualDuration": "normal",
+          "visualDurationMs": 1500
+        },
+        "connectionEffects": {
+          "size": "large",
+          "style": "smooth",
+          "trail": "subtle",
+          "arrival": "pulse",
+          "during": "halo"
+        }
+      }
+    },
+    {
+      "id": 6,
+      "name": "Servicio caído",
+      "primitive": "SET_AVAILABILITY",
+      "sentenceTemplate": "{target} cae",
+      "visual": {
+        "kind": "token",
+        "value": "⚠"
+      },
+      "motion": "normal",
+      "availability": "DOWN",
+      "presentation": {
+        "nodeEffects": {
+          "showSymbol": false,
+          "symbolSize": "medium",
+          "message": "",
+          "messageColor": "",
+          "messageSize": "medium",
+          "messageWeight": "normal",
+          "messageFont": "default",
+          "messagePosition": "above",
+          "highlight": false,
+          "blink": false,
+          "dim": true,
+          "fillColor": "",
+          "visualDuration": "normal",
+          "visualDurationMs": 1500
+        }
+      }
+    },
+    {
+      "id": 7,
+      "name": "Recibir pago",
+      "primitive": "OCCURRENCE",
+      "sentenceTemplate": "{target} recibe un pago",
+      "visual": {
+        "kind": "token",
+        "value": "📦"
+      },
+      "motion": "normal",
+      "presentation": {
+        "nodeEffects": {
+          "showSymbol": true,
+          "symbolSize": "large",
+          "message": "Pago recibido",
+          "messageColor": "#d0576a",
+          "messageSize": "large",
+          "messageWeight": "bold",
+          "messageFont": "mono",
+          "messagePosition": "below",
+          "highlight": true,
+          "blink": true,
+          "dim": false,
+          "fillColor": "#3aa7e8",
+          "visualDuration": "custom",
+          "visualDurationMs": 2500
+        }
+      }
+    }
+  ],
+  "steps": [
+    {
+      "id": 1,
+      "at": 0,
+      "eventTypeId": 5,
+      "action": "SEND",
+      "edgeId": 4
+    },
+    {
+      "id": 2,
+      "at": 2000,
+      "eventTypeId": 6,
+      "action": "SET_STATE",
+      "nodeId": 2,
+      "state": "DOWN"
+    },
+    {
+      "id": 3,
+      "at": 3000,
+      "eventTypeId": 5,
+      "action": "SEND",
+      "edgeId": 5
+    },
+    {
+      "id": 4,
+      "at": 4000,
+      "eventTypeId": 7,
+      "action": "OCCURRENCE",
+      "nodeId": 3
+    }
+  ],
+  "trace": {
+    "engineVersion": 2,
+    "scenarioId": 4,
+    "events": [
+      {
+        "at": 0,
+        "type": "send_started",
+        "stepId": 1,
+        "edgeId": 4
+      },
+      {
+        "at": 0,
+        "type": "send_succeeded",
+        "stepId": 1,
+        "edgeId": 4
+      },
+      {
+        "at": 2000,
+        "type": "state_changed",
+        "stepId": 2,
+        "nodeId": 2,
+        "from": "UP",
+        "to": "DOWN"
+      },
+      {
+        "at": 3000,
+        "type": "send_started",
+        "stepId": 3,
+        "edgeId": 5
+      },
+      {
+        "at": 3000,
+        "type": "send_failed",
+        "stepId": 3,
+        "edgeId": 5,
+        "reason": "source_down"
+      },
+      {
+        "at": 4000,
+        "type": "event_occurred",
+        "stepId": 4,
+        "nodeId": 3
+      }
+    ]
+  },
+  "outcomes": [
+    {
+      "stepId": 1,
+      "at": 0,
+      "action": "SEND",
+      "eventIndexes": [
+        0,
+        1
+      ],
+      "eventTypeId": 5,
+      "edgeId": 4,
+      "status": "completed"
+    },
+    {
+      "stepId": 2,
+      "at": 2000,
+      "action": "SET_STATE",
+      "eventIndexes": [
+        2
+      ],
+      "eventTypeId": 6,
+      "nodeId": 2,
+      "state": "DOWN",
+      "status": "state_changed",
+      "from": "UP",
+      "to": "DOWN"
+    },
+    {
+      "stepId": 3,
+      "at": 3000,
+      "action": "SEND",
+      "eventIndexes": [
+        3,
+        4
+      ],
+      "eventTypeId": 5,
+      "edgeId": 5,
+      "status": "not_completed",
+      "reason": "source_down",
+      "reasonNodeId": 2
+    },
+    {
+      "stepId": 4,
+      "at": 4000,
+      "action": "OCCURRENCE",
+      "eventIndexes": [
+        5
+      ],
+      "eventTypeId": 7,
+      "nodeId": 3,
+      "status": "narrated",
+      "nodeAvailability": "UP",
+      "note": "El motor registra la ocurrencia; no comprueba disponibilidad ni efecto."
+    }
+  ],
+  "finalAvailability": {
+    "1": "UP",
+    "2": "DOWN",
+    "3": "UP"
+  },
+  "stepMeta": {
+    "1": {
+      "token": "✔",
+      "motion": "slow",
+      "nodeEffects": {
+        "showSymbol": false,
+        "symbolSize": "medium",
+        "message": "",
+        "messageColor": "",
+        "messageSize": "medium",
+        "messageWeight": "normal",
+        "messageFont": "default",
+        "messagePosition": "above",
+        "highlight": false,
+        "blink": false,
+        "dim": false,
+        "fillColor": "",
+        "visualDuration": "normal",
+        "visualDurationMs": 1500
+      },
+      "connection": {
+        "size": "large",
+        "style": "smooth",
+        "trail": "subtle",
+        "arrival": "pulse",
+        "during": "halo",
+        "symbol": "✔",
+        "px": 28
+      },
+      "name": "Pago rápido"
+    },
+    "2": {
+      "token": "⚠",
+      "motion": "normal",
+      "nodeEffects": {
+        "showSymbol": false,
+        "symbolSize": "medium",
+        "message": "",
+        "messageColor": "",
+        "messageSize": "medium",
+        "messageWeight": "normal",
+        "messageFont": "default",
+        "messagePosition": "above",
+        "highlight": false,
+        "blink": false,
+        "dim": true,
+        "fillColor": "",
+        "visualDuration": "normal",
+        "visualDurationMs": 1500
+      },
+      "connection": {
+        "size": "medium",
+        "style": "direct",
+        "trail": "none",
+        "arrival": "none",
+        "during": "none",
+        "symbol": "⚠",
+        "px": 20
+      },
+      "name": "Servicio caído"
+    },
+    "3": {
+      "token": "✔",
+      "motion": "slow",
+      "nodeEffects": {
+        "showSymbol": false,
+        "symbolSize": "medium",
+        "message": "",
+        "messageColor": "",
+        "messageSize": "medium",
+        "messageWeight": "normal",
+        "messageFont": "default",
+        "messagePosition": "above",
+        "highlight": false,
+        "blink": false,
+        "dim": false,
+        "fillColor": "",
+        "visualDuration": "normal",
+        "visualDurationMs": 1500
+      },
+      "connection": {
+        "size": "large",
+        "style": "smooth",
+        "trail": "subtle",
+        "arrival": "pulse",
+        "during": "halo",
+        "symbol": "✔",
+        "px": 28
+      },
+      "name": "Pago rápido"
+    },
+    "4": {
+      "token": "📦",
+      "motion": "normal",
+      "nodeEffects": {
+        "showSymbol": true,
+        "symbolSize": "large",
+        "message": "Pago recibido",
+        "messageColor": "#d0576a",
+        "messageSize": "large",
+        "messageWeight": "bold",
+        "messageFont": "mono",
+        "messagePosition": "below",
+        "highlight": true,
+        "blink": true,
+        "dim": false,
+        "fillColor": "#3aa7e8",
+        "visualDuration": "custom",
+        "visualDurationMs": 2500
+      },
+      "connection": {
+        "size": "medium",
+        "style": "direct",
+        "trail": "none",
+        "arrival": "none",
+        "during": "none",
+        "symbol": "📦",
+        "px": 20
+      },
+      "name": "Recibir pago"
+    }
+  },
+  "playback": [
+    {
+      "showSymbol": false,
+      "symbolSize": "medium",
+      "message": "",
+      "messageColor": "",
+      "messageSize": "medium",
+      "messageWeight": "normal",
+      "messageFont": "default",
+      "messagePosition": "above",
+      "highlight": false,
+      "blink": false,
+      "dim": false,
+      "fillColor": "",
+      "visualDuration": "normal",
+      "visualDurationMs": 1500
+    },
+    {
+      "showSymbol": false,
+      "symbolSize": "medium",
+      "message": "",
+      "messageColor": "",
+      "messageSize": "medium",
+      "messageWeight": "normal",
+      "messageFont": "default",
+      "messagePosition": "above",
+      "highlight": false,
+      "blink": false,
+      "dim": true,
+      "fillColor": "",
+      "visualDuration": "normal",
+      "visualDurationMs": 1500
+    },
+    {
+      "showSymbol": false,
+      "symbolSize": "medium",
+      "message": "",
+      "messageColor": "",
+      "messageSize": "medium",
+      "messageWeight": "normal",
+      "messageFont": "default",
+      "messagePosition": "above",
+      "highlight": false,
+      "blink": false,
+      "dim": false,
+      "fillColor": "",
+      "visualDuration": "normal",
+      "visualDurationMs": 1500
+    },
+    {
+      "showSymbol": true,
+      "symbolSize": "large",
+      "message": "Pago recibido",
+      "messageColor": "#d0576a",
+      "messageSize": "large",
+      "messageWeight": "bold",
+      "messageFont": "mono",
+      "messagePosition": "below",
+      "highlight": true,
+      "blink": true,
+      "dim": false,
+      "fillColor": "#3aa7e8",
+      "visualDuration": "custom",
+      "visualDurationMs": 2500
+    }
+  ]
+}

@@ -36,10 +36,13 @@ function getBounds(){
 }
 
 /* ===================== Contrato .fluyo.json ===================== */
-function serializeProject(){ return {version:5,app:"fluyo",doc,settings}; }
+/* Formato de guardado (única definición): el editor serializa su doc vivo; los consumidores sin estado
+   (fluyo-mcp) lo usan con su propio doc/settings normalizados. */
+function projectToSerializable(d,st){ return {version:5,app:"fluyo",doc:d,settings:st}; }
+function serializeProject(){ return projectToSerializable(doc,settings); }
 
-function projectDataError(code="invalid_document"){
-  const err=new Error(code); err.code=code; return err;
+function projectDataError(code="invalid_document", field){
+  const err=new Error(code); err.code=code; if(field!==undefined) err.field=field; return err;
 }
 const projectObject=o=>o!==null && typeof o==="object" && !Array.isArray(o);
 const projectOwn=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
@@ -228,11 +231,18 @@ function reserveStructureIds(pg,count=1){ return reserveProjectIds(pg,"nextId",c
 
 /* ===================== EventTypes ===================== */
 const EVENT_TEMPLATE_PLACEHOLDERS=new Set(["source","target","name"]);
-function eventTypeById(id){ return doc.eventTypes.find(e=>e.id===id)||null; }
+const EVENT_TYPE_NAME_MAX=60;
+const EVENT_TYPE_SENTENCE_MAX=200;
+const DEFAULT_EVENT_SYMBOL="●";
+/* FLUYO-017.3. Las funciones `…In(d, …)` operan sobre UN documento explícito (editor: el `doc` vivo;
+   fluyo-mcp: una copia). Las globales sin sufijo son su versión sobre `doc` y es lo que llama el editor:
+   no existe una segunda implementación de las reglas. */
+function eventTypeByIdIn(d,id){ return d.eventTypes.find(e=>e.id===id)||null; }
+function eventTypeById(id){ return eventTypeByIdIn(doc,id); }
 
-function eventTypeUseCount(id){
+function eventTypeUseCountIn(d,id){
   let count=0;
-  for(const pg of doc.pages){
+  for(const pg of d.pages){
     for(const sc of pg.scenarios||[]){
       for(const step of sc.steps||[]){
         if(step.eventTypeId===id) count++;
@@ -241,23 +251,43 @@ function eventTypeUseCount(id){
   }
   return count;
 }
+function eventTypeUseCount(id){ return eventTypeUseCountIn(doc,id); }
 function eventTypeIsUsed(id){ return eventTypeUseCount(id)>0; }
+/* Dónde se usa un EventType: [{pageIndex, storyId, storyName, stepIds}] (orden de páginas, Historias y Steps). */
+function eventTypeUsagesIn(d,id){
+  const out=[];
+  d.pages.forEach((pg,pageIndex)=>{
+    for(const sc of pg.scenarios||[]){
+      const stepIds=(sc.steps||[]).filter(s=>s.eventTypeId===id).map(s=>s.id);
+      if(stepIds.length) out.push({pageIndex, storyId:sc.id, storyName:sc.name, stepIds});
+    }
+  });
+  return out;
+}
 
+/* Una llave suelta ({ o } fuera de {source}, {target}, {name}) no es texto: el modal del editor lo impide (los marcadores se
+   insertan con los chips) y MCP aplica la misma regla. Es una regla de ENTRADA: el dominio (validateEventType, createEventType)
+   no rechaza lo ya guardado, p. ej. «{{source}}» (test 010-qa «double curlies»). */
+function eventSentenceHasStrayBraces(template){
+  return /[{}]/.test(String(template).replace(/{(source|target|name)}/g,""));
+}
+
+/* Los errores de validación llevan `field` (qué campo del EventType los causó) para poder explicarlos. */
 function validateEventType(et){
-  if(!projectObject(et) || !Number.isSafeInteger(et.id) || et.id<1) throw projectDataError();
-  if(typeof et.name!=="string" || et.name.trim().length===0 || et.name.length>60) throw projectDataError();
-  if(!EVENT_TYPE_PRIMITIVES.has(et.primitive)) throw projectDataError();
-  if(typeof et.sentenceTemplate!=="string" || et.sentenceTemplate.trim().length===0 || et.sentenceTemplate.length>200) throw projectDataError();
+  if(!projectObject(et) || !Number.isSafeInteger(et.id) || et.id<1) throw projectDataError("invalid_document","id");
+  if(typeof et.name!=="string" || et.name.trim().length===0 || et.name.length>EVENT_TYPE_NAME_MAX) throw projectDataError("invalid_document","name");
+  if(!EVENT_TYPE_PRIMITIVES.has(et.primitive)) throw projectDataError("invalid_document","primitive");
+  if(typeof et.sentenceTemplate!=="string" || et.sentenceTemplate.trim().length===0 || et.sentenceTemplate.length>EVENT_TYPE_SENTENCE_MAX) throw projectDataError("invalid_document","sentenceTemplate");
   // placeholders allowlisted y bien formados
   for(const m of et.sentenceTemplate.matchAll(/\{([a-zA-Z0-9_]*)\}/g)){
-    if(!EVENT_TEMPLATE_PLACEHOLDERS.has(m[1])) throw projectDataError();
+    if(!EVENT_TEMPLATE_PLACEHOLDERS.has(m[1])) throw projectDataError("invalid_document","sentenceTemplate");
   }
-  if(!projectObject(et.visual) || et.visual.kind!=="token" || typeof et.visual.value!=="string") throw projectDataError();
-  if([...et.visual.value].length>EVENT_TOKEN_MAX_LEN) throw projectDataError();
-  if(et.motion!==undefined && !EVENT_TYPE_MOTIONS.has(et.motion)) throw projectDataError();
+  if(!projectObject(et.visual) || et.visual.kind!=="token" || typeof et.visual.value!=="string") throw projectDataError("invalid_document","visual");
+  if([...et.visual.value].length>EVENT_TOKEN_MAX_LEN) throw projectDataError("invalid_document","visual");
+  if(et.motion!==undefined && !EVENT_TYPE_MOTIONS.has(et.motion)) throw projectDataError("invalid_document","motion");
   normalizeEventTypePresentation(et);
   if(et.primitive==="SET_AVAILABILITY"){
-    if(!EVENT_TYPE_AVAILABILITY.has(et.availability)) throw projectDataError();
+    if(!EVENT_TYPE_AVAILABILITY.has(et.availability)) throw projectDataError("invalid_document","availability");
   } else if(Object.prototype.hasOwnProperty.call(et,"availability")){
     // availability solo tiene sentido para SET_AVAILABILITY
     delete et.availability;
@@ -280,21 +310,60 @@ function normalizeEventTypes(d){
   d.nextEventTypeId=projectCounter(d.nextEventTypeId,maxId);
 }
 
-function createEventType(definition){
+/* Primitiva de un EventType según lo que elige la persona: «dónde» (conexión|elemento) y, para un
+   elemento, su consecuencia (none|up|down). Es la traducción del modal del editor, compartida. */
+function eventTypePrimitiveFor(where, consequence){
+  if(where==="connection") return "FLOW";
+  return consequence==="up" || consequence==="down" ? "SET_AVAILABILITY" : "OCCURRENCE";
+}
+/* Definición de un EventType a partir de lo que edita el modal (única fuente: el editor y MCP la usan).
+   Reglas de forma por primitiva: sólo una conexión tiene movimiento y efectos de conexión; sólo un
+   elemento tiene efectos de elemento; sólo SET_AVAILABILITY tiene disponibilidad. */
+function eventTypeDefinition(input){
+  const primitive=input.primitive;
+  const flow=primitive==="FLOW";
+  const def={
+    name:input.name,
+    primitive,
+    sentenceTemplate:input.sentenceTemplate,
+    visual:{value:input.symbol},
+    motion:flow? (input.motion||DEFAULT_EVENT_MOTION) : DEFAULT_EVENT_MOTION
+  };
+  def.presentation=flow? {connectionEffects:input.connectionEffects} : {nodeEffects:input.nodeEffects};
+  if(primitive==="SET_AVAILABILITY") def.availability=input.availability;
+  return def;
+}
+
+/* Sólo lo que la presentación de un EventType tiene DISTINTO del valor por defecto, de la rama que aplica a su
+   primitiva (conexión: size/style/trail/arrival/during; elemento: efectos del elemento). {} si todo es el defecto.
+   Lectura compacta para describir un documento; no decide nada. */
+function eventTypePresentationDiff(et){
+  const flow=et.primitive==="FLOW";
+  const cur=flow? normalizeConnectionEffects(et.presentation&&et.presentation.connectionEffects) : normalizeNodeEffects(et.presentation&&et.presentation.nodeEffects);
+  const def=flow? defaultConnectionEffects() : defaultNodeEffects();
+  const out={};
+  for(const k of Object.keys(def)){
+    if(k==="visualDurationMs" && cur.visualDuration!=="custom") continue;     // el preset ya lo implica
+    if(cur[k]!==def[k]) out[k]=cur[k];
+  }
+  return out;
+}
+
+function createEventTypeIn(d, definition){
   if(!projectObject(definition)) throw projectDataError();
   const name=String(definition.name||"").trim();
-  if(!name || name.length>60) throw projectDataError();
+  if(!name || name.length>EVENT_TYPE_NAME_MAX) throw projectDataError("invalid_document","name");
   const primitive=definition.primitive;
-  if(!EVENT_TYPE_PRIMITIVES.has(primitive)) throw projectDataError();
+  if(!EVENT_TYPE_PRIMITIVES.has(primitive)) throw projectDataError("invalid_document","primitive");
   const sentenceTemplate=String(definition.sentenceTemplate||"").trim();
-  if(!sentenceTemplate || sentenceTemplate.length>200) throw projectDataError();
+  if(!sentenceTemplate || sentenceTemplate.length>EVENT_TYPE_SENTENCE_MAX) throw projectDataError("invalid_document","sentenceTemplate");
   const visual={kind:"token", value:String(definition.visual&&definition.visual.value||"")};
-  if([...visual.value].length>EVENT_TOKEN_MAX_LEN) throw projectDataError();
+  if([...visual.value].length>EVENT_TOKEN_MAX_LEN) throw projectDataError("invalid_document","visual");
   const motion=EVENT_TYPE_MOTIONS.has(definition.motion)? definition.motion : DEFAULT_EVENT_MOTION;
   let availability;
   if(primitive==="SET_AVAILABILITY"){
     availability=definition.availability;
-    if(!EVENT_TYPE_AVAILABILITY.has(availability)) throw projectDataError();
+    if(!EVENT_TYPE_AVAILABILITY.has(availability)) throw projectDataError("invalid_document","availability");
   }
   let presentation;
   if(definition.presentation!==undefined){
@@ -303,69 +372,80 @@ function createEventType(definition){
       presentation.connectionEffects=normalizeConnectionEffects(definition.presentation.connectionEffects);
   }
   let maxId=0;
-  for(const et of doc.eventTypes) maxId=Math.max(maxId,et.id);
-  const id=reserveProjectIds(doc,"nextEventTypeId",1,projectCounter(doc.nextEventTypeId,maxId));
+  for(const et of d.eventTypes) maxId=Math.max(maxId,et.id);
+  const id=projectCounter(d.nextEventTypeId,maxId);          // el mismo que reservaría reserveProjectIds
   const et={id,name,primitive,sentenceTemplate,visual,motion};
   if(availability!==undefined) et.availability=availability;
   if(presentation!==undefined) et.presentation=presentation;
   validateEventType(et);
-  doc.eventTypes.push(et);
+  reserveProjectIds(d,"nextEventTypeId",1,id);               // el contador sólo avanza si el EventType es válido
+  d.eventTypes.push(et);
   return et;
 }
+function createEventType(definition){ return createEventTypeIn(doc,definition); }
 
-function updateEventType(id, changes){
-  const et=eventTypeById(id);
+/* Todo o nada: se aplica sobre una copia y sólo si el resultado es válido se vuelca en el EventType
+   (que conserva su identidad de objeto). Primitiva y disponibilidad no cambian si está en uso. */
+function updateEventTypeIn(d, id, changes){
+  const et=eventTypeByIdIn(d,id);
   if(!et) throw projectDataError("event_type_not_found");
-  const used=eventTypeIsUsed(id);
+  if(!projectObject(changes)) throw projectDataError();
+  const used=eventTypeUseCountIn(d,id)>0;
   if(changes.primitive!==undefined && changes.primitive!==et.primitive && used)
-    throw projectDataError("event_type_primitive_immutable_when_used");
-  if(changes.availability!==undefined && et.primitive==="SET_AVAILABILITY" && used)
-    throw projectDataError("event_type_availability_immutable_when_used");
+    throw projectDataError("event_type_primitive_immutable_when_used","primitive");
+  if(changes.availability!==undefined && et.primitive==="SET_AVAILABILITY" && changes.availability!==et.availability && used)
+    throw projectDataError("event_type_availability_immutable_when_used","availability");
+  const next=JSON.parse(JSON.stringify(et));
   if(changes.name!==undefined){
     const n=String(changes.name).trim();
-    if(!n || n.length>60) throw projectDataError();
-    et.name=n;
+    if(!n || n.length>EVENT_TYPE_NAME_MAX) throw projectDataError("invalid_document","name");
+    next.name=n;
   }
   if(changes.sentenceTemplate!==undefined){
     const t=String(changes.sentenceTemplate).trim();
-    if(!t || t.length>200) throw projectDataError();
+    if(!t || t.length>EVENT_TYPE_SENTENCE_MAX) throw projectDataError("invalid_document","sentenceTemplate");
     for(const m of t.matchAll(/\{([a-zA-Z0-9_]*)\}/g)){
-      if(!EVENT_TEMPLATE_PLACEHOLDERS.has(m[1])) throw projectDataError();
+      if(!EVENT_TEMPLATE_PLACEHOLDERS.has(m[1])) throw projectDataError("invalid_document","sentenceTemplate");
     }
-    et.sentenceTemplate=t;
+    next.sentenceTemplate=t;
   }
   if(changes.visual!==undefined){
     const v={kind:"token", value:String(changes.visual&&changes.visual.value||"")};
-    if([...v.value].length>EVENT_TOKEN_MAX_LEN) throw projectDataError();
-    et.visual=v;
+    if([...v.value].length>EVENT_TOKEN_MAX_LEN) throw projectDataError("invalid_document","visual");
+    next.visual=v;
   }
   if(changes.motion!==undefined){
     const m=String(changes.motion||"");
-    if(!EVENT_TYPE_MOTIONS.has(m)) throw projectDataError();
-    et.motion=m;
+    if(!EVENT_TYPE_MOTIONS.has(m)) throw projectDataError("invalid_document","motion");
+    next.motion=m;
   }
   if(changes.presentation!==undefined){
     const np={ nodeEffects: normalizeNodeEffects(changes.presentation&&changes.presentation.nodeEffects) };
     if(projectObject(changes.presentation) && changes.presentation.connectionEffects!==undefined)
       np.connectionEffects=normalizeConnectionEffects(changes.presentation.connectionEffects);
-    et.presentation=np;
+    next.presentation=np;
   }
-  if(changes.primitive!==undefined && !used){
-    if(!EVENT_TYPE_PRIMITIVES.has(changes.primitive)) throw projectDataError();
-    et.primitive=changes.primitive;
-    if(et.primitive!=="SET_AVAILABILITY" && Object.prototype.hasOwnProperty.call(et,"availability")) delete et.availability;
+  if(changes.primitive!==undefined && changes.primitive!==et.primitive){
+    if(!EVENT_TYPE_PRIMITIVES.has(changes.primitive)) throw projectDataError("invalid_document","primitive");
+    next.primitive=changes.primitive;
+    if(next.primitive!=="SET_AVAILABILITY" && Object.prototype.hasOwnProperty.call(next,"availability")) delete next.availability;
   }
-  if(changes.availability!==undefined && et.primitive==="SET_AVAILABILITY" && !used){
-    if(!EVENT_TYPE_AVAILABILITY.has(changes.availability)) throw projectDataError();
-    et.availability=changes.availability;
+  if(changes.availability!==undefined && next.primitive==="SET_AVAILABILITY"){
+    if(!EVENT_TYPE_AVAILABILITY.has(changes.availability)) throw projectDataError("invalid_document","availability");
+    next.availability=changes.availability;
   }
+  validateEventType(next);
+  for(const k of Object.keys(et)) delete et[k];
+  Object.assign(et,next);
   return et;
 }
+function updateEventType(id, changes){ return updateEventTypeIn(doc,id,changes); }
 
-function deleteEventType(id){
-  if(eventTypeIsUsed(id)) throw projectDataError("event_type_in_use");
-  doc.eventTypes=doc.eventTypes.filter(et=>et.id!==id);
+function deleteEventTypeIn(d, id){
+  if(eventTypeUseCountIn(d,id)>0) throw projectDataError("event_type_in_use");
+  d.eventTypes=d.eventTypes.filter(et=>et.id!==id);
 }
+function deleteEventType(id){ deleteEventTypeIn(doc,id); }
 
 function renderEventSentence(et, source, target){
   if(!et) return "";
@@ -497,6 +577,80 @@ function createStep(sc,definition){
 function deleteStep(sc,id){
   if(sc.engineVersion!==SCENARIO_ENGINE_VERSION) throw projectDataError("unsupported_engine_version");
   sc.steps=sc.steps.filter(step=>step.id!==id);
+}
+
+/* ===================== Autoría de Historia compartida (FLUYO-017.2) =====================
+   Lógica que antes vivía dentro de editor-scenarios.js. Puro: sin DOM, undo ni autosave. El editor
+   y fluyo-mcp (story-authoring.js) llaman a estas mismas funciones; ninguno recalcula tiempos,
+   acciones ni destinos por su cuenta. */
+const DEFAULT_STEP_DELAY_MS=1000;
+const EVENT_ACTION_BY_PRIMITIVE={FLOW:"SEND", OCCURRENCE:"OCCURRENCE", SET_AVAILABILITY:"SET_STATE"};
+/* Acción del motor y tipo de objetivo que determina un EventType (la AUTORIDAD: nadie escribe `action`). */
+function eventTypeActionSpec(et){
+  const action=EVENT_ACTION_BY_PRIMITIVE[et && et.primitive];
+  if(!action) return null;
+  const spec={action, target: action==="SEND" ? "connection" : "element"};
+  if(action==="SET_STATE") spec.state=et.availability;
+  return spec;
+}
+/* Definición de Step para colocar `et` sobre `target` (id de conexión si FLOW; de elemento en otro caso). */
+function stepDefinitionForEvent(et,target,at){
+  const spec=eventTypeActionSpec(et);
+  if(!spec) throw projectDataError("event_type_invalid");
+  const def={at, eventTypeId:et.id, action:spec.action};
+  if(spec.action==="SEND") def.edgeId=target; else def.nodeId=target;
+  if(spec.action==="SET_STATE") def.state=spec.state;
+  return def;
+}
+/* Tiempo al que entra un Step añadido al final: «espera por defecto» tras el último momento (0 si no hay). */
+function defaultStepTime(sc,delay=DEFAULT_STEP_DELAY_MS){
+  return sc && sc.steps.length ? Math.max(...sc.steps.map(s=>s.at))+delay : 0;
+}
+/* Cambiar la espera de un momento: `delay` es el tiempo desde el momento anterior (desde 0 si es el primero);
+   el momento y TODOS los posteriores se desplazan (dec. 31/44). Devuelve null (Step inexistente / espera
+   inválida), {error:"out_of_range"} o {steps, changed}. `maxAt` = tope de tiempo virtual del motor. */
+function storyboardSetWait(steps,id,delay,maxAt){
+  if(!Number.isSafeInteger(delay)||delay<0) return null;
+  const groups=storyboardGroups(steps);
+  const i=groups.findIndex(g=>g.steps.some(s=>s.id===id));
+  if(i<0) return null;
+  const g=groups[i];
+  const delta=(i>0?groups[i-1].at:0)+delay-g.at;
+  if(!delta) return {steps:steps.map(s=>({...s})), changed:false};
+  const out=steps.map(s=>s.at>=g.at?{...s,at:s.at+delta}:{...s});
+  if(out.some(s=>!Number.isSafeInteger(s.at)||s.at<0||s.at>maxAt)) return {error:"out_of_range"};
+  return {steps:out, changed:true};
+}
+/* Duplicar un Step: nuevo id, mismo momento, justo debajo (dec. 48). Devuelve la copia o null. */
+function duplicateStep(sc,id){
+  const src=sc.steps.find(s=>s.id===id);
+  if(!src) return null;
+  const {id:_id,...rest}=src;
+  const copy=createStep(sc,{...rest});
+  const r=storyboardInsertDuplicate(sc.steps.filter(s=>s.id!==copy.id),id,copy);
+  sc.steps=r.steps;
+  return copy;
+}
+/* Cambiar SÓLO el objetivo de un Step: conserva id, EventType, tiempo, orden y presentación. */
+function retargetStep(pg,sc,stepId,targetId){
+  const step=sc.steps.find(s=>s.id===stepId);
+  if(!step) throw projectDataError("step_not_found");
+  if(step.action==="SEND"){
+    if(!pg.edges.some(e=>e.id===targetId)) throw projectDataError("target_not_found");
+    step.edgeId=targetId;
+  }else{
+    if(!pg.nodes.some(n=>n.id===targetId)) throw projectDataError("target_not_found");
+    step.nodeId=targetId;
+  }
+  return step;
+}
+/* Disponibilidad INICIAL de un elemento: es de la PÁGINA (Behavior), rige en todas sus Historias.
+   UP es el valor por defecto y se representa sin Behavior. */
+function setInitialAvailability(pg,nodeId,state){
+  if(state!=="UP" && state!=="DOWN") throw projectDataError();
+  if(!pg.nodes.some(n=>n.id===nodeId)) throw projectDataError("node_not_found");
+  pg.behaviors=pg.behaviors.filter(b=>b.nodeId!==nodeId);
+  if(state==="DOWN") pg.behaviors.push({nodeId, initialState:"DOWN"});
 }
 
 function clearPageContents(pg){

@@ -1,0 +1,254 @@
+{
+  "version": 5,
+  "app": "fluyo",
+  "doc": {
+    "theme": "dark",
+    "customBg": "",
+    "cur": 0,
+    "eventTypes": [
+      {
+        "id": 1,
+        "name": "Pago",
+        "primitive": "FLOW",
+        "sentenceTemplate": "{source} paga a {target}",
+        "visual": {
+          "kind": "token",
+          "value": "💵"
+        },
+        "motion": "normal"
+      },
+      {
+        "id": 2,
+        "name": "Procesamiento",
+        "primitive": "OCCURRENCE",
+        "sentenceTemplate": "{target} procesa el evento",
+        "visual": {
+          "kind": "token",
+          "value": "⚙️"
+        },
+        "motion": "normal"
+      },
+      {
+        "id": 3,
+        "name": "Confirmación",
+        "primitive": "FLOW",
+        "sentenceTemplate": "{target} recibe confirmación de {source}",
+        "visual": {
+          "kind": "token",
+          "value": "✅"
+        },
+        "motion": "normal"
+      },
+      {
+        "id": 4,
+        "name": "Caída",
+        "primitive": "SET_AVAILABILITY",
+        "sentenceTemplate": "{target} deja de responder",
+        "visual": {
+          "kind": "token",
+          "value": "⛔"
+        },
+        "motion": "normal",
+        "availability": "DOWN"
+      }
+    ],
+    "nextEventTypeId": 5,
+    "pages": [
+      {
+        "name": "Pago con Kafka",
+        "nodes": [
+          {
+            "id": 1,
+            "label": "Cliente",
+            "shape": "rect",
+            "x": 200,
+            "y": 200,
+            "font": null,
+            "bold": false,
+            "w": 180,
+            "h": 70,
+            "order": 0,
+            "color": "#6a9fb5",
+            "fill": null,
+            "border": "solid",
+            "lblPos": "center",
+            "textBg": null,
+            "textColor": null
+          },
+          {
+            "id": 2,
+            "label": "Kafka",
+            "shape": "rect",
+            "x": 520,
+            "y": 200,
+            "font": null,
+            "bold": false,
+            "w": 180,
+            "h": 70,
+            "order": 1,
+            "color": "#6a9fb5",
+            "fill": null,
+            "border": "solid",
+            "lblPos": "center",
+            "textBg": null,
+            "textColor": null
+          },
+          {
+            "id": 3,
+            "label": "Comercio",
+            "shape": "rect",
+            "x": 840,
+            "y": 200,
+            "font": null,
+            "bold": false,
+            "w": 180,
+            "h": 70,
+            "order": 2,
+            "color": "#6a9fb5",
+            "fill": null,
+            "border": "solid",
+            "lblPos": "center",
+            "textBg": null,
+            "textColor": null
+          }
+        ],
+        "edges": [
+          {
+            "id": 4,
+            "from": 1,
+            "to": 2,
+            "label": "pago",
+            "font": null,
+            "bold": false,
+            "fromSide": null,
+            "toSide": null,
+            "endArrow": true,
+            "startArrow": false,
+            "flowDir": "normal",
+            "waypoints": [],
+            "route": "straight"
+          },
+          {
+            "id": 5,
+            "from": 2,
+            "to": 3,
+            "label": "confirmación",
+            "font": null,
+            "bold": false,
+            "fromSide": null,
+            "toSide": null,
+            "endArrow": true,
+            "startArrow": false,
+            "flowDir": "normal",
+            "waypoints": [],
+            "route": "straight"
+          }
+        ],
+        "nextId": 6,
+        "behaviors": [],
+        "nextScenarioId": 4,
+        "scenarios": [
+          {
+            "id": 1,
+            "engineVersion": 2,
+            "name": "Historia A",
+            "nextStepId": 4,
+            "steps": [
+              {
+                "id": 1,
+                "at": 0,
+                "action": "SEND",
+                "edgeId": 4,
+                "eventTypeId": 1
+              },
+              {
+                "id": 2,
+                "at": 1000,
+                "action": "OCCURRENCE",
+                "nodeId": 2,
+                "eventTypeId": 2
+              },
+              {
+                "id": 3,
+                "at": 2000,
+                "action": "SEND",
+                "edgeId": 5,
+                "eventTypeId": 3
+              }
+            ]
+          },
+          {
+            "id": 2,
+            "engineVersion": 2,
+            "name": "Historia B",
+            "nextStepId": 5,
+            "steps": [
+              {
+                "id": 1,
+                "at": 0,
+                "action": "SET_STATE",
+                "nodeId": 2,
+                "state": "DOWN",
+                "eventTypeId": 4
+              },
+              {
+                "id": 2,
+                "at": 1000,
+                "action": "SEND",
+                "edgeId": 4,
+                "eventTypeId": 1
+              },
+              {
+                "id": 3,
+                "at": 2000,
+                "action": "OCCURRENCE",
+                "nodeId": 2,
+                "eventTypeId": 2
+              },
+              {
+                "id": 4,
+                "at": 3000,
+                "action": "SEND",
+                "edgeId": 5,
+                "eventTypeId": 3
+              }
+            ]
+          },
+          {
+            "id": 3,
+            "engineVersion": 2,
+            "name": "Historia C",
+            "nextStepId": 3,
+            "steps": [
+              {
+                "id": 1,
+                "at": 0,
+                "action": "SET_STATE",
+                "nodeId": 2,
+                "state": "DOWN",
+                "eventTypeId": 4
+              },
+              {
+                "id": 2,
+                "at": 1000,
+                "action": "OCCURRENCE",
+                "nodeId": 2,
+                "eventTypeId": 2
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "settings": {
+    "speed": 0.5,
+    "dots": 3,
+    "build": false,
+    "stagger": 0.45,
+    "grid": true,
+    "snap": false,
+    "font": "Georgia, serif",
+    "single": false
+  }
+}

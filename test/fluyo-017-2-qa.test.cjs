@@ -139,7 +139,7 @@ test("retarget de un SET_STATE conserva su estado; retarget de un SEND conserva 
 
 test("alcance: toda operación con el alcance contrario se rechaza (matriz completa)", () => {
   const scopeOf = K.call("FluyoAuthoring.OPERATION_SCOPE");
-  assert.equal(Object.keys(scopeOf).length, 14);          // 10 de Historia + 1 de página + 3 de EventType (017.3)
+  assert.equal(Object.keys(scopeOf).length, 20);          // 10 de Historia + 7 de página (set_initial_availability · create/update/delete de nodo y conexión, 018.2/018.3) + 3 de EventType (017.3)
   for (const [op, scope] of Object.entries(scopeOf)) {
     const wrong = scope === "story" ? "page" : "story";
     const r = apply(simple(), [{ op, scope: wrong, pageIndex: 0 }]);
@@ -150,9 +150,9 @@ test("alcance: toda operación con el alcance contrario se rechaza (matriz compl
   assert.deepEqual([...new Set(Object.values(scopeOf))].sort(), ["eventType", "page", "story"]);
 });
 
-test("no existe ninguna operación que cambie la estructura del diagrama (nodos, conexiones, edición libre)", () => {
+test("no existe ninguna operación de edición libre del diagrama (la estructura solo por create/update/delete de nodo y conexión)", () => {
   const ops = Object.keys(K.call("FluyoAuthoring.OPERATION_SCOPE"));
-  for (const forbidden of ["delete_connection", "delete_node", "add_edge", "add_node", "update_node", "update_edge", "relayout", "edit_diagram"]) {
+  for (const forbidden of ["add_edge", "add_node", "update_edge", "remove_node", "move_node", "resize_node", "relayout", "edit_diagram"]) {
     assert.ok(!ops.includes(forbidden), forbidden);
     assert.equal(apply(simple(), [{ op: forbidden, scope: "page", pageIndex: 0 }]).errors[0].code, "UNKNOWN_OPERATION");
   }

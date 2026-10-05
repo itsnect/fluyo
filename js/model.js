@@ -653,6 +653,224 @@ function setInitialAvailability(pg,nodeId,state){
   if(state==="DOWN") pg.behaviors.push({nodeId, initialState:"DOWN"});
 }
 
+/* ===================== Autoría del diagrama: crear nodos y conexiones (FLUYO-018.1) =====================
+   Autoridad ÚNICA de creación. La llaman newNode/newEdge del editor (state.js) y, más adelante,
+   FluyoAuthoring: no existe una segunda implementación. Operan sobre UNA página explícita (como las
+   `…In` de EventTypes) y no saben nada de DOM, selección, undo, snap, geometría ni revisiones.
+
+   · Reciben valores YA decididos: sin snap, sin redondeo (los decimales se conservan).
+   · Producen exactamente el registro que escribía el editor, con sus defaults.
+   · Un nodo NO crea Behavior (UP implícito; ver setInitialAvailability). Una conexión NO tiene
+     Behavior ni EventType: eso lo une el Step de una Historia.
+   · Geometría: se persisten fromSide/toSide/route/waypoints con los defaults del editor
+     (null/null/"straight"/[]). Los puntos de la ruta se DERIVAN en geometry.js (edgePoints); por eso
+     nada de aquí la calcula ni la copia. Quien quiera lados fijos los pasa ya decididos.
+   · Todo o nada: se valida con la misma normalización que la carga de documentos y solo entonces se
+     reserva el id y se inserta. Error estructurado (projectDataError): {code, field?}, nunca TypeError.
+   · `ref` es un concepto de la capa de autoría y NO se persiste. Si `context.refs` (un Map ref→id del
+     lote, uno por tipo de entidad) viene, se rechaza la repetida (duplicate_ref) y se registra la nueva.
+
+   Códigos: invalid_document(field) · source_not_found · target_not_found · self_loop ·
+            duplicate_structure_id · duplicate_ref · id_exhausted. */
+const NODE_SPEC_KEYS=new Set(["ref","id","shape","x","y","w","h","label","color","fill","border","lblPos",
+  "textBg","textColor","font","bold","pulse","order","fs","icon","anim","img","tint","lang","keywords","kwBg","kwColor"]);
+const CONNECTION_SPEC_KEYS=new Set(["ref","id","source","target","fromSide","toSide","route","waypoints","label",
+  "font","bold","animated","dashed","startArrow","endArrow","flowDir","lineColor","dotColor","fs","speedFac","dots","dotsGlobal"]);
+
+function authoringPage(pg){
+  if(!projectObject(pg) || !Array.isArray(pg.nodes) || !Array.isArray(pg.edges)) throw projectDataError("invalid_document","page");
+}
+function authoringSpec(spec,allowed){
+  if(!projectObject(spec)) throw projectDataError("invalid_document","spec");
+  for(const key of Object.keys(spec)) if(!allowed.has(key)) throw projectDataError("invalid_document",key);
+}
+function authoringRef(spec,context){
+  if(spec.ref===undefined) return undefined;
+  if(typeof spec.ref!=="string" || !spec.ref) throw projectDataError("invalid_document","ref");
+  if(context && context.refs && context.refs.has(spec.ref)) throw projectDataError("duplicate_ref","ref");
+  return spec.ref;
+}
+/* Un id de estructura está en uso si lo ocupa un nodo, una conexión o algo que ya lo referencia
+   (Behavior, Step): los ids de una página nunca se reutilizan. */
+function structureIdInUse(pg,id){
+  return pg.nodes.some(n=>n.id===id) || pg.edges.some(e=>e.id===id) ||
+    (pg.behaviors||[]).some(b=>b.nodeId===id) ||
+    (pg.scenarios||[]).some(sc=>(sc.steps||[]).some(st=>st.nodeId===id || st.edgeId===id));
+}
+/* Id que se asignaría (sin reservarlo). Explícito → validado; sin id → el próximo del contador. */
+function authoringId(pg,spec){
+  if(spec.id===undefined) return structuralNextId(pg);
+  if(!Number.isSafeInteger(spec.id) || spec.id<1 || spec.id>=Number.MAX_SAFE_INTEGER) throw projectDataError("invalid_document","id");
+  if(structureIdInUse(pg,spec.id)) throw projectDataError("duplicate_structure_id","id");
+  return spec.id;
+}
+function commitAuthoringId(pg,spec,id){
+  if(spec.id===undefined) reserveStructureIds(pg);
+  else pg.nextId=Math.max(structuralNextId(pg),id+1);   // el contador nunca queda por detrás de un id explícito
+}
+function authoringClone(record){
+  try{ return deep(record); }catch(e){ throw projectDataError(); }   // BigInt, ciclos… → error estructurado, no TypeError
+}
+function authoringAssign(target,spec,skip){
+  for(const key of Object.keys(spec)) if(!skip.includes(key) && spec[key]!==undefined) target[key]=spec[key];
+  return target;
+}
+
+function createNodeIn(pg, spec, context){
+  authoringPage(pg); authoringSpec(spec,NODE_SPEC_KEYS);
+  const {shape,x,y}=spec;
+  if(typeof shape!=="string" || !projectOwn(DEFAULT_SIZES,shape)) throw projectDataError("invalid_document","shape");
+  for(const [key,v] of [["x",x],["y",y]]) if(typeof v!=="number" || !Number.isFinite(v)) throw projectDataError("invalid_document",key);
+  const ref=authoringRef(spec,context);
+  const id=authoringId(pg,spec);
+  const [w,h]=DEFAULT_SIZES[shape];
+  const n=authoringAssign({ id, shape, x, y, w, h,
+    label: shape==="text"?"Texto":shape==="code"?CODE_DEFAULT_LABEL:(shape==="icon"||shape==="image"||shape==="anim")?"":"Nodo",
+    color:PALETTE[0].c, fill:null, border:"solid", lblPos:"center", textBg:null, textColor:null,
+    font:null, bold:false, pulse:false, order:pg.nodes.length }, spec, ["ref","id"]);
+  /* Los campos de `code` solo se ponen en nodos `code`, igual que `icon` solo va
+     en los de icono: no tiene sentido cargar todos los nodos con ellos. */
+  if(shape==="code" && !("lang" in n)) Object.assign(n,{lang:DEFAULT_LANG, keywords:null, kwBg:null, kwColor:null});
+  /* `tint` nace apagado también en los iconos nuevos: el interruptor tiene que
+     significar lo mismo en un diagrama de hoy y en uno de hace un mes. */
+  if(shape==="icon" && !("tint" in n)) n.tint=false;
+  const node=authoringClone(n);                               // copia: la validación normaliza, y la entrada no se toca
+  normalizeProjectItem(node); normalizeProjectNode(node,pg.nodes.length);
+  commitAuthoringId(pg,spec,id);
+  pg.nodes.push(node);
+  if(ref!==undefined && context && context.refs) context.refs.set(ref,id);
+  return node;
+}
+
+function createConnectionIn(pg, spec, context){
+  authoringPage(pg); authoringSpec(spec,CONNECTION_SPEC_KEYS);
+  const {source,target}=spec;
+  /* Regla de dominio compartida (editor y MCP): una conexión no sale y entra en el mismo nodo. */
+  if(source===target && source!==undefined) throw projectDataError("self_loop","target");
+  if(!pg.nodes.some(n=>n.id===source)) throw projectDataError("source_not_found","source");
+  if(!pg.nodes.some(n=>n.id===target)) throw projectDataError("target_not_found","target");
+  const ref=authoringRef(spec,context);
+  const id=authoringId(pg,spec);
+  const e=authoringAssign({ id, from:source, to:target, fromSide:null, toSide:null,
+    route:"straight", waypoints:[], label:"", font:null, bold:false, animated:true, dashed:false, startArrow:false, endArrow:true, flowDir:"normal" },
+    spec, ["ref","id","source","target"]);
+  const edge=authoringClone(e);
+  normalizeProjectItem(edge); normalizeProjectEdge(edge,DEFAULT_SETTINGS.dots);
+  commitAuthoringId(pg,spec,id);
+  pg.edges.push(edge);
+  if(ref!==undefined && context && context.refs) context.refs.set(ref,id);
+  return edge;
+}
+
+/* ===================== Autoría del diagrama: modificar y eliminar (FLUYO-018.3) =====================
+   Misma autoridad única que la creación: las llaman el panel y los gestos del editor (state.js: editNode, editEdge,
+   removeNodes, removeEdges) y FluyoAuthoring (update_node, update_connection, delete_node, delete_connection).
+
+   · Parche: SOLO las claves que la UI del editor escribe hoy. Una desconocida (también `id` y `ref`) se rechaza.
+     `undefined` se ignora (no pisa defaults). Se valida una COPIA con la normalización de la carga y solo se vuelcan
+     las claves del parche ya normalizadas: nada se «completa» por detrás (igual que el editor).
+   · Todo o nada: ante cualquier error el registro queda intacto. Error estructurado {code, field?}, nunca TypeError.
+   · No saben de geometría, snap, undo, selección ni DOM. Mover/redimensionar solo escribe x,y,w,h: la ruta de las
+     conexiones se deriva en geometry.js, y los waypoints no se tocan salvo que el parche los traiga.
+   · Borrar NO toca Historias, Steps ni EventTypes: que el documento resultante sea válido (B2) lo decide el estado
+     final con FluyoIntegrity. Sí quita lo que es del propio elemento: sus conexiones incidentes y su Behavior.
+
+   Códigos: invalid_document(campo) · node_not_found · connection_not_found · source_not_found · target_not_found · self_loop. */
+const NODE_UPDATE_KEYS=new Set(["x","y","w","h","shape","label","color","fill","border","lblPos","textBg","textColor",
+  "font","bold","pulse","order","fs","tint","lang","keywords","kwBg","kwColor"]);
+const CONNECTION_UPDATE_KEYS=new Set(["source","target","fromSide","toSide","route","waypoints","label","font","bold","fs",
+  "animated","dashed","startArrow","endArrow","flowDir","lineColor","dotColor","speedFac","dots","dotsGlobal"]);
+/* Formas que ofrece el selector de forma; image/icon/anim no cambian de forma (el control se oculta). */
+const EDITABLE_SHAPES=new Set(["rect","cylinder","diamond","circle","hex","text","code"]);
+const FROZEN_SHAPES=new Set(["image","icon","anim"]);
+const UPDATE_BOOLEANS=new Set(["bold","pulse","tint","animated","dashed","startArrow","endArrow","dotsGlobal"]);
+const UPDATE_NUMBERS=new Set(["speedFac","dots"]);               // la normalización de la carga sustituye en silencio un valor no numérico: aquí se rechaza
+const UPDATE_NULLABLE_STRINGS=new Set(["lineColor","dotColor"]);   // normalizeProjectItem no los comprueba
+const NODE_FIELDS_BY_SHAPE={tint:["icon"], lang:["code"], keywords:["code"], kwBg:["code"], kwColor:["code"]};
+
+const connectionKey=k=>k==="source"?"from":k==="target"?"to":k;   // en el documento una conexión guarda from/to
+function updateEntry(pg,listKey,id,notFound){
+  authoringPage(pg);
+  if(!Number.isSafeInteger(id) || id<1) throw projectDataError("invalid_document","id");
+  const item=pg[listKey].find(x=>x.id===id);
+  if(!item) throw projectDataError(notFound,"id");
+  return item;
+}
+function updatePatch(patch,allowed){
+  authoringSpec(patch,allowed);
+  const fields=Object.keys(patch).filter(k=>patch[k]!==undefined);
+  for(const k of fields){
+    const v=patch[k];
+    if(UPDATE_BOOLEANS.has(k) && typeof v!=="boolean") throw projectDataError("invalid_document",k);
+    if(UPDATE_NUMBERS.has(k) && !(typeof v==="number" && Number.isFinite(v)) && !(v===null && k==="dots")) throw projectDataError("invalid_document",k);
+    if(UPDATE_NULLABLE_STRINGS.has(k) && v!==null && typeof v!=="string") throw projectDataError("invalid_document",k);
+  }
+  return fields;
+}
+/* Aplica el parche a una copia y la valida con la normalización de la carga. Si falla sin nombrar el campo, se atribuye al
+   primer campo del parche que falla por sí solo (así el rechazo dice QUÉ valor no vale). */
+function validatedCandidate(record,fields,patch,drop,normalize){
+  const build=keys=>{
+    const cand=Object.assign({},record);
+    for(const k of drop) delete cand[k];
+    for(const k of keys) cand[connectionKey(k)]=authoringClone(patch[k]);
+    return cand;
+  };
+  try{ const cand=build(fields); normalize(cand); return cand; }
+  catch(err){
+    if(err && err.code && err.field===undefined)
+      for(const k of fields){ try{ normalize(build([k])); }catch(e2){ throw projectDataError("invalid_document",k); } }
+    throw err;
+  }
+}
+function updateNodeIn(pg, id, patch, context){
+  const n=updateEntry(pg,"nodes",id,"node_not_found");
+  const fields=updatePatch(patch,NODE_UPDATE_KEYS);
+  const shape=patch.shape===undefined? n.shape : patch.shape;
+  if(patch.shape!==undefined && patch.shape!==n.shape && (!EDITABLE_SHAPES.has(patch.shape) || FROZEN_SHAPES.has(n.shape)))
+    throw projectDataError("invalid_document","shape");
+  for(const k of fields) if(NODE_FIELDS_BY_SHAPE[k] && !NODE_FIELDS_BY_SHAPE[k].includes(shape)) throw projectDataError("invalid_document",k);
+  for(const k of ["label","color"]) if(fields.includes(k) && typeof patch[k]!=="string") throw projectDataError("invalid_document",k);
+  const index=pg.nodes.indexOf(n);
+  // `img` queda fuera de la copia validada: el saneado de la imagen no cambia al mover/editar y no se repite en cada fotograma.
+  const cand=validatedCandidate(n,fields,patch,["img"],c=>{ normalizeProjectItem(c); normalizeProjectNode(c,index); });
+  for(const k of fields) n[k]=cand[k];
+  return n;
+}
+function updateConnectionIn(pg, id, patch, context){
+  const e=updateEntry(pg,"edges",id,"connection_not_found");
+  const fields=updatePatch(patch,CONNECTION_UPDATE_KEYS);
+  for(const k of ["source","target"]) if(fields.includes(k) && !Number.isSafeInteger(patch[k])) throw projectDataError("invalid_document",k);
+  if(fields.includes("label") && typeof patch.label!=="string") throw projectDataError("invalid_document","label");
+  const from=fields.includes("source")? patch.source : e.from, to=fields.includes("target")? patch.target : e.to;
+  if(fields.includes("source")||fields.includes("target")){
+    if(from===to) throw projectDataError("self_loop","target");
+    if(fields.includes("source") && !pg.nodes.some(n=>n.id===from)) throw projectDataError("source_not_found","source");
+    if(fields.includes("target") && !pg.nodes.some(n=>n.id===to)) throw projectDataError("target_not_found","target");
+  }
+  const cand=validatedCandidate(e,fields,patch,[],c=>{ normalizeProjectItem(c); normalizeProjectEdge(c,DEFAULT_SETTINGS.dots); });
+  for(const k of fields) e[connectionKey(k)]=cand[connectionKey(k)];
+  return e;
+}
+/* Quita el nodo, las conexiones que lo tocan y su Behavior. Devuelve lo que se llevó: {node, connections, behaviors}. */
+function deleteNodeIn(pg, id, context){
+  const n=updateEntry(pg,"nodes",id,"node_not_found");
+  const connections=pg.edges.filter(e=>e.from===id || e.to===id).map(e=>e.id);
+  // El Behavior del nodo se quita con él (editor, desde FLUYO-018.4, y author_document, que además lo informa): un Behavior huérfano
+  // invalida todas las Historias de la página. context.keepBehaviors lo conserva (ningún llamador actual lo usa).
+  const keep=!!(context && context.keepBehaviors);
+  const behaviors=keep? [] : (pg.behaviors||[]).filter(b=>b.nodeId===id).map(b=>b.nodeId);
+  pg.edges=pg.edges.filter(e=>e.from!==id && e.to!==id);
+  pg.nodes=pg.nodes.filter(x=>x!==n);
+  if(!keep && pg.behaviors) pg.behaviors=pg.behaviors.filter(b=>b.nodeId!==id);
+  return {node:n, connections, behaviors};
+}
+function deleteConnectionIn(pg, id, context){
+  const e=updateEntry(pg,"edges",id,"connection_not_found");
+  pg.edges=pg.edges.filter(x=>x!==e);
+  return e;
+}
+
 function clearPageContents(pg){
   pg.nodes=[];
   pg.edges=[];
@@ -687,6 +905,48 @@ function normalizeProjectItem(item){
     if(typeof item.fs!=="number" || !Number.isFinite(item.fs) || item.fs<0) throw projectDataError();
     // 0 significa automático; fsIn admite valores manuales entre 8 y 96.
     if(item.fs) item.fs=clamp(item.fs,8,96);
+  }
+}
+/* Normalización/validación de UNA arista o UN nodo. Es la de la carga de documentos
+   (projectFromProjectData) y también la que aplica la autoría (createConnectionIn /
+   createNodeIn): una sola regla de «registro válido». Mutan su argumento. */
+function normalizeProjectEdge(e,defaultDots){
+  if(!Number.isSafeInteger(e.from) || !Number.isSafeInteger(e.to)) throw projectDataError();
+  for(const key of ["fromSide","toSide"]){
+    if(e[key]==="" || e[key]===undefined) e[key]=null;
+    if(e[key]!==null && !SIDES.includes(e[key])) throw projectDataError();
+  }
+  if(e.endArrow===undefined){ e.endArrow=true; e.startArrow=!!e.bidir; }
+  if(!e.flowDir) e.flowDir="normal";
+  if(!e.waypoints) e.waypoints=[];
+  if(!e.route) e.route="straight";
+  if(!["straight","ortho"].includes(e.route) || !["normal","reverse","alternate"].includes(e.flowDir)) throw projectDataError();
+  if(!Array.isArray(e.waypoints) || e.waypoints.some(wp=>!projectObject(wp) || !Number.isFinite(wp.x) || !Number.isFinite(wp.y))) throw projectDataError();
+  if(e.speedFac!==undefined) e.speedFac=clamp(projectNumber(e.speedFac,1),1,4);
+  if(e.dots!==undefined) e.dots=clamp(Math.round(projectNumber(e.dots,defaultDots)),1,6);
+}
+function normalizeProjectNode(n,i){
+  // Mismo contrato para archivo, deep link y viewer; SVG estático seguro.
+  if(n.img) n.img=normalizeDocumentImage(n.img);
+  if(n.shape===undefined) n.shape="rect";
+  if(!projectOwn(DEFAULT_SIZES,n.shape)) throw projectDataError();
+  const [w,h]=DEFAULT_SIZES[n.shape];
+  for(const [key,fallback] of [["x",0],["y",0],["w",w],["h",h],["order",i]]){
+    if(n[key]===undefined) n[key]=fallback;
+    if(typeof n[key]!=="number" || !Number.isFinite(n[key])) throw projectDataError();
+  }
+  if(n.w<=0 || n.h<=0 || n.order<0 || ![n.x-n.w/2,n.x+n.w/2,n.y-n.h/2,n.y+n.h/2].every(Number.isFinite)) throw projectDataError();
+  if(n.color==null) n.color=PALETTE[0].c;
+  if(n.fill===undefined) n.fill=null;
+  if(!n.border) n.border="solid";
+  if(!n.lblPos) n.lblPos="center";
+  if(!["solid","dashed","dotted","none"].includes(n.border) || !["center","top","bottom","left","right"].includes(n.lblPos)) throw projectDataError();
+  if(n.textBg===undefined) n.textBg=null;
+  if(n.textColor===undefined) n.textColor=null;
+  if(n.shape==="code"){
+    if(n.lang==null) n.lang=DEFAULT_LANG;
+    if(!projectOwn(CODE_LANGS,n.lang)) throw projectDataError();
+    if(n.keywords!=null && (!Array.isArray(n.keywords) || n.keywords.some(word=>typeof word!=="string"))) throw projectDataError();
   }
 }
 /* Única frontera de entrada: migra, normaliza y devuelve documento + settings
@@ -724,45 +984,8 @@ function projectFromProjectData(input){
     }
     pg.nextId=projectCounter(pg.nextId);
   });
-  nd.pages.forEach(pg=>pg.edges.forEach(e=>{
-    if(!Number.isSafeInteger(e.from) || !Number.isSafeInteger(e.to)) throw projectDataError();
-    for(const key of ["fromSide","toSide"]){
-      if(e[key]==="" || e[key]===undefined) e[key]=null;
-      if(e[key]!==null && !SIDES.includes(e[key])) throw projectDataError();
-    }
-    if(e.endArrow===undefined){ e.endArrow=true; e.startArrow=!!e.bidir; }
-    if(!e.flowDir) e.flowDir="normal";
-    if(!e.waypoints) e.waypoints=[];
-    if(!e.route) e.route="straight";
-    if(!["straight","ortho"].includes(e.route) || !["normal","reverse","alternate"].includes(e.flowDir)) throw projectDataError();
-    if(!Array.isArray(e.waypoints) || e.waypoints.some(wp=>!projectObject(wp) || !Number.isFinite(wp.x) || !Number.isFinite(wp.y))) throw projectDataError();
-    if(e.speedFac!==undefined) e.speedFac=clamp(projectNumber(e.speedFac,1),1,4);
-    if(e.dots!==undefined) e.dots=clamp(Math.round(projectNumber(e.dots,normalizedSettings.dots)),1,6);
-  }));
-  nd.pages.forEach(pg=>pg.nodes.forEach((n,i)=>{
-    // Mismo contrato para archivo, deep link y viewer; SVG estático seguro.
-    if(n.img) n.img=normalizeDocumentImage(n.img);
-    if(n.shape===undefined) n.shape="rect";
-    if(!projectOwn(DEFAULT_SIZES,n.shape)) throw projectDataError();
-    const [w,h]=DEFAULT_SIZES[n.shape];
-    for(const [key,fallback] of [["x",0],["y",0],["w",w],["h",h],["order",i]]){
-      if(n[key]===undefined) n[key]=fallback;
-      if(typeof n[key]!=="number" || !Number.isFinite(n[key])) throw projectDataError();
-    }
-    if(n.w<=0 || n.h<=0 || n.order<0 || ![n.x-n.w/2,n.x+n.w/2,n.y-n.h/2,n.y+n.h/2].every(Number.isFinite)) throw projectDataError();
-    if(n.color==null) n.color=PALETTE[0].c;
-    if(n.fill===undefined) n.fill=null;
-    if(!n.border) n.border="solid";
-    if(!n.lblPos) n.lblPos="center";
-    if(!["solid","dashed","dotted","none"].includes(n.border) || !["center","top","bottom","left","right"].includes(n.lblPos)) throw projectDataError();
-    if(n.textBg===undefined) n.textBg=null;
-    if(n.textColor===undefined) n.textColor=null;
-    if(n.shape==="code"){
-      if(n.lang==null) n.lang=DEFAULT_LANG;
-      if(!projectOwn(CODE_LANGS,n.lang)) throw projectDataError();
-      if(n.keywords!=null && (!Array.isArray(n.keywords) || n.keywords.some(word=>typeof word!=="string"))) throw projectDataError();
-    }
-  }));
+  nd.pages.forEach(pg=>pg.edges.forEach(e=>normalizeProjectEdge(e,normalizedSettings.dots)));
+  nd.pages.forEach(pg=>pg.nodes.forEach((n,i)=>normalizeProjectNode(n,i)));
   normalizeEventTypes(nd);
   nd.pages.forEach(pg=>{ normalizeBehaviors(pg); normalizeScenarios(pg); pg.nextId=structuralNextId(pg); });
   return {doc:nd,settings:normalizedSettings};

@@ -68,7 +68,7 @@ test('Helpers Scenario/Step asignan IDs nuevos tras borrar y bloquean agotamient
   assert.throws(()=>m.run('createStep(P().scenarios[0],{at:0,action:"SEND",edgeId:99})'),e=>e.code==='id_exhausted');assert.equal(m.run('JSON.stringify(P())'),before);
 });
 test('Último ID asignable y paste agotado conservan marcas seguras sin cambios parciales',()=>{
-  const m=model();m.run('P().nextId=Number.MAX_SAFE_INTEGER-1');
+  const m=model();m.run('newNode("rect",0,0);newNode("rect",100,0);P().nextId=Number.MAX_SAFE_INTEGER-1');   // 018.1: la conexión exige extremos existentes
   assert.equal(m.run('newNode("rect",0,0).id'),Number.MAX_SAFE_INTEGER-1);
   const before=m.run('JSON.stringify(P())');assert.throws(()=>m.run('newEdge(1,2)'),e=>e.code==='id_exhausted');assert.equal(m.run('JSON.stringify(P())'),before);
   m.run('P().nextId=Number.MAX_SAFE_INTEGER-1;clip={nodes:[{id:1},{id:2}],edges:[],behaviors:[]}');

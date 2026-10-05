@@ -10,7 +10,7 @@
 
    Puro: sin DOM, timers, almacenamiento ni estado del editor; no muta su entrada.
    Cargar tras model.js, scenario-engine.js y story-playback.js. Ejecutable en Node (vm).
-   Hoy lo usa fluyo-mcp (lectura). El editor todavía NO lo consulta (decisión pendiente).
+   Lo usan fluyo-mcp (author_document, describe_document) y el editor (FLUYO-018.4: deleteSel consulta removalImpact antes de borrar).
 
    Resultado: {valid, schemaVersion, engineVersion, errors, stories}
      error = {code, message, scope, pageIndex?, storyId?, stepId?, entityId?, entityKind?, …}
@@ -179,10 +179,10 @@ var FluyoIntegrity = (function(){
   }
 
   /* B2 (detección, FLUYO-017.1): ¿qué quedaría inválido si se quitaran estos elementos?
-     Simula sobre una COPIA lo que hoy hace el editor (deleteSel): quitar los nodos y toda conexión que
-     los toque, más las conexiones indicadas. FLUYO-017.3: también puede quitar EventTypes (eventTypeIds).
-     No toca Steps ni Behaviors, que es justo lo que los deja huérfanos. No modifica el proyecto recibido
-     ni decide qué hacer. */
+     Simula sobre una COPIA lo que hacen deleteSel (editor) y delete_node (MCP): quitar los nodos y toda conexión
+     que los toque, más las conexiones indicadas. FLUYO-017.3: también puede quitar EventTypes (eventTypeIds).
+     No toca Steps (que es lo que deja huérfanos) ni Behaviors: el Behavior del nodo se va con él (018.4) y su
+     ausencia no cambia el resultado por Historia. No modifica el proyecto recibido ni decide qué hacer. */
   function errorKey(e){ return [e.code, e.pageIndex, e.storyId, e.stepId, e.entityKind, e.entityId].join("|"); }
 
   /* Errores NUEVOS de `after` respecto a `before`, agrupados por Historia (con sus Steps y códigos). */

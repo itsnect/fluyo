@@ -143,7 +143,7 @@ function buildNodeSwatches(containerId, field, extras){
     d.onclick=()=>{
       if(!selN.size) return;
       pushUndo();
-      selN.forEach(id=>{ const n=nodeById(id); if(n) n[field]=value; });
+      selN.forEach(id=>{ const n=nodeById(id); if(n) editNode(n,{[field]:value}); });
       refreshPanel(); scheduleAutosave();
     };
     cont.appendChild(d);
@@ -188,19 +188,19 @@ $("langSel").onchange=()=>{
   if(!sel||!sel.obj) return;
   pushUndo();
   if(v==="custom"){
-    if(!Array.isArray(sel.obj.keywords)||!sel.obj.keywords.length) sel.obj.keywords=parseKeywords($("kwEdit").value);
-  } else { sel.obj.lang=v; sel.obj.keywords=null; }
+    if(!Array.isArray(sel.obj.keywords)||!sel.obj.keywords.length) editNode(sel.obj,{keywords:parseKeywords($("kwEdit").value)});
+  } else { editNode(sel.obj,{lang:v, keywords:null}); }
   refreshPanel(); scheduleAutosave();
 };
 $("kwEdit").oninput=()=>{
   const sel=singleSel(); if(!sel||!sel.obj) return;
-  sel.obj.keywords=parseKeywords($("kwEdit").value);
+  editNode(sel.obj,{keywords:parseKeywords($("kwEdit").value)});
   scheduleAutosave();
 };
 function applyNodeVal(field,val){
   if(!selN.size) return;
   pushUndo();
-  selN.forEach(id=>{ const n=nodeById(id); if(n) n[field]=val; });
+  selN.forEach(id=>{ const n=nodeById(id); if(n) editNode(n,{[field]:val}); });
   refreshPanel(); scheduleAutosave();
 }
 $("strokeCustom").onchange=()=>applyNodeVal("color",$("strokeCustom").value);
@@ -233,7 +233,7 @@ function buildEdgeSwatches(containerId, field){
     d.title=title; d.dataset.c=color||"";
     d.setAttribute("role","button");
     d.setAttribute("aria-label",title);
-    d.onclick=()=>{ const e=singleEdge(); if(e){ pushUndo(); e[field]=color; refreshPanel(); } };
+    d.onclick=()=>{ const e=singleEdge(); if(e){ pushUndo(); editEdge(e,{[field]:color}); refreshPanel(); } };
     cont.appendChild(d);
   };
   mk(null,"Auto");
@@ -243,8 +243,8 @@ buildEdgeSwatches("lineSw","lineColor");
 buildEdgeSwatches("dotSw","dotColor");
 enableSwatchKeyboard("lineSw","Color de línea de la flecha");
 enableSwatchKeyboard("dotSw","Color de los puntos animados");
-$("lineCustom").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); e.lineColor=$("lineCustom").value; refreshPanel(); scheduleAutosave(); } };
-$("dotCustom").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); e.dotColor=$("dotCustom").value; refreshPanel(); scheduleAutosave(); } };
+$("lineCustom").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); editEdge(e,{lineColor:$("lineCustom").value}); refreshPanel(); scheduleAutosave(); } };
+$("dotCustom").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); editEdge(e,{dotColor:$("dotCustom").value}); refreshPanel(); scheduleAutosave(); } };
 
 /* ===================== Tipografía (por texto + global) ===================== */
 (function buildFontSelects(){
@@ -256,14 +256,14 @@ $("dotCustom").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); e.dotColo
   });
   glob.value=settings.font||DEFAULT_FONT;
 })();
-$("fontSel").onchange=()=>{ const s=singleSel(); if(s&&s.obj){ pushUndo(); s.obj.font=$("fontSel").value||null; scheduleAutosave(); } };
-$("boldChk").onchange=()=>{ const s=singleSel(); if(s&&s.obj){ pushUndo(); s.obj.bold=$("boldChk").checked; scheduleAutosave(); } };
+$("fontSel").onchange=()=>{ const s=singleSel(); if(s&&s.obj){ pushUndo(); editObj(s.obj,{font:$("fontSel").value||null}); scheduleAutosave(); } };
+$("boldChk").onchange=()=>{ const s=singleSel(); if(s&&s.obj){ pushUndo(); editObj(s.obj,{bold:$("boldChk").checked}); scheduleAutosave(); } };
 $("fontGlobalSel").onchange=()=>{ settings.font=$("fontGlobalSel").value||DEFAULT_FONT; scheduleAutosave(); };
 $("lblEdit").addEventListener("input", ()=>{
   const s=singleSel();
   if(s&&s.obj){
     if(!lblDirty){ pushUndo(); lblDirty=true; }
-    s.obj.label=$("lblEdit").value;
+    editObj(s.obj,{label:$("lblEdit").value});
     scheduleAutosave();
   }
 });
@@ -272,38 +272,38 @@ $("fsIn").addEventListener("input", ()=>{
   if(s&&s.obj){
     if(!fsDirty){ pushUndo(); fsDirty=true; }
     const v=+$("fsIn").value;
-    s.obj.fs=(v>=8&&v<=200)? v : null;
+    editObj(s.obj,{fs:(v>=8&&v<=200)? v : null});
     scheduleAutosave();
   }
 });
-$("shapeSel").onchange=()=>{ const n=singleNode(); if(n&&n.shape!=="image"&&n.shape!=="icon"){ pushUndo(); n.shape=$("shapeSel").value; scheduleAutosave(); } };
-$("pulseChk").onchange=()=>{ const n=singleNode(); if(n){ pushUndo(); n.pulse=$("pulseChk").checked; scheduleAutosave(); } };
-$("tintChk").onchange=()=>{ const n=singleNode(); if(n){ pushUndo(); n.tint=$("tintChk").checked; scheduleAutosave(); } };
-$("orderIn").onchange=()=>{ const n=singleNode(); if(n){ pushUndo(); n.order=+$("orderIn").value||0; scheduleAutosave(); } };
-$("routeSel").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); e.route=$("routeSel").value; scheduleAutosave(); } };
-$("fromSel").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); e.fromSide=$("fromSel").value||null; e.waypoints=[]; refreshPanel(); scheduleAutosave(); } };
-$("toSel").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); e.toSide=$("toSel").value||null; e.waypoints=[]; refreshPanel(); scheduleAutosave(); } };
-$("animChk").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); e.animated=$("animChk").checked; scheduleAutosave(); } };
+$("shapeSel").onchange=()=>{ const n=singleNode(); if(n&&n.shape!=="image"&&n.shape!=="icon"){ pushUndo(); editNode(n,{shape:$("shapeSel").value}); scheduleAutosave(); } };
+$("pulseChk").onchange=()=>{ const n=singleNode(); if(n){ pushUndo(); editNode(n,{pulse:$("pulseChk").checked}); scheduleAutosave(); } };
+$("tintChk").onchange=()=>{ const n=singleNode(); if(n){ pushUndo(); editNode(n,{tint:$("tintChk").checked}); scheduleAutosave(); } };
+$("orderIn").onchange=()=>{ const n=singleNode(); if(n){ pushUndo(); editNode(n,{order:+$("orderIn").value||0}); scheduleAutosave(); } };
+$("routeSel").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); editEdge(e,{route:$("routeSel").value}); scheduleAutosave(); } };
+$("fromSel").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); editEdge(e,{fromSide:$("fromSel").value||null, waypoints:[]}); refreshPanel(); scheduleAutosave(); } };
+$("toSel").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); editEdge(e,{toSide:$("toSel").value||null, waypoints:[]}); refreshPanel(); scheduleAutosave(); } };
+$("animChk").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); editEdge(e,{animated:$("animChk").checked}); scheduleAutosave(); } };
 /* Estos tres controles llevaban en el HTML desde el merge de la rama de estilos,
    pero sin handler: se veían en el panel y no hacían nada. */
-$("speedFacSel").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); e.speedFac=+$("speedFacSel").value||1; scheduleAutosave(); } };
+$("speedFacSel").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); editEdge(e,{speedFac:+$("speedFacSel").value||1}); scheduleAutosave(); } };
 $("dotsGlobalChk").onchange=()=>{
   const e=singleEdge(); if(!e) return;
   pushUndo();
-  e.dotsGlobal=$("dotsGlobalChk").checked;
-  if(e.dotsGlobal===false && !e.dots) e.dots=settings.dots;   // arranca donde estaba, no en vacío
+  const global=$("dotsGlobalChk").checked;
+  editEdge(e,{dotsGlobal:global, dots:(global===false && !e.dots)? settings.dots : undefined});   // arranca donde estaba, no en vacío
   refreshPanel(); scheduleAutosave();
 };
 $("edgeDotsIn").oninput=()=>{
   const e=singleEdge(); if(!e) return;
   const v=+$("edgeDotsIn").value;
-  e.dots=(v>=1&&v<=6)? Math.round(v) : null;
+  editEdge(e,{dots:(v>=1&&v<=6)? Math.round(v) : null});
   scheduleAutosave();
 };
-$("dashChk").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); e.dashed=$("dashChk").checked; scheduleAutosave(); } };
-$("arrSChk").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); e.startArrow=$("arrSChk").checked; scheduleAutosave(); } };
-$("arrEChk").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); e.endArrow=$("arrEChk").checked; scheduleAutosave(); } };
-$("flowSel").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); e.flowDir=$("flowSel").value; scheduleAutosave(); } };
+$("dashChk").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); editEdge(e,{dashed:$("dashChk").checked}); scheduleAutosave(); } };
+$("arrSChk").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); editEdge(e,{startArrow:$("arrSChk").checked}); scheduleAutosave(); } };
+$("arrEChk").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); editEdge(e,{endArrow:$("arrEChk").checked}); scheduleAutosave(); } };
+$("flowSel").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); editEdge(e,{flowDir:$("flowSel").value}); scheduleAutosave(); } };
 /* Devuelve la flecha seleccionada a su ruta automática. Es la salida cuando una
    ruta hecha a mano deja de servir, y desde que esas rutas se CONSERVAN al mover
    los nodos es un gesto habitual, no un rincón: por eso tiene botón arriba del
@@ -313,7 +313,7 @@ function rutaAuto(){
   const e=singleEdge();
   if(!e || !(e.waypoints||[]).length) return false;
   pushUndo();
-  e.waypoints=[];
+  editEdge(e,{waypoints:[]});
   refreshPanel();
   scheduleAutosave();
   return true;

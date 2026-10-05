@@ -1,10 +1,12 @@
 "use strict";
-/* FLUYO-017.2 / 017.3. Autoría de Historias y EventTypes sobre un documento: UN lote atómico de operaciones sobre una COPIA.
+/* FLUYO-017.2 / 017.3 / 018.2 / 018.3. Autoría de Historias, EventTypes y del diagrama (crear, modificar y eliminar nodos y conexiones) sobre un documento: UN lote atómico de operaciones sobre una COPIA.
 
    Compone, no reimplementa:
      · las funciones de model.js que ya usa el editor (createScenario, duplicateScenario, createStep,
        storyboard*, stepDefinitionForEvent, storyboardSetWait, duplicateStep, retargetStep, setInitialAvailability,
-       createEventTypeIn, updateEventTypeIn, deleteEventTypeIn, eventTypeDefinition: las mismas que ejecuta el editor);
+       createEventTypeIn, updateEventTypeIn, deleteEventTypeIn, eventTypeDefinition, createNodeIn, createConnectionIn,
+       updateNodeIn, updateConnectionIn, deleteNodeIn, deleteConnectionIn:
+       las mismas que ejecuta el editor);
      · FluyoIntegrity (la autoridad de integridad) sobre el ESTADO FINAL del lote y para explicar qué rompería
        borrar o cambiar un EventType usado.
    Aquí sólo viven la forma de las operaciones, la resolución de referencias del lote (`ref`) y la explicación
@@ -13,7 +15,7 @@
    Puro: sin DOM, timers, estado global ni E/S; no muta el proyecto recibido. NO usa ni modifica la global `doc`.
    Cargar tras model.js, scenario-engine.js, story-playback.js y document-integrity.js. Ejecutable en Node (vm).
 
-   apply(project, operations) → {ok:true, project, changes[], touched[], validation} | {ok:false, errors[]}
+   apply(project, operations) → {ok:true, project, changes[], refs[], touched[], validation} | {ok:false, errors[]}
    Si una sola operación o la validación final falla NO se devuelve ningún documento. */
 
 var FluyoAuthoring = (function(){
@@ -21,7 +23,8 @@ var FluyoAuthoring = (function(){
   const OPERATION_SCOPE = {
     create_story:"story", rename_story:"story", duplicate_story:"story", delete_story:"story",
     add_step:"story", remove_step:"story", move_step:"story", duplicate_step:"story", retarget_step:"story", set_wait:"story",
-    set_initial_availability:"page",
+    set_initial_availability:"page", create_node:"page", create_connection:"page",
+    update_node:"page", update_connection:"page", delete_node:"page", delete_connection:"page",
     create_event_type:"eventType", update_event_type:"eventType", delete_event_type:"eventType"
   };
   const MAX_OPERATIONS = 200;
@@ -33,6 +36,9 @@ var FluyoAuthoring = (function(){
     move_step:["storyId","stepId","direction","to"], duplicate_step:["storyId","stepId","ref"],
     retarget_step:["storyId","stepId","target"], set_wait:["storyId","stepId","waitMs"],
     set_initial_availability:["nodeId","state"],
+    create_node:["spec","ref"], create_connection:["source","target","spec","ref"],
+    update_node:["node","spec"], update_connection:["connection","source","target","spec"],
+    delete_node:["node"], delete_connection:["connection"],
     create_event_type:["name","primitive","sentence","symbol","motion","availability","presentation","ref"],
     update_event_type:["eventTypeId","name","primitive","sentence","symbol","motion","availability","presentation"],
     delete_event_type:["eventTypeId"]
@@ -101,8 +107,15 @@ var FluyoAuthoring = (function(){
 
   /* Objetivo: {edgeId} | {nodeId} | {from, to} (la conexión entre dos elementos). Debe ser del tipo
      que exige la acción (conexión para SEND; elemento para el resto) y existir en la página. */
-  function targetOf(pg, kind, target){
-    if(!isRecord(target)) throw reject("INVALID_OPERATION", "target debe ser {edgeId} | {nodeId} | {from, to}.", {field:"target"});
+  function targetOf(ctx, op, pg, kind, target){
+    if(!isRecord(target)) throw reject("INVALID_OPERATION", "target debe ser {ref} | {edgeId} | {nodeId} | {from, to}.", {field:"target"});
+    if(target.ref!==undefined){
+      // {ref}: la conexión o el elemento creado antes en el lote; el tipo lo decide la acción del evento.
+      onlyKeys(target, ["ref"], "target");
+      const id = entityOf(ctx, op, target, "target", kind==="connection" ? "edges" : "nodes");
+      if(!(kind==="connection" ? pg.edges : pg.nodes).some(x=>x.id===id)) throw reject("TARGET_NOT_FOUND", `La referencia «${target.ref}» (target) ya no existe en la página${deletedNote(ctx, op.pageIndex, kind==="connection" ? "connection" : "node", id)}.`, {target});
+      return id;
+    }
     onlyKeys(target, ["edgeId","nodeId","from","to"], "target");
     const forms = ["edgeId","nodeId"].filter(k=>target[k]!==undefined).length + (target.from!==undefined || target.to!==undefined ? 1 : 0);
     if(forms!==1) throw reject("INVALID_OPERATION", "target debe tener exactamente una forma: {edgeId} | {nodeId} | {from, to}.", {field:"target"});
@@ -110,18 +123,20 @@ var FluyoAuthoring = (function(){
     if(target.edgeId!==undefined || (target.from!==undefined || target.to!==undefined)){
       if(kind!=="connection") throw reject("TARGET_INCOMPATIBLE", `Esta acción necesita ${need}, no una conexión.`, {target});
       if(target.edgeId!==undefined){
-        if(!isId(target.edgeId) || !pg.edges.some(e=>e.id===target.edgeId)) throw reject("TARGET_NOT_FOUND", `No existe la conexión edgeId=${target.edgeId} en la página.`, {target});
-        return target.edgeId;
+        const edgeId = stepEntityId(ctx, op, target.edgeId, "target.edgeId", "edges");
+        if(!pg.edges.some(e=>e.id===edgeId)) throw reject("TARGET_NOT_FOUND", `No existe la conexión edgeId=${edgeId} en la página${deletedNote(ctx, op.pageIndex, "connection", edgeId)}.`, {target});
+        return edgeId;
       }
-      if(!isId(target.from) || !isId(target.to)) throw reject("INVALID_OPERATION", "from y to deben ser ids de elemento.", {field:"target"});
-      const hits = pg.edges.filter(e=>e.from===target.from && e.to===target.to);
-      if(!hits.length) throw reject("TARGET_NOT_FOUND", `No existe una conexión de ${target.from} a ${target.to}.`, {target});
-      if(hits.length>1) throw reject("AMBIGUOUS_TARGET", `Hay ${hits.length} conexiones de ${target.from} a ${target.to} (${hits.map(e=>e.id).join(", ")}): usa edgeId.`, {target, edgeIds:hits.map(e=>e.id)});
+      const from = stepEntityId(ctx, op, target.from, "target.from", "nodes"), to = stepEntityId(ctx, op, target.to, "target.to", "nodes");
+      const hits = pg.edges.filter(e=>e.from===from && e.to===to);
+      if(!hits.length) throw reject("TARGET_NOT_FOUND", `No existe una conexión de ${from} a ${to}.`, {target});
+      if(hits.length>1) throw reject("AMBIGUOUS_TARGET", `Hay ${hits.length} conexiones de ${from} a ${to} (${hits.map(e=>e.id).join(", ")}): usa edgeId.`, {target, edgeIds:hits.map(e=>e.id)});
       return hits[0].id;
     }
     if(kind!=="element") throw reject("TARGET_INCOMPATIBLE", `Esta acción necesita ${need}, no un elemento.`, {target});
-    if(!isId(target.nodeId) || !pg.nodes.some(n=>n.id===target.nodeId)) throw reject("TARGET_NOT_FOUND", `No existe el elemento nodeId=${target.nodeId} en la página.`, {target});
-    return target.nodeId;
+    const nodeId = stepEntityId(ctx, op, target.nodeId, "target.nodeId", "nodes");
+    if(!pg.nodes.some(n=>n.id===nodeId)) throw reject("TARGET_NOT_FOUND", `No existe el elemento nodeId=${nodeId} en la página${deletedNote(ctx, op.pageIndex, "node", nodeId)}.`, {target});
+    return nodeId;
   }
 
   /* ───────── diferencias de una Historia (qué Steps cambiaron de tiempo, orden o existencia) ───────── */
@@ -250,7 +265,192 @@ var FluyoAuthoring = (function(){
     return reject(code, detail, Object.assign({entity:{kind:"eventType", id:et.id, name:et.name}, integrityCodes:[...new Set(impact.errors.map(e=>e.code))]}, field ? {field} : {}, uses));
   }
 
+  /* ───────── Diagrama: crear nodos y conexiones (FLUYO-018.2) ─────────
+     Aquí sólo viven la forma de la operación y las refs del lote (acotadas a UNA página: la misma ref puede existir en
+     dos páginas). La creación —shape, campos, ids, source/target, auto-lazo, geometría por defecto, documento válido— es
+     createNodeIn/createConnectionIn de model.js, las mismas que el editor: no hay segunda implementación. */
+  const DIAGRAM_ERRORS = {
+    invalid_document:"INVALID_FIELD", source_not_found:"SOURCE_NOT_FOUND", target_not_found:"TARGET_NOT_FOUND", self_loop:"SELF_LOOP",
+    duplicate_structure_id:"DUPLICATE_ID", duplicate_ref:"DUPLICATE_REF", id_exhausted:"ID_EXHAUSTED",
+    node_not_found:"NODE_NOT_FOUND", connection_not_found:"CONNECTION_NOT_FOUND"
+  };
+  const isNodeOp = op => /_node$/.test(op.op);
+  /* Un error de validación de model.js ({code, field?}) → error estructurado del lote. `id` es el elemento/conexión al que
+     apuntaba la operación (para decir qué no existe y, si lo eliminó el propio lote, quién). */
+  function fromDiagramDomain(e, op, ctx, id){
+    if(!(e && typeof e.code==="string" && !e.authoring && DIAGRAM_ERRORS[e.code])) return e;
+    const f = e.field;
+    const noun = isNodeOp(op) ? "un elemento" : "una conexión";
+    const text = {
+      INVALID_FIELD:()=>f===undefined ? "El registro no es válido."
+        : (f==="id" || f==="ref") && /^update_/.test(op.op) ? `«${f}» no se puede modificar.`
+        : `«${f}» no es válido${/^update_/.test(op.op) ? ` para modificar ${noun} (valor, tipo o campo que no aplica a este elemento)` : ` o no existe en ${noun}`}.`,
+      NODE_NOT_FOUND:()=>`No existe el elemento ${id} en la página ${op.pageIndex}${deletedNote(ctx, op.pageIndex, "node", id)}.`,
+      CONNECTION_NOT_FOUND:()=>`No existe la conexión ${id} en la página ${op.pageIndex}${deletedNote(ctx, op.pageIndex, "connection", id)}.`,
+      SOURCE_NOT_FOUND:()=>"No existe el elemento de origen (source) en la página.",
+      TARGET_NOT_FOUND:()=>"No existe el elemento de destino (target) en la página.",
+      SELF_LOOP:()=>"Una conexión no puede salir y entrar en el mismo elemento (source y target son el mismo).",
+      DUPLICATE_ID:()=>"Ese id ya lo usa un elemento, una conexión o algo que lo referencia: los ids de una página no se reutilizan.",
+      DUPLICATE_REF:()=>`La ref «${op.ref}» ya la usa ${op.op==="create_node" ? "otro elemento" : "otra conexión"} de esta página en el lote.`,
+      ID_EXHAUSTED:()=>"La página no admite más ids."
+    }[DIAGRAM_ERRORS[e.code]]();
+    return reject(DIAGRAM_ERRORS[e.code], text, Object.assign({domainCode:e.code}, f!==undefined ? {field:f} : {}, e.code==="duplicate_ref" ? {ref:op.ref} : {}));
+  }
+  /* Refs de nodos/conexiones del lote: un Map (ref → id) POR PÁGINA y por tipo, que es el que createNodeIn/createConnectionIn
+     consultan y rellenan. `ctx.created` guarda el orden de creación para devolver el mapa de refs completo. */
+  function pageRefs(ctx, kind, pageIndex){
+    let byPage = ctx.diagramRefs[kind].get(pageIndex);
+    if(!byPage){ byPage = new Map(); ctx.diagramRefs[kind].set(pageIndex, byPage); }
+    return byPage;
+  }
+  function diagramSpec(op){
+    if(!isRecord(op.spec)) throw reject("INVALID_OPERATION", `${op.op} necesita «spec»: un objeto con ${op.op==="create_node" ? "los campos del elemento (shape, x, y…)" : "los campos de la conexión (label, route, fromSide…)"}.`, {field:"spec"});
+    for(const k of op.op==="create_node" ? ["ref"] : ["ref","source","target"])
+      if(op.spec[k]!==undefined) throw reject("INVALID_OPERATION", `«${k}» va en la operación, no dentro de spec.`, {field:`spec.${k}`});
+    return op.spec;
+  }
+  function withRef(op, spec){
+    if(op.ref===undefined) return Object.assign({}, spec);
+    if(typeof op.ref!=="string" || !op.ref) throw reject("INVALID_OPERATION", "ref debe ser un texto no vacío.", {field:"ref"});
+    return Object.assign({}, spec, {ref:op.ref});
+  }
+  /* Extremo de una conexión: {ref} (algo creado antes en ESTA página del lote) o {id} (un elemento existente). Devuelve el id;
+     que exista lo decide el dominio (source_not_found / target_not_found). */
+  /* Elemento (kind "nodes") o conexión (kind "edges") a partir de {ref} (creado antes en el lote, en ESTA página) o {id}.
+     Devuelve el id; que exista lo decide el dominio (…_not_found). */
+  function entityOf(ctx, op, v, field, kind){
+    const noun = kind==="nodes" ? "elemento" : "conexión", un = kind==="nodes" ? "un elemento" : "una conexión";
+    if(!isRecord(v)) throw reject("INVALID_OPERATION", `${field} debe ser {ref} (${un} creado antes en el lote, en esta página) o {id} (${un} existente).`, {field});
+    onlyKeys(v, ["ref","id"], field);
+    if((v.ref!==undefined) === (v.id!==undefined)) throw reject("INVALID_OPERATION", `${field} debe tener exactamente una forma: {ref} o {id}.`, {field});
+    if(v.id!==undefined){
+      if(!isId(v.id)) throw reject("INVALID_OPERATION", `${field}.id debe ser un entero ≥ 1.`, {field:`${field}.id`});
+      return v.id;
+    }
+    if(typeof v.ref!=="string" || !v.ref) throw reject("INVALID_OPERATION", `${field}.ref debe ser un texto no vacío.`, {field:`${field}.ref`});
+    const id = pageRefs(ctx, kind, op.pageIndex).get(v.ref);
+    if(id===undefined){
+      const elsewhere = [...ctx.diagramRefs[kind]].some(([pi, m])=>pi!==op.pageIndex && m.has(v.ref));
+      throw reject("UNKNOWN_REF", elsewhere
+        ? `La referencia «${v.ref}» (${field}) es de ${un} creado en OTRA página: las refs son por página.`
+        : `La referencia «${v.ref}» (${field}) no la creó ninguna operación anterior del lote en la página ${op.pageIndex} (${noun}).`, {field, ref:v.ref});
+    }
+    return id;
+  }
+  const endpointOf = (ctx, op, v, field) => entityOf(ctx, op, v, field, "nodes");
+  /* Destino de un Step: un id, o {ref} de algo creado en el lote. */
+  function stepEntityId(ctx, op, v, field, kind){
+    if(isRecord(v)){ onlyKeys(v, ["ref"], field); return entityOf(ctx, op, v, field, kind); }
+    if(!isId(v)) throw reject("INVALID_OPERATION", `${field} debe ser un entero ≥ 1 o {ref}.`, {field});
+    return v;
+  }
+  /* « (eliminado por la operación N)» si el lote ya quitó esa entidad; vacío si no. */
+  function deletedNote(ctx, pageIndex, kind, id){
+    const d = ctx && ctx.deleted.find(x=>x.pageIndex===pageIndex && x.kind===kind && x.id===id);
+    return d ? ` (la eliminó la operación ${d.operationIndex}: ${d.operation}${d.cascadedFrom ? `, en cascada con el elemento ${d.cascadedFrom.id}` : ""})` : "";
+  }
+  function created(ctx, op, type, rec){
+    if(op.ref!==undefined) ctx.created.push({ref:op.ref, type, pageIndex:op.pageIndex, id:rec.id});
+  }
+
+  /* Parche de update_*: «spec» (objeto) con al menos un campo (o, en una conexión, un extremo nuevo). Lo que va en la operación
+     (source/target) no puede ir también dentro de spec. */
+  function updateSpec(op, spec, banned, hasEndpoints){
+    if(spec===undefined && hasEndpoints) return {};
+    if(!isRecord(spec)) throw reject("INVALID_OPERATION", `${op.op} necesita «spec»: un objeto con los campos a cambiar.`, {field:"spec"});
+    for(const k of banned) if(spec[k]!==undefined) throw reject("INVALID_OPERATION", `«${k}» va en la operación, no dentro de spec.`, {field:`spec.${k}`});
+    if(!Object.keys(spec).some(k=>spec[k]!==undefined) && !hasEndpoints) throw reject("INVALID_OPERATION", `${op.op} no cambia nada: indica al menos un campo en spec.`, {field:"spec"});
+    return spec;
+  }
+  /* Qué campos cambiaron de verdad y de qué a qué (source/target = from/to del documento). */
+  function diffOf(before, after, keys){
+    const fields = [], from = {}, to = {};
+    for(const k of keys){
+      const dk = k==="source" ? "from" : k==="target" ? "to" : k;
+      if(JSON.stringify(before[dk])===JSON.stringify(after[dk])) continue;
+      fields.push(k); from[k] = before[dk]; to[k] = after[dk];
+    }
+    return {fields, from, to};
+  }
+  /* Historias de la página cuyos pasos tocan esos elementos o conexiones (ids de la página). */
+  function storiesUsing(pg, pageIndex, nodeIds, edgeIds){
+    const out = [];
+    for(const sc of pg.scenarios){
+      const stepIds = sc.steps.filter(st=>(st.nodeId!==undefined && nodeIds.includes(st.nodeId)) || (st.edgeId!==undefined && edgeIds.includes(st.edgeId))).map(st=>st.id);
+      if(stepIds.length) out.push({pageIndex, storyId:sc.id, name:sc.name, stepIds});
+    }
+    return out;
+  }
+
   const HANDLERS = {
+    create_node(ctx, op, pg){
+      const spec = withRef(op, diagramSpec(op));
+      let n;
+      try{ n = createNodeIn(pg, spec, {refs:pageRefs(ctx, "nodes", op.pageIndex)}); }
+      catch(e){ throw fromDiagramDomain(e, op, ctx); }
+      created(ctx, op, "node", n);
+      return Object.assign({entityKind:"node", entityId:n.id, created:true}, op.ref!==undefined ? {ref:op.ref} : {},
+        {shape:n.shape, label:n.label, x:n.x, y:n.y, w:n.w, h:n.h, affects:{stories:[]}});
+    },
+    create_connection(ctx, op, pg){
+      const source = endpointOf(ctx, op, op.source, "source"), target = endpointOf(ctx, op, op.target, "target");
+      const spec = Object.assign(withRef(op, op.spec===undefined ? {} : diagramSpec(op)), {source, target});
+      let e;
+      try{ e = createConnectionIn(pg, spec, {refs:pageRefs(ctx, "edges", op.pageIndex)}); }
+      catch(err){ throw fromDiagramDomain(err, op, ctx); }
+      created(ctx, op, "connection", e);
+      return Object.assign({entityKind:"connection", entityId:e.id, created:true}, op.ref!==undefined ? {ref:op.ref} : {},
+        {source:e.from, target:e.to, affects:{stories:[]}});
+    },
+    update_node(ctx, op, pg){
+      const id = entityOf(ctx, op, op.node, "node", "nodes");
+      const patch = updateSpec(op, op.spec, []);
+      const rec = pg.nodes.find(n=>n.id===id), before = rec && clone(rec);
+      let n;
+      try{ n = updateNodeIn(pg, id, patch); }
+      catch(e){ throw fromDiagramDomain(e, op, ctx, id); }
+      const diff = diffOf(before, n, Object.keys(patch).filter(k=>patch[k]!==undefined));
+      const incident = pg.edges.filter(e=>e.from===id || e.to===id);
+      const moved = ["x","y","w","h","shape"].some(k=>diff.fields.includes(k));
+      const relabeled = diff.fields.includes("label");
+      return Object.assign({entityKind:"node", entityId:id, updated:true}, diff,
+        {affects:Object.assign({stories:relabeled ? storiesUsing(pg, op.pageIndex, [id], incident.map(e=>e.id)) : [],
+                  connectionsWithWaypoints:moved ? incident.filter(e=>(e.waypoints||[]).length).map(e=>e.id) : []},
+                  relabeled ? {note:"La frase de los pasos que tocan este elemento usa su etiqueta."} : {})});
+    },
+    update_connection(ctx, op, pg){
+      const id = entityOf(ctx, op, op.connection, "connection", "edges");
+      const extra = {};
+      if(op.source!==undefined) extra.source = endpointOf(ctx, op, op.source, "source");
+      if(op.target!==undefined) extra.target = endpointOf(ctx, op, op.target, "target");
+      const patch = Object.assign({}, updateSpec(op, op.spec, ["source","target"], Object.keys(extra).length>0), extra);
+      const rec = pg.edges.find(e=>e.id===id), before = rec && clone(rec);
+      let e;
+      try{ e = updateConnectionIn(pg, id, patch); }
+      catch(err){ throw fromDiagramDomain(err, op, ctx, id); }
+      const diff = diffOf(before, e, Object.keys(patch).filter(k=>patch[k]!==undefined));
+      const retargeted = diff.fields.includes("source") || diff.fields.includes("target");
+      return Object.assign({entityKind:"connection", entityId:id, updated:true}, diff,
+        {affects:Object.assign({stories:retargeted ? storiesUsing(pg, op.pageIndex, [], [id]) : []},
+                  retargeted ? {note:"Los pasos de esta conexión cambian de frase y de recorrido; sus ids y tiempos no cambian. Los waypoints no se tocan: envía waypoints:[] para volver a la ruta automática."} : {})});
+    },
+    delete_node(ctx, op, pg){
+      const id = entityOf(ctx, op, op.node, "node", "nodes");
+      let r;
+      try{ r = deleteNodeIn(pg, id); }
+      catch(e){ throw fromDiagramDomain(e, op, ctx, id); }
+      ctx.deleted.push({kind:"node", pageIndex:op.pageIndex, id, label:r.node.label, operationIndex:ctx.opIndex, operation:op.op});
+      for(const cid of r.connections) ctx.deleted.push({kind:"connection", pageIndex:op.pageIndex, id:cid, operationIndex:ctx.opIndex, operation:op.op, cascadedFrom:{kind:"node", id}});
+      return {entityKind:"node", entityId:id, deleted:true, label:r.node.label, cascade:{connections:r.connections, behaviors:r.behaviors}, affects:{stories:[]}};
+    },
+    delete_connection(ctx, op, pg){
+      const id = entityOf(ctx, op, op.connection, "connection", "edges");
+      let e;
+      try{ e = deleteConnectionIn(pg, id); }
+      catch(err){ throw fromDiagramDomain(err, op, ctx, id); }
+      ctx.deleted.push({kind:"connection", pageIndex:op.pageIndex, id, operationIndex:ctx.opIndex, operation:op.op});
+      return {entityKind:"connection", entityId:id, deleted:true, source:e.from, target:e.to, affects:{stories:[]}};
+    },
     create_story(ctx, op, pg){
       const name = nameOf(op.name, true) || defaultScenarioName(pg);
       const sc = createScenario(pg, name);
@@ -284,7 +484,7 @@ var FluyoAuthoring = (function(){
       const et = eventTypeOf(ctx, op.eventTypeId);
       const spec = eventTypeActionSpec(et);
       if(!spec) throw reject("EVENT_TYPE_NOT_FOUND", `El evento ${et.id} no tiene una primitiva válida.`, {eventTypeId:et.id});
-      const targetId = targetOf(pg, spec.target, op.target);
+      const targetId = targetOf(ctx, op, pg, spec.target, op.target);
       const before = clone(sc.steps);
       let step;
       if(op.placement===undefined){
@@ -360,7 +560,7 @@ var FluyoAuthoring = (function(){
       const sc = storyOf(ctx, op, pg, true);
       const st = stepOf(ctx, sc, op.stepId, "stepId", op.pageIndex);
       const kind = st.action==="SEND" ? "connection" : "element";
-      const targetId = targetOf(pg, kind, op.target);
+      const targetId = targetOf(ctx, op, pg, kind, op.target);
       const from = st.action==="SEND" ? st.edgeId : st.nodeId;
       retargetStep(pg, sc, st.id, targetId);
       touch(ctx, op.pageIndex, sc);
@@ -379,8 +579,8 @@ var FluyoAuthoring = (function(){
       return {entityKind:"step", entityId:st.id, storyId:sc.id, waitMs:wait, affects:storyAffect(op.pageIndex, sc, stepDelta(before, sc.steps))};
     },
     set_initial_availability(ctx, op, pg){
-      const nodeId = ctxRef(ctx, "none", op.nodeId, "nodeId").id;
-      if(!pg.nodes.some(n=>n.id===nodeId)) throw reject("TARGET_NOT_FOUND", `No existe el elemento nodeId=${nodeId} en la página.`, {nodeId});
+      const nodeId = stepEntityId(ctx, op, op.nodeId, "nodeId", "nodes");
+      if(!pg.nodes.some(n=>n.id===nodeId)) throw reject("TARGET_NOT_FOUND", `No existe el elemento nodeId=${nodeId} en la página${deletedNote(ctx, op.pageIndex, "node", nodeId)}.`, {nodeId});
       if(op.state!=="UP" && op.state!=="DOWN") throw reject("INVALID_OPERATION", "state debe ser \"UP\" o \"DOWN\".", {field:"state"});
       setInitialAvailability(pg, nodeId, op.state);
       // La disponibilidad inicial es de la PÁGINA: la ven todas sus Historias, no sólo la que se está escribiendo.
@@ -477,6 +677,37 @@ var FluyoAuthoring = (function(){
   function explain(regress){
     return regress.map(e=>({code:"INTEGRITY_VIOLATION", message:e.message, integrityError:e}));
   }
+  /* B2 del diagrama (FLUYO-018.3): los errores NUEVOS del estado final que se deben a algo que el lote eliminó (un elemento o
+     una conexión, también la eliminada en cascada con su elemento) se agrupan por entidad eliminada y nombran la Historia, los
+     Steps, la operación causante y qué hacer. Nada se limpia en silencio. Lo que no se pueda atribuir queda como INTEGRITY_VIOLATION. */
+  function explainRemovals(ctx, regress, d){
+    const groups = new Map(), rest = [];
+    for(const e of regress){
+      const kind = e.entityKind==="edge" ? "connection" : e.entityKind==="node" ? "node" : null;
+      const del = kind && ctx.deleted.find(x=>x.kind===kind && x.pageIndex===e.pageIndex && x.id===e.entityId);
+      if(!del){ rest.push(e); continue; }
+      const key = `${del.pageIndex}:${del.kind}:${del.id}`;
+      if(!groups.has(key)) groups.set(key, {del, errors:[]});
+      groups.get(key).errors.push(e);
+    }
+    const out = [];
+    // Orden estable: por operación, el elemento antes que sus conexiones y por id.
+    const ordered = [...groups.values()].sort((a, b)=>a.del.operationIndex-b.del.operationIndex || (a.del.kind===b.del.kind ? 0 : a.del.kind==="node" ? -1 : 1) || a.del.id-b.del.id);
+    for(const {del, errors} of ordered){
+      const uses = usageErrors(errors, d);
+      const what = del.kind==="node" ? `El elemento ${del.id} «${del.label}»` : `La conexión ${del.id}`;
+      const how = del.cascadedFrom ? `, eliminada en cascada al eliminar el elemento ${del.cascadedFrom.id}` : "";
+      out.push(Object.assign({
+        code:"REFERENCED_ENTITY",
+        message:`${what} (página ${del.pageIndex}, operación ${del.operationIndex}: ${del.operation}${how}) sigue referenciad${del.kind==="node" ? "o" : "a"} por ${whoText(uses.affectedStories)}. Esas Historias quedarían inválidas: quita o redirige esos pasos (remove_step, retarget_step) en el mismo lote, o no lo elimines.`,
+        operationIndex:del.operationIndex, operation:del.operation, pageIndex:del.pageIndex,
+        entity:Object.assign({kind:del.kind, id:del.id}, del.kind==="node" ? {label:del.label} : {}),
+        reason:"Los pasos de esas Historias apuntan a un elemento o conexión que ya no existe.",
+        integrityCodes:[...new Set(errors.map(x=>x.code))]
+      }, del.cascadedFrom ? {cascadedFrom:del.cascadedFrom} : {}, uses));
+    }
+    return out.concat(explain(rest));
+  }
 
   /* ───────── API ───────── */
   function failure(errors){ return {ok:false, errors}; }
@@ -495,7 +726,8 @@ var FluyoAuthoring = (function(){
     catch(_){ return failure([{code:"DOCUMENT_UNREADABLE", message:"El documento no es legible: pide describe_document para ver los errores de validación."}]); }
     const baseline = FluyoIntegrity.validateProject(project);          // errores PREEXISTENTES: no se atribuyen al lote
     const d = norm.doc;                                                // copia profunda (projectFromProjectData no conserva la entrada)
-    const ctx = {d, settings:norm.settings, refs:{stories:new Map(), steps:new Map(), eventTypes:new Map(), none:new Map()}, touched:new Map(), opIndex:0};
+    const ctx = {d, settings:norm.settings, refs:{stories:new Map(), steps:new Map(), eventTypes:new Map(), none:new Map()},
+                diagramRefs:{nodes:new Map(), edges:new Map()}, created:[], deleted:[], touched:new Map(), opIndex:0};
     const changes = [];
 
     for(let i=0; i<operations.length; i++){
@@ -522,7 +754,7 @@ var FluyoAuthoring = (function(){
     const after = FluyoIntegrity.validateProject(finalProject);        // se evalúa el ESTADO FINAL, no cada paso intermedio
     const known = new Set(baseline.errors.map(FluyoIntegrity.errorKey));
     const regress = after.errors.filter(e=>!known.has(FluyoIntegrity.errorKey(e)));
-    if(regress.length) return failure(explain(regress));
+    if(regress.length) return failure(explainRemovals(ctx, regress, d));
     // Garantía: toda Historia que el lote creó o editó es ejecutable por Fluyo.
     const bad = [];
     for(const t of ctx.touched.values()){
@@ -532,7 +764,8 @@ var FluyoAuthoring = (function(){
     }
     if(bad.length) return failure(bad);
 
-    return {ok:true, project:finalProject, changes, touched:[...ctx.touched.values()],
+    const refs = ctx.created.filter(c=>!ctx.deleted.some(x=>x.pageIndex===c.pageIndex && x.id===c.id && x.kind===(c.type==="node" ? "node" : "connection")));
+    return {ok:true, project:finalProject, changes, refs, touched:[...ctx.touched.values()],
             validation:{valid:after.valid, preexistingErrors:after.errors.length}};
   }
 

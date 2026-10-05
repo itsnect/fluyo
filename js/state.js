@@ -1,29 +1,32 @@
 "use strict";
 /* Runtime mutable, persistencia e integración DOM exclusivos del editor. */
 
-/* Fábricas de edición: no se cargan en consumidores read-only. */
+/* Fábricas de edición: no se cargan en consumidores read-only.
+   Envoltorios de la autoridad de dominio (createNodeIn/createConnectionIn, model.js): aquí solo
+   queda lo que es del editor —la página activa y el snap de la interacción—. */
 function newNode(shape,x,y,extra={}){
-  const [w,h]=DEFAULT_SIZES[shape]||[160,70];
-  const id=reserveStructureIds(P());
-  const n=Object.assign({ id, shape, x:snapV(x), y:snapV(y), w, h,
-    label: shape==="text"?"Texto":shape==="code"?CODE_DEFAULT_LABEL:(shape==="icon"||shape==="image"||shape==="anim")?"":"Nodo",
-    color:PALETTE[0].c, fill:null, border:"solid", lblPos:"center", textBg:null, textColor:null,
-    font:null, bold:false, pulse:false, order:P().nodes.length }, extra, {id});
-  /* Los campos de `code` solo se ponen en nodos `code`, igual que `icon` solo va
-     en los de icono: no tiene sentido cargar todos los nodos con ellos. */
-  if(shape==="code" && !("lang" in n)) Object.assign(n,{lang:DEFAULT_LANG, keywords:null, kwBg:null, kwColor:null});
-  /* `tint` nace apagado también en los iconos nuevos: el interruptor tiene que
-     significar lo mismo en un diagrama de hoy y en uno de hace un mes. */
-  if(shape==="icon" && !("tint" in n)) n.tint=false;
-  P().nodes.push(n); return n;
+  return createNodeIn(P(), Object.assign({shape, x:snapV(x), y:snapV(y)}, extra));
 }
 function newEdge(a,b,opts={}){
-  if(a===b) return null;
-  const id=reserveStructureIds(P());
-  const e=Object.assign({ id, from:a, to:b, fromSide:null, toSide:null,
-    route:"straight", waypoints:[], label:"", font:null, bold:false, animated:true, dashed:false, startArrow:false, endArrow:true, flowDir:"normal" }, opts, {id});
-  P().edges.push(e); return e;
+  /* Una arista no puede salir y entrar en el mismo nodo: la regla es del dominio; el editor solo
+     traduce ese rechazo al «no hacer nada» de siempre. */
+  try{ return createConnectionIn(P(), Object.assign({source:a, target:b}, opts)); }
+  catch(err){ if(err && err.code==="self_loop") return null; throw err; }
 }
+
+/* Modificar y eliminar (FLUYO-018.3): envoltorios de updateNodeIn/updateConnectionIn/deleteNodeIn/deleteConnectionIn
+   (model.js). El editor solo aporta la página activa, el undo y el autoguardado de quien llama; las reglas son del
+   dominio. Un rechazo del dominio (un valor que el documento no admitiría) deja el registro intacto y devuelve null,
+   como newEdge con el auto-lazo; cualquier otro error se propaga. */
+function domainOrNull(fn){
+  try{ return fn(); }
+  catch(err){ if(err && typeof err.code==="string") return null; throw err; }
+}
+function editNode(n,patch){ return domainOrNull(()=>updateNodeIn(P(), n.id, patch)); }
+function editEdge(e,patch){ return domainOrNull(()=>updateConnectionIn(P(), e.id, patch)); }
+function editObj(o,patch){ return P().nodes.includes(o) ? editNode(o,patch) : editEdge(o,patch); }   // nodo o conexión (texto, fuente, negrita, tamaño)
+function removeEdges(ids){ for(const id of ids) domainOrNull(()=>deleteConnectionIn(P(), id)); }
+function removeNodes(ids){ for(const id of ids) domainOrNull(()=>deleteNodeIn(P(), id)); }
 
 /* ===================== Viewport ===================== */
 const cv=document.getElementById("cv"), ctx=cv.getContext("2d");

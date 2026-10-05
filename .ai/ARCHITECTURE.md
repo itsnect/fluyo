@@ -24,7 +24,7 @@
 | `js/scenario-engine.js` | Motor determinista puro de Scenarios (v1/v2). |
 | `js/scenario-playback.js` | Proyección de Trace a datos visuales (sin DOM). |
 | `js/story-playback.js` | Receta ÚNICA de reproducción (`FluyoStory`): metadata por Step, ejecución, fin, estado de pintura y texto humano. Compartida por editor, Present y Viewer. |
-| `js/document-integrity.js` | `FluyoIntegrity` (FLUYO-017.1): autoridad única de integridad del documento. Pura, sin DOM; no cargada por el editor todavía (la consume fluyo-mcp). |
+| `js/document-integrity.js` | `FluyoIntegrity` (FLUYO-017.1): autoridad única de integridad del documento. Pura, sin DOM; la cargan el editor (FLUYO-018.4, para confirmar borrados) y fluyo-mcp. |
 | `js/story-authoring.js` | `FluyoAuthoring` (FLUYO-017.2): lote atómico de operaciones de Historia sobre una copia. Pura; no cargada por el editor (la consume fluyo-mcp). |
 | `js/editor-scenarios.js` | Panel de Historias (Scenarios), selección de la Historia activa, storyboard, autoría, playback UI. |
 | `js/ui.js` | Panel lateral, pestañas, cajones, controles de propiedades. |
@@ -154,7 +154,7 @@ js/{config,safe-svg,model,scenario-engine,scenario-playback,story-playback,docum
 
 - **`FluyoStory.run(page, scenario)`** es la única ejecución del motor (`start` la invoca y añade Playback). **`FluyoStory.outcomes(trace, scenario, page)`** deriva el resultado por Step sólo del Trace (`completed`, `not_completed`+razón, `state_changed`, `no_change`, `narrated`); `FluyoStory.finalAvailability(trace, page)` da la disponibilidad al terminar y `FluyoStory.sentence` la frase de un Step.
 - **`FluyoIntegrity.validateProject(project)`** → `{valid, schemaVersion, engineVersion, errors[], stories[]}`. Compone `projectFromProjectData` (forma/ids/contadores) y `FluyoScenarios.runScenario` (estructura, Behaviors, referencias de Steps, tiempos, versión, límites); añade `missing_event_type` y `event_type_action_mismatch`. Error: `{code, message, scope: document|page|story|step, pageIndex?, storyId?, stepId?, entityId?, entityKind?}`. Las páginas se identifican por posición.
-- **`FluyoIntegrity.removalImpact(project, {pageIndex, nodeIds?, edgeIds?})` (B2, sólo detección)**: simula sobre una copia lo que hacen `deleteSel` y `remove_node` y devuelve qué Historias/Steps quedarían inválidos. No modifica nada ni lo consulta el editor.
+- **`FluyoIntegrity.removalImpact(project, {pageIndex, nodeIds?, edgeIds?})` (B2, sólo detección)**: simula sobre una copia lo que hacen `deleteSel` y `remove_node` y devuelve qué Historias/Steps quedarían inválidos. No modifica nada; lo consultan `deleteSel` del editor (018.4) y, por la validación del estado final, MCP.
 - Pruebas: `test/fluyo-017-1.test.cjs` (fixture `test/fixtures/fluyo-017-1-*.json`; el golden lo generan el camino real del editor, `scRun`, y el kernel). El mismo golden se verifica en fluyo-mcp.
 
 ## Autoría de Historias compartida (FLUYO-017.2)
@@ -170,7 +170,7 @@ editor-scenarios.js ──┐                                     ┌── fluy
 
 - **Extraído del editor a `model.js`** (el editor ahora llama a estas mismas funciones; ya no tiene copia): `storyboardSetWait(steps,id,delay,maxAt)` (esperas narrativas: el momento y los posteriores se desplazan), `duplicateStep`, `retargetStep` (sólo cambia el objetivo), `stepDefinitionForEvent(et,target,at)` (la acción sale del EventType), `defaultStepTime`, `setInitialAvailability` (disponibilidad INICIAL = Behavior de la **página**) y `eventTypeActionSpec` (la única tabla primitiva→acción; `FluyoIntegrity.eventActionSpec` delega en ella).
 - **`FluyoAuthoring.apply(project, operations)`** (`js/story-authoring.js`, clásico, sin DOM, sin tocar la global `doc`): normaliza una COPIA, aplica el lote en orden, evalúa **el estado final** con `FluyoIntegrity` y devuelve `{ok, project, changes, touched, validation}` o `{ok:false, errors}` (nunca un documento parcial). Sólo contiene la forma de las operaciones, las `ref` del lote y la explicación de los rechazos; ninguna regla de tiempo/acción/destino/integridad.
-- **Operaciones** (cada una declara su `scope` y se verifica): `story` → `create_story`, `rename_story`, `duplicate_story`, `delete_story`, `add_step`, `remove_step`, `move_step`, `duplicate_step`, `retarget_step`, `set_wait`; `page` → `set_initial_availability`; `eventType` → `create_event_type`, `update_event_type`, `delete_event_type` (FLUYO-017.3; globales al documento, sin `pageIndex`). No hay creación/edición/borrado de elementos o conexiones (`delete_connection`/`delete_node` de 017.2 se retiraron en 017.3). Los campos desconocidos se rechazan (nadie escribe `action`, `state` ni `at`).
+- **Operaciones** (cada una declara su `scope` y se verifica): `story` → `create_story`, `rename_story`, `duplicate_story`, `delete_story`, `add_step`, `remove_step`, `move_step`, `duplicate_step`, `retarget_step`, `set_wait`; `page` → `set_initial_availability`; `eventType` → `create_event_type`, `update_event_type`, `delete_event_type` (FLUYO-017.3; globales al documento, sin `pageIndex`). En 017.3 no había operaciones sobre elementos o conexiones (`delete_connection`/`delete_node` de 017.2 se retiraron); 018.2 añadió `create_node`/`create_connection` (scope `page`) y 018.3 `update_*`/`delete_*` con otra forma ({node}|{connection}, B2 sobre el estado final). Los campos desconocidos se rechazan (nadie escribe `action`, `state` ni `at`).
 - **Tiempo narrativo**: `add_step` añade al final tras `waitMs` (por defecto 1 s; el primero entra en 0) o «al mismo tiempo» (`placement.sameMomentAs`, con o sin `position`); `set_wait` fija la espera de un momento; `remove_step` colapsa la espera del momento que desaparece; `duplicate_step` entra en el mismo momento sin desplazar; `move_step` rota ranuras (los instantes no se inventan).
 - **B2 aplicado**: un lote que deje una Historia inválida (respecto del documento base) se rechaza con `REFERENCED_ENTITY {entity, affectedStories[{storyId,storyName,stepIds}], affectedSteps, operationIndex}`; retargetear/quitar pasos y borrar en el mismo lote es válido (estado final). Además, toda Historia creada/editada por el lote debe quedar ejecutable.
 - **fluyo-mcp** (`author_document`): `revision` = sha256 del JSON canónico (claves ordenadas) del documento **normalizado**; `baseRevision` obligatoria (control optimista, sin estado); `resultRevision` determinista; `dryRun`. Rechazos con `isError:true` y sin documento. Equivalencias de editor y MCP: `test/fluyo-017-2*.test.cjs` (editor real vs kernel, secuencias aleatorias) y `fluyo-mcp/test/fluyo-017-2*.test.ts` (mismo golden).
@@ -187,3 +187,37 @@ MCP author_document ─► FluyoAuthoring (forma de la operación) ──► las
 - **Operaciones MCP** (scope `eventType`): `create_event_type`, `update_event_type` (parche; si cambia la primitiva se reconstruye la definición completa, como el modal), `delete_event_type` (impacto por `FluyoIntegrity.eventTypeImpact`). `add_step` acepta `eventTypeId: {ref}` de un evento creado en el mismo lote.
 - **Reglas**: ver decisiones 78–82 en `.ai/DECISIONS.md`. Rechazos estructurados: `EVENT_TYPE_LOCKED` (campo + usos), `REFERENCED_ENTITY` (EventType, Historias, Steps), `INVALID_EVENT_TYPE` (con `field`), aviso `DUPLICATE_EVENT_TYPE_NAME`.
 - **Pruebas**: `test/fluyo-017-3.test.cjs` y `test/fluyo-017-3-qa.test.cjs` (dominio, autoría, paridad con el modal real; el golden incluye la `revision` del documento del editor), `test/fluyo-017-3-mutations.cjs` (mutaciones sobre copias), `test/fluyo-017-3-browser.cjs` (Chrome real: modal, Undo/Redo, Present, Share/Viewer, documentos antiguos; Playwright externo vía NODE_PATH). En fluyo-mcp: `test/fluyo-017-3*.test.ts` y `scripts/mutate-017-3.ts` (mutaciones del kernel regenerado y de `src/`).
+
+## Creación de nodos y conexiones (FLUYO-018.1)
+
+```text
+Editor (newNode/newEdge, state.js) ─►  model.js:  createNodeIn · createConnectionIn  ◄─ FluyoAuthoring (018.2) ◄─ author_document (MCP): create_node · create_connection
+```
+
+- Operan sobre una página explícita, todo o nada, con la misma normalización que la carga (`normalizeProjectNode`/`normalizeProjectEdge`). Ver decisiones 83–84 y `.ai/tasks/FLUYO-018.md` §22.
+- Pruebas: `test/fluyo-018-1.test.cjs`, `test/fluyo-018-1-mutations.cjs`; 018.2: `test/fluyo-018-2.test.cjs`, `test/fluyo-018-2-mutations.cjs` y fluyo-mcp `test/fluyo-018-2.test.ts`, `scripts/mutate-018-2.ts`. Ver decisiones 85–86 y `.ai/tasks/FLUYO-018.2.md`.
+
+## Modificar y eliminar estructura (FLUYO-018.3)
+
+```text
+Editor (gestos/panel/Supr) ─► state.js: editNode · editEdge · removeNodes · removeEdges ─►  model.js:  updateNodeIn · updateConnectionIn · deleteNodeIn · deleteConnectionIn
+                                                                                              ▲
+MCP author_document: update_node · update_connection · delete_node · delete_connection ─► FluyoAuthoring ─► (mismas funciones) ─► FluyoIntegrity (estado final, B2)
+```
+
+- Mover, redimensionar, editar texto/forma/estilo, retargetear y borrar ya no son escrituras inline de los manejadores: el editor aporta la página activa, el undo y el autoguardado; las reglas (parche de claves cerradas, normalización de la carga, auto-lazo, extremos existentes, cascada de conexiones y Behavior) son de `model.js`. Quedan en el editor, por ser **gestos** que dependen de `geometry.js`: `realinearExtremos`/`podarWaypoints` al mover, `moverTramo`, arrastre de waypoints, orden Z, pegar/duplicar. Ver decisiones 87–90 y `.ai/tasks/FLUYO-018.3.md`.
+- Estado de B2: **MCP lo aplica** (rechaza). **El editor confirma** (FLUYO-018.4, decisiones 91–92): ver más abajo. *(Hasta 018.3 el editor no hacía nada; ya no.)*
+- B2 del diagrama (decisión 89): el estado final decide y el rechazo atribuye cada Historia/Step a la entidad eliminada (`REFERENCED_ENTITY`, con `cascadedFrom` para conexiones eliminadas en cascada).
+- Pruebas: `test/fluyo-018-3.test.cjs` (dominio, autoría, B2, refs, paridad con el editor real y Trace; golden `test/fixtures/fluyo-018-3-golden.json` compartido con fluyo-mcp), `test/fluyo-018-3-mutations.cjs` (60 mutaciones) y `test/fluyo-018-3-browser.cjs` (Chrome real contra HEAD; Playwright externo vía NODE_PATH). En fluyo-mcp: `test/fluyo-018-3.test.ts` y `scripts/mutate-018-3.ts`.
+
+## Política de borrado del editor (FLUYO-018.4)
+
+```text
+Supr · botón · menú · táctil · Cortar ─► deleteSel (selection.js)
+   └─ deleteImpact(nodeIds, edgeIds) ─► FluyoIntegrity.removalImpact (copia de la página activa; sin Historias no se simula)
+        ├─ sin Historias afectadas ─► pushUndo ─► removeEdges + removeNodes (nodo + conexiones + Behavior)
+        └─ con ellas ─► confirm(deleteConfirmMessage) ─► Cancelar: nada · Aceptar: lo mismo, un solo Undo
+```
+
+- `index.html` carga `document-integrity.js` (tras `story-playback.js`) y `sw.js` lo precachea; el archivo no cambió de comportamiento (release 018.x: comentarios de cabecera actualizados y kernel sincronizado con fluyo-mcp).
+- Nunca se modifican Steps ni Historias. Con impacto, el mensaje nombra cada Historia con su número de momentos y destinos, y la condición de disponibilidad inicial si el nodo la tiene. Pruebas: `test/fluyo-018-4.test.cjs` (incluye paridad con el B2 de `author_document`) y `test/fluyo-018-4-mutations.cjs` (15 mutaciones).

@@ -1,0 +1,571 @@
+{
+  "start": {
+    "version": 5,
+    "app": "fluyo",
+    "doc": {
+      "theme": "dark",
+      "customBg": "",
+      "eventTypes": [
+        {
+          "id": 1,
+          "name": "Pago",
+          "primitive": "FLOW",
+          "sentenceTemplate": "{source} paga a {target}",
+          "visual": {
+            "kind": "token",
+            "value": "●"
+          },
+          "motion": "normal",
+          "presentation": {
+            "nodeEffects": {
+              "showSymbol": false,
+              "symbolSize": "medium",
+              "message": "",
+              "messageColor": "",
+              "messageSize": "medium",
+              "messageWeight": "normal",
+              "messageFont": "default",
+              "messagePosition": "above",
+              "highlight": false,
+              "blink": false,
+              "dim": false,
+              "fillColor": "",
+              "visualDuration": "normal",
+              "visualDurationMs": 1500
+            },
+            "connectionEffects": {
+              "size": "medium",
+              "style": "direct",
+              "trail": "none",
+              "arrival": "none",
+              "during": "none"
+            }
+          }
+        }
+      ],
+      "nextEventTypeId": 2,
+      "pages": [
+        {
+          "name": "Página 1",
+          "nodes": [
+            {
+              "id": 1,
+              "shape": "rect",
+              "x": 200,
+              "y": 300,
+              "w": 180,
+              "h": 70,
+              "label": "Cliente",
+              "color": "#6a9fb5",
+              "fill": null,
+              "border": "solid",
+              "lblPos": "center",
+              "textBg": null,
+              "textColor": null,
+              "font": null,
+              "bold": false,
+              "pulse": false,
+              "order": 0
+            },
+            {
+              "id": 2,
+              "shape": "rect",
+              "x": 600,
+              "y": 300,
+              "w": 180,
+              "h": 70,
+              "label": "Comercio",
+              "color": "#6a9fb5",
+              "fill": null,
+              "border": "solid",
+              "lblPos": "center",
+              "textBg": null,
+              "textColor": null,
+              "font": null,
+              "bold": false,
+              "pulse": false,
+              "order": 1
+            },
+            {
+              "id": 3,
+              "shape": "cylinder",
+              "x": 400,
+              "y": 100,
+              "w": 150,
+              "h": 90,
+              "label": "Banco",
+              "color": "#6a9fb5",
+              "fill": null,
+              "border": "solid",
+              "lblPos": "center",
+              "textBg": null,
+              "textColor": null,
+              "font": null,
+              "bold": false,
+              "pulse": false,
+              "order": 2
+            }
+          ],
+          "edges": [
+            {
+              "id": 4,
+              "from": 1,
+              "to": 2,
+              "fromSide": null,
+              "toSide": null,
+              "route": "straight",
+              "waypoints": [],
+              "label": "Pago",
+              "font": null,
+              "bold": false,
+              "animated": true,
+              "dashed": false,
+              "startArrow": false,
+              "endArrow": true,
+              "flowDir": "normal"
+            },
+            {
+              "id": 5,
+              "from": 2,
+              "to": 3,
+              "fromSide": "e",
+              "toSide": "w",
+              "route": "ortho",
+              "waypoints": [],
+              "label": "Cobro",
+              "font": null,
+              "bold": false,
+              "animated": true,
+              "dashed": false,
+              "startArrow": false,
+              "endArrow": true,
+              "flowDir": "normal"
+            },
+            {
+              "id": 6,
+              "from": 3,
+              "to": 1,
+              "fromSide": null,
+              "toSide": null,
+              "route": "straight",
+              "waypoints": [],
+              "label": "Reembolso",
+              "font": null,
+              "bold": false,
+              "animated": true,
+              "dashed": true,
+              "startArrow": false,
+              "endArrow": true,
+              "flowDir": "normal"
+            }
+          ],
+          "nextId": 7,
+          "behaviors": [
+            {
+              "nodeId": 3,
+              "initialState": "DOWN"
+            }
+          ],
+          "scenarios": [
+            {
+              "id": 1,
+              "engineVersion": 2,
+              "name": "Compra",
+              "nextStepId": 3,
+              "steps": [
+                {
+                  "id": 1,
+                  "at": 0,
+                  "eventTypeId": 1,
+                  "action": "SEND",
+                  "edgeId": 4
+                },
+                {
+                  "id": 2,
+                  "at": 1000,
+                  "eventTypeId": 1,
+                  "action": "SEND",
+                  "edgeId": 5
+                }
+              ]
+            }
+          ],
+          "nextScenarioId": 2
+        }
+      ],
+      "cur": 0
+    },
+    "settings": {
+      "speed": 0.5,
+      "dots": 3,
+      "build": false,
+      "stagger": 0.45,
+      "grid": true,
+      "snap": false,
+      "font": "Georgia, serif",
+      "single": false
+    }
+  },
+  "operations": [
+    {
+      "op": "update_node",
+      "scope": "page",
+      "pageIndex": 0,
+      "node": {
+        "id": 1
+      },
+      "spec": {
+        "x": 260,
+        "y": 340
+      }
+    },
+    {
+      "op": "update_node",
+      "scope": "page",
+      "pageIndex": 0,
+      "node": {
+        "id": 1
+      },
+      "spec": {
+        "w": 210,
+        "h": 90,
+        "x": 262,
+        "y": 338
+      }
+    },
+    {
+      "op": "update_node",
+      "scope": "page",
+      "pageIndex": 0,
+      "node": {
+        "id": 2
+      },
+      "spec": {
+        "shape": "diamond"
+      }
+    },
+    {
+      "op": "update_node",
+      "scope": "page",
+      "pageIndex": 0,
+      "node": {
+        "id": 2
+      },
+      "spec": {
+        "label": "Tienda",
+        "color": "#ff8800",
+        "fill": "#223344",
+        "border": "dotted",
+        "lblPos": "bottom",
+        "bold": true,
+        "pulse": true,
+        "order": 4
+      }
+    },
+    {
+      "op": "update_connection",
+      "scope": "page",
+      "pageIndex": 0,
+      "connection": {
+        "id": 4
+      },
+      "spec": {
+        "label": "Pagar",
+        "route": "ortho",
+        "fromSide": "e",
+        "toSide": "w",
+        "waypoints": []
+      }
+    },
+    {
+      "op": "update_connection",
+      "scope": "page",
+      "pageIndex": 0,
+      "connection": {
+        "id": 4
+      },
+      "spec": {
+        "dashed": true,
+        "animated": false,
+        "startArrow": true,
+        "flowDir": "reverse",
+        "lineColor": "#102030"
+      }
+    },
+    {
+      "op": "update_connection",
+      "scope": "page",
+      "pageIndex": 0,
+      "connection": {
+        "id": 6
+      },
+      "spec": {
+        "toSide": "n"
+      },
+      "target": {
+        "id": 2
+      }
+    },
+    {
+      "op": "create_node",
+      "scope": "page",
+      "pageIndex": 0,
+      "spec": {
+        "shape": "hex",
+        "x": 800,
+        "y": 120,
+        "label": "Nuevo"
+      },
+      "ref": "nuevo"
+    },
+    {
+      "op": "create_connection",
+      "scope": "page",
+      "pageIndex": 0,
+      "source": {
+        "ref": "nuevo"
+      },
+      "target": {
+        "id": 2
+      },
+      "spec": {
+        "label": "Hacia tienda"
+      }
+    },
+    {
+      "op": "remove_step",
+      "scope": "story",
+      "pageIndex": 0,
+      "storyId": 1,
+      "stepId": 2
+    },
+    {
+      "op": "delete_connection",
+      "scope": "page",
+      "pageIndex": 0,
+      "connection": {
+        "id": 5
+      }
+    }
+  ],
+  "document": {
+    "version": 5,
+    "app": "fluyo",
+    "doc": {
+      "theme": "dark",
+      "customBg": "",
+      "eventTypes": [
+        {
+          "id": 1,
+          "name": "Pago",
+          "primitive": "FLOW",
+          "sentenceTemplate": "{source} paga a {target}",
+          "visual": {
+            "kind": "token",
+            "value": "●"
+          },
+          "motion": "normal",
+          "presentation": {
+            "nodeEffects": {
+              "showSymbol": false,
+              "symbolSize": "medium",
+              "message": "",
+              "messageColor": "",
+              "messageSize": "medium",
+              "messageWeight": "normal",
+              "messageFont": "default",
+              "messagePosition": "above",
+              "highlight": false,
+              "blink": false,
+              "dim": false,
+              "fillColor": "",
+              "visualDuration": "normal",
+              "visualDurationMs": 1500
+            },
+            "connectionEffects": {
+              "size": "medium",
+              "style": "direct",
+              "trail": "none",
+              "arrival": "none",
+              "during": "none"
+            }
+          }
+        }
+      ],
+      "nextEventTypeId": 2,
+      "pages": [
+        {
+          "name": "Página 1",
+          "nodes": [
+            {
+              "id": 1,
+              "shape": "rect",
+              "x": 262,
+              "y": 338,
+              "w": 210,
+              "h": 90,
+              "label": "Cliente",
+              "color": "#6a9fb5",
+              "fill": null,
+              "border": "solid",
+              "lblPos": "center",
+              "textBg": null,
+              "textColor": null,
+              "font": null,
+              "bold": false,
+              "pulse": false,
+              "order": 0
+            },
+            {
+              "id": 2,
+              "shape": "diamond",
+              "x": 600,
+              "y": 300,
+              "w": 180,
+              "h": 70,
+              "label": "Tienda",
+              "color": "#ff8800",
+              "fill": "#223344",
+              "border": "dotted",
+              "lblPos": "bottom",
+              "textBg": null,
+              "textColor": null,
+              "font": null,
+              "bold": true,
+              "pulse": true,
+              "order": 4
+            },
+            {
+              "id": 3,
+              "shape": "cylinder",
+              "x": 400,
+              "y": 100,
+              "w": 150,
+              "h": 90,
+              "label": "Banco",
+              "color": "#6a9fb5",
+              "fill": null,
+              "border": "solid",
+              "lblPos": "center",
+              "textBg": null,
+              "textColor": null,
+              "font": null,
+              "bold": false,
+              "pulse": false,
+              "order": 2
+            },
+            {
+              "id": 7,
+              "shape": "hex",
+              "x": 800,
+              "y": 120,
+              "w": 170,
+              "h": 80,
+              "label": "Nuevo",
+              "color": "#6a9fb5",
+              "fill": null,
+              "border": "solid",
+              "lblPos": "center",
+              "textBg": null,
+              "textColor": null,
+              "font": null,
+              "bold": false,
+              "pulse": false,
+              "order": 3
+            }
+          ],
+          "edges": [
+            {
+              "id": 4,
+              "from": 1,
+              "to": 2,
+              "fromSide": "e",
+              "toSide": "w",
+              "route": "ortho",
+              "waypoints": [],
+              "label": "Pagar",
+              "font": null,
+              "bold": false,
+              "animated": false,
+              "dashed": true,
+              "startArrow": true,
+              "endArrow": true,
+              "flowDir": "reverse",
+              "lineColor": "#102030"
+            },
+            {
+              "id": 6,
+              "from": 3,
+              "to": 2,
+              "fromSide": null,
+              "toSide": "n",
+              "route": "straight",
+              "waypoints": [],
+              "label": "Reembolso",
+              "font": null,
+              "bold": false,
+              "animated": true,
+              "dashed": true,
+              "startArrow": false,
+              "endArrow": true,
+              "flowDir": "normal"
+            },
+            {
+              "id": 8,
+              "from": 7,
+              "to": 2,
+              "fromSide": null,
+              "toSide": null,
+              "route": "straight",
+              "waypoints": [],
+              "label": "Hacia tienda",
+              "font": null,
+              "bold": false,
+              "animated": true,
+              "dashed": false,
+              "startArrow": false,
+              "endArrow": true,
+              "flowDir": "normal"
+            }
+          ],
+          "nextId": 9,
+          "behaviors": [
+            {
+              "nodeId": 3,
+              "initialState": "DOWN"
+            }
+          ],
+          "scenarios": [
+            {
+              "id": 1,
+              "engineVersion": 2,
+              "name": "Compra",
+              "nextStepId": 3,
+              "steps": [
+                {
+                  "id": 1,
+                  "at": 0,
+                  "eventTypeId": 1,
+                  "action": "SEND",
+                  "edgeId": 4
+                }
+              ]
+            }
+          ],
+          "nextScenarioId": 2
+        }
+      ],
+      "cur": 0
+    },
+    "settings": {
+      "speed": 0.5,
+      "dots": 3,
+      "build": false,
+      "stagger": 0.45,
+      "grid": true,
+      "snap": false,
+      "font": "Georgia, serif",
+      "single": false
+    }
+  }
+}

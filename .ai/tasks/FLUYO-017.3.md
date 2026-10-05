@@ -147,7 +147,7 @@ Playwright con `channel: "chrome"` (Chrome real, headless) y eventos reales de r
 El código de `fluyo/js` **no cambió** durante la QA final (sólo tests y documentación), así que no hizo falta `sync:kernel`: `check:kernel` y `check:config` pasan. Prueba de manipulación: alterar un carácter de `src/generated/kernel-sources.ts` hace fallar `check:kernel` (exit 1, «npm run sync:kernel»); restaurar el archivo (mismo sha256) vuelve a pasar. MCP sigue sin reglas de EventTypes en TypeScript (un test lo vigila sobre `src/authoring.ts`).
 
 ### 7.6 Service Worker
-`HEAD` = `fluyo-static-v60`; el árbol = `fluyo-static-v61`. Los archivos servidos que cambiaron desde HEAD (`js/model.js`, `js/editor-scenarios.js`, `js/story-playback.js`) obligan a un bump (regla de AGENTS.md); v61 es **un único bump pendiente** sobre HEAD que cubre todo el trabajo sin publicar de 017.x. No se hizo otro bump. `document-integrity.js` y `story-authoring.js` no se sirven (no están en `index.html`). Los tests que fijan la versión ya apuntan a v61.
+`HEAD` = `fluyo-static-v60`; el árbol = `fluyo-static-v61`. Los archivos servidos que cambiaron desde HEAD (`js/model.js`, `js/editor-scenarios.js`, `js/story-playback.js`) obligan a un bump (regla de AGENTS.md); v61 es **un único bump pendiente** sobre HEAD que cubre todo el trabajo sin publicar de 017.x. No se hizo otro bump. `document-integrity.js` y `story-authoring.js` no se sirven (no están en `index.html`). Los tests que fijan la versión ya apuntan a v61. *(Estado histórico: 017.x terminó commiteado en v61; el release 018.x subió a v62.)*
 
 ## 8. Bugs encontrados y corregidos
 

@@ -41,7 +41,10 @@ function copySel(){
   // marca el portapapeles del sistema para que Ctrl+V priorice las formas
   try{ navigator.clipboard.writeText("fluyo::"+JSON.stringify(clip)).catch(()=>{}); }catch(e){}
 }
-function cutSel(){ copySel(); deleteSel(); }
+/* Durante el Playback (en marcha o terminado, hasta «Volver a editar») el documento está congelado: borrar y cortar no actúan, sea cual
+   sea la vía (tecla, botón del panel, menú contextual, papelera táctil). La guarda vive aquí, en la única puerta de borrado. */
+function editorFrozen(){ return typeof isScenarioPlaybackActive==="function" && isScenarioPlaybackActive(); }
+function cutSel(){ if(editorFrozen()) return; copySel(); deleteSel(); }
 function pasteClip(){
   if(!clip || !clip.nodes.length) return;
   // Reservar el lote antes de cambiar selección/estructura: agotamiento no
@@ -70,11 +73,53 @@ function pasteClip(){
   refreshPanel();
 }
 function dupSel(){ const keep=clip; copySel(); pasteClip(); clip=keep; }
+/* Política de borrado (FLUYO-018.4): si lo que se borra lo usa una Historia, se pide confirmación nombrando Historias y momentos;
+   sin impacto se borra al instante. Nunca se modifican Steps ni Historias. El impacto lo calcula FluyoIntegrity.removalImpact
+   (la misma detección que el B2 de MCP) sobre una copia de la página activa; sin Historias no hay nada que simular. */
+function deleteImpact(nodeIds, edgeIds){
+  const pg=P();
+  if(typeof FluyoIntegrity==="undefined" || !(pg.scenarios||[]).length) return {stories:[], behaviors:[]};
+  const slim=projectToSerializable(Object.assign({}, doc, {pages:[pg], cur:0}), typeof settings!=="undefined" ? settings : {});
+  const r=FluyoIntegrity.removalImpact(slim, {pageIndex:0, nodeIds, edgeIds});
+  const label=id=>{ const n=nodeById(id); return (n && String(n.label||"").split("\n")[0].trim()) || "Elemento sin nombre"; };
+  const targetOf=st=>{
+    if(st.action==="SEND"){ const e=edgeById(st.edgeId); return e ? label(e.from)+" → "+label(e.to) : "Conexión"; }
+    return label(st.nodeId);
+  };
+  const stories=r.affectedStories.map(a=>{
+    const sc=pg.scenarios.find(x=>x.id===a.storyId);
+    const steps=sc ? sc.steps.filter(st=>a.stepIds.includes(st.id)) : [];
+    const targets=[]; for(const st of steps){ const t=targetOf(st); if(!targets.includes(t)) targets.push(t); }
+    return {storyId:a.storyId, name:a.storyName||"Historia", moments:new Set(steps.map(st=>st.at)).size||a.stepIds.length, targets};
+  });
+  const gone=new Set(nodeIds);
+  return {stories, behaviors:(pg.behaviors||[]).filter(b=>gone.has(b.nodeId)).map(b=>b.nodeId)};
+}
+function deleteConfirmMessage(impact, nodeCount, edgeCount){
+  const many=nodeCount+edgeCount>1;
+  const [subject, pron, verb]=many ? ["Esta selección","los","eliminarlos"] : nodeCount ? ["Este elemento","lo","eliminarlo"] : ["Esta conexión","la","eliminarla"];
+  const n=impact.stories.length, moments=impact.stories.reduce((t,s)=>t+s.moments,0);
+  const lines=[subject+" se usa en "+n+(n===1?" Historia:":" Historias:"), ""];
+  for(const s of impact.stories){
+    const shown=s.targets.slice(0,3).join(", ")+(s.targets.length>3?"…":"");
+    lines.push("• "+s.name+" — "+s.moments+(s.moments===1?" momento":" momentos")+(shown?" ("+shown+")":""));
+  }
+  lines.push("", "Si "+pron+" eliminas, "+(moments===1?"ese momento dejará":"esos momentos dejarán")+" de funcionar.");
+  if(impact.behaviors.length) lines.push(impact.behaviors.length===1 ? "También se eliminará su condición de disponibilidad inicial." : "También se eliminarán sus condiciones de disponibilidad inicial.");
+  lines.push("¿Quieres "+verb+" de todas formas?");
+  return lines.join("\n");
+}
 function deleteSel(){
-  if(!selN.size && !selE.size) return;
+  if(editorFrozen() || (!selN.size && !selE.size)) return;
+  const nodeIds=[...selN], edgeIds=[...selE];
+  const impact=deleteImpact(nodeIds, edgeIds);
+  /* Antes de pushUndo: cancelar no cambia nada ni deja entrada de Undo. */
+  if(impact.stories.length && !confirm(deleteConfirmMessage(impact, nodeIds.length, edgeIds.length))) return;
   pushUndo();
-  P().edges=P().edges.filter(e=>!selE.has(e.id) && !selN.has(e.from) && !selN.has(e.to));
-  P().nodes=P().nodes.filter(n=>!selN.has(n.id));
+  // Autoridad de dominio (model.js): quita las conexiones elegidas y, con cada nodo, sus conexiones y su Behavior (el Undo los
+  // restaura: el snapshot incluye behaviors y scenarios). El editor NO toca Steps ni Historias.
+  removeEdges(edgeIds);
+  removeNodes(nodeIds);
   clearSel();
 }
 

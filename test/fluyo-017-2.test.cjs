@@ -307,11 +307,12 @@ test("la entrada nunca se muta (ni congelada) y la misma entrada + las mismas op
 
 const impact = (project, removal) => K.call("FluyoIntegrity.removalImpact(__a.p, __a.r)", { p: project, r: removal });
 
-test("MCP no expone borrado estructural: delete_connection y delete_node no existen (UNKNOWN_OPERATION)", () => {
-  assert.deepEqual(Object.keys(K.call("FluyoAuthoring.OPERATION_SCOPE")).filter((o) => /connection|node|edge/.test(o)), []);
+test("estructura del diagrama (018.2 crear · 018.3 modificar y eliminar): delete_* y update_* existen con alcance «page» y no admiten la forma antigua de 017.2 (edgeId/nodeId sueltos)", () => {
+  assert.deepEqual(Object.keys(K.call("FluyoAuthoring.OPERATION_SCOPE")).filter((o) => /connection|node|edge/.test(o)),
+    ["create_node", "create_connection", "update_node", "update_connection", "delete_node", "delete_connection"]);
   for (const op of ["delete_connection", "delete_node"]) {
     const r = apply(simple(), [P(op, { edgeId: 5, nodeId: 2 })]);
-    assert.deepEqual([r.ok, r.errors[0].code], [false, "UNKNOWN_OPERATION"], op);
+    assert.deepEqual([r.ok, r.errors[0].code], [false, "INVALID_OPERATION"], op);
   }
 });
 

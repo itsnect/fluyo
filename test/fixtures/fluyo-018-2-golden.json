@@ -1,0 +1,266 @@
+{
+  "operations": [
+    {
+      "op": "create_node",
+      "scope": "page",
+      "pageIndex": 0,
+      "spec": {
+        "shape": "rect",
+        "x": 200,
+        "y": 300,
+        "label": "Cliente"
+      },
+      "ref": "cliente"
+    },
+    {
+      "op": "create_node",
+      "scope": "page",
+      "pageIndex": 0,
+      "spec": {
+        "shape": "rect",
+        "x": 600,
+        "y": 300,
+        "label": "Comercio"
+      },
+      "ref": "comercio"
+    },
+    {
+      "op": "create_node",
+      "scope": "page",
+      "pageIndex": 0,
+      "spec": {
+        "shape": "cylinder",
+        "x": 400,
+        "y": 100,
+        "label": "Banco"
+      },
+      "ref": "banco"
+    },
+    {
+      "op": "create_connection",
+      "scope": "page",
+      "pageIndex": 0,
+      "source": {
+        "ref": "cliente"
+      },
+      "target": {
+        "ref": "comercio"
+      },
+      "ref": "pago"
+    },
+    {
+      "op": "create_connection",
+      "scope": "page",
+      "pageIndex": 0,
+      "source": {
+        "ref": "comercio"
+      },
+      "target": {
+        "ref": "banco"
+      },
+      "ref": "cobro",
+      "spec": {
+        "route": "ortho",
+        "fromSide": "e",
+        "toSide": "w",
+        "label": "Cobro"
+      }
+    },
+    {
+      "op": "create_connection",
+      "scope": "page",
+      "pageIndex": 0,
+      "source": {
+        "ref": "banco"
+      },
+      "target": {
+        "ref": "cliente"
+      },
+      "ref": "reembolso",
+      "spec": {
+        "dashed": true,
+        "label": "Reembolso"
+      }
+    }
+  ],
+  "document": {
+    "version": 5,
+    "app": "fluyo",
+    "doc": {
+      "theme": "dark",
+      "customBg": "",
+      "eventTypes": [],
+      "nextEventTypeId": 1,
+      "pages": [
+        {
+          "name": "Página 1",
+          "nodes": [
+            {
+              "id": 1,
+              "shape": "rect",
+              "x": 200,
+              "y": 300,
+              "w": 180,
+              "h": 70,
+              "label": "Cliente",
+              "color": "#6a9fb5",
+              "fill": null,
+              "border": "solid",
+              "lblPos": "center",
+              "textBg": null,
+              "textColor": null,
+              "font": null,
+              "bold": false,
+              "pulse": false,
+              "order": 0
+            },
+            {
+              "id": 2,
+              "shape": "rect",
+              "x": 600,
+              "y": 300,
+              "w": 180,
+              "h": 70,
+              "label": "Comercio",
+              "color": "#6a9fb5",
+              "fill": null,
+              "border": "solid",
+              "lblPos": "center",
+              "textBg": null,
+              "textColor": null,
+              "font": null,
+              "bold": false,
+              "pulse": false,
+              "order": 1
+            },
+            {
+              "id": 3,
+              "shape": "cylinder",
+              "x": 400,
+              "y": 100,
+              "w": 150,
+              "h": 90,
+              "label": "Banco",
+              "color": "#6a9fb5",
+              "fill": null,
+              "border": "solid",
+              "lblPos": "center",
+              "textBg": null,
+              "textColor": null,
+              "font": null,
+              "bold": false,
+              "pulse": false,
+              "order": 2
+            }
+          ],
+          "edges": [
+            {
+              "id": 4,
+              "from": 1,
+              "to": 2,
+              "fromSide": null,
+              "toSide": null,
+              "route": "straight",
+              "waypoints": [],
+              "label": "",
+              "font": null,
+              "bold": false,
+              "animated": true,
+              "dashed": false,
+              "startArrow": false,
+              "endArrow": true,
+              "flowDir": "normal"
+            },
+            {
+              "id": 5,
+              "from": 2,
+              "to": 3,
+              "fromSide": "e",
+              "toSide": "w",
+              "route": "ortho",
+              "waypoints": [],
+              "label": "Cobro",
+              "font": null,
+              "bold": false,
+              "animated": true,
+              "dashed": false,
+              "startArrow": false,
+              "endArrow": true,
+              "flowDir": "normal"
+            },
+            {
+              "id": 6,
+              "from": 3,
+              "to": 1,
+              "fromSide": null,
+              "toSide": null,
+              "route": "straight",
+              "waypoints": [],
+              "label": "Reembolso",
+              "font": null,
+              "bold": false,
+              "animated": true,
+              "dashed": true,
+              "startArrow": false,
+              "endArrow": true,
+              "flowDir": "normal"
+            }
+          ],
+          "nextId": 7,
+          "behaviors": [],
+          "scenarios": [],
+          "nextScenarioId": 1
+        }
+      ],
+      "cur": 0
+    },
+    "settings": {
+      "speed": 0.5,
+      "dots": 3,
+      "build": false,
+      "stagger": 0.45,
+      "grid": true,
+      "snap": false,
+      "font": "Georgia, serif",
+      "single": false
+    }
+  },
+  "refs": [
+    {
+      "ref": "cliente",
+      "type": "node",
+      "pageIndex": 0,
+      "id": 1
+    },
+    {
+      "ref": "comercio",
+      "type": "node",
+      "pageIndex": 0,
+      "id": 2
+    },
+    {
+      "ref": "banco",
+      "type": "node",
+      "pageIndex": 0,
+      "id": 3
+    },
+    {
+      "ref": "pago",
+      "type": "connection",
+      "pageIndex": 0,
+      "id": 4
+    },
+    {
+      "ref": "cobro",
+      "type": "connection",
+      "pageIndex": 0,
+      "id": 5
+    },
+    {
+      "ref": "reembolso",
+      "type": "connection",
+      "pageIndex": 0,
+      "id": 6
+    }
+  ]
+}

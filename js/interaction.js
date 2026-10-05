@@ -494,7 +494,7 @@ cv.addEventListener("pointermove", ev=>{
   if(drag){
     for(const id in drag.offs){
       const nn=nodeById(+id);
-      if(nn){ nn.x=snapV(p.x-drag.offs[id].dx); nn.y=snapV(p.y-drag.offs[id].dy); }
+      if(nn) editNode(nn,{x:snapV(p.x-drag.offs[id].dx), y:snapV(p.y-drag.offs[id].dy)});
     }
     drag.wps.forEach(o=>{ o.w.x=snapV(p.x-o.dx); o.w.y=snapV(p.y-o.dy); });
     /* Se reconstruye desde la copia de pointerdown en vez de acumular sobre lo
@@ -513,8 +513,7 @@ cv.addEventListener("pointermove", ev=>{
       if(resizing.aspect){
         if(w/resizing.aspect>h) h=w/resizing.aspect; else w=h*resizing.aspect;
       }
-      n.w=Math.round(w); n.h=Math.round(h);
-      n.x=Math.round((p.x+resizing.fx)/2); n.y=Math.round((p.y+resizing.fy)/2);
+      editNode(n,{w:Math.round(w), h:Math.round(h), x:Math.round((p.x+resizing.fx)/2), y:Math.round((p.y+resizing.fy)/2)});
     }
     return;
   }
@@ -628,8 +627,8 @@ cv.addEventListener("pointerup", ev=>{
         const actualLado = endDrag.which==="from" ? (e.fromSide||null) : (e.toSide||null);
         if(nuevoId!==actualId || nuevoLado!==actualLado){
           pushUndo();
-          if(endDrag.which==="from"){ e.from=nuevoId; e.fromSide=nuevoLado; }
-          else                      { e.to=nuevoId;   e.toSide=nuevoLado;   }
+          // Retarget: la regla (extremo existente, sin auto-lazo) es del dominio (updateConnectionIn).
+          editEdge(e, endDrag.which==="from" ? {source:nuevoId, fromSide:nuevoLado} : {target:nuevoId, toSide:nuevoLado});
           refreshPanel();
         }
       }
@@ -801,7 +800,7 @@ function closeEditBox(label){
        ya restaurado, y solo después se pone el texto nuevo: así deshacer vuelve
        al texto de antes de abrir el editor y no al de la penúltima tecla. */
     pushUndo();
-    o.label=label;
+    editObj(o,{label});
   }
   refreshPanel();
 }

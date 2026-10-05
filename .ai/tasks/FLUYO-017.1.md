@@ -292,7 +292,7 @@ js/document-integrity.js  (fluyo, dominio puro)
 - **No en MCP**: sería una segunda regla que divergería del editor (el riesgo FLUYO-017 §9).
 - **No dentro del engine**: el engine no conoce EventTypes ni documentos; su contrato `runScenario(structure, behaviors, scenario)` es deliberadamente mínimo (dec. 8–10). `FluyoIntegrity` **llama** al engine; no se funde con él.
 - **No dentro de `model.js`**: `model.js` no debe depender del engine; el script nuevo depende de ambos, en orden de carga explícito.
-- **Editor, en un slice posterior** (no ahora): `deleteSel` consulta `FluyoIntegrity` y ofrece «Esta conexión se usa en N Historias. ¿Quitarla también de ellas?» con Undo. La decisión de UX (confirmar y limpiar vs. bloquear) es de producto y no se toma aquí; lo que sí se fija es que la **regla** sea la misma.
+- **Editor, en un slice posterior** (no ahora): `deleteSel` consulta `FluyoIntegrity` y ofrece «Esta conexión se usa en N Historias. ¿Quitarla también de ellas?» con Undo. La decisión de UX (confirmar y limpiar vs. bloquear) es de producto y no se toma aquí; lo que sí se fija es que la **regla** sea la misma. *(**Hecho en FLUYO-018.4**: `deleteSel` consulta `FluyoIntegrity.removalImpact` y confirma; no limpia Steps. Decisiones 91–92.)*
 
 ## 8. Reutilización
 

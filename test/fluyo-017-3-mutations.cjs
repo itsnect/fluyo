@@ -50,7 +50,7 @@ const MUTATIONS = [
   ["A7 sin aviso de nombre duplicado", "js/story-authoring.js",
     "return same.length ? [{code:\"DUPLICATE_EVENT_TYPE_NAME\"", "return !same.length || true ? [] : [{code:\"DUPLICATE_EVENT_TYPE_NAME\""],
   ["A8 saltarse la validación final del lote", "js/story-authoring.js",
-    "    if(regress.length) return failure(explain(regress));", ""],
+    "    if(regress.length) return failure(explainRemovals(ctx, regress, d));", ""],
   ["A9 las refs de EventType no se resuelven", "js/story-authoring.js",
     "const id = ctxRef(ctx, \"eventTypes\", v, \"eventTypeId\").id;", "const id = ctxRef(ctx, \"none\", v, \"eventTypeId\").id;"],
   ["A10 el rechazo de borrado no lista los pasos", "js/story-authoring.js",

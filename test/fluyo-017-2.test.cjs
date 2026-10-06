@@ -309,7 +309,7 @@ const impact = (project, removal) => K.call("FluyoIntegrity.removalImpact(__a.p,
 
 test("estructura del diagrama (018.2 crear · 018.3 modificar y eliminar): delete_* y update_* existen con alcance «page» y no admiten la forma antigua de 017.2 (edgeId/nodeId sueltos)", () => {
   assert.deepEqual(Object.keys(K.call("FluyoAuthoring.OPERATION_SCOPE")).filter((o) => /connection|node|edge/.test(o)),
-    ["create_node", "create_connection", "update_node", "update_connection", "delete_node", "delete_connection"]);
+    ["create_node", "create_connection", "update_node", "update_connection", "delete_node", "delete_connection", "reorder_nodes", "duplicate_node"]);   // 018.7a: orden Z y duplicado
   for (const op of ["delete_connection", "delete_node"]) {
     const r = apply(simple(), [P(op, { edgeId: 5, nodeId: 2 })]);
     assert.deepEqual([r.ok, r.errors[0].code], [false, "INVALID_OPERATION"], op);

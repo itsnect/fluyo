@@ -901,6 +901,119 @@ function renamePageIn(d, pageIndex, name){
   return {pageIndex, page, from};
 }
 
+/* ===================== Autoría del documento y del diagrama (FLUYO-018.7a) =====================
+   Misma autoridad única: las llaman el editor (ui.js: themeSel/bgCustom; selection.js: orden Z, Ctrl+D, pegar) y
+   FluyoAuthoring (set_theme, reorder_nodes, duplicate_node). Sin DOM, selección, undo, snap ni autoguardado.
+
+   · setThemeIn(d, {theme?, customBg?}): parche del aspecto del lienzo. `theme` ∈ THEMES; `customBg` string (null → "": sin fondo
+     personalizado). La regla HEX es de ENTRADA de autoría (story-authoring.js), no del documento. Idempotente: devuelve changed.
+   · reorderedNodeIds / reorderNodesIn: el orden Z es la POSICIÓN en page.nodes[] (no `order`, que es la animación build). Cuatro
+     colocaciones del editor (front, back, forward, backward); el orden relativo de lo afectado es el del documento, no el de la lista.
+     Las conexiones no tienen Z (se dibujan siempre bajo los nodos).
+   · cloneStructureIn / duplicateNodesIn: única autoridad de clonado (pegar y duplicar). Ids en un solo bloque reservado ANTES de
+     mutar (todo o nada), nodos en el orden del documento y luego conexiones; solo las conexiones internas al conjunto; los Behaviors
+     de los nodos copiados se copian; Steps, Historias y EventTypes no se tocan.
+
+   Códigos: invalid_document(field) · invalid_theme · empty_patch · invalid_placement · node_not_found(id) · id_exhausted. */
+const THEME_PATCH_KEYS=new Set(["theme","customBg"]);
+function setThemeIn(d, patch){
+  if(!projectObject(d)) throw projectDataError("invalid_document","doc");
+  authoringSpec(patch,THEME_PATCH_KEYS);
+  const fields=Object.keys(patch).filter(k=>patch[k]!==undefined);
+  if(!fields.length) throw projectDataError("empty_patch");
+  if(patch.theme!==undefined && !(typeof patch.theme==="string" && projectOwn(THEMES,patch.theme))) throw projectDataError("invalid_theme","theme");
+  if(patch.customBg!==undefined && patch.customBg!==null && typeof patch.customBg!=="string") throw projectDataError("invalid_document","customBg");
+  const from={theme:d.theme, customBg:d.customBg||""};
+  if(patch.theme!==undefined) d.theme=patch.theme;
+  if(patch.customBg!==undefined) d.customBg=patch.customBg===null? "" : patch.customBg;
+  const to={theme:d.theme, customBg:d.customBg||""};
+  return {changed:from.theme!==to.theme || from.customBg!==to.customBg,
+          theme:{from:from.theme, to:to.theme}, customBg:{from:from.customBg, to:to.customBg}};
+}
+
+const Z_PLACEMENTS=new Set(["front","back","forward","backward"]);
+function zNodeIds(pg, ids, placement){
+  authoringPage(pg);
+  if(!Z_PLACEMENTS.has(placement)) throw projectDataError("invalid_placement","to");
+  if(!Array.isArray(ids) || !ids.length) throw projectDataError("invalid_document","nodes");
+  const set=new Set();
+  for(const id of ids){
+    if(!Number.isSafeInteger(id) || id<1) throw projectDataError("invalid_document","nodes");
+    if(!pg.nodes.some(n=>n.id===id)){ const err=projectDataError("node_not_found","nodes"); err.id=id; throw err; }
+    set.add(id);
+  }
+  return set;
+}
+/* Pura: la secuencia de ids que quedaría en page.nodes[] (la del documento si no cambia nada). */
+function reorderedNodeIds(pg, ids, placement){
+  const set=zNodeIds(pg,ids,placement);
+  const ns=pg.nodes.map(n=>n.id);
+  if(placement==="front") return ns.filter(id=>!set.has(id)).concat(ns.filter(id=>set.has(id)));
+  if(placement==="back") return ns.filter(id=>set.has(id)).concat(ns.filter(id=>!set.has(id)));
+  if(placement==="forward"){
+    for(let i=ns.length-2;i>=0;i--) if(set.has(ns[i]) && !set.has(ns[i+1])) [ns[i],ns[i+1]]=[ns[i+1],ns[i]];
+  }else{
+    for(let i=1;i<ns.length;i++) if(set.has(ns[i]) && !set.has(ns[i-1])) [ns[i],ns[i-1]]=[ns[i-1],ns[i]];
+  }
+  return ns;
+}
+/* Reordena los MISMOS objetos nodo, en el sitio. Devuelve {changed, from:[ids], to:[ids]}. */
+function reorderNodesIn(pg, ids, placement){
+  const to=reorderedNodeIds(pg,ids,placement), from=pg.nodes.map(n=>n.id);
+  const changed=to.some((id,i)=>id!==from[i]);
+  if(changed){
+    const byId=new Map(pg.nodes.map(n=>[n.id,n]));
+    pg.nodes.splice(0,pg.nodes.length,...to.map(id=>byId.get(id)));
+  }
+  return {changed, from, to};
+}
+
+/* snapshot = {nodes, edges, behaviors} (copiados, no se mutan). Inserta copias desplazadas dx,dy en pg.
+   Devuelve {nodes:[{from,id}], connections:[{from,id}], behaviors:[nodeId nuevo]}. */
+function cloneStructureIn(pg, snapshot, offset){
+  authoringPage(pg);
+  if(!projectObject(snapshot) || !Array.isArray(snapshot.nodes)) throw projectDataError("invalid_document","nodes");
+  const dx=offset && offset.dx!==undefined ? offset.dx : GRID, dy=offset && offset.dy!==undefined ? offset.dy : GRID;
+  for(const [k,v] of [["x",dx],["y",dy]]) if(typeof v!=="number" || !Number.isFinite(v)) throw projectDataError("invalid_document","offset."+k);
+  const inSet=new Set(snapshot.nodes.map(n=>n.id));
+  const edges=(snapshot.edges||[]).filter(e=>inSet.has(e.from) && inSet.has(e.to));
+  // Reserva ANTES de mutar: el agotamiento no puede dejar una copia parcial (los contadores nunca bajan).
+  let nextId=reserveStructureIds(pg, snapshot.nodes.length+edges.length);
+  const map={}, out={nodes:[], connections:[], behaviors:[]};
+  for(const n of snapshot.nodes){
+    const c=deep(n); map[n.id]=c.id=nextId++;
+    c.x+=dx; c.y+=dy; c.order=pg.nodes.length;
+    pg.nodes.push(c); out.nodes.push({from:n.id, id:c.id});
+  }
+  for(const e of edges){
+    const c=deep(e); c.id=nextId++;
+    c.from=map[e.from]; c.to=map[e.to];
+    (c.waypoints||[]).forEach(w=>{ w.x+=dx; w.y+=dy; });
+    pg.edges.push(c); out.connections.push({from:e.id, id:c.id});
+  }
+  for(const b of snapshot.behaviors||[]){
+    if(projectOwn(map,b.nodeId)){ pg.behaviors.push({...deep(b), nodeId:map[b.nodeId]}); out.behaviors.push(map[b.nodeId]); }
+  }
+  return out;
+}
+const DUPLICATE_CONNECTIONS=new Set(["internal","none"]);
+function duplicateNodesIn(pg, ids, options){
+  authoringPage(pg);
+  const o=options||{};
+  if(!Array.isArray(ids) || !ids.length) throw projectDataError("invalid_document","nodes");
+  if(o.connections!==undefined && !DUPLICATE_CONNECTIONS.has(o.connections)) throw projectDataError("invalid_document","connections");
+  const set=new Set();
+  for(const id of ids){
+    if(!Number.isSafeInteger(id) || id<1) throw projectDataError("invalid_document","nodes");
+    if(!pg.nodes.some(n=>n.id===id)){ const err=projectDataError("node_not_found","nodes"); err.id=id; throw err; }
+    set.add(id);
+  }
+  const nodes=pg.nodes.filter(n=>set.has(n.id));        // orden del documento: independiente del orden de la lista
+  const edges=o.connections==="none"? [] : pg.edges.filter(e=>set.has(e.from) && set.has(e.to));
+  const behaviors=(pg.behaviors||[]).filter(b=>set.has(b.nodeId));
+  return cloneStructureIn(pg, {nodes, edges, behaviors}, {dx:o.dx, dy:o.dy});
+}
+
 function clearPageContents(pg){
   pg.nodes=[];
   pg.edges=[];

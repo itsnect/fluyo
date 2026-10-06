@@ -5,8 +5,8 @@
      · las funciones de model.js que ya usa el editor (createScenario, duplicateScenario, createStep,
        storyboard*, stepDefinitionForEvent, storyboardSetWait, duplicateStep, retargetStep, setInitialAvailability,
        createEventTypeIn, updateEventTypeIn, deleteEventTypeIn, eventTypeDefinition, createNodeIn, createConnectionIn,
-       updateNodeIn, updateConnectionIn, deleteNodeIn, deleteConnectionIn, createPageIn, renamePageIn:
-       las mismas que ejecuta el editor);
+       updateNodeIn, updateConnectionIn, deleteNodeIn, deleteConnectionIn, createPageIn, renamePageIn,
+       setThemeIn, reorderNodesIn, duplicateNodesIn (FLUYO-018.7a): las mismas que ejecuta el editor);
      · FluyoIntegrity (la autoridad de integridad) sobre el ESTADO FINAL del lote y para explicar qué rompería
        borrar o cambiar un EventType usado.
    Aquí sólo viven la forma de las operaciones, la resolución de referencias del lote (`ref`) y la explicación
@@ -25,7 +25,8 @@ var FluyoAuthoring = (function(){
     add_step:"story", remove_step:"story", move_step:"story", duplicate_step:"story", retarget_step:"story", set_wait:"story",
     set_initial_availability:"page", create_node:"page", create_connection:"page",
     update_node:"page", update_connection:"page", delete_node:"page", delete_connection:"page",
-    create_page:"document", rename_page:"document",
+    create_page:"document", rename_page:"document", set_theme:"document",
+    reorder_nodes:"page", duplicate_node:"page",
     create_event_type:"eventType", update_event_type:"eventType", delete_event_type:"eventType"
   };
   const MAX_OPERATIONS = 200;
@@ -45,7 +46,8 @@ var FluyoAuthoring = (function(){
     create_node:["spec","ref"], create_connection:["source","target","spec","ref"],
     update_node:["node","spec"], update_connection:["connection","source","target","spec"],
     delete_node:["node"], delete_connection:["connection"],
-    create_page:["name"], rename_page:["pageIndex","name"],
+    create_page:["name"], rename_page:["pageIndex","name"], set_theme:["theme","customBg"],
+    reorder_nodes:["nodes","to"], duplicate_node:["nodes","connections","offset"],
     create_event_type:["name","primitive","sentence","symbol","motion","availability","presentation","ref"],
     update_event_type:["eventTypeId","name","primitive","sentence","symbol","motion","availability","presentation"],
     delete_event_type:["eventTypeId"]
@@ -474,6 +476,33 @@ var FluyoAuthoring = (function(){
     return out;
   }
 
+
+  /* ───────── Aspecto del documento, orden Z y duplicado de elementos (FLUYO-018.7a) ─────────
+     Aquí solo viven la forma de las operaciones, las refs y los límites de ENTRADA; las reglas (tema, colocación Z, clonado,
+     ids, conexiones internas, Behaviors) son de model.js: setThemeIn, reorderNodesIn, duplicateNodesIn, las del editor. */
+  const MAX_NODE_LIST = 100;
+  function themeInputRules(patch){
+    if(patch.theme!==undefined && !(typeof patch.theme==="string" && projectOwn(THEMES, patch.theme)))
+      throw reject("INVALID_FIELD", `«theme» ${JSON.stringify(patch.theme)} no existe. Temas: ${Object.keys(THEMES).join(", ")}.`, {field:"theme", allowed:Object.keys(THEMES)});
+    const v = patch.customBg;
+    if(v!==undefined && v!==null && v!=="" && !(typeof v==="string" && HEX_COLOR.test(v)))
+      throw reject("INVALID_FIELD", `«customBg» debe ser un color HEX (#rgb, #rrggbb o #rrggbbaa), null o "" (sin fondo personalizado); recibido ${JSON.stringify(v)}. No se admiten nombres de color.`, {field:"customBg"});
+  }
+  /* Errores de reorderNodesIn/duplicateNodesIn → errores estructurados del lote. */
+  function fromNodeSetDomain(e, op, ctx){
+    if(!(e && typeof e.code==="string" && !e.authoring)) return e;
+    if(e.code==="node_not_found") return reject("NODE_NOT_FOUND", `No existe el elemento ${e.id} en la página ${op.pageIndex}${deletedNote(ctx, op.pageIndex, "node", e.id)}.`, {domainCode:e.code, id:e.id});
+    if(e.code==="id_exhausted") return reject("ID_EXHAUSTED", "La página no admite más ids.", {domainCode:e.code});
+    if(e.code==="invalid_placement") return reject("INVALID_FIELD", "«to» debe ser front, back, forward o backward.", {field:"to", domainCode:e.code});
+    if(e.code==="invalid_document") return reject("INVALID_FIELD", `«${e.field===undefined ? "operación" : e.field}» no es válido.`, {field:e.field, domainCode:e.code});
+    return e;
+  }
+  function nodeList(ctx, op){
+    if(!Array.isArray(op.nodes) || !op.nodes.length || op.nodes.length>MAX_NODE_LIST)
+      throw reject("INVALID_OPERATION", `nodes debe ser una lista de 1 a ${MAX_NODE_LIST} elementos.`, {field:"nodes"});
+    return op.nodes;
+  }
+
   const HANDLERS = {
     create_node(ctx, op, pg){
       const spec = withRef(op, diagramSpec(op));
@@ -568,6 +597,77 @@ var FluyoAuthoring = (function(){
       try{ r = renamePageIn(ctx.d, op.pageIndex, op.name); }
       catch(e){ throw fromPageDomain(e, op); }
       return {entityKind:"page", entityId:r.pageIndex, pageIndex:r.pageIndex, renamed:true, from:r.from, to:r.page.name, affects:{stories:[]}};
+    },
+    /* ── Aspecto del documento (scope document): setThemeIn de model.js, la misma que el editor ── */
+    set_theme(ctx, op){
+      const patch = {};
+      for(const k of ["theme","customBg"]) if(op[k]!==undefined) patch[k] = op[k];
+      if(!Object.keys(patch).length) throw reject("INVALID_OPERATION", "set_theme necesita «theme» y/o «customBg».", {field:"theme"});
+      themeInputRules(patch);
+      let r;
+      try{ r = setThemeIn(ctx.d, patch); }
+      catch(e){
+        if(e && e.code==="invalid_theme") throw reject("INVALID_FIELD", "«theme» no es válido.", {field:"theme"});
+        if(e && e.code==="invalid_document") throw reject("INVALID_FIELD", `«${e.field}» no es válido.`, {field:e.field});
+        throw e;
+      }
+      return {entityKind:"document", changed:r.changed, theme:r.theme, customBg:r.customBg, affects:{stories:[]}};
+    },
+    /* ── Orden Z (scope page): reorderNodesIn de model.js. Solo elementos: las conexiones no tienen Z (van siempre bajo los nodos) ── */
+    reorder_nodes(ctx, op, pg){
+      const ids = nodeList(ctx, op).map((v, i)=>entityOf(ctx, op, v, `nodes[${i}]`, "nodes"));
+      let r;
+      try{ r = reorderNodesIn(pg, ids, op.to); }
+      catch(e){ throw fromNodeSetDomain(e, op, ctx); }
+      return {entityKind:"node", entityId:ids[0], changed:r.changed, to:op.to, affects:Object.assign({stories:[]}, r.changed ? {order:{from:r.from, to:r.to}} : {})};
+    },
+    /* ── Duplicar elementos (scope page): duplicateNodesIn de model.js (la de Ctrl+D). Una operación = un bloque atómico. ── */
+    duplicate_node(ctx, op, pg){
+      const list = nodeList(ctx, op);
+      const ids = [], copyRefs = [];
+      list.forEach((entry, i)=>{
+        if(!isRecord(entry)) throw reject("INVALID_OPERATION", `nodes[${i}] debe ser un objeto {source, ref?}.`, {field:`nodes[${i}]`});
+        onlyKeys(entry, ["source","ref"], `nodes[${i}]`);
+        if(entry.source===undefined) throw reject("INVALID_OPERATION", `nodes[${i}].source es obligatorio: {id} o {ref} del elemento a duplicar.`, {field:`nodes[${i}].source`});
+        const id = entityOf(ctx, op, entry.source, `nodes[${i}].source`, "nodes");
+        if(ids.includes(id)) throw reject("INVALID_OPERATION", `El elemento ${id} aparece más de una vez en nodes.`, {field:`nodes[${i}].source`});
+        ids.push(id);
+        if(entry.ref!==undefined){
+          if(typeof entry.ref!=="string" || !entry.ref) throw reject("INVALID_OPERATION", `nodes[${i}].ref debe ser un texto no vacío.`, {field:`nodes[${i}].ref`});
+          if(pageRefs(ctx, "nodes", op.pageIndex).has(entry.ref) || copyRefs.some(c=>c.ref===entry.ref))
+            throw reject("DUPLICATE_REF", `La ref «${entry.ref}» ya la usa otro elemento de esta página en el lote.`, {field:`nodes[${i}].ref`, ref:entry.ref});
+          copyRefs.push({ref:entry.ref, source:id});
+        }
+      });
+      if(op.connections!==undefined && op.connections!=="internal" && op.connections!=="none")
+        throw reject("INVALID_FIELD", "«connections» debe ser \"internal\" (por defecto) o \"none\".", {field:"connections"});
+      const options = {connections:op.connections};
+      if(op.offset!==undefined){
+        if(!isRecord(op.offset)) throw reject("INVALID_FIELD", "«offset» debe ser {x, y} (números).", {field:"offset"});
+        onlyKeys(op.offset, ["x","y"], "offset");
+        for(const k of ["x","y"]) if(typeof op.offset[k]!=="number" || !Number.isFinite(op.offset[k])) throw reject("INVALID_FIELD", `«offset.${k}» debe ser un número.`, {field:`offset.${k}`});
+        options.dx = op.offset.x; options.dy = op.offset.y;
+      }
+      let r;
+      try{ r = duplicateNodesIn(pg, ids, options); }
+      catch(e){ throw fromNodeSetDomain(e, op, ctx); }
+      const createdList = [];
+      for(const n of r.nodes){
+        const cr = copyRefs.find(c=>c.source===n.from);
+        if(cr){ pageRefs(ctx, "nodes", op.pageIndex).set(cr.ref, n.id); ctx.created.push({ref:cr.ref, type:"node", pageIndex:op.pageIndex, id:n.id}); }
+        watch(ctx, op, op.pageIndex, "node", n.id, ["x","y"]);
+        createdList.push(Object.assign({kind:"node", from:n.from, id:n.id}, cr ? {ref:cr.ref} : {}));
+      }
+      ctx.countOps[op.pageIndex] = Object.assign(ctx.countOps[op.pageIndex] || {}, {nodes:ctx.opIndex});
+      const withWaypoints = [];
+      for(const c of r.connections){
+        createdList.push({kind:"connection", from:c.from, id:c.id});
+        const e = pg.edges.find(x=>x.id===c.id);
+        if(e && (e.waypoints||[]).length){ watch(ctx, op, op.pageIndex, "connection", c.id, ["waypoints"]); withWaypoints.push(c.id); }
+      }
+      if(r.connections.length) ctx.countOps[op.pageIndex] = Object.assign(ctx.countOps[op.pageIndex], {connections:ctx.opIndex});
+      return {entityKind:"node", entityId:r.nodes[0].id, created:createdList, behaviors:r.behaviors,
+              affects:{stories:[], connectionsWithWaypoints:withWaypoints}};
     },
     create_story(ctx, op, pg){
       const name = nameOf(op.name, true) || defaultScenarioName(pg);

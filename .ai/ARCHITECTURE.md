@@ -238,3 +238,18 @@ FluyoAuthoring: reglas de entrada de nodo (HEX, icon, anim) + LIMITS sobre el ES
 - `story-authoring.js`: `nodeInputRules` admite `fill:"none"`; `edgeInputRules` valida `lineColor`/`dotColor` (HEX o null) en `create_connection` y `update_connection` (decisión 97). Sin cambios en el editor, `index.html` ni `sw.js` (`CACHE` sigue en v63): `story-authoring.js` solo lo carga fluyo-mcp.
 - fluyo-mcp: `src/layout.ts` expone `layoutPage(page)` (única adaptación página → `layeredLayout`, usada por `edit_diagram.relayout` y `propose_layout`); `src/propose-layout.ts` es la tool nº 13 (decisión 98): normaliza con el kernel, calcula, comprueba `coordMax` (del kernel), arma lotes ≤200 aplicándolos en memoria con `authorDocument` para encadenar revisiones. No devuelve documento ni guarda estado.
 - Pruebas: `test/fluyo-018-6.test.cjs` (Fluyo; golden `test/fixtures/fluyo-018-6-golden.json` compartido con fluyo-mcp), `test/fluyo-018-6-mutations.cjs`; fluyo-mcp `test/fluyo-018-6.test.ts`, `scripts/mutate-018-6.ts`.
+
+## Aspecto, orden Z y duplicado (FLUYO-018.7a)
+
+```text
+Editor (themeSel/bgCustom · botones de orden · Ctrl+D/Ctrl+V) ─► ui.js / selection.js ─►  model.js: setThemeIn · reorderedNodeIds/reorderNodesIn · cloneStructureIn/duplicateNodesIn
+                                                                                              ▲
+MCP author_document (set_theme · reorder_nodes · duplicate_node) y las tools de una operación del mismo nombre ─► FluyoAuthoring ─► (mismas funciones) ─► FluyoIntegrity
+```
+
+- **Orden Z = posición en `page.nodes[]`** (no `order`, que es la animación `build`). Las conexiones se dibujan siempre debajo de todos los nodos: no tienen Z. `reorderNodesIn` conserva las identidades de los nodos y el orden relativo **del documento**; `changed:false` ⇒ el editor no crea entrada de Undo. El panel de selección múltiple no ofrece botones de orden (ni antes); la función admite varios nodos.
+- **`setThemeIn(d,{theme?,customBg?})`**: parche idempotente (`doc.theme` ∈ `THEMES`, `doc.customBg` string; `null`→`""`). La regla HEX de `customBg` es de entrada de autoría. Sin Undo (el tema es del documento).
+- **`cloneStructureIn` / `duplicateNodesIn`**: única autoridad de clonado (pegar, Ctrl+D y `duplicate_node`). Ids reservados en un bloque antes de mutar (todo o nada), nodos en el orden del documento y luego las conexiones internas; los Behaviors de los nodos copiados se copian; Steps, Historias y EventTypes no se tocan. `dupSel` ya no pasa por `copySel` (no pisa el portapapeles del sistema ni `clip`). Undo por snapshot previo (`pushUndoSnapshot`): si el dominio falla no queda entrada.
+- **F1**: la ✕ de página vacía `undoStack`/`redoStack` (los snapshots identifican la página por índice). Hotfix mínimo; Undo por referencia a la página (y `delete_page`) es el release 018.7c.
+- MCP: 16 tools. `set_theme`, `reorder_nodes` y `duplicate_node` existen como tools de UNA operación (llaman a `authorDocument` con la operación homónima) y como operaciones de `author_document` (lotes, refs de copias). `describe_document` publica `theme`, `customBg`, `capabilities.themes` y `z` por elemento.
+- Pruebas: `test/fluyo-018-7a-f1.test.cjs`, `test/fluyo-018-7a.test.cjs` (caracterización de `pasteClip`/`dupSel`), `test/fluyo-018-7a-domain.test.cjs` (dominio, autoría, paridad editor↔MCP, golden compartido `test/fixtures/fluyo-018-7a-golden.json`), `test/fluyo-018-7a-mutations.cjs` (62), `test/fluyo-018-7a-browser.cjs` (Chrome real contra HEAD); fluyo-mcp: `test/fluyo-018-7a.test.ts`, `scripts/mutate-018-7a.ts` (33).

@@ -69,7 +69,7 @@ test('assets: present-story.js se carga y se precachea (SW subido)',()=>{
   assert.match(read('index.html'),/<script src="js\/present-story\.js"><\/script>/);
   assert.ok(read('index.html').indexOf('editor-scenarios.js')<read('index.html').indexOf('present-story.js'));
   assert.match(read('sw.js'),/"\.\/js\/present-story\.js"/);
-  assert.match(read('sw.js'),/fluyo-static-v63/);
+  assert.match(read('sw.js'),/fluyo-static-v64/);
 });
 test('Present sale limpiando: exitPresent y goSlide detienen el playback',()=>{
   const ui=read('js/ui.js');

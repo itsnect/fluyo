@@ -1,0 +1,367 @@
+{
+ "baseRevision": "sha256:333cbed6fab696da21ce5aeaaa9a4ce538fab19940fa3f69f8db3cb554495482",
+ "document": {
+  "version": 5,
+  "app": "fluyo",
+  "doc": {
+   "theme": "dark",
+   "customBg": "",
+   "eventTypes": [
+    {
+     "id": 1,
+     "name": "Pago",
+     "primitive": "FLOW",
+     "sentenceTemplate": "{source} paga a {target}",
+     "visual": {
+      "kind": "token",
+      "value": "●"
+     },
+     "motion": "normal",
+     "presentation": {
+      "nodeEffects": {
+       "showSymbol": false,
+       "symbolSize": "medium",
+       "message": "",
+       "messageColor": "",
+       "messageSize": "medium",
+       "messageWeight": "normal",
+       "messageFont": "default",
+       "messagePosition": "above",
+       "highlight": false,
+       "blink": false,
+       "dim": false,
+       "fillColor": "",
+       "visualDuration": "normal",
+       "visualDurationMs": 1500
+      },
+      "connectionEffects": {
+       "size": "medium",
+       "style": "direct",
+       "trail": "none",
+       "arrival": "none",
+       "during": "none"
+      }
+     }
+    }
+   ],
+   "nextEventTypeId": 2,
+   "pages": [
+    {
+     "name": "Página 1",
+     "nodes": [
+      {
+       "id": 1,
+       "shape": "rect",
+       "x": 100,
+       "y": 100,
+       "w": 180,
+       "h": 70,
+       "label": "A",
+       "color": "#6a9fb5",
+       "fill": null,
+       "border": "solid",
+       "lblPos": "center",
+       "textBg": null,
+       "textColor": null,
+       "font": null,
+       "bold": false,
+       "pulse": false,
+       "order": 0
+      },
+      {
+       "id": 2,
+       "shape": "rect",
+       "x": 300,
+       "y": 100,
+       "w": 180,
+       "h": 70,
+       "label": "B",
+       "color": "#6a9fb5",
+       "fill": null,
+       "border": "solid",
+       "lblPos": "center",
+       "textBg": null,
+       "textColor": null,
+       "font": null,
+       "bold": false,
+       "pulse": false,
+       "order": 1
+      },
+      {
+       "id": 3,
+       "shape": "rect",
+       "x": 500,
+       "y": 100,
+       "w": 180,
+       "h": 70,
+       "label": "C",
+       "color": "#6a9fb5",
+       "fill": null,
+       "border": "solid",
+       "lblPos": "center",
+       "textBg": null,
+       "textColor": null,
+       "font": null,
+       "bold": false,
+       "pulse": false,
+       "order": 2
+      },
+      {
+       "id": 4,
+       "shape": "rect",
+       "x": 700,
+       "y": 100,
+       "w": 180,
+       "h": 70,
+       "label": "D",
+       "color": "#6a9fb5",
+       "fill": null,
+       "border": "solid",
+       "lblPos": "center",
+       "textBg": null,
+       "textColor": null,
+       "font": null,
+       "bold": false,
+       "pulse": false,
+       "order": 3
+      }
+     ],
+     "edges": [
+      {
+       "id": 5,
+       "from": 1,
+       "to": 2,
+       "fromSide": null,
+       "toSide": null,
+       "route": "straight",
+       "waypoints": [
+        {
+         "x": 200,
+         "y": 60
+        },
+        {
+         "x": 200,
+         "y": 140
+        }
+       ],
+       "label": "uno",
+       "font": null,
+       "bold": false,
+       "animated": true,
+       "dashed": false,
+       "startArrow": false,
+       "endArrow": true,
+       "flowDir": "normal",
+       "lineColor": "#ff0000"
+      },
+      {
+       "id": 6,
+       "from": 2,
+       "to": 3,
+       "fromSide": null,
+       "toSide": null,
+       "route": "straight",
+       "waypoints": [],
+       "label": "",
+       "font": null,
+       "bold": false,
+       "animated": true,
+       "dashed": false,
+       "startArrow": false,
+       "endArrow": true,
+       "flowDir": "normal"
+      },
+      {
+       "id": 7,
+       "from": 3,
+       "to": 4,
+       "fromSide": null,
+       "toSide": null,
+       "route": "straight",
+       "waypoints": [],
+       "label": "",
+       "font": null,
+       "bold": false,
+       "animated": true,
+       "dashed": false,
+       "startArrow": false,
+       "endArrow": true,
+       "flowDir": "normal"
+      },
+      {
+       "id": 8,
+       "from": 1,
+       "to": 4,
+       "fromSide": null,
+       "toSide": null,
+       "route": "straight",
+       "waypoints": [],
+       "label": "",
+       "font": null,
+       "bold": false,
+       "animated": true,
+       "dashed": false,
+       "startArrow": false,
+       "endArrow": true,
+       "flowDir": "normal"
+      }
+     ],
+     "nextId": 9,
+     "behaviors": [
+      {
+       "nodeId": 2,
+       "initialState": "DOWN"
+      },
+      {
+       "nodeId": 4,
+       "initialState": "DOWN"
+      }
+     ],
+     "scenarios": [
+      {
+       "id": 1,
+       "engineVersion": 2,
+       "name": "Compra",
+       "nextStepId": 2,
+       "steps": [
+        {
+         "id": 1,
+         "at": 0,
+         "eventTypeId": 1,
+         "action": "SEND",
+         "edgeId": 6
+        }
+       ]
+      }
+     ],
+     "nextScenarioId": 2
+    }
+   ],
+   "cur": 0
+  },
+  "settings": {
+   "speed": 0.5,
+   "dots": 3,
+   "build": false,
+   "stagger": 0.45,
+   "grid": true,
+   "snap": false,
+   "font": "Georgia, serif",
+   "single": false
+  }
+ },
+ "cases": [
+  {
+   "name": "set_theme tema y fondo",
+   "operations": [
+    {
+     "op": "set_theme",
+     "scope": "document",
+     "theme": "crema",
+     "customBg": "#f4eee1"
+    }
+   ],
+   "resultRevision": "sha256:564e8b8e9bb8da833e18839d7a1f7b6f5e3fb83f472032cb2890e8114ff84ec0"
+  },
+  {
+   "name": "reorder_nodes: subir 2 y 3 una capa",
+   "operations": [
+    {
+     "op": "reorder_nodes",
+     "scope": "page",
+     "pageIndex": 0,
+     "nodes": [
+      {
+       "id": 2
+      },
+      {
+       "id": 3
+      }
+     ],
+     "to": "forward"
+    }
+   ],
+   "resultRevision": "sha256:b8fbf071f1cb06ddf8daa630b1f0fba5fd2e45ce19f08b0858b7c66c5c417644"
+  },
+  {
+   "name": "reorder_nodes: 1 al frente",
+   "operations": [
+    {
+     "op": "reorder_nodes",
+     "scope": "page",
+     "pageIndex": 0,
+     "nodes": [
+      {
+       "id": 1
+      }
+     ],
+     "to": "front"
+    }
+   ],
+   "resultRevision": "sha256:09809a490d4e08276e401259bfb2f919054b44903fa6d02170c0b01c3acc1cda"
+  },
+  {
+   "name": "reorder_nodes: 4 al fondo",
+   "operations": [
+    {
+     "op": "reorder_nodes",
+     "scope": "page",
+     "pageIndex": 0,
+     "nodes": [
+      {
+       "id": 4
+      }
+     ],
+     "to": "back"
+    }
+   ],
+   "resultRevision": "sha256:88d2c912ac27e287e372292e08977dd9292eafd46fa27c381dd6e0ffdd139f6e"
+  },
+  {
+   "name": "duplicate_node: conjunto 1,2,3",
+   "operations": [
+    {
+     "op": "duplicate_node",
+     "scope": "page",
+     "pageIndex": 0,
+     "nodes": [
+      {
+       "source": {
+        "id": 1
+       }
+      },
+      {
+       "source": {
+        "id": 2
+       }
+      },
+      {
+       "source": {
+        "id": 3
+       }
+      }
+     ]
+    }
+   ],
+   "resultRevision": "sha256:8e9ae157786a641490bef7be4ae6c2e05ad7a3b3feda0e2605a7e827ad1f01cb"
+  },
+  {
+   "name": "duplicate_node: un nodo con Behavior",
+   "operations": [
+    {
+     "op": "duplicate_node",
+     "scope": "page",
+     "pageIndex": 0,
+     "nodes": [
+      {
+       "source": {
+        "id": 2
+       }
+      }
+     ]
+    }
+   ],
+   "resultRevision": "sha256:407159044f0a5539475cb935df48ea38dc8dc355fed213963b3ac7bb08f6d0d0"
+  }
+ ]
+}

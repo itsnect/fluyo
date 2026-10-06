@@ -45,34 +45,31 @@ function copySel(){
    sea la vía (tecla, botón del panel, menú contextual, papelera táctil). La guarda vive aquí, en la única puerta de borrado. */
 function editorFrozen(){ return typeof isScenarioPlaybackActive==="function" && isScenarioPlaybackActive(); }
 function cutSel(){ if(editorFrozen()) return; copySel(); deleteSel(); }
+/* Pegar y duplicar (FLUYO-018.7a): las dos llaman a cloneStructureIn/duplicateNodesIn (model.js, única autoridad de clonado:
+   ids reservados antes de mutar, solo conexiones internas, Behaviors copiados, waypoints desplazados). El editor aporta el
+   desplazamiento GRID, el Undo (un snapshot previo, solo si el dominio no falla), la selección y la cascada de `clip`. */
 function pasteClip(){
   if(!clip || !clip.nodes.length) return;
-  // Reservar el lote antes de cambiar selección/estructura: agotamiento no
-  // puede dejar un pegado parcial ni IDs inseguros.
-  let nextId=reserveStructureIds(P(),clip.nodes.length+clip.edges.length);
-  pushUndo();
-  const map={};
-  selN.clear(); selE.clear();
-  clip.nodes.forEach(n=>{
-    const c=deep(n); map[n.id]=c.id=nextId++;
-    c.x+=GRID; c.y+=GRID; c.order=P().nodes.length;
-    P().nodes.push(c); selN.add(c.id);
-  });
-  clip.edges.forEach(e=>{
-    const c=deep(e); c.id=nextId++;
-    c.from=map[e.from]; c.to=map[e.to];
-    (c.waypoints||[]).forEach(w=>{w.x+=GRID; w.y+=GRID;});
-    P().edges.push(c); selE.add(c.id);
-  });
-  for(const b of clip.behaviors||[]){
-    if(Object.prototype.hasOwnProperty.call(map,b.nodeId)) P().behaviors.push({...deep(b),nodeId:map[b.nodeId]});
-  }
+  const snap=snapPage();
+  const r=cloneStructureIn(P(), clip, {dx:GRID, dy:GRID});      // un fallo (p. ej. id_exhausted) no deja copia parcial ni entrada de Undo
+  pushUndoSnapshot(snap);
+  selN=new Set(r.nodes.map(x=>x.id)); selE=new Set(r.connections.map(x=>x.id));
   // cascada en pegados sucesivos
   clip.nodes.forEach(n=>{n.x+=GRID; n.y+=GRID;});
   clip.edges.forEach(e=>(e.waypoints||[]).forEach(w=>{w.x+=GRID; w.y+=GRID;}));
   refreshPanel();
 }
-function dupSel(){ const keep=clip; copySel(); pasteClip(); clip=keep; }
+/* Ctrl+D / «Duplicar»: sin pasar por el portapapeles (ni el interno ni el del sistema). Una sola entrada de Undo. */
+function dupSel(){
+  if(!selN.size) return;
+  const snap=snapPage();
+  let r;
+  try{ r=duplicateNodesIn(P(), [...selN], {dx:GRID, dy:GRID}); }
+  catch(err){ if(err && typeof err.code==="string" && err.code!=="id_exhausted") return; throw err; }
+  pushUndoSnapshot(snap);
+  selN=new Set(r.nodes.map(x=>x.id)); selE=new Set(r.connections.map(x=>x.id));
+  refreshPanel();
+}
 /* Política de borrado (FLUYO-018.4): si lo que se borra lo usa una Historia, se pide confirmación nombrando Historias y momentos;
    sin impacto se borra al instante. Nunca se modifican Steps ni Historias. El impacto lo calcula FluyoIntegrity.removalImpact
    (la misma detección que el B2 de MCP) sobre una copia de la página activa; sin Historias no hay nada que simular. */
@@ -123,44 +120,29 @@ function deleteSel(){
   clearSel();
 }
 
-/* ---- orden Z (traer al frente / enviar al fondo) ---- */
-function bringToFront(){
+/* ---- orden Z (traer al frente / enviar al fondo) ----
+   FLUYO-018.7a: la semántica es reorderNodesIn (model.js); aquí solo Undo y autoguardado. Sin cambio no hay entrada de Undo. */
+function reorderSelection(placement){
   if(!selN.size) return;
+  const ids=[...selN];
+  let plan;
+  try{ plan=reorderedNodeIds(P(), ids, placement); }
+  catch(err){ if(err && typeof err.code==="string") return; throw err; }
+  if(plan.every((id,i)=>id===P().nodes[i].id)) return;
   pushUndo();
-  const sel=P().nodes.filter(n=>selN.has(n.id));
-  P().nodes=P().nodes.filter(n=>!selN.has(n.id)).concat(sel);
+  reorderNodesIn(P(), ids, placement);
   scheduleAutosave();
 }
-function sendToBack(){
-  if(!selN.size) return;
-  pushUndo();
-  const sel=P().nodes.filter(n=>selN.has(n.id));
-  P().nodes=sel.concat(P().nodes.filter(n=>!selN.has(n.id)));
-  scheduleAutosave();
-}
-function bringForward(){
-  if(!selN.size) return;
-  pushUndo();
-  const ns=P().nodes;
-  for(let i=ns.length-2;i>=0;i--){
-    if(selN.has(ns[i].id) && !selN.has(ns[i+1].id)){ [ns[i],ns[i+1]]=[ns[i+1],ns[i]]; }
-  }
-  scheduleAutosave();
-}
-function sendBackward(){
-  if(!selN.size) return;
-  pushUndo();
-  const ns=P().nodes;
-  for(let i=1;i<ns.length;i++){
-    if(selN.has(ns[i].id) && !selN.has(ns[i-1].id)){ [ns[i],ns[i-1]]=[ns[i-1],ns[i]]; }
-  }
-  scheduleAutosave();
-}
+function bringToFront(){ reorderSelection("front"); }
+function sendToBack(){ reorderSelection("back"); }
+function bringForward(){ reorderSelection("forward"); }
+function sendBackward(){ reorderSelection("backward"); }
 
 /* ---- deshacer / rehacer ---- */
 let undoStack=[], redoStack=[], lblDirty=false, fsDirty=false;
 function snapPage(){ return {pi:doc.cur, data:deep(P())}; }
-function pushUndo(){ undoStack.push(snapPage()); if(undoStack.length>60) undoStack.shift(); redoStack.length=0; scheduleAutosave(); }
+function pushUndoSnapshot(s){ undoStack.push(s); if(undoStack.length>60) undoStack.shift(); redoStack.length=0; scheduleAutosave(); }
+function pushUndo(){ pushUndoSnapshot(snapPage()); }
 function applySnap(s){
   doc.cur=clamp(s.pi,0,doc.pages.length-1);
   const pg=P();

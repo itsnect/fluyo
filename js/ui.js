@@ -379,7 +379,8 @@ $("btnPlay").onclick=togglePlay;
 /* Estos cinco iban asignados dos veces por un merge: la segunda asignación,
    sin scheduleAutosave(), ganaba y dejaba tema, velocidad, puntos y aparición
    fuera del autoguardado. Queda solo la versión que sí guarda. */
-$("themeSel").onchange=()=>{ doc.theme=$("themeSel").value; scheduleAutosave(); };
+/* FLUYO-018.7a: tema y fondo pasan por setThemeIn (model.js, la misma que set_theme de MCP). Sin Undo: son del documento, no de la página. */
+$("themeSel").onchange=()=>{ setThemeIn(doc,{theme:$("themeSel").value}); scheduleAutosave(); };
 $("speedIn").oninput=()=>{ settings.speed=+$("speedIn").value; scheduleAutosave(); };
 $("dotsIn").oninput=()=>{ settings.dots=+$("dotsIn").value; scheduleAutosave(); };
 $("buildChk").onchange=()=>{ settings.build=$("buildChk").checked; t0=performance.now(); pausedAt=0; scheduleAutosave(); };
@@ -387,8 +388,8 @@ $("staggerIn").oninput=()=>{ settings.stagger=+$("staggerIn").value; scheduleAut
 $("chkSingle").onchange=()=>{ settings.single=$("chkSingle").checked; scheduleAutosave(); };
 $("chkGrid").onchange=()=>{ settings.grid=$("chkGrid").checked; scheduleAutosave(); };
 $("chkSnap").onchange=()=>{ settings.snap=$("chkSnap").checked; scheduleAutosave(); };
-$("bgCustom").oninput=()=>{ doc.customBg=$("bgCustom").value; scheduleAutosave(); };
-$("btnBgClear").onclick=()=>{ doc.customBg=""; scheduleAutosave(); };
+$("bgCustom").oninput=()=>{ setThemeIn(doc,{customBg:$("bgCustom").value}); scheduleAutosave(); };
+$("btnBgClear").onclick=()=>{ setThemeIn(doc,{customBg:""}); scheduleAutosave(); };
 $("btnClear").onclick=()=>{
   if(typeof isScenarioPlaybackActive==="function" && isScenarioPlaybackActive()){ if(typeof scReset==="function") scReset(); return; }
   if(confirm("Limpiar página\n\nSe eliminarán los elementos y las historias de esta página.\n\nLos Eventos del proyecto se conservarán.\n\n¿Limpiar página?")){
@@ -472,6 +473,9 @@ function renderTabs(){
         if(confirm(`¿Eliminar «${pg.name}»?`)){
           doc.pages.splice(i,1);
           doc.cur=Math.min(doc.cur, doc.pages.length-1);
+          /* FLUYO-018.7a (F1): Undo/Redo identifican la página por ÍNDICE; tras el splice apuntarían a otra página y
+             deshacer/rehacer escribiría el contenido de una en otra. Se vacían (como applyProjectData). */
+          undoStack.length=0; redoStack.length=0;
           clearSel(); renderTabs(); scheduleAutosave();
         }};
       t.appendChild(x);

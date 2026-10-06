@@ -1,0 +1,650 @@
+{
+  "start": {
+    "version": 5,
+    "app": "fluyo",
+    "doc": {
+      "theme": "dark",
+      "customBg": "",
+      "eventTypes": [
+        {
+          "id": 1,
+          "name": "Pago",
+          "primitive": "FLOW",
+          "sentenceTemplate": "{source} paga a {target}",
+          "visual": {
+            "kind": "token",
+            "value": "●"
+          },
+          "motion": "normal",
+          "presentation": {
+            "nodeEffects": {
+              "showSymbol": false,
+              "symbolSize": "medium",
+              "message": "",
+              "messageColor": "",
+              "messageSize": "medium",
+              "messageWeight": "normal",
+              "messageFont": "default",
+              "messagePosition": "above",
+              "highlight": false,
+              "blink": false,
+              "dim": false,
+              "fillColor": "",
+              "visualDuration": "normal",
+              "visualDurationMs": 1500
+            },
+            "connectionEffects": {
+              "size": "medium",
+              "style": "direct",
+              "trail": "none",
+              "arrival": "none",
+              "during": "none"
+            }
+          }
+        },
+        {
+          "id": 2,
+          "name": "Aviso",
+          "primitive": "OCCURRENCE",
+          "sentenceTemplate": "{target} avisa",
+          "visual": {
+            "kind": "token",
+            "value": "●"
+          },
+          "motion": "normal",
+          "presentation": {
+            "nodeEffects": {
+              "showSymbol": false,
+              "symbolSize": "medium",
+              "message": "",
+              "messageColor": "",
+              "messageSize": "medium",
+              "messageWeight": "normal",
+              "messageFont": "default",
+              "messagePosition": "above",
+              "highlight": false,
+              "blink": false,
+              "dim": false,
+              "fillColor": "",
+              "visualDuration": "normal",
+              "visualDurationMs": 1500
+            }
+          }
+        }
+      ],
+      "nextEventTypeId": 3,
+      "pages": [
+        {
+          "name": "Página 1",
+          "nodes": [
+            {
+              "id": 1,
+              "shape": "rect",
+              "x": 200,
+              "y": 300,
+              "w": 180,
+              "h": 70,
+              "label": "Cliente",
+              "color": "#6a9fb5",
+              "fill": null,
+              "border": "solid",
+              "lblPos": "center",
+              "textBg": null,
+              "textColor": null,
+              "font": null,
+              "bold": false,
+              "pulse": false,
+              "order": 0
+            },
+            {
+              "id": 2,
+              "shape": "rect",
+              "x": 600,
+              "y": 300,
+              "w": 180,
+              "h": 70,
+              "label": "Comercio",
+              "color": "#6a9fb5",
+              "fill": null,
+              "border": "solid",
+              "lblPos": "center",
+              "textBg": null,
+              "textColor": null,
+              "font": null,
+              "bold": false,
+              "pulse": false,
+              "order": 1
+            }
+          ],
+          "edges": [
+            {
+              "id": 3,
+              "from": 1,
+              "to": 2,
+              "fromSide": null,
+              "toSide": null,
+              "route": "straight",
+              "waypoints": [],
+              "label": "Pago",
+              "font": null,
+              "bold": false,
+              "animated": true,
+              "dashed": false,
+              "startArrow": false,
+              "endArrow": true,
+              "flowDir": "normal"
+            }
+          ],
+          "nextId": 4,
+          "behaviors": [],
+          "scenarios": [
+            {
+              "id": 1,
+              "engineVersion": 2,
+              "name": "Compra",
+              "nextStepId": 2,
+              "steps": [
+                {
+                  "id": 1,
+                  "at": 0,
+                  "eventTypeId": 1,
+                  "action": "SEND",
+                  "edgeId": 3
+                }
+              ]
+            }
+          ],
+          "nextScenarioId": 2
+        },
+        {
+          "name": "Datos",
+          "nodes": [
+            {
+              "id": 1,
+              "shape": "cylinder",
+              "x": 100,
+              "y": 100,
+              "w": 150,
+              "h": 90,
+              "label": "Base",
+              "color": "#6a9fb5",
+              "fill": null,
+              "border": "solid",
+              "lblPos": "center",
+              "textBg": null,
+              "textColor": null,
+              "font": null,
+              "bold": false,
+              "pulse": false,
+              "order": 0
+            }
+          ],
+          "edges": [],
+          "nextId": 2,
+          "behaviors": [],
+          "scenarios": [],
+          "nextScenarioId": 1
+        }
+      ],
+      "cur": 0
+    },
+    "settings": {
+      "speed": 0.5,
+      "dots": 3,
+      "build": false,
+      "stagger": 0.45,
+      "grid": true,
+      "snap": false,
+      "font": "Georgia, serif",
+      "single": false
+    }
+  },
+  "operations": [
+    {
+      "op": "create_page",
+      "scope": "document"
+    },
+    {
+      "op": "create_page",
+      "scope": "document",
+      "name": "Reportes"
+    },
+    {
+      "op": "rename_page",
+      "scope": "document",
+      "pageIndex": 1,
+      "name": "Datos 2"
+    },
+    {
+      "op": "rename_page",
+      "scope": "document",
+      "pageIndex": 0,
+      "name": "Inicio"
+    },
+    {
+      "op": "create_node",
+      "scope": "page",
+      "pageIndex": 2,
+      "spec": {
+        "shape": "hex",
+        "x": 100,
+        "y": 100,
+        "label": "Origen"
+      },
+      "ref": "a"
+    },
+    {
+      "op": "create_node",
+      "scope": "page",
+      "pageIndex": 2,
+      "spec": {
+        "shape": "icon",
+        "x": 400,
+        "y": 100,
+        "icon": "db",
+        "label": "BD"
+      },
+      "ref": "b"
+    },
+    {
+      "op": "create_connection",
+      "scope": "page",
+      "pageIndex": 2,
+      "source": {
+        "ref": "a"
+      },
+      "target": {
+        "ref": "b"
+      },
+      "ref": "k",
+      "spec": {
+        "label": "Lee",
+        "route": "ortho",
+        "fromSide": "e",
+        "toSide": "w"
+      }
+    },
+    {
+      "op": "create_node",
+      "scope": "page",
+      "pageIndex": 3,
+      "spec": {
+        "shape": "text",
+        "x": 0,
+        "y": 0,
+        "label": "Nota",
+        "border": "none"
+      }
+    },
+    {
+      "op": "create_story",
+      "scope": "story",
+      "pageIndex": 2,
+      "name": "Lectura",
+      "ref": "t"
+    },
+    {
+      "op": "add_step",
+      "scope": "story",
+      "pageIndex": 2,
+      "storyId": {
+        "ref": "t"
+      },
+      "eventTypeId": 1,
+      "target": {
+        "ref": "k"
+      }
+    },
+    {
+      "op": "add_step",
+      "scope": "story",
+      "pageIndex": 2,
+      "storyId": {
+        "ref": "t"
+      },
+      "eventTypeId": 2,
+      "target": {
+        "nodeId": {
+          "ref": "b"
+        }
+      }
+    },
+    {
+      "op": "add_step",
+      "scope": "story",
+      "pageIndex": 0,
+      "storyId": 1,
+      "eventTypeId": 2,
+      "target": {
+        "nodeId": 1
+      }
+    }
+  ],
+  "document": {
+    "version": 5,
+    "app": "fluyo",
+    "doc": {
+      "theme": "dark",
+      "customBg": "",
+      "eventTypes": [
+        {
+          "id": 1,
+          "name": "Pago",
+          "primitive": "FLOW",
+          "sentenceTemplate": "{source} paga a {target}",
+          "visual": {
+            "kind": "token",
+            "value": "●"
+          },
+          "motion": "normal",
+          "presentation": {
+            "nodeEffects": {
+              "showSymbol": false,
+              "symbolSize": "medium",
+              "message": "",
+              "messageColor": "",
+              "messageSize": "medium",
+              "messageWeight": "normal",
+              "messageFont": "default",
+              "messagePosition": "above",
+              "highlight": false,
+              "blink": false,
+              "dim": false,
+              "fillColor": "",
+              "visualDuration": "normal",
+              "visualDurationMs": 1500
+            },
+            "connectionEffects": {
+              "size": "medium",
+              "style": "direct",
+              "trail": "none",
+              "arrival": "none",
+              "during": "none"
+            }
+          }
+        },
+        {
+          "id": 2,
+          "name": "Aviso",
+          "primitive": "OCCURRENCE",
+          "sentenceTemplate": "{target} avisa",
+          "visual": {
+            "kind": "token",
+            "value": "●"
+          },
+          "motion": "normal",
+          "presentation": {
+            "nodeEffects": {
+              "showSymbol": false,
+              "symbolSize": "medium",
+              "message": "",
+              "messageColor": "",
+              "messageSize": "medium",
+              "messageWeight": "normal",
+              "messageFont": "default",
+              "messagePosition": "above",
+              "highlight": false,
+              "blink": false,
+              "dim": false,
+              "fillColor": "",
+              "visualDuration": "normal",
+              "visualDurationMs": 1500
+            }
+          }
+        }
+      ],
+      "nextEventTypeId": 3,
+      "pages": [
+        {
+          "name": "Inicio",
+          "nodes": [
+            {
+              "id": 1,
+              "shape": "rect",
+              "x": 200,
+              "y": 300,
+              "w": 180,
+              "h": 70,
+              "label": "Cliente",
+              "color": "#6a9fb5",
+              "fill": null,
+              "border": "solid",
+              "lblPos": "center",
+              "textBg": null,
+              "textColor": null,
+              "font": null,
+              "bold": false,
+              "pulse": false,
+              "order": 0
+            },
+            {
+              "id": 2,
+              "shape": "rect",
+              "x": 600,
+              "y": 300,
+              "w": 180,
+              "h": 70,
+              "label": "Comercio",
+              "color": "#6a9fb5",
+              "fill": null,
+              "border": "solid",
+              "lblPos": "center",
+              "textBg": null,
+              "textColor": null,
+              "font": null,
+              "bold": false,
+              "pulse": false,
+              "order": 1
+            }
+          ],
+          "edges": [
+            {
+              "id": 3,
+              "from": 1,
+              "to": 2,
+              "fromSide": null,
+              "toSide": null,
+              "route": "straight",
+              "waypoints": [],
+              "label": "Pago",
+              "font": null,
+              "bold": false,
+              "animated": true,
+              "dashed": false,
+              "startArrow": false,
+              "endArrow": true,
+              "flowDir": "normal"
+            }
+          ],
+          "nextId": 4,
+          "behaviors": [],
+          "scenarios": [
+            {
+              "id": 1,
+              "engineVersion": 2,
+              "name": "Compra",
+              "nextStepId": 3,
+              "steps": [
+                {
+                  "id": 1,
+                  "at": 0,
+                  "eventTypeId": 1,
+                  "action": "SEND",
+                  "edgeId": 3
+                },
+                {
+                  "id": 2,
+                  "at": 1000,
+                  "eventTypeId": 2,
+                  "action": "OCCURRENCE",
+                  "nodeId": 1
+                }
+              ]
+            }
+          ],
+          "nextScenarioId": 2
+        },
+        {
+          "name": "Datos 2",
+          "nodes": [
+            {
+              "id": 1,
+              "shape": "cylinder",
+              "x": 100,
+              "y": 100,
+              "w": 150,
+              "h": 90,
+              "label": "Base",
+              "color": "#6a9fb5",
+              "fill": null,
+              "border": "solid",
+              "lblPos": "center",
+              "textBg": null,
+              "textColor": null,
+              "font": null,
+              "bold": false,
+              "pulse": false,
+              "order": 0
+            }
+          ],
+          "edges": [],
+          "nextId": 2,
+          "behaviors": [],
+          "scenarios": [],
+          "nextScenarioId": 1
+        },
+        {
+          "name": "Página 3",
+          "nodes": [
+            {
+              "id": 1,
+              "shape": "hex",
+              "x": 100,
+              "y": 100,
+              "w": 170,
+              "h": 80,
+              "label": "Origen",
+              "color": "#6a9fb5",
+              "fill": null,
+              "border": "solid",
+              "lblPos": "center",
+              "textBg": null,
+              "textColor": null,
+              "font": null,
+              "bold": false,
+              "pulse": false,
+              "order": 0
+            },
+            {
+              "id": 2,
+              "shape": "icon",
+              "x": 400,
+              "y": 100,
+              "w": 120,
+              "h": 92,
+              "label": "BD",
+              "color": "#6a9fb5",
+              "fill": null,
+              "border": "solid",
+              "lblPos": "center",
+              "textBg": null,
+              "textColor": null,
+              "font": null,
+              "bold": false,
+              "pulse": false,
+              "order": 1,
+              "icon": "db",
+              "tint": false
+            }
+          ],
+          "edges": [
+            {
+              "id": 3,
+              "from": 1,
+              "to": 2,
+              "fromSide": "e",
+              "toSide": "w",
+              "route": "ortho",
+              "waypoints": [],
+              "label": "Lee",
+              "font": null,
+              "bold": false,
+              "animated": true,
+              "dashed": false,
+              "startArrow": false,
+              "endArrow": true,
+              "flowDir": "normal"
+            }
+          ],
+          "nextId": 4,
+          "behaviors": [],
+          "scenarios": [
+            {
+              "id": 1,
+              "engineVersion": 2,
+              "name": "Lectura",
+              "nextStepId": 3,
+              "steps": [
+                {
+                  "id": 1,
+                  "at": 0,
+                  "eventTypeId": 1,
+                  "action": "SEND",
+                  "edgeId": 3
+                },
+                {
+                  "id": 2,
+                  "at": 1000,
+                  "eventTypeId": 2,
+                  "action": "OCCURRENCE",
+                  "nodeId": 2
+                }
+              ]
+            }
+          ],
+          "nextScenarioId": 2
+        },
+        {
+          "name": "Reportes",
+          "nodes": [
+            {
+              "id": 1,
+              "shape": "text",
+              "x": 0,
+              "y": 0,
+              "w": 200,
+              "h": 40,
+              "label": "Nota",
+              "color": "#6a9fb5",
+              "fill": null,
+              "border": "none",
+              "lblPos": "center",
+              "textBg": null,
+              "textColor": null,
+              "font": null,
+              "bold": false,
+              "pulse": false,
+              "order": 0
+            }
+          ],
+          "edges": [],
+          "nextId": 2,
+          "behaviors": [],
+          "scenarios": [],
+          "nextScenarioId": 1
+        }
+      ],
+      "cur": 0
+    },
+    "settings": {
+      "speed": 0.5,
+      "dots": 3,
+      "build": false,
+      "stagger": 0.45,
+      "grid": true,
+      "snap": false,
+      "font": "Georgia, serif",
+      "single": false
+    }
+  }
+}

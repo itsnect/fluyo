@@ -484,7 +484,13 @@ function renderTabs(){
     };
     t.ondblclick=()=>{
       if(typeof isScenarioPlaybackActive==="function" && isScenarioPlaybackActive()) return;
-      const nn=prompt("Nombre de la página:",pg.name); if(nn){ pg.name=nn; renderTabs(); scheduleAutosave(); }
+      const nn=prompt("Nombre de la página:",pg.name); if(!nn) return;
+      try{ renamePage(i,nn); }
+      catch(err){
+        if(err && err.code==="invalid_page_name"){ alert(`El nombre de la página debe tener entre 1 y ${PAGE_NAME_MAX} caracteres.`); return; }
+        throw err;
+      }
+      renderTabs(); scheduleAutosave();
     };
     bar.appendChild(t);
   });
@@ -492,7 +498,7 @@ function renderTabs(){
   add.textContent="＋"; add.title="Nueva página"; add.style.padding="4px 10px";
   add.onclick=()=>{
     if(typeof isScenarioPlaybackActive==="function" && isScenarioPlaybackActive()){ if(typeof scReset==="function") scReset(); }
-    doc.pages.push(blankPage("Página "+(doc.pages.length+1))); doc.cur=doc.pages.length-1; clearSel(); renderTabs(); scheduleAutosave();
+    addPage(); clearSel(); renderTabs(); scheduleAutosave();
   };
   bar.appendChild(add);
 }

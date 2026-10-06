@@ -276,7 +276,7 @@ test('UI: lenguaje humano, sin <select> y con los controles esperados',()=>{
 test('Share/Viewer: sin archivos nuevos; el snapshot ya transporta presentation',()=>{
   const html=read('s/index.html');
   assert.doesNotMatch(html,/connection-effects|flow-style/);
-  assert.match(read('sw.js'),/fluyo-static-v62/);
+  assert.match(read('sw.js'),/fluyo-static-v63/);
 });
 
 /* ───────────────────────── QA adversarial (FLUYO-015) ───────────────────────── */

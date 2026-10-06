@@ -1,11 +1,11 @@
 "use strict";
-/* FLUYO-017.2 / 017.3 / 018.2 / 018.3. Autoría de Historias, EventTypes y del diagrama (crear, modificar y eliminar nodos y conexiones) sobre un documento: UN lote atómico de operaciones sobre una COPIA.
+/* FLUYO-017.2 / 017.3 / 018.2 / 018.3 / 018.5. Autoría de Historias, EventTypes, páginas y del diagrama (crear, modificar y eliminar nodos y conexiones) sobre un documento: UN lote atómico de operaciones sobre una COPIA.
 
    Compone, no reimplementa:
      · las funciones de model.js que ya usa el editor (createScenario, duplicateScenario, createStep,
        storyboard*, stepDefinitionForEvent, storyboardSetWait, duplicateStep, retargetStep, setInitialAvailability,
        createEventTypeIn, updateEventTypeIn, deleteEventTypeIn, eventTypeDefinition, createNodeIn, createConnectionIn,
-       updateNodeIn, updateConnectionIn, deleteNodeIn, deleteConnectionIn:
+       updateNodeIn, updateConnectionIn, deleteNodeIn, deleteConnectionIn, createPageIn, renamePageIn:
        las mismas que ejecuta el editor);
      · FluyoIntegrity (la autoridad de integridad) sobre el ESTADO FINAL del lote y para explicar qué rompería
        borrar o cambiar un EventType usado.
@@ -25,9 +25,15 @@ var FluyoAuthoring = (function(){
     add_step:"story", remove_step:"story", move_step:"story", duplicate_step:"story", retarget_step:"story", set_wait:"story",
     set_initial_availability:"page", create_node:"page", create_connection:"page",
     update_node:"page", update_connection:"page", delete_node:"page", delete_connection:"page",
+    create_page:"document", rename_page:"document",
     create_event_type:"eventType", update_event_type:"eventType", delete_event_type:"eventType"
   };
   const MAX_OPERATIONS = 200;
+  /* Reglas de ENTRADA de autoría (FLUYO-018.5). No son reglas del documento: FluyoIntegrity no las conoce y un documento
+     antiguo que las exceda se abre y se ejecuta igual. Se aplican al ESTADO FINAL del lote y solo a lo que el lote escribe
+     (ver limitErrors). coordMax acota x,y de los nodos y los puntos de waypoints; sizeMin/sizeMax, w y h. */
+  const LIMITS = Object.freeze({coordMax:100000, sizeMin:10, sizeMax:5000, maxNodesPerPage:300, maxConnectionsPerPage:600});
+  const HEX_COLOR = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
   /* Campos permitidos por operación (además de op, scope y pageIndex). Un campo desconocido se rechaza:
      p. ej. nadie puede escribir `action`, `state` ni `at` en un paso; el EventType y las esperas lo deciden. */
   const OPERATION_FIELDS = {
@@ -39,6 +45,7 @@ var FluyoAuthoring = (function(){
     create_node:["spec","ref"], create_connection:["source","target","spec","ref"],
     update_node:["node","spec"], update_connection:["connection","source","target","spec"],
     delete_node:["node"], delete_connection:["connection"],
+    create_page:["name"], rename_page:["pageIndex","name"],
     create_event_type:["name","primitive","sentence","symbol","motion","availability","presentation","ref"],
     update_event_type:["eventTypeId","name","primitive","sentence","symbol","motion","availability","presentation"],
     delete_event_type:["eventTypeId"]
@@ -274,6 +281,14 @@ var FluyoAuthoring = (function(){
     duplicate_structure_id:"DUPLICATE_ID", duplicate_ref:"DUPLICATE_REF", id_exhausted:"ID_EXHAUSTED",
     node_not_found:"NODE_NOT_FOUND", connection_not_found:"CONNECTION_NOT_FOUND"
   };
+  /* Errores de createPageIn/renamePageIn → errores estructurados del lote. */
+  function fromPageDomain(e, op){
+    if(e && typeof e.code==="string" && !e.authoring){
+      if(e.code==="invalid_page_name") return reject("INVALID_NAME", `El nombre de la página debe ser un texto de 1 a ${PAGE_NAME_MAX} caracteres (no solo espacios).`, {field:"name"});
+      if(e.code==="page_not_found") return reject("PAGE_NOT_FOUND", `pageIndex ${op && op.pageIndex} fuera de rango.`, {pageIndex:op && op.pageIndex});
+    }
+    return e;
+  }
   const isNodeOp = op => /_node$/.test(op.op);
   /* Un error de validación de model.js ({code, field?}) → error estructurado del lote. `id` es el elemento/conexión al que
      apuntaba la operación (para decir qué no existe y, si lo eliminó el propio lote, quién). */
@@ -349,6 +364,73 @@ var FluyoAuthoring = (function(){
     const d = ctx && ctx.deleted.find(x=>x.pageIndex===pageIndex && x.kind===kind && x.id===id);
     return d ? ` (la eliminó la operación ${d.operationIndex}: ${d.operation}${d.cascadedFrom ? `, en cascada con el elemento ${d.cascadedFrom.id}` : ""})` : "";
   }
+  /* ───────── Reglas de entrada de nodo y límites (FLUYO-018.5) ─────────
+     Solo en autoría. Se validan los campos que el lote ESCRIBE (en update_node, las claves del parche): un valor antiguo del
+     documento, inválido bajo estas reglas, no se revalida ni impide editar el resto del nodo. */
+  const NODE_COLOR_FIELDS = ["color","fill","textBg","textColor","kwBg","kwColor"];
+  function invalidField(field, message){ return reject("INVALID_FIELD", message, {field}); }
+  function nodeInputRules(spec, shape, isCreate){
+    for(const k of NODE_COLOR_FIELDS){
+      const v = spec[k];
+      if(v===undefined || (v===null && (k!=="color" || isCreate))) continue;     // null: «sin valor» en los campos anulables (y color→default al crear)
+      if(typeof v!=="string" || !HEX_COLOR.test(v)) throw invalidField(k, `«${k}» debe ser un color HEX (#rgb, #rrggbb o #rrggbbaa); recibido ${JSON.stringify(v)}. No se admiten nombres de color.`);
+    }
+    if(!isCreate) return;
+    for(const [k, catalog, tool] of [["icon", ICONS, "list_icons"], ["anim", ANIMS, "list_anims"]]){
+      if(spec[k]===undefined) continue;
+      if(typeof spec[k]!=="string" || !projectOwn(catalog, spec[k])) throw invalidField(k, `«${k}» ${JSON.stringify(spec[k])} no existe en el catálogo: consulta ${tool}.`);
+    }
+    if(shape==="icon" && spec.icon===undefined) throw invalidField("icon", "Un elemento de forma «icon» necesita «icon» (clave del catálogo: list_icons).");
+    if(shape==="anim" && spec.anim===undefined) throw invalidField("anim", "Un elemento de forma «anim» necesita «anim» (clave del catálogo: list_anims).");
+  }
+  /* Qué escribió el lote (y dónde) para comprobar los topes sobre el estado FINAL. Clave por entidad: crear y luego mover es una
+     sola entrada; si la entidad ya no existe al final, no se comprueba. */
+  function watch(ctx, op, pageIndex, kind, id, fields){
+    const key = `${pageIndex}:${kind}:${id}`;
+    const w = ctx.watch.get(key) || {pageIndex, kind, id, fields:new Set()};
+    for(const f of fields) w.fields.add(f);
+    w.operationIndex = ctx.opIndex; w.operation = op.op;
+    ctx.watch.set(key, w);
+  }
+  function limitError(limitName, field, actual, extra){
+    const limit = LIMITS[limitName];
+    return Object.assign({code:"LIMIT_EXCEEDED", limitName, limit, actual, field,
+      message:`${extra.where}: «${field}» = ${actual} ${actual>limit && limitName!=="sizeMin" ? "supera" : "no llega a"} el límite ${limitName} (${limit}).`}, extra);
+  }
+  /* Estado final del lote contra los topes de autoría. No retroactivo:
+       · conteos: solo una página cuyo nº de nodos/conexiones el lote AUMENTÓ respecto al documento de entrada;
+       · campos: solo los x,y,w,h (y puntos de waypoints) que el lote escribió y que siguen existiendo. */
+  function limitErrors(ctx, d){
+    const out = [];
+    d.pages.forEach((pg, pageIndex)=>{
+      const base = ctx.baseCounts[pageIndex] || {nodes:0, edges:0}, last = ctx.countOps[pageIndex] || {};
+      for(const [list, limitName, field] of [[pg.nodes, "maxNodesPerPage", "nodes"], [pg.edges, "maxConnectionsPerPage", "connections"]]){
+        const n = list.length, b = field==="nodes" ? base.nodes : base.edges;
+        if(n>LIMITS[limitName] && n>b)
+          out.push(limitError(limitName, field, n, {where:`Página ${pageIndex}`, pageIndex, operationIndex:last[field], operation:field==="nodes" ? "create_node" : "create_connection"}));
+      }
+    });
+    for(const w of ctx.watch.values()){
+      const pg = d.pages[w.pageIndex];
+      const rec = pg && (w.kind==="node" ? pg.nodes : pg.edges).find(x=>x.id===w.id);
+      if(!rec) continue;
+      const where = `${w.kind==="node" ? "Elemento" : "Conexión"} ${w.id} (página ${w.pageIndex}, operación ${w.operationIndex}: ${w.operation})`;
+      const base = {where, pageIndex:w.pageIndex, entity:{kind:w.kind==="node" ? "node" : "connection", id:w.id}, operationIndex:w.operationIndex, operation:w.operation};
+      if(w.kind==="node"){
+        for(const f of ["x","y"]) if(w.fields.has(f) && Math.abs(rec[f])>LIMITS.coordMax) out.push(limitError("coordMax", f, rec[f], base));
+        for(const f of ["w","h"]) if(w.fields.has(f)){
+          if(rec[f]<LIMITS.sizeMin) out.push(limitError("sizeMin", f, rec[f], base));
+          else if(rec[f]>LIMITS.sizeMax) out.push(limitError("sizeMax", f, rec[f], base));
+        }
+      }else if(w.fields.has("waypoints")){
+        (rec.waypoints||[]).forEach((pt, i)=>{
+          for(const f of ["x","y"]) if(Math.abs(pt[f])>LIMITS.coordMax) out.push(limitError("coordMax", `waypoints[${i}].${f}`, pt[f], base));
+        });
+      }
+    }
+    return out.sort((a, b)=>(a.operationIndex||0)-(b.operationIndex||0));
+  }
+
   function created(ctx, op, type, rec){
     if(op.ref!==undefined) ctx.created.push({ref:op.ref, type, pageIndex:op.pageIndex, id:rec.id});
   }
@@ -385,9 +467,12 @@ var FluyoAuthoring = (function(){
   const HANDLERS = {
     create_node(ctx, op, pg){
       const spec = withRef(op, diagramSpec(op));
+      nodeInputRules(spec, spec.shape, true);
       let n;
       try{ n = createNodeIn(pg, spec, {refs:pageRefs(ctx, "nodes", op.pageIndex)}); }
       catch(e){ throw fromDiagramDomain(e, op, ctx); }
+      watch(ctx, op, op.pageIndex, "node", n.id, ["x","y","w","h"]);
+      ctx.countOps[op.pageIndex] = Object.assign(ctx.countOps[op.pageIndex] || {}, {nodes:ctx.opIndex});
       created(ctx, op, "node", n);
       return Object.assign({entityKind:"node", entityId:n.id, created:true}, op.ref!==undefined ? {ref:op.ref} : {},
         {shape:n.shape, label:n.label, x:n.x, y:n.y, w:n.w, h:n.h, affects:{stories:[]}});
@@ -398,6 +483,8 @@ var FluyoAuthoring = (function(){
       let e;
       try{ e = createConnectionIn(pg, spec, {refs:pageRefs(ctx, "edges", op.pageIndex)}); }
       catch(err){ throw fromDiagramDomain(err, op, ctx); }
+      if(spec.waypoints!==undefined) watch(ctx, op, op.pageIndex, "connection", e.id, ["waypoints"]);
+      ctx.countOps[op.pageIndex] = Object.assign(ctx.countOps[op.pageIndex] || {}, {connections:ctx.opIndex});
       created(ctx, op, "connection", e);
       return Object.assign({entityKind:"connection", entityId:e.id, created:true}, op.ref!==undefined ? {ref:op.ref} : {},
         {source:e.from, target:e.to, affects:{stories:[]}});
@@ -406,9 +493,11 @@ var FluyoAuthoring = (function(){
       const id = entityOf(ctx, op, op.node, "node", "nodes");
       const patch = updateSpec(op, op.spec, []);
       const rec = pg.nodes.find(n=>n.id===id), before = rec && clone(rec);
+      nodeInputRules(patch, patch.shape===undefined && rec ? rec.shape : patch.shape, false);
       let n;
       try{ n = updateNodeIn(pg, id, patch); }
       catch(e){ throw fromDiagramDomain(e, op, ctx, id); }
+      watch(ctx, op, op.pageIndex, "node", id, ["x","y","w","h"].filter(k=>patch[k]!==undefined));
       const diff = diffOf(before, n, Object.keys(patch).filter(k=>patch[k]!==undefined));
       const incident = pg.edges.filter(e=>e.from===id || e.to===id);
       const moved = ["x","y","w","h","shape"].some(k=>diff.fields.includes(k));
@@ -428,6 +517,7 @@ var FluyoAuthoring = (function(){
       let e;
       try{ e = updateConnectionIn(pg, id, patch); }
       catch(err){ throw fromDiagramDomain(err, op, ctx, id); }
+      if(patch.waypoints!==undefined) watch(ctx, op, op.pageIndex, "connection", id, ["waypoints"]);
       const diff = diffOf(before, e, Object.keys(patch).filter(k=>patch[k]!==undefined));
       const retargeted = diff.fields.includes("source") || diff.fields.includes("target");
       return Object.assign({entityKind:"connection", entityId:id, updated:true}, diff,
@@ -450,6 +540,22 @@ var FluyoAuthoring = (function(){
       catch(err){ throw fromDiagramDomain(err, op, ctx, id); }
       ctx.deleted.push({kind:"connection", pageIndex:op.pageIndex, id, operationIndex:ctx.opIndex, operation:op.op});
       return {entityKind:"connection", entityId:id, deleted:true, source:e.from, target:e.to, affects:{stories:[]}};
+    },
+    /* ── Páginas (scope document): createPageIn/renamePageIn de model.js, las mismas que el editor ── */
+    create_page(ctx, op){
+      let r;
+      try{ r = createPageIn(ctx.d, op.name); }
+      catch(e){ throw fromPageDomain(e); }
+      // Las operaciones siguientes del lote usan este pageIndex: sale en `changes` (entityId) y en `pageIndex`.
+      ctx.baseCounts[r.pageIndex] = {nodes:0, edges:0};
+      return {entityKind:"page", entityId:r.pageIndex, pageIndex:r.pageIndex, created:true, name:r.page.name, affects:{stories:[]}};
+    },
+    rename_page(ctx, op){
+      if(!Number.isSafeInteger(op.pageIndex) || op.pageIndex<0) throw reject("INVALID_OPERATION", "pageIndex debe ser un entero ≥ 0.", {field:"pageIndex"});
+      let r;
+      try{ r = renamePageIn(ctx.d, op.pageIndex, op.name); }
+      catch(e){ throw fromPageDomain(e, op); }
+      return {entityKind:"page", entityId:r.pageIndex, pageIndex:r.pageIndex, renamed:true, from:r.from, to:r.page.name, affects:{stories:[]}};
     },
     create_story(ctx, op, pg){
       const name = nameOf(op.name, true) || defaultScenarioName(pg);
@@ -726,7 +832,7 @@ var FluyoAuthoring = (function(){
     catch(_){ return failure([{code:"DOCUMENT_UNREADABLE", message:"El documento no es legible: pide describe_document para ver los errores de validación."}]); }
     const baseline = FluyoIntegrity.validateProject(project);          // errores PREEXISTENTES: no se atribuyen al lote
     const d = norm.doc;                                                // copia profunda (projectFromProjectData no conserva la entrada)
-    const ctx = {d, settings:norm.settings, refs:{stories:new Map(), steps:new Map(), eventTypes:new Map(), none:new Map()},
+    const ctx = {d, settings:norm.settings, watch:new Map(), countOps:{}, baseCounts:d.pages.map(pg=>({nodes:pg.nodes.length, edges:pg.edges.length})), refs:{stories:new Map(), steps:new Map(), eventTypes:new Map(), none:new Map()},
                 diagramRefs:{nodes:new Map(), edges:new Map()}, created:[], deleted:[], touched:new Map(), opIndex:0};
     const changes = [];
 
@@ -738,10 +844,11 @@ var FluyoAuthoring = (function(){
         const expected = OPERATION_SCOPE[op.op];
         if(!expected) throw reject("UNKNOWN_OPERATION", `Operación desconocida «${op.op}». Operaciones: ${Object.keys(OPERATION_SCOPE).join(", ")}.`, {operation:op.op});
         if(op.scope!==expected) throw reject("SCOPE_MISMATCH", `La operación ${op.op} es de alcance «${expected}» y se declaró «${op.scope}».`, {operation:op.op, expected, declared:op.scope});
-        onlyKeys(op, (expected==="eventType" ? ["op","scope"] : ["op","scope","pageIndex"]).concat(OPERATION_FIELDS[op.op]));
-        const pg = expected==="eventType" ? undefined : pageOf(ctx, op);   // los EventTypes son del documento, no de una página
+        const documentLevel = expected==="eventType" || expected==="document";   // no llevan pageIndex propio (rename_page lo declara en sus campos)
+        onlyKeys(op, (documentLevel ? ["op","scope"] : ["op","scope","pageIndex"]).concat(OPERATION_FIELDS[op.op]));
+        const pg = documentLevel ? undefined : pageOf(ctx, op);   // los EventTypes y las páginas son del documento
         const r = HANDLERS[op.op](ctx, op, pg);
-        changes.push(Object.assign({operation:op.op, scope:expected, operationIndex:i}, expected==="eventType" ? {} : {pageIndex:op.pageIndex}, r));
+        changes.push(Object.assign({operation:op.op, scope:expected, operationIndex:i}, documentLevel ? {} : {pageIndex:op.pageIndex}, r));
       }catch(e){
         if(e && e.authoringErrors) return failure(e.authoringErrors.map(x=>Object.assign({operationIndex:i, operation:isRecord(op)?op.op:undefined}, x)));
         if(e && e.authoring) return failure([Object.assign({code:e.code, message:e.message, operationIndex:i, operation:isRecord(op)?op.op:undefined}, e.extra)]);
@@ -749,6 +856,10 @@ var FluyoAuthoring = (function(){
         throw e;
       }
     }
+
+    // Topes de autoría sobre el estado final (no por operación): un lote que cruza un tope y vuelve a él es válido.
+    const over = limitErrors(ctx, d);
+    if(over.length) return failure(over);
 
     const finalProject = projectToSerializable(d, norm.settings);
     const after = FluyoIntegrity.validateProject(finalProject);        // se evalúa el ESTADO FINAL, no cada paso intermedio
@@ -769,5 +880,5 @@ var FluyoAuthoring = (function(){
             validation:{valid:after.valid, preexistingErrors:after.errors.length}};
   }
 
-  return {apply, normalizedProject, OPERATION_SCOPE, MAX_OPERATIONS};
+  return {apply, normalizedProject, OPERATION_SCOPE, MAX_OPERATIONS, LIMITS};
 })();

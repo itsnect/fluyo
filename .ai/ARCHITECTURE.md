@@ -221,3 +221,14 @@ Supr · botón · menú · táctil · Cortar ─► deleteSel (selection.js)
 
 - `index.html` carga `document-integrity.js` (tras `story-playback.js`) y `sw.js` lo precachea; el archivo no cambió de comportamiento (release 018.x: comentarios de cabecera actualizados y kernel sincronizado con fluyo-mcp).
 - Nunca se modifican Steps ni Historias. Con impacto, el mensaje nombra cada Historia con su número de momentos y destinos, y la condición de disponibilidad inicial si el nodo la tiene. Pruebas: `test/fluyo-018-4.test.cjs` (incluye paridad con el B2 de `author_document`) y `test/fluyo-018-4-mutations.cjs` (15 mutaciones).
+
+## Páginas, reglas de entrada y límites de autoría (FLUYO-018.5)
+
+```text
+Editor (addPage/renamePage, state.js) ─►  model.js: createPageIn · renamePageIn  ◄─ FluyoAuthoring (create_page, rename_page; scope «document») ◄─ author_document (MCP)
+FluyoAuthoring: reglas de entrada de nodo (HEX, icon, anim) + LIMITS sobre el ESTADO FINAL del lote  →  LIMIT_EXCEEDED
+```
+
+- `createPageIn(d, name?)` añade al final y devuelve `{pageIndex, page}` sin tocar `d.cur`; `renamePageIn(d, i, name)`. Nombre: texto de 1 a `PAGE_NAME_MAX` (80), no solo espacios. Errores: `invalid_page_name`, `page_not_found`. Las páginas siguen sin id. Decisión 93.
+- `FluyoAuthoring.LIMITS` (`coordMax 100000`, `sizeMin 10`, `sizeMax 5000`, `maxNodesPerPage 300`, `maxConnectionsPerPage 600`) es la única fuente; `describe_document` los publica en `capabilities.limits`. Son reglas de **entrada**: ni `FluyoIntegrity` ni la carga los conocen, y un documento antiguo que los excede se abre y se edita (decisiones 94–95).
+- Pruebas: `test/fluyo-018-5.test.cjs` (dominio, autoría, reglas, límites, no retroactividad, paridad con el editor real; golden `test/fixtures/fluyo-018-5-golden.json` compartido con fluyo-mcp), `test/fluyo-018-5-mutations.cjs` (44 mutaciones), `test/fluyo-018-5-browser.cjs` (Chrome real contra HEAD); fluyo-mcp: `test/fluyo-018-5.test.ts`, `scripts/mutate-018-5.ts` (37).

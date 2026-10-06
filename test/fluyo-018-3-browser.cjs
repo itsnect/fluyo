@@ -3,8 +3,8 @@
    018.3 hace que mover, redimensionar, editar, retargetear y borrar pasen por model.js (updateNodeIn, updateConnectionIn,
    deleteNodeIn, deleteConnectionIn). Aquí se ejecuta EL MISMO guion contra el árbol de trabajo y contra HEAD (git archive → carpeta
    temporal) y se comparan los documentos paso a paso; además Historia + Playback, Undo/Redo, guardar/reabrir, Share y Viewer.
-   Resultado esperado (actualizado en FLUYO-018.4): ninguna diferencia con HEAD salvo el Behavior HUÉRFANO que HEAD dejaba al borrar un nodo
-   con condición «No disponible» (018.4: el Behavior se va con el nodo). Los documentos se comparan sin Behaviors huérfanos; el borrado de un
+   Resultado esperado (actualizado tras commitear 018.4: HEAD ya incluye la política de borrado y el Behavior se va con el nodo en ambos árboles): ninguna diferencia con HEAD.
+   (Antes de ese commit HEAD dejaba un Behavior HUÉRFANO al borrar un nodo con condición «No disponible».) Los documentos se comparan sin Behaviors huérfanos; el borrado de un
    nodo usado por una Historia pide confirmación (el guion la acepta: los Steps quedan igual que en HEAD).
    Playwright se proporciona externamente (NODE_PATH); capturas fuera del repo.
    Uso: node test/fluyo-018-3-browser.cjs   (FLUYO_BROWSER=chrome por defecto; FLUYO_SHOTS=<dir>) */
@@ -199,13 +199,13 @@ async function script(browser, base, label) {
     ok(JSON.stringify(a.extra.retargeted) === JSON.stringify(b.extra.retargeted) && a.extra.retargeted[1] === 3, "retarget por arrastre: la conexión pasó a apuntar al Banco, igual que en HEAD " + JSON.stringify(a.extra.retargeted));
     ok(a.extra.played === "completed" && b.extra.played === "completed", "Playback de la Historia completado (WT y HEAD)");
     ok(a.extra.traceBefore === b.extra.traceBefore, "el Trace es idéntico a HEAD");
-    ok(a.extra.orphanBehaviors === 0 && b.extra.orphanBehaviors === 1, "FLUYO-018.4: el Behavior se va con el nodo (WT 0 huérfanos; HEAD 1)");
+    ok(a.extra.orphanBehaviors === 0 && b.extra.orphanBehaviors === 0, "FLUYO-018.4: el Behavior se va con el nodo (WT 0 huérfanos; HEAD, que ya incluye 018.4, 0)");
     ok(a.extra.usedAfter === b.extra.usedAfter && JSON.parse(a.extra.usedAfter).orphan === 1, "borrar un nodo usado por una Historia (confirmado): mismos Steps que HEAD, el Step queda «huérfano» a la vista del usuario " + a.extra.usedAfter);
     ok(a.extra.presented === true && b.extra.presented === true, "Present abre y cierra (WT y HEAD)");
     ok(a.extra.undoWorked && b.extra.undoWorked, "Undo/Redo restauran el documento (WT y HEAD)");
     ok(a.extra.behaviorBack >= 1 && b.extra.behaviorBack >= 1, "Undo de «borrar nodo» devuelve el nodo con su Behavior (WT y HEAD)");
     ok(a.extra.reopenedSame && b.extra.reopenedSame, "guardar → reabrir: documento idéntico");
-    ok(a.extra.viewerPlayed === true && b.extra.viewerPlayed === false, "Viewer: sin Behavior huérfano la Historia se reproduce (WT " + a.extra.viewerPlayed + "); en HEAD no (" + b.extra.viewerPlayed + ")");
+    ok(a.extra.viewerPlayed === true && b.extra.viewerPlayed === true, "Viewer: sin Behavior huérfano la Historia se reproduce (WT " + a.extra.viewerPlayed + "; HEAD, que ya incluye 018.4: " + b.extra.viewerPlayed + ")");
     console.log("Capturas en", shots);
   } finally {
     await browser.close(); wt.server.close(); hd.server.close();

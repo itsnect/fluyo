@@ -310,7 +310,7 @@ async function noImpactScript(browser, base, label) {
     ok(vw.errs.length === 0 && vh.errs.length === 0, "Share/Viewer: 0 errores de consola");
     ok(vw.nodes === 4 && vh.nodes === 4, "Viewer: el diagrama compartido ya no tiene el nodo borrado (WT y HEAD)");
     ok(vw.played === true, "WT: la Historia «Solo pago» (que no usa el nodo) se reproduce en el Viewer tras borrar un nodo con Behavior");
-    ok(vh.played === false, "HEAD (comportamiento preexistente que se corrige): el Behavior huérfano impedía reproducir también esa Historia en el Viewer");
+    ok(vh.played === true, "HEAD (que ya incluye 018.4): sin Behavior huérfano esa Historia también se reproduce en el Viewer");
     const cancelShare = await sv(wt.base, "wt-cancel", false);
     ok(cancelShare.nodes === 5 && cancelShare.played === true, "Cancelar el borrado: lo compartido conserva los 5 nodos y la Historia reproduce");
 

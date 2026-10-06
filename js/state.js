@@ -28,6 +28,11 @@ function editObj(o,patch){ return P().nodes.includes(o) ? editNode(o,patch) : ed
 function removeEdges(ids){ for(const id of ids) domainOrNull(()=>deleteConnectionIn(P(), id)); }
 function removeNodes(ids){ for(const id of ids) domainOrNull(()=>deleteNodeIn(P(), id)); }
 
+/* Páginas (FLUYO-018.5): envoltorios de createPageIn/renamePageIn (model.js). El editor solo aporta la página activa
+   (addPage la activa; el dominio no toca doc.cur). A diferencia de editNode, un nombre rechazado se propaga: la UI decide qué decir. */
+function addPage(){ const r=createPageIn(doc); doc.cur=r.pageIndex; return r.page; }
+function renamePage(index,name){ return renamePageIn(doc,index,name).page; }
+
 /* ===================== Viewport ===================== */
 const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
 let viewX=0, viewY=0, viewZoom=0.8;

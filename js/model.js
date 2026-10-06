@@ -871,6 +871,36 @@ function deleteConnectionIn(pg, id, context){
   return e;
 }
 
+/* ===================== Autoría de páginas (FLUYO-018.5) =====================
+   Misma autoridad única: las llaman el editor (state.js: addPage, renamePage) y FluyoAuthoring (create_page, rename_page).
+   Las páginas no tienen id: se identifican por su índice en d.pages. Reglas de ENTRADA (no de integridad): un documento con
+   nombres de página vacíos o muy largos se sigue abriendo.
+
+   · createPageIn añade SIEMPRE al final y devuelve {pageIndex, page}. No toca d.cur: cambiar de página es del editor.
+   · Sin nombre, el del editor («Página N+1»). Un nombre dado debe ser texto de 1 a PAGE_NAME_MAX caracteres (no solo espacios);
+     se guarda tal cual, sin recortar.
+
+   Códigos: invalid_page_name(name) · page_not_found(pageIndex) · invalid_document(pages). */
+const PAGE_NAME_MAX=80;
+function pageNameOf(name){
+  if(typeof name!=="string" || !name.trim() || name.length>PAGE_NAME_MAX) throw projectDataError("invalid_page_name","name");
+  return name;
+}
+function createPageIn(d, name){
+  if(!projectObject(d) || !Array.isArray(d.pages)) throw projectDataError("invalid_document","pages");
+  const pageName=name===undefined? "Página "+(d.pages.length+1) : pageNameOf(name);
+  const page=blankPage(pageName);
+  d.pages.push(page);
+  return {pageIndex:d.pages.length-1, page};
+}
+function renamePageIn(d, pageIndex, name){
+  if(!projectObject(d) || !Array.isArray(d.pages)) throw projectDataError("invalid_document","pages");
+  if(!Number.isSafeInteger(pageIndex) || pageIndex<0 || pageIndex>=d.pages.length) throw projectDataError("page_not_found","pageIndex");
+  const next=pageNameOf(name), page=d.pages[pageIndex], from=page.name;
+  page.name=next;
+  return {pageIndex, page, from};
+}
+
 function clearPageContents(pg){
   pg.nodes=[];
   pg.edges=[];

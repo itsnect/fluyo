@@ -118,7 +118,7 @@ test("updateNodeIn: atómico — un campo malo junto a uno bueno no cambia nada"
 });
 
 test("updateNodeIn: reglas de forma (las de la UI) y campos que solo aplican a ciertas formas", () => {
-  const p = ok(apply(project(), [N({}, { label: "caja" }), N({}, { shape: "icon", icon: "database", label: "ico" }), N({}, { shape: "code" }), N({}, { shape: "text" })])).project;
+  const p = ok(apply(project(), [N({}, { label: "caja" }), N({}, { shape: "icon", icon: "db", label: "ico" }), N({}, { shape: "code" }), N({}, { shape: "text" })])).project;
   const pg = vm.runInContext("(" + JSON.stringify(pg0(p)) + ")", K);
   assert.equal(upN(pg, 1, { shape: "diamond" }).ok, true);
   assert.equal(pg.nodes[0].shape, "diamond");

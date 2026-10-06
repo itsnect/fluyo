@@ -1,0 +1,185 @@
+{
+  "start": {
+    "version": 5,
+    "app": "fluyo",
+    "doc": {
+      "theme": "dark",
+      "customBg": "",
+      "eventTypes": [],
+      "nextEventTypeId": 1,
+      "pages": [
+        {
+          "name": "A",
+          "nodes": [],
+          "edges": [],
+          "nextId": 1,
+          "behaviors": [],
+          "scenarios": [],
+          "nextScenarioId": 1
+        }
+      ],
+      "cur": 0
+    },
+    "settings": {}
+  },
+  "operations": [
+    {
+      "op": "create_node",
+      "scope": "page",
+      "pageIndex": 0,
+      "spec": {
+        "shape": "rect",
+        "x": 100,
+        "y": 100,
+        "label": "Origen",
+        "fill": "none",
+        "color": "#6a9fb5"
+      },
+      "ref": "a"
+    },
+    {
+      "op": "create_node",
+      "scope": "page",
+      "pageIndex": 0,
+      "spec": {
+        "shape": "rect",
+        "x": 400,
+        "y": 100,
+        "label": "Destino",
+        "fill": "#223344"
+      },
+      "ref": "b"
+    },
+    {
+      "op": "create_connection",
+      "scope": "page",
+      "pageIndex": 0,
+      "source": {
+        "ref": "a"
+      },
+      "target": {
+        "ref": "b"
+      },
+      "spec": {
+        "label": "Pago",
+        "lineColor": "#ff8800",
+        "dotColor": "#00ccff88",
+        "route": "ortho"
+      },
+      "ref": "e"
+    },
+    {
+      "op": "update_node",
+      "scope": "page",
+      "pageIndex": 0,
+      "node": {
+        "ref": "b"
+      },
+      "spec": {
+        "fill": "none"
+      }
+    },
+    {
+      "op": "update_connection",
+      "scope": "page",
+      "pageIndex": 0,
+      "connection": {
+        "ref": "e"
+      },
+      "spec": {
+        "dotColor": null
+      }
+    }
+  ],
+  "document": {
+    "version": 5,
+    "app": "fluyo",
+    "doc": {
+      "theme": "dark",
+      "customBg": "",
+      "eventTypes": [],
+      "nextEventTypeId": 1,
+      "pages": [
+        {
+          "name": "A",
+          "nodes": [
+            {
+              "id": 1,
+              "shape": "rect",
+              "x": 100,
+              "y": 100,
+              "w": 180,
+              "h": 70,
+              "label": "Origen",
+              "color": "#6a9fb5",
+              "fill": "none",
+              "border": "solid",
+              "lblPos": "center",
+              "textBg": null,
+              "textColor": null,
+              "font": null,
+              "bold": false,
+              "pulse": false,
+              "order": 0
+            },
+            {
+              "id": 2,
+              "shape": "rect",
+              "x": 400,
+              "y": 100,
+              "w": 180,
+              "h": 70,
+              "label": "Destino",
+              "color": "#6a9fb5",
+              "fill": "none",
+              "border": "solid",
+              "lblPos": "center",
+              "textBg": null,
+              "textColor": null,
+              "font": null,
+              "bold": false,
+              "pulse": false,
+              "order": 1
+            }
+          ],
+          "edges": [
+            {
+              "id": 3,
+              "from": 1,
+              "to": 2,
+              "fromSide": null,
+              "toSide": null,
+              "route": "ortho",
+              "waypoints": [],
+              "label": "Pago",
+              "font": null,
+              "bold": false,
+              "animated": true,
+              "dashed": false,
+              "startArrow": false,
+              "endArrow": true,
+              "flowDir": "normal",
+              "lineColor": "#ff8800",
+              "dotColor": null
+            }
+          ],
+          "nextId": 4,
+          "behaviors": [],
+          "scenarios": [],
+          "nextScenarioId": 1
+        }
+      ],
+      "cur": 0
+    },
+    "settings": {
+      "speed": 0.5,
+      "dots": 3,
+      "build": false,
+      "stagger": 0.45,
+      "grid": true,
+      "snap": false,
+      "font": "Georgia, serif",
+      "single": false
+    }
+  }
+}

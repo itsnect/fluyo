@@ -369,11 +369,21 @@ var FluyoAuthoring = (function(){
      documento, inválido bajo estas reglas, no se revalida ni impide editar el resto del nodo. */
   const NODE_COLOR_FIELDS = ["color","fill","textBg","textColor","kwBg","kwColor"];
   function invalidField(field, message){ return reject("INVALID_FIELD", message, {field}); }
+  /* Colores de conexión (FLUYO-018.6): misma regla HEX que los de nodo; null = color del tema. Solo las claves que el lote escribe. */
+  const EDGE_COLOR_FIELDS = ["lineColor","dotColor"];
+  function edgeInputRules(spec){
+    for(const k of EDGE_COLOR_FIELDS){
+      const v = spec[k];
+      if(v===undefined || v===null) continue;
+      if(typeof v!=="string" || !HEX_COLOR.test(v)) throw invalidField(k, `«${k}» debe ser un color HEX (#rgb, #rrggbb o #rrggbbaa) o null (color del tema); recibido ${JSON.stringify(v)}. No se admiten nombres de color.`);
+    }
+  }
   function nodeInputRules(spec, shape, isCreate){
     for(const k of NODE_COLOR_FIELDS){
       const v = spec[k];
       if(v===undefined || (v===null && (k!=="color" || isCreate))) continue;     // null: «sin valor» en los campos anulables (y color→default al crear)
-      if(typeof v!=="string" || !HEX_COLOR.test(v)) throw invalidField(k, `«${k}» debe ser un color HEX (#rgb, #rrggbb o #rrggbbaa); recibido ${JSON.stringify(v)}. No se admiten nombres de color.`);
+      if(k==="fill" && v==="none") continue;                                      // «Sin relleno» (forma hueca): valor del documento y del selector del editor; solo en fill
+      if(typeof v!=="string" || !HEX_COLOR.test(v)) throw invalidField(k, `«${k}» debe ser un color HEX (#rgb, #rrggbb o #rrggbbaa)${k==="fill" ? ' o "none" (sin relleno)' : ""}; recibido ${JSON.stringify(v)}. No se admiten nombres de color.`);
     }
     if(!isCreate) return;
     for(const [k, catalog, tool] of [["icon", ICONS, "list_icons"], ["anim", ANIMS, "list_anims"]]){
@@ -480,6 +490,7 @@ var FluyoAuthoring = (function(){
     create_connection(ctx, op, pg){
       const source = endpointOf(ctx, op, op.source, "source"), target = endpointOf(ctx, op, op.target, "target");
       const spec = Object.assign(withRef(op, op.spec===undefined ? {} : diagramSpec(op)), {source, target});
+      edgeInputRules(spec);
       let e;
       try{ e = createConnectionIn(pg, spec, {refs:pageRefs(ctx, "edges", op.pageIndex)}); }
       catch(err){ throw fromDiagramDomain(err, op, ctx); }
@@ -514,6 +525,7 @@ var FluyoAuthoring = (function(){
       if(op.target!==undefined) extra.target = endpointOf(ctx, op, op.target, "target");
       const patch = Object.assign({}, updateSpec(op, op.spec, ["source","target"], Object.keys(extra).length>0), extra);
       const rec = pg.edges.find(e=>e.id===id), before = rec && clone(rec);
+      edgeInputRules(patch);
       let e;
       try{ e = updateConnectionIn(pg, id, patch); }
       catch(err){ throw fromDiagramDomain(err, op, ctx, id); }

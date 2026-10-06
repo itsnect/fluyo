@@ -38,7 +38,7 @@ const MUTATIONS = [
   ["A1 ignorar el scope declarado", "js/story-authoring.js",
     "if(op.scope!==expected) throw", "if(false) throw"],
   ["A2 un EventType admite pageIndex", "js/story-authoring.js",
-    "(expected===\"eventType\" ? [\"op\",\"scope\"] : [\"op\",\"scope\",\"pageIndex\"])", "[\"op\",\"scope\",\"pageIndex\"]"],
+    "(documentLevel ? [\"op\",\"scope\"] : [\"op\",\"scope\",\"pageIndex\"])", "[\"op\",\"scope\",\"pageIndex\"]"],
   ["A3 el rechazo de primitiva/disponibilidad en uso pierde su código", "js/story-authoring.js",
     "throw blockedByUse(ctx, et, candidate, \"EVENT_TYPE_LOCKED\", e.field);", "throw e;"],
   ["A4 presentación inválida «corregida» en silencio", "js/story-authoring.js",

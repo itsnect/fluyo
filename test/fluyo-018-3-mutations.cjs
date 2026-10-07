@@ -10,14 +10,14 @@ const AUTH = "js/story-authoring.js", MODEL = "js/model.js", STATE = "js/state.j
 
 const MUTATIONS = [
   // ── B2 y validación final
-  ["B1 B2 saltado: se devuelve el documento aunque deje una Historia inválida", AUTH, "if(regress.length) return failure(explainRemovals(ctx, regress, d));", "if(false) return failure(explainRemovals(ctx, regress, d));"],
+  ["B1 B2 saltado: se devuelve el documento aunque deje una Historia inválida", AUTH, "if(regress.length) return failure(explainRemovals(ctx, regress));", "if(false) return failure(explainRemovals(ctx, regress));"],   // 018.7c: ancla actualizada; misma intención
   ["B2 se salta la validación del estado final (no hay errores nuevos)", AUTH, "const regress = after.errors.filter(e=>!known.has(FluyoIntegrity.errorKey(e)));", "const regress = [];"],
   ["B3 un nodo eliminado no se registra (el rechazo no lo atribuye)", AUTH, "ctx.deleted.push({kind:\"node\", pageIndex:op.pageIndex, id, label:r.node.label,", "ctx.deleted.concat({kind:\"node\", pageIndex:op.pageIndex, id, label:r.node.label,"],
   ["B4 las conexiones eliminadas en cascada no se registran", AUTH, "for(const cid of r.connections) ctx.deleted.push(", "for(const cid of []) ctx.deleted.push("],
   ["B5 una conexión eliminada no se registra", AUTH, "ctx.deleted.push({kind:\"connection\", pageIndex:op.pageIndex, id, operationIndex:ctx.opIndex, operation:op.op});", "ctx.deleted.concat({kind:\"connection\", pageIndex:op.pageIndex, id, operationIndex:ctx.opIndex, operation:op.op});"],
   ["B6 el rechazo pierde la cascada (cascadedFrom)", AUTH, "}, del.cascadedFrom ? {cascadedFrom:del.cascadedFrom} : {}, uses));", "}, {}, uses));"],
   ["B7 el rechazo no dice qué Historias ni Steps (sin uses)", AUTH, "}, del.cascadedFrom ? {cascadedFrom:del.cascadedFrom} : {}, uses));", "}, del.cascadedFrom ? {cascadedFrom:del.cascadedFrom} : {}));"],
-  ["B9 las refs de lo eliminado en el lote se siguen devolviendo", AUTH, "const refs = ctx.created.filter(c=>!ctx.deleted.some(", "const refs = ctx.created.filter(c=>!([]).some("],
+  ["B9 las refs de lo eliminado en el lote se siguen devolviendo", AUTH, "const refs = ctx.created.filter(c=>ctx.pages[c.pageIndex] && !ctx.deleted.some(", "const refs = ctx.created.filter(c=>ctx.pages[c.pageIndex] && !([]).some("],   // 018.7c: ancla actualizada; misma intención
   // ── objeto equivocado, campos, geometría
   ["A1 update_node actualiza otro nodo", AUTH, "try{ n = updateNodeIn(pg, id, patch); }", "try{ n = updateNodeIn(pg, pg.nodes[0].id, patch); }"],
   ["A2 update_connection actualiza otra conexión", AUTH, "try{ e = updateConnectionIn(pg, id, patch); }", "try{ e = updateConnectionIn(pg, pg.edges[pg.edges.length-1].id, patch); }"],

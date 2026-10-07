@@ -138,15 +138,70 @@ function sendToBack(){ reorderSelection("back"); }
 function bringForward(){ reorderSelection("forward"); }
 function sendBackward(){ reorderSelection("backward"); }
 
-/* ---- deshacer / rehacer ---- */
+/* ---- eliminar página (FLUYO-018.7c) ----
+   Única puerta del editor: la ✕ de la pestaña (ui.js), que solo existe con 2 páginas o más. Política D de 018.7: se confirma SIEMPRE
+   y, si la página no está vacía, el diálogo dice qué se pierde (pageRemovalImpactIn, la misma fuente que delete_page de MCP).
+   Cancelar no cambia nada (documento, página activa, pilas ni Playback). Aceptar detiene el Playback (decisión 64), elimina con
+   deletePageIn (regla de cur del dominio; los EventTypes no se tocan) y deja UNA entrada de Undo que reinserta la misma página. */
+const PAGE_DELETE_LIST_MAX=8;
+function pageDeleteConfirmMessage(impact){
+  const plural=(n,one,many)=>n+" "+(n===1?one:many);
+  const parts=[];
+  if(impact.nodes) parts.push(plural(impact.nodes,"elemento","elementos"));
+  if(impact.connections) parts.push(plural(impact.connections,"conexión","conexiones"));
+  if(impact.behaviors) parts.push(plural(impact.behaviors,"condición de disponibilidad inicial","condiciones de disponibilidad inicial"));
+  if(impact.stories.length) parts.push(plural(impact.stories.length,"Historia","Historias"));
+  if(!parts.length) return `¿Eliminar «${impact.name}»?`;
+  const list=parts.length>1 ? parts.slice(0,-1).join(", ")+" y "+parts[parts.length-1] : parts[0];
+  const lines=[`La página «${impact.name}» tiene ${list}${impact.stories.length?":":"."}`];
+  if(impact.stories.length){
+    lines.push("");
+    for(const s of impact.stories.slice(0,PAGE_DELETE_LIST_MAX)) lines.push("• "+s.name+" — "+(s.moments ? plural(s.moments,"momento","momentos") : "sin momentos"));
+    if(impact.stories.length>PAGE_DELETE_LIST_MAX) lines.push("• …y "+plural(impact.stories.length-PAGE_DELETE_LIST_MAX,"Historia más","Historias más"));
+  }
+  lines.push("", "Si la eliminas se pierde todo su contenido (puedes deshacerlo con Ctrl+Z). Los eventos de la biblioteca se conservan.", "¿Eliminar la página?");
+  return lines.join("\n");
+}
+function requestDeletePage(index){
+  if(doc.pages.length<2 || !doc.pages[index]) return false;
+  /* Antes de tocar nada: cancelar no deja entrada de Undo ni detiene el Playback. */
+  if(!confirm(pageDeleteConfirmMessage(pageRemovalImpactIn(doc, index)))) return false;
+  if(editorFrozen() && typeof scReset==="function") scReset();
+  const page=doc.pages[index], curPage=P(), lib=libSnap();
+  deletePageIn(doc, index);
+  pushUndoSnapshot({kind:"insertPage", page, index, curPage, lib});
+  clearSel(); renderTabs();
+  return true;
+}
+
+/* ---- deshacer / rehacer ----
+   FLUYO-018.7c: cada entrada identifica su página por REFERENCIA (el objeto de doc.pages), nunca por índice; borrar o reinsertar
+   páginas no puede hacer que una entrada escriba en otra página (F1). Aplicar una entrada devuelve su inversa, que va a la otra pila:
+     · {kind:"page", page, data}: contenido de UNA página (nodos, conexiones, Behaviors, Historias). Restaura `data` en esa página y la
+       activa; su inversa es la foto actual de la MISMA página (no la de la página activa).
+     · {kind:"insertPage", page, index, curPage}: deshace un borrado. Reinserta EL MISMO objeto en `index` (restorePageIn) y vuelve a
+       activar la página que estaba activa al borrar. Su inversa es removePage.
+     · {kind:"removePage", page}: rehace el borrado con deletePageIn (misma regla de cur). Su inversa es insertPage.
+   Como la página restaurada es el mismo objeto, las entradas anteriores de esa página vuelven a ser válidas. Una entrada que ya no
+   aplica se descarta sin tocar nada (con pilas LIFO no ocurre; applyProjectData las vacía al cambiar de documento).
+   FLUYO-018.7d: TODA entrada lleva además `lib`, la biblioteca de EventTypes tal como estaba (libSnap). stepHistory la restaura en un
+   solo sitio para cualquier tipo de entrada, así que crear/editar/eliminar un EventType (que ya hacían pushUndo) se deshace, y deshacer
+   el borrado de una página nunca deja Steps apuntando a un EventType que se eliminó después. Fuera de Undo siguen el tema, crear/renombrar
+   páginas y la navegación. */
 let undoStack=[], redoStack=[], lblDirty=false, fsDirty=false;
-function snapPage(){ return {pi:doc.cur, data:deep(P())}; }
+/* Biblioteca restaurable: los MISMOS objetos EventType (identidad) y una copia de su contenido. El contador nunca baja. */
+function libSnap(){ return Array.isArray(doc.eventTypes) ? {objs:doc.eventTypes.slice(), data:deep(doc.eventTypes), nextEventTypeId:doc.nextEventTypeId} : null; }
+function restoreLibrary(lib){
+  lib.objs.forEach((et,i)=>{ for(const k of Object.keys(et)) delete et[k]; Object.assign(et, deep(lib.data[i])); });
+  doc.eventTypes=lib.objs.slice();
+  if(Number.isSafeInteger(lib.nextEventTypeId)) doc.nextEventTypeId=Math.max(doc.nextEventTypeId||0, lib.nextEventTypeId);
+}
+function pageSnap(pg){ return {kind:"page", page:pg, data:deep(pg), lib:libSnap()}; }
+function snapPage(){ return pageSnap(P()); }
 function pushUndoSnapshot(s){ undoStack.push(s); if(undoStack.length>60) undoStack.shift(); redoStack.length=0; scheduleAutosave(); }
 function pushUndo(){ pushUndoSnapshot(snapPage()); }
-function applySnap(s){
-  doc.cur=clamp(s.pi,0,doc.pages.length-1);
-  const pg=P();
-  const restored=deep(s.data);
+function restorePageContent(pg, data){
+  const restored=deep(data);
   // Los contadores de identidad nunca bajan: un ID eliminado no se reasigna a una entidad distinta.
   const prevNextId=pg.nextId;
   const prevNextScenarioId=pg.nextScenarioId;
@@ -155,9 +210,41 @@ function applySnap(s){
   pg.nextId=Math.max(prevNextId, restored.nextId);
   pg.nextScenarioId=Math.max(prevNextScenarioId, restored.nextScenarioId);
   for(const sc of pg.scenarios) sc.nextStepId=Math.max(prevNextStepIds.get(sc.id)||1, sc.nextStepId);
-  clearSel(); renderTabs();
-  /* El panel de Escenarios lee el documento: sin esto queda mostrando Scenarios/Steps ya deshechos. */
-  if(typeof scRefreshIfVisible==="function") scRefreshIfVisible();
 }
-function undo(){ if(!undoStack.length) return; redoStack.push(snapPage()); applySnap(undoStack.pop()); scheduleAutosave(); }
-function redo(){ if(!redoStack.length) return; undoStack.push(snapPage()); applySnap(redoStack.pop()); scheduleAutosave(); }
+function applyHistoryEntry(s){
+  if(s.kind==="insertPage"){
+    if(doc.pages.includes(s.page) || s.index>doc.pages.length) return null;
+    restorePageIn(doc, s.index, s.page);
+    const c=doc.pages.indexOf(s.curPage); if(c>=0) doc.cur=c;
+    return {kind:"removePage", page:s.page};
+  }
+  const i=doc.pages.indexOf(s.page);
+  if(i<0) return null;
+  if(s.kind==="removePage"){
+    if(doc.pages.length<2) return null;
+    const curPage=P();
+    deletePageIn(doc, i);
+    return {kind:"insertPage", page:s.page, index:i, curPage};
+  }
+  const inverse=pageSnap(s.page);
+  restorePageContent(s.page, s.data);
+  doc.cur=i;
+  return inverse;
+}
+function stepHistory(from, to){
+  while(from.length){
+    const s=from.pop(), lib=libSnap();                                   // la biblioteca ANTES de aplicar: va en la inversa
+    const inverse=applyHistoryEntry(s);
+    if(!inverse) continue;
+    if(s.lib) restoreLibrary(s.lib);
+    inverse.lib=lib;
+    to.push(inverse);
+    clearSel(); renderTabs();
+    /* El panel de Escenarios lee el documento: sin esto queda mostrando Scenarios/Steps ya deshechos. */
+    if(typeof scRefreshIfVisible==="function") scRefreshIfVisible();
+    scheduleAutosave();
+    return;
+  }
+}
+function undo(){ stepHistory(undoStack, redoStack); }
+function redo(){ stepHistory(redoStack, undoStack); }

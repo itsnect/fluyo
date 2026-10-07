@@ -20,7 +20,7 @@ const MUTATIONS = [
   ["M10 el mensaje no nombra los momentos", SEL, "lines.push(\"• \"+s.name+\" — \"+s.moments+(s.moments===1?\" momento\":\" momentos\")+(shown?\" (\"+shown+\")\":\"\"));", "lines.push(\"• \"+s.name);"],
   ["M11 el mensaje nombra todas las Historias de la página", SEL, "const stories=r.affectedStories.map(", "const stories=pg.scenarios.map(sc=>({storyId:sc.id,storyName:sc.name,stepIds:sc.steps.map(x=>x.id)})).map("],
   ["M12 limpieza silenciosa: se borran los Steps afectados", SEL, "  removeNodes(nodeIds);", "  removeNodes(nodeIds); for(const sc of P().scenarios) sc.steps=sc.steps.filter(st=>st.edgeId ? edgeById(st.edgeId) : nodeById(st.nodeId));"],
-  ["M13 el snapshot de Undo no guarda los Behaviors", SEL, "function snapPage(){ return {pi:doc.cur, data:deep(P())}; }", "function snapPage(){ const d=deep(P()); d.behaviors=[]; return {pi:doc.cur, data:d}; }"],
+  ["M13 el snapshot de Undo no guarda los Behaviors", SEL, "function pageSnap(pg){ return {kind:\"page\", page:pg, data:deep(pg), lib:libSnap()}; }", "function pageSnap(pg){ const d=deep(pg); d.behaviors=[]; return {kind:\"page\", page:pg, data:d, lib:libSnap()}; }"],   // 018.7c: ancla actualizada; misma intención
   ["M14 el editor no carga FluyoIntegrity", "index.html", "<script src=\"js/document-integrity.js\"></script>", "<!-- sin integridad -->"],
   ["M16 deleteSel no respeta el Playback", SEL, "if(editorFrozen() || (!selN.size && !selE.size)) return;", "if(!selN.size && !selE.size) return;"],
   ["M17 cutSel copia y corta durante el Playback", SEL, "function cutSel(){ if(editorFrozen()) return; copySel(); deleteSel(); }", "function cutSel(){ copySel(); deleteSel(); }"],

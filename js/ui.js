@@ -469,15 +469,9 @@ function renderTabs(){
     if(doc.pages.length>1){
       const x=document.createElement("span"); x.className="x"; x.textContent="✕";
       x.title="Cerrar página";
-      x.onclick=ev=>{ ev.stopPropagation();
-        if(confirm(`¿Eliminar «${pg.name}»?`)){
-          doc.pages.splice(i,1);
-          doc.cur=Math.min(doc.cur, doc.pages.length-1);
-          /* FLUYO-018.7a (F1): Undo/Redo identifican la página por ÍNDICE; tras el splice apuntarían a otra página y
-             deshacer/rehacer escribiría el contenido de una en otra. Se vacían (como applyProjectData). */
-          undoStack.length=0; redoStack.length=0;
-          clearSel(); renderTabs(); scheduleAutosave();
-        }};
+      /* FLUYO-018.7c: confirmación con impacto, deletePageIn (regla de cur del dominio) y un Undo que reinserta la misma página
+         (selection.js). Sustituye al hotfix de 018.7a, que vaciaba Undo/Redo porque las entradas identificaban la página por índice. */
+      x.onclick=ev=>{ ev.stopPropagation(); requestDeletePage(i); };
       t.appendChild(x);
     }
     t.onclick=()=>{

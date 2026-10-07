@@ -516,7 +516,7 @@ test("el editor y MCP comparten las MISMAS funciones: ui.js no toca blankPage ni
   assert.match(ui, /renamePage\(i,nn\)/);
   const auth = read("js/story-authoring.js");
   assert.match(auth, /createPageIn\(ctx\.d, op\.name\)/);
-  assert.match(auth, /renamePageIn\(ctx\.d, op\.pageIndex, op\.name\)/);
+  assert.match(auth, /renamePageIn\(ctx\.d, liveIndexOf\(ctx, op\.pageIndex\), op\.name\)/);   // 018.7c: índice del lote → índice del documento
   assert.equal(/blankPage\(/.test(auth), false);
 });
 

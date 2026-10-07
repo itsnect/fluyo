@@ -11,10 +11,18 @@ const MODEL = "js/model.js", SEL = "js/selection.js", UI = "js/ui.js", AUTH = "j
 
 const MUTATIONS = [
   // ── F1: Undo/Redo tras borrar una página
-  ["F1a la ✕ de página no vacía las pilas", UI, "          undoStack.length=0; redoStack.length=0;\n", ""],
-  ["F1b solo se vacía undoStack", UI, "undoStack.length=0; redoStack.length=0;", "undoStack.length=0;"],
-  ["F1c solo se vacía redoStack", UI, "undoStack.length=0; redoStack.length=0;", "redoStack.length=0;"],
-  ["F1d se vacían aunque se cancele el confirm", UI, "        if(confirm(`¿Eliminar «${pg.name}»?`)){", "        undoStack.length=0; redoStack.length=0;\n        if(confirm(`¿Eliminar «${pg.name}»?`)){"],
+  // ── F1: Undo/Redo tras borrar una página. 018.7c sustituyó el hotfix (vaciar pilas) por Undo por REFERENCIA de página; las cuatro
+  //    mutaciones se reescriben sobre el mecanismo nuevo con la misma intención: romper la protección contra F1.
+  /* Con el borrado registrado como entrada y pilas LIFO, un snapshot por índice vuelve a coincidir con su página al deshacer en orden:
+     el defecto observable es índice + borrado fuera del historial (el F1 original). */
+  ["F1a los snapshots vuelven a identificar la página por ÍNDICE y el borrado no entra en el historial (F1 original)", [
+    [SEL, "function snapPage(){ return pageSnap(P()); }", "function snapPage(){ return Object.assign(pageSnap(P()),{pi:doc.cur}); }"],
+    [SEL, "  const i=doc.pages.indexOf(s.page);\n  if(i<0) return null;", "  const i=s.pi!==undefined ? Math.min(s.pi,doc.pages.length-1) : doc.pages.indexOf(s.page);\n  if(i<0) return null;"],
+    [SEL, "  restorePageContent(s.page, s.data);", "  restorePageContent(doc.pages[i], s.data);"],
+    [SEL, "  pushUndoSnapshot({kind:\"insertPage\", page, index, curPage, lib});\n", ""]]],
+  ["F1b Undo del borrado reinserta una copia (las entradas previas de esa página dejan de aplicar)", SEL, "    restorePageIn(doc, s.index, s.page);", "    restorePageIn(doc, s.index, deep(s.page));"],
+  ["F1c la ✕ borra sin entrada de Undo", SEL, "  pushUndoSnapshot({kind:\"insertPage\", page, index, curPage, lib});\n", ""],
+  ["F1d cancelar el confirm vacía las pilas", SEL, "  if(!confirm(pageDeleteConfirmMessage(pageRemovalImpactIn(doc, index)))) return false;", "  if(!confirm(pageDeleteConfirmMessage(pageRemovalImpactIn(doc, index)))){ undoStack.length=0; redoStack.length=0; return false; }"],
   // ── set_theme: dominio
   ["T1 el dominio acepta un tema desconocido", MODEL, 'if(patch.theme!==undefined && !(typeof patch.theme==="string" && projectOwn(THEMES,patch.theme))) throw projectDataError("invalid_theme","theme");', ""],
   ["T2 el tema se comprueba con `in` (acepta claves heredadas)", MODEL, 'typeof patch.theme==="string" && projectOwn(THEMES,patch.theme)', 'typeof patch.theme==="string" && patch.theme in THEMES'],

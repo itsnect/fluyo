@@ -901,6 +901,60 @@ function renamePageIn(d, pageIndex, name){
   return {pageIndex, page, from};
 }
 
+/* ===================== Eliminar y restaurar páginas (FLUYO-018.7c) =====================
+   Única autoridad de dominio: la llaman el editor (✕ de la pestaña y su Undo/Redo, selection.js) y FluyoAuthoring (delete_page).
+   Sin DOM, selección, confirmación, Undo ni autoguardado.
+
+   · Una página lo contiene TODO lo suyo (nodos, conexiones, waypoints, Behaviors, Historias y Steps, contadores): se va entera
+     y no deja referencias colgantes (no hay referencias entre páginas). Los EventTypes son del documento: no se tocan nunca.
+   · Nunca 0 páginas: eliminar la única página es `last_page`.
+   · Regla de doc.cur (pageCurAfterRemoval): la página activa sigue siendo LA MISMA si sobrevive (borrar una anterior desplaza el
+     índice, cur-1; una posterior no lo cambia). Si se borra la activa, pasa a la que ocupa su posición (la siguiente) o, si era la
+     última, a la anterior. Aplicada borrado a borrado, el resultado no depende del orden en que se eliminan varias páginas.
+   · restorePageIn reinserta EL MISMO objeto página (Undo): conserva todo su estado y la página activa (desplaza cur si hace falta).
+
+   Códigos: invalid_document(pages|page|pageIndex) · page_not_found(pageIndex) · last_page(pageIndex). */
+function pageIndexOf(d, pageIndex){
+  if(!projectObject(d) || !Array.isArray(d.pages)) throw projectDataError("invalid_document","pages");
+  if(!Number.isSafeInteger(pageIndex) || pageIndex<0 || pageIndex>=d.pages.length) throw projectDataError("page_not_found","pageIndex");
+  return pageIndex;
+}
+/* Qué se pierde al eliminar la página (pura). Fuente única del aviso del editor y de `affects` de delete_page. */
+function pageRemovalImpactIn(d, pageIndex){
+  const pg=d.pages[pageIndexOf(d,pageIndex)];
+  const usedBy=pages=>{ const s=new Set(); for(const p of pages) for(const sc of p.scenarios||[]) for(const st of sc.steps||[]) if(st.eventTypeId!==undefined) s.add(st.eventTypeId); return s; };
+  const here=usedBy([pg]), elsewhere=usedBy(d.pages.filter((_,i)=>i!==pageIndex));
+  const stories=(pg.scenarios||[]).map(sc=>({storyId:sc.id, name:sc.name, steps:(sc.steps||[]).length, moments:new Set((sc.steps||[]).map(st=>st.at)).size}));
+  return {pageIndex, name:pg.name, nodes:(pg.nodes||[]).length, connections:(pg.edges||[]).length, behaviors:(pg.behaviors||[]).length, stories,
+          eventTypesFreed:[...here].filter(id=>!elsewhere.has(id) && (d.eventTypes||[]).some(et=>et.id===id)).sort((a,b)=>a-b),
+          isCurrent:pageIndex===d.cur, isLastPage:d.pages.length===1};
+}
+/* Índice activo tras quitar la página `pageIndex` de un documento de `length` páginas (antes de quitarla). */
+function pageCurAfterRemoval(cur, pageIndex, length){
+  const c=clamp(Number.isSafeInteger(cur)? cur : 0, 0, length-1);
+  if(pageIndex<c) return c-1;
+  if(pageIndex>c) return c;
+  return Math.min(pageIndex, length-2);
+}
+function deletePageIn(d, pageIndex){
+  pageIndexOf(d,pageIndex);
+  if(d.pages.length<=1) throw projectDataError("last_page","pageIndex");
+  const impact=pageRemovalImpactIn(d,pageIndex), from=d.cur, length=d.pages.length;
+  const [page]=d.pages.splice(pageIndex,1);
+  d.cur=pageCurAfterRemoval(from, pageIndex, length);
+  return {pageIndex, page, impact, cur:{from, to:d.cur}};
+}
+function restorePageIn(d, pageIndex, page){
+  if(!projectObject(d) || !Array.isArray(d.pages)) throw projectDataError("invalid_document","pages");
+  authoringPage(page);
+  if(d.pages.includes(page)) throw projectDataError("invalid_document","page");
+  if(!Number.isSafeInteger(pageIndex) || pageIndex<0 || pageIndex>d.pages.length) throw projectDataError("invalid_document","pageIndex");
+  const from=d.cur;
+  d.pages.splice(pageIndex,0,page);
+  if(Number.isSafeInteger(from) && pageIndex<=from) d.cur=from+1;
+  return {pageIndex, page, cur:{from, to:d.cur}};
+}
+
 /* ===================== Autoría del documento y del diagrama (FLUYO-018.7a) =====================
    Misma autoridad única: las llaman el editor (ui.js: themeSel/bgCustom; selection.js: orden Z, Ctrl+D, pegar) y
    FluyoAuthoring (set_theme, reorder_nodes, duplicate_node). Sin DOM, selección, undo, snap ni autoguardado.

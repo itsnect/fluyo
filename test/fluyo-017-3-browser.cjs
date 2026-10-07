@@ -193,34 +193,36 @@ async function oldDocument(browser) {
       ok("B. disponibilidad de un evento usado: UI bloqueada; reenviar la misma no lanza; cambiarla, cambiar la primitiva o borrar sí se rechazan (política actual)");
     }
 
-    /* ───────── C. Undo / Redo (semántica EXISTENTE, js/selection.js sin cambios respecto a HEAD) ─────────
-       El snapshot de Undo es la PÁGINA (nodos, conexiones, comportamientos, Historias): la biblioteca de EventTypes es del documento
-       y no se deshace; los contadores de identidad nunca bajan. Aquí sólo se verifica eso, sin inventar otra semántica. */
+    /* ───────── C. Undo / Redo ─────────
+       Cada entrada restaura la PÁGINA (nodos, conexiones, comportamientos, Historias) y, desde FLUYO-018.7d, también la biblioteca de
+       EventTypes tal como estaba antes de esa acción (decisión 82 ya no la excluye). Los contadores de identidad nunca bajan. */
     {
       await blur();
       /* sin contadores de identidad: applySnap los conserva a propósito (un id eliminado no se reasigna) */
       const page = () => ed.evaluate(() => { const c = JSON.parse(JSON.stringify(P())); delete c.nextId; delete c.nextScenarioId; for (const sc of c.scenarios) delete sc.nextStepId; return JSON.stringify(c); });
       const lib = () => ed.evaluate(() => JSON.stringify([doc.eventTypes, doc.nextEventTypeId]));
-      const pg = [await page()];
-      await createEvent({ name: "Nuevo", kind: "connection", phrase: " reintenta con ", symbolIndex: 3 }); pg.push(await page());
-      await editEvent("Nuevo", async () => { await ed.locator("#scEventName").fill("Nuevo 2"); }); pg.push(await page());
-      await ed.locator("#scStoryAdd").click(); pg.push(await page());
-      await placeOn("Nuevo 2", "edge", 0); pg.push(await page());
+      const pg = [await page()], libs = [await lib()];
+      await createEvent({ name: "Nuevo", kind: "connection", phrase: " reintenta con ", symbolIndex: 3 }); pg.push(await page()); libs.push(await lib());
+      await editEvent("Nuevo", async () => { await ed.locator("#scEventName").fill("Nuevo 2"); }); pg.push(await page()); libs.push(await lib());
+      await ed.locator("#scStoryAdd").click(); pg.push(await page()); libs.push(await lib());
+      await placeOn("Nuevo 2", "edge", 0); pg.push(await page()); libs.push(await lib());
       assert.equal(await ed.evaluate(() => P().scenarios.length), 2);
       const libFinal = await lib();
       assert.match(libFinal, /"name":"Nuevo 2"/);
       const undone = [];
-      for (let i = 0; i < 4; i++) { await blur(); await ed.keyboard.press("Control+z"); undone.push([(await page()) === pg[3 - i], (await lib()) === libFinal]); }
-      console.log("     Undo ×4 [página == estado previo, biblioteca intacta]:", J(undone));
-      assert.deepEqual(undone, [[true, true], [true, true], [true, true], [true, true]], "Ctrl+Z restaura la página; la biblioteca de EventTypes no se deshace (política existente)");
+      for (let i = 0; i < 4; i++) { await blur(); await ed.keyboard.press("Control+z"); undone.push([(await page()) === pg[3 - i], (await lib()).replace(/,\d+\]$/, "]") === libs[3 - i].replace(/,\d+\]$/, "]")]); }
+      console.log("     Undo ×4 [página == estado previo, biblioteca == estado previo]:", J(undone));
+      assert.deepEqual(undone, [[true, true], [true, true], [true, true], [true, true]], "Ctrl+Z restaura la página y la biblioteca de EventTypes de cada paso (018.7d)");
+      assert.doesNotMatch(await lib(), /"name":"Nuevo/, "deshacer la creación quita «Nuevo» de la biblioteca");
       assert.equal(await ed.evaluate(() => P().scenarios.length), 1, "la Historia nueva desapareció con su Undo");
       const redone = [];
-      for (let i = 0; i < 4; i++) { await blur(); await ed.keyboard.press("Control+y"); redone.push([(await page()) === pg[i + 1], (await lib()) === libFinal]); }
-      assert.deepEqual(redone, [[true, true], [true, true], [true, true], [true, true]], "Ctrl+Y rehace la página en el mismo orden");
+      for (let i = 0; i < 4; i++) { await blur(); await ed.keyboard.press("Control+y"); redone.push([(await page()) === pg[i + 1], (await lib()) === libs[i + 1]]); }
+      assert.deepEqual(redone, [[true, true], [true, true], [true, true], [true, true]], "Ctrl+Y rehace página y biblioteca en el mismo orden");
+      assert.equal(await lib(), libFinal);
       assert.equal(await ed.evaluate(() => P().scenarios.length), 2);
       assert.equal(await ed.evaluate(() => doc.nextEventTypeId), 5, "el contador de EventTypes no baja");
       assert.equal(await noRemnants(), true);
-      ok("C. Undo/Redo reales (Ctrl+Z ×4, Ctrl+Y ×4) tras crear/modificar EventType, crear Historia y añadir Step: página exacta; biblioteca no se deshace (política existente)");
+      ok("C. Undo/Redo reales (Ctrl+Z ×4, Ctrl+Y ×4) tras crear/modificar EventType, crear Historia y añadir Step: página y biblioteca exactas en cada paso (018.7d); el contador no baja");
     }
 
     /* ───────── D. Present ───────── */

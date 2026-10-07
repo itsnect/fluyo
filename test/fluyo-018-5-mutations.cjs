@@ -24,10 +24,10 @@ const MUTATIONS = [
   ["Q1 create_page se declara de alcance «page»", AUTH, "create_page:\"document\", rename_page:\"document\",", "create_page:\"page\", rename_page:\"document\","],
   ["Q2 create_page ignora el nombre", AUTH, "r = createPageIn(ctx.d, op.name);", "r = createPageIn(ctx.d);"],
   ["Q3 create_page admite pageIndex", AUTH, "create_page:[\"name\"],", "create_page:[\"name\",\"pageIndex\"],"],
-  ["Q4 rename_page renombra una página fija (la 0)", AUTH, "r = renamePageIn(ctx.d, op.pageIndex, op.name);", "r = renamePageIn(ctx.d, 0, op.name);"],
+  ["Q4 rename_page renombra una página fija (la 0)", AUTH, "r = renamePageIn(ctx.d, liveIndexOf(ctx, op.pageIndex), op.name);", "r = renamePageIn(ctx.d, 0, op.name);"],   // 018.7c: ancla actualizada; misma intención
   ["Q5 el error de nombre pierde su código", AUTH, "return reject(\"INVALID_NAME\", `El nombre de la página", "return reject(\"INVALID_FIELD\", `El nombre de la página"],
   ["Q6 las operaciones de página pierden el alcance document (exigen pageIndex de página)", AUTH, "const documentLevel = expected===\"eventType\" || expected===\"document\";", "const documentLevel = expected===\"eventType\";"],
-  ["Q7 create_page no informa del pageIndex creado", AUTH, "return {entityKind:\"page\", entityId:r.pageIndex, pageIndex:r.pageIndex, created:true,", "return {entityKind:\"page\", entityId:0, pageIndex:0, created:true,"],
+  ["Q7 create_page no informa del pageIndex creado", AUTH, "return {entityKind:\"page\", entityId:pageIndex, pageIndex, created:true,", "return {entityKind:\"page\", entityId:0, pageIndex:0, created:true,"],   // 018.7c: ancla actualizada; misma intención
   // ── reglas de entrada
   ["R1 el color HEX acepta cualquier longitud", AUTH, "const HEX_COLOR = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;", "const HEX_COLOR = /^#[0-9a-fA-F]+$/;"],
   ["R2 el color HEX no está anclado", AUTH, "const HEX_COLOR = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;", "const HEX_COLOR = /#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})/;"],

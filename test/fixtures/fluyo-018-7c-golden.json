@@ -1,0 +1,594 @@
+{
+ "baseRevision": "sha256:b8219f14d6598d2744c65e1a9f6078004d1614cfcc61709024b40a0bb40ef978",
+ "document": {
+  "version": 5,
+  "app": "fluyo",
+  "doc": {
+   "theme": "dark",
+   "customBg": "",
+   "eventTypes": [
+    {
+     "id": 1,
+     "name": "Pago",
+     "primitive": "FLOW",
+     "sentenceTemplate": "{source} paga a {target}",
+     "visual": {
+      "kind": "token",
+      "value": "●"
+     },
+     "motion": "normal",
+     "presentation": {
+      "nodeEffects": {
+       "showSymbol": false,
+       "symbolSize": "medium",
+       "message": "",
+       "messageColor": "",
+       "messageSize": "medium",
+       "messageWeight": "normal",
+       "messageFont": "default",
+       "messagePosition": "above",
+       "highlight": false,
+       "blink": false,
+       "dim": false,
+       "fillColor": "",
+       "visualDuration": "normal",
+       "visualDurationMs": 1500
+      },
+      "connectionEffects": {
+       "size": "medium",
+       "style": "direct",
+       "trail": "none",
+       "arrival": "none",
+       "during": "none"
+      }
+     }
+    },
+    {
+     "id": 2,
+     "name": "Aviso",
+     "primitive": "OCCURRENCE",
+     "sentenceTemplate": "{target} avisa",
+     "visual": {
+      "kind": "token",
+      "value": "●"
+     },
+     "motion": "normal",
+     "presentation": {
+      "nodeEffects": {
+       "showSymbol": false,
+       "symbolSize": "medium",
+       "message": "",
+       "messageColor": "",
+       "messageSize": "medium",
+       "messageWeight": "normal",
+       "messageFont": "default",
+       "messagePosition": "above",
+       "highlight": false,
+       "blink": false,
+       "dim": false,
+       "fillColor": "",
+       "visualDuration": "normal",
+       "visualDurationMs": 1500
+      }
+     }
+    },
+    {
+     "id": 3,
+     "name": "Libre",
+     "primitive": "OCCURRENCE",
+     "sentenceTemplate": "{target} libre",
+     "visual": {
+      "kind": "token",
+      "value": "●"
+     },
+     "motion": "normal",
+     "presentation": {
+      "nodeEffects": {
+       "showSymbol": false,
+       "symbolSize": "medium",
+       "message": "",
+       "messageColor": "",
+       "messageSize": "medium",
+       "messageWeight": "normal",
+       "messageFont": "default",
+       "messagePosition": "above",
+       "highlight": false,
+       "blink": false,
+       "dim": false,
+       "fillColor": "",
+       "visualDuration": "normal",
+       "visualDurationMs": 1500
+      }
+     }
+    }
+   ],
+   "nextEventTypeId": 4,
+   "pages": [
+    {
+     "name": "Inicio",
+     "nodes": [
+      {
+       "id": 1,
+       "shape": "rect",
+       "x": 0,
+       "y": 0,
+       "w": 180,
+       "h": 70,
+       "label": "Portada",
+       "color": "#6a9fb5",
+       "fill": null,
+       "border": "solid",
+       "lblPos": "center",
+       "textBg": null,
+       "textColor": null,
+       "font": null,
+       "bold": false,
+       "pulse": false,
+       "order": 0
+      }
+     ],
+     "edges": [],
+     "nextId": 2,
+     "behaviors": [],
+     "scenarios": [],
+     "nextScenarioId": 1
+    },
+    {
+     "name": "Pagos",
+     "nodes": [
+      {
+       "id": 1,
+       "shape": "rect",
+       "x": 100,
+       "y": 100,
+       "w": 180,
+       "h": 70,
+       "label": "Cliente",
+       "color": "#6a9fb5",
+       "fill": null,
+       "border": "solid",
+       "lblPos": "center",
+       "textBg": null,
+       "textColor": null,
+       "font": null,
+       "bold": false,
+       "pulse": false,
+       "order": 0
+      },
+      {
+       "id": 2,
+       "shape": "rect",
+       "x": 400,
+       "y": 100,
+       "w": 180,
+       "h": 70,
+       "label": "Banco",
+       "color": "#6a9fb5",
+       "fill": null,
+       "border": "solid",
+       "lblPos": "center",
+       "textBg": null,
+       "textColor": null,
+       "font": null,
+       "bold": false,
+       "pulse": false,
+       "order": 1
+      },
+      {
+       "id": 3,
+       "shape": "rect",
+       "x": 700,
+       "y": 100,
+       "w": 180,
+       "h": 70,
+       "label": "Comercio",
+       "color": "#6a9fb5",
+       "fill": null,
+       "border": "solid",
+       "lblPos": "center",
+       "textBg": null,
+       "textColor": null,
+       "font": null,
+       "bold": false,
+       "pulse": false,
+       "order": 2
+      }
+     ],
+     "edges": [
+      {
+       "id": 4,
+       "from": 1,
+       "to": 2,
+       "fromSide": null,
+       "toSide": null,
+       "route": "straight",
+       "waypoints": [
+        {
+         "x": 250,
+         "y": 40
+        },
+        {
+         "x": 250,
+         "y": 160
+        }
+       ],
+       "label": "paga",
+       "font": null,
+       "bold": false,
+       "animated": true,
+       "dashed": false,
+       "startArrow": false,
+       "endArrow": true,
+       "flowDir": "normal"
+      },
+      {
+       "id": 5,
+       "from": 2,
+       "to": 3,
+       "fromSide": null,
+       "toSide": null,
+       "route": "straight",
+       "waypoints": [],
+       "label": "",
+       "font": null,
+       "bold": false,
+       "animated": true,
+       "dashed": false,
+       "startArrow": false,
+       "endArrow": true,
+       "flowDir": "normal"
+      }
+     ],
+     "nextId": 6,
+     "behaviors": [
+      {
+       "nodeId": 2,
+       "initialState": "DOWN"
+      }
+     ],
+     "scenarios": [
+      {
+       "id": 1,
+       "engineVersion": 2,
+       "name": "Compra",
+       "nextStepId": 4,
+       "steps": [
+        {
+         "id": 1,
+         "at": 0,
+         "eventTypeId": 1,
+         "action": "SEND",
+         "edgeId": 4
+        },
+        {
+         "id": 2,
+         "at": 1000,
+         "eventTypeId": 2,
+         "action": "OCCURRENCE",
+         "nodeId": 2
+        },
+        {
+         "id": 3,
+         "at": 1000,
+         "eventTypeId": 1,
+         "action": "SEND",
+         "edgeId": 5
+        }
+       ]
+      },
+      {
+       "id": 2,
+       "engineVersion": 2,
+       "name": "Reembolso",
+       "nextStepId": 1,
+       "steps": []
+      }
+     ],
+     "nextScenarioId": 3
+    },
+    {
+     "name": "Envíos",
+     "nodes": [
+      {
+       "id": 1,
+       "shape": "rect",
+       "x": 0,
+       "y": 0,
+       "w": 180,
+       "h": 70,
+       "label": "Almacén",
+       "color": "#6a9fb5",
+       "fill": null,
+       "border": "solid",
+       "lblPos": "center",
+       "textBg": null,
+       "textColor": null,
+       "font": null,
+       "bold": false,
+       "pulse": false,
+       "order": 0
+      },
+      {
+       "id": 2,
+       "shape": "rect",
+       "x": 300,
+       "y": 0,
+       "w": 180,
+       "h": 70,
+       "label": "Reparto",
+       "color": "#6a9fb5",
+       "fill": null,
+       "border": "solid",
+       "lblPos": "center",
+       "textBg": null,
+       "textColor": null,
+       "font": null,
+       "bold": false,
+       "pulse": false,
+       "order": 1
+      }
+     ],
+     "edges": [
+      {
+       "id": 3,
+       "from": 1,
+       "to": 2,
+       "fromSide": null,
+       "toSide": null,
+       "route": "straight",
+       "waypoints": [],
+       "label": "",
+       "font": null,
+       "bold": false,
+       "animated": true,
+       "dashed": false,
+       "startArrow": false,
+       "endArrow": true,
+       "flowDir": "normal"
+      }
+     ],
+     "nextId": 4,
+     "behaviors": [],
+     "scenarios": [
+      {
+       "id": 1,
+       "engineVersion": 2,
+       "name": "Entrega",
+       "nextStepId": 2,
+       "steps": [
+        {
+         "id": 1,
+         "at": 0,
+         "eventTypeId": 2,
+         "action": "OCCURRENCE",
+         "nodeId": 2
+        }
+       ]
+      }
+     ],
+     "nextScenarioId": 2
+    },
+    {
+     "name": "Vacía",
+     "nodes": [],
+     "edges": [],
+     "nextId": 1,
+     "behaviors": [],
+     "scenarios": [],
+     "nextScenarioId": 1
+    }
+   ],
+   "cur": 1
+  },
+  "settings": {
+   "speed": 0.5,
+   "dots": 3,
+   "build": false,
+   "stagger": 0.45,
+   "grid": true,
+   "snap": false,
+   "font": "Georgia, serif",
+   "single": false
+  }
+ },
+ "cases": [
+  {
+   "name": "borrar la primera (anterior a la activa)",
+   "operations": [
+    {
+     "op": "delete_page",
+     "scope": "document",
+     "pageIndex": 0,
+     "expectedName": "Inicio"
+    }
+   ],
+   "resultRevision": "sha256:2ee123613f2e2a73eabb628349e1857a0ebcad91deb54abefda34b4bafc560ed",
+   "pageMap": [
+    {
+     "from": 0,
+     "to": null
+    },
+    {
+     "from": 1,
+     "to": 0
+    },
+    {
+     "from": 2,
+     "to": 1
+    },
+    {
+     "from": 3,
+     "to": 2
+    }
+   ],
+   "cur": 0
+  },
+  {
+   "name": "borrar la activa con Historias y Behavior",
+   "operations": [
+    {
+     "op": "delete_page",
+     "scope": "document",
+     "pageIndex": 1,
+     "expectedName": "Pagos"
+    }
+   ],
+   "resultRevision": "sha256:5f4a2afdef22ed07ca47f2953e73d8d615c07470deceedd8ac172aed009c96e2",
+   "pageMap": [
+    {
+     "from": 0,
+     "to": 0
+    },
+    {
+     "from": 1,
+     "to": null
+    },
+    {
+     "from": 2,
+     "to": 1
+    },
+    {
+     "from": 3,
+     "to": 2
+    }
+   ],
+   "cur": 1
+  },
+  {
+   "name": "borrar una posterior a la activa",
+   "operations": [
+    {
+     "op": "delete_page",
+     "scope": "document",
+     "pageIndex": 2,
+     "expectedName": "Envíos"
+    }
+   ],
+   "resultRevision": "sha256:8013fb96d4746f0bc366fee0db23093a57b25b06560f9b3aa6e15e5054141a56",
+   "pageMap": [
+    {
+     "from": 0,
+     "to": 0
+    },
+    {
+     "from": 1,
+     "to": 1
+    },
+    {
+     "from": 2,
+     "to": null
+    },
+    {
+     "from": 3,
+     "to": 2
+    }
+   ],
+   "cur": 1
+  },
+  {
+   "name": "borrar la última (vacía)",
+   "operations": [
+    {
+     "op": "delete_page",
+     "scope": "document",
+     "pageIndex": 3,
+     "expectedName": "Vacía"
+    }
+   ],
+   "resultRevision": "sha256:78489745d61eba0adc9138cc7c8fba0f3e5c4e38508876002667247ba1e09134",
+   "pageMap": [
+    {
+     "from": 0,
+     "to": 0
+    },
+    {
+     "from": 1,
+     "to": 1
+    },
+    {
+     "from": 2,
+     "to": 2
+    },
+    {
+     "from": 3,
+     "to": null
+    }
+   ],
+   "cur": 1
+  },
+  {
+   "name": "dos borrados en un lote (índices del lote 3 y 1)",
+   "operations": [
+    {
+     "op": "delete_page",
+     "scope": "document",
+     "pageIndex": 3,
+     "expectedName": "Vacía"
+    },
+    {
+     "op": "delete_page",
+     "scope": "document",
+     "pageIndex": 1,
+     "expectedName": "Pagos"
+    }
+   ],
+   "resultRevision": "sha256:07ea17d9211ae46f514f7b65e1b71c2175bf557029c155258a26a81268ea8b07",
+   "pageMap": [
+    {
+     "from": 0,
+     "to": 0
+    },
+    {
+     "from": 1,
+     "to": null
+    },
+    {
+     "from": 2,
+     "to": 1
+    },
+    {
+     "from": 3,
+     "to": null
+    }
+   ],
+   "cur": 1
+  },
+  {
+   "name": "borrar y seguir editando otra página",
+   "operations": [
+    {
+     "op": "delete_page",
+     "scope": "document",
+     "pageIndex": 0,
+     "expectedName": "Inicio"
+    },
+    {
+     "op": "rename_page",
+     "scope": "document",
+     "pageIndex": 2,
+     "name": "Logística"
+    }
+   ],
+   "resultRevision": "sha256:5608f53380b4b0535c057f4e89cf968d7eae26f758f8764e90d952db86784fd4",
+   "pageMap": [
+    {
+     "from": 0,
+     "to": null
+    },
+    {
+     "from": 1,
+     "to": 0
+    },
+    {
+     "from": 2,
+     "to": 1
+    },
+    {
+     "from": 3,
+     "to": 2
+    }
+   ],
+   "cur": 0
+  }
+ ]
+}

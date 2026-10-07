@@ -217,10 +217,10 @@ const spyGet = (p) => p.evaluate(() => JSON.parse(JSON.stringify(__spy)));
     await dlg.locator("#scEventSave").click(); await ed.waitForTimeout(100);
     const postU = await ed.evaluate(() => JSON.stringify(doc.eventTypes[0].presentation)); assert.notEqual(postU, preU);
     await ed.evaluate(() => { document.activeElement && document.activeElement.blur(); }); await ed.locator("canvas#cv, canvas").first().click({ position: { x: 5, y: 5 }, force: true }).catch(() => {});
-    /* LIMITACIÓN PREEXISTENTE (no de 015): el Undo es por página (snapPage = P()); doc.eventTypes es del proyecto y
-       queda fuera, igual que nombre/frase/símbolo. Se documenta y se protege lo que sí debe cumplirse. */
+    /* FLUYO-018.7d: la biblioteca de EventTypes entra en Undo/Redo (antes quedaba fuera: limitación de la decisión 82). Ctrl+Z devuelve la
+       presentación anterior COMPLETA (nunca a medias) y Ctrl+Shift+Z la reaplica; Steps, Trace e IDs no cambian. */
     await ed.keyboard.press("Control+z"); await ed.waitForTimeout(150);
-    assert.equal(await ed.evaluate(() => JSON.stringify(doc.eventTypes[0].presentation)), postU, "Undo no corrompe ni revierte parcialmente la presentación del proyecto");
+    assert.equal(await ed.evaluate(() => JSON.stringify(doc.eventTypes[0].presentation)), preU, "Undo restaura la presentación anterior completa");
     assert.equal(await ed.evaluate(() => JSON.stringify(P().scenarios)), st0, "Steps estables tras Undo"); assert.equal(await traceOf(), tr0, "Trace estable tras Undo");
     await ed.keyboard.press("Control+Shift+z"); await ed.waitForTimeout(150);
     assert.equal(await ed.evaluate(() => JSON.stringify(doc.eventTypes[0].presentation)), postU);
@@ -232,7 +232,7 @@ const spyGet = (p) => p.evaluate(() => JSON.parse(JSON.stringify(__spy)));
     await ed.keyboard.press("Control+z"); await ed.waitForTimeout(100);
     assert.equal(await ed.evaluate(() => P().scenarios[0].steps.length), nSteps); assert.equal(await traceOf(), tr0);
     assert.equal(await ed.evaluate(() => JSON.stringify(doc.eventTypes[0].presentation)), postU);
-    ok("11 Undo/Redo: Steps, Trace e IDs estables; la presentación (del proyecto, fuera del Undo por página, como nombre/frase) no se corrompe");
+    ok("11 Undo/Redo: la presentación se deshace y se rehace entera (018.7d); Steps, Trace e IDs estables");
 
     /* ── 12 — residuos tras Stop / Reset / página / Scenario / Present / documento / Viewer ── */
     const residual = async (label) => {

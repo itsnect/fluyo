@@ -250,6 +250,28 @@ MCP author_document (set_theme · reorder_nodes · duplicate_node) y las tools d
 - **Orden Z = posición en `page.nodes[]`** (no `order`, que es la animación `build`). Las conexiones se dibujan siempre debajo de todos los nodos: no tienen Z. `reorderNodesIn` conserva las identidades de los nodos y el orden relativo **del documento**; `changed:false` ⇒ el editor no crea entrada de Undo. El panel de selección múltiple no ofrece botones de orden (ni antes); la función admite varios nodos.
 - **`setThemeIn(d,{theme?,customBg?})`**: parche idempotente (`doc.theme` ∈ `THEMES`, `doc.customBg` string; `null`→`""`). La regla HEX de `customBg` es de entrada de autoría. Sin Undo (el tema es del documento).
 - **`cloneStructureIn` / `duplicateNodesIn`**: única autoridad de clonado (pegar, Ctrl+D y `duplicate_node`). Ids reservados en un bloque antes de mutar (todo o nada), nodos en el orden del documento y luego las conexiones internas; los Behaviors de los nodos copiados se copian; Steps, Historias y EventTypes no se tocan. `dupSel` ya no pasa por `copySel` (no pisa el portapapeles del sistema ni `clip`). Undo por snapshot previo (`pushUndoSnapshot`): si el dominio falla no queda entrada.
-- **F1**: la ✕ de página vacía `undoStack`/`redoStack` (los snapshots identifican la página por índice). Hotfix mínimo; Undo por referencia a la página (y `delete_page`) es el release 018.7c.
+- **F1**: *(018.7a, sustituido en 018.7c)* la ✕ de página vaciaba `undoStack`/`redoStack` porque los snapshots identificaban la página por índice. Ver «Eliminar páginas y Undo estructural».
 - MCP: 16 tools. `set_theme`, `reorder_nodes` y `duplicate_node` existen como tools de UNA operación (llaman a `authorDocument` con la operación homónima) y como operaciones de `author_document` (lotes, refs de copias). `describe_document` publica `theme`, `customBg`, `capabilities.themes` y `z` por elemento.
 - Pruebas: `test/fluyo-018-7a-f1.test.cjs`, `test/fluyo-018-7a.test.cjs` (caracterización de `pasteClip`/`dupSel`), `test/fluyo-018-7a-domain.test.cjs` (dominio, autoría, paridad editor↔MCP, golden compartido `test/fixtures/fluyo-018-7a-golden.json`), `test/fluyo-018-7a-mutations.cjs` (62), `test/fluyo-018-7a-browser.cjs` (Chrome real contra HEAD); fluyo-mcp: `test/fluyo-018-7a.test.ts`, `scripts/mutate-018-7a.ts` (33).
+
+## Eliminar páginas y Undo estructural (FLUYO-018.7c)
+
+```text
+✕ de la pestaña (ui.js) ─► requestDeletePage (selection.js): confirm(impacto) ─► Cancelar: nada
+                                                                             └► Aceptar: scReset si hay Playback ─► deletePageIn ─► Undo {insertPage, page, index, curPage}
+MCP author_document delete_page {pageIndex, expectedName} ─► FluyoAuthoring (índices estables del lote) ─► deletePageIn ─► pageMap
+                       model.js: pageRemovalImpactIn · pageCurAfterRemoval · deletePageIn · restorePageIn
+```
+
+- **Dominio** (`model.js`): `pageRemovalImpactIn` (pura: nodos, conexiones, Behaviors, Historias con pasos y momentos, EventTypes que quedan sin uso), `pageCurAfterRemoval` (regla de `cur`), `deletePageIn` (`last_page`, `page_not_found`; devuelve el MISMO objeto página e `impact`; no toca EventTypes) y `restorePageIn` (reinserta ese objeto y conserva la página activa). Decisión 103.
+- **Undo/Redo** (`selection.js`): entradas por referencia (`page`, `insertPage`, `removePage`); `applyHistoryEntry` aplica y devuelve la inversa; `stepHistory` la pasa a la otra pila. Ninguna entrada guarda un índice de página. Decisión 104.
+- **Lotes** (`story-authoring.js`): `ctx.pages` = página de cada índice del lote (hueco `null` si se eliminó; `create_page` añade al final); `ctx.d` es siempre el documento vivo. `pageOf` resuelve por `ctx.pages` (`PAGE_DELETED`/`PAGE_NOT_FOUND`); `batchIndexOf`/`liveIndexOf`/`inBatch` traducen entre índices del lote y del documento (usos de EventTypes, validación final). `pageMap` solo si se eliminó alguna página. Decisión 105.
+- MCP: operación `delete_page` en el schema de `author_document` (`expectedName` obligatorio), `pageMap` en la respuesta y en el resumen; sin tool nueva (16). `describe_document` sin cambios (decisión 106).
+- `sw.js`: `CACHE` v64 → v65 (cambian `model.js`, `selection.js`, `ui.js`; sin archivos servidos nuevos).
+- Pruebas: `test/fluyo-018-7c.test.cjs` (editor real: confirmación, Cancelar/Aceptar, Playback, Undo/Redo estructural y secuencias aleatorias contra un modelo), `test/fluyo-018-7c-domain.test.cjs` (dominio, autoría, lotes, integridad, documentos antiguos, paridad editor↔MCP y golden compartido `test/fixtures/fluyo-018-7c-golden.json`), `test/fluyo-018-7a-f1.test.cjs` (regresión permanente de F1, adaptada), `test/fluyo-018-7c-mutations.cjs` (45), `test/fluyo-018-7c-browser.cjs` (Chrome real contra HEAD); fluyo-mcp: `test/fluyo-018-7c.test.ts`, `scripts/mutate-018-7c.ts` (28).
+
+## La biblioteca de EventTypes en Undo/Redo (FLUYO-018.7d)
+
+- `selection.js`: `libSnap()` (mismos objetos EventType + copia de su contenido + `nextEventTypeId`) va en TODA entrada (`pageSnap`, `insertPage`); `stepHistory` captura la biblioteca actual para la inversa, aplica la entrada y, si aplica, `restoreLibrary` (contenido a los mismos objetos, array repuesto, contador sin bajar). Decisión 107.
+- Las rutas de biblioteca del editor (`scSaveEventType`, `scDeleteEventUI`) no cambian: ya hacían `pushUndo()` antes de mutar. `model.js`, kernel y MCP sin cambios. `sw.js`: `CACHE` v66.
+- Pruebas: `test/fluyo-018-7d.test.cjs`, `test/fluyo-018-7d-mutations.cjs` (12), `test/fluyo-018-7d-browser.cjs` (Chrome real); adaptados `fluyo-015-qa-browser.cjs` §11 y `fluyo-017-3-browser.cjs` §C.

@@ -3,7 +3,8 @@
    018.5 hace que crear («＋») y renombrar (doble clic) páginas pasen por model.js (createPageIn, renamePageIn) vía state.js (addPage, renamePage).
    Se ejecuta EL MISMO guion contra el árbol de trabajo y contra HEAD (git archive → carpeta temporal) y se comparan los documentos paso a paso:
    crear página, renombrar, cambiar entre páginas, crear nodos/conexiones en cada una, Historias (página existente y nueva), Playback, Undo/Redo,
-   guardar/reabrir, Share y Viewer. Solo difiere, por diseño, un nombre de página de más de 80 caracteres (HEAD lo aceptaba; ahora se rechaza con aviso).
+   guardar/reabrir, Share y Viewer. Mientras 018.5 no estaba en HEAD solo difería, por diseño, un nombre de más de 80 caracteres (HEAD lo aceptaba);
+   con 018.5 ya en HEAD (desde 018.7c) el oráculo es HEAD actual y también ese caso debe ser IDÉNTICO: ambos lo rechazan con aviso.
    Playwright se proporciona externamente (NODE_PATH); capturas fuera del repo.
    Uso: node test/fluyo-018-5-browser.cjs   (FLUYO_BROWSER=chrome por defecto; FLUYO_SHOTS=<dir>) */
 let chromium;
@@ -125,7 +126,7 @@ async function script(browser, base, label, opts = {}) {
   await ed.waitForFunction((s) => JSON.stringify(serializeProject(), null, 2) === s, saved, { timeout: 5000 }).catch(() => {});
   const reopened = await ed.evaluate(() => JSON.stringify(serializeProject(), null, 2));
   const reopenedTabs = await tabs();
-  /* 9. nombre de página de 81 caracteres: HEAD lo acepta; 018.5 lo rechaza con un aviso y deja la página intacta */
+  /* 9. nombre de página de 81 caracteres: se rechaza con un aviso y la página queda intacta (el árbol de trabajo y HEAD, que ya incluye 018.5) */
   promptAnswer = "x".repeat(81);
   const dialogsBefore = dialogs.length;
   await ed.locator("#pagesBar .tab").nth(1).dblclick();
@@ -177,9 +178,9 @@ async function script(browser, base, label, opts = {}) {
     ok(JSON.stringify(x.traces) === JSON.stringify(y.traces) && x.traces.every((t) => JSON.parse(t).events.length >= 2), "Trace de la Historia (página existente y página nueva) idéntico a HEAD");
     ok(x.undoOk && y.undoOk, "Undo/Redo restauran la página nueva (WT y HEAD)");
     ok(x.reopenedSame && y.reopenedSame && JSON.stringify(x.reopenedTabs) === JSON.stringify(y.reopenedTabs), "guardar → reabrir: documento y pestañas idénticos");
-    ok(x.viewerPlayed && y.viewerPlayed && x.viewerDoc.join("|") === "Página 1|Pagos|Página 3" && y.viewerDoc.length === 3 && y.viewerDoc[0] === "Página 1" && y.viewerDoc[2] === "Página 3", "Share → Viewer: reproduce y conserva los nombres de página " + JSON.stringify(x.viewerDoc) + " (HEAD: la 2.ª es el nombre de 81 caracteres que aceptaba)");
+    ok(x.viewerPlayed && y.viewerPlayed && x.viewerDoc.join("|") === "Página 1|Pagos|Página 3" && JSON.stringify(y.viewerDoc) === JSON.stringify(x.viewerDoc), "Share → Viewer: reproduce y conserva los nombres de página, igual que HEAD " + JSON.stringify(x.viewerDoc));
     ok(x.longName.name === "Pagos" && x.longName.dialogs.join() === "prompt,alert", "81 caracteres: se rechaza con aviso (alert) y la página queda como estaba " + JSON.stringify(x.longName));
-    ok(y.longName.name.length === 81, "(HEAD aceptaba 81 caracteres: diferencia por diseño)");
+    ok(JSON.stringify(y.longName) === JSON.stringify(x.longName), "HEAD (con 018.5) también rechaza 81 caracteres con aviso: comportamiento idéntico " + JSON.stringify(y.longName));
     ok(x.emptyName === "Pagos" && y.emptyName === y.longName.name, "nombre vacío en el prompt = cancelar: no cambia nada (WT y HEAD)");
     console.log("Capturas en", shots);
   } finally {

@@ -26,12 +26,15 @@ const serve = async (dir) => {
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
   return { server, base: "http://127.0.0.1:" + server.address().port };
 };
+/* Oráculo = el estado PREVIO a 018.7a. Mientras 018.7a no estaba commiteado era HEAD; desde 018.7c (con 018.7a ya en HEAD) es su
+   commit base e86c7c4. FLUYO_HEAD_REF permite elegir otro. */
+const ORACLE_REF = process.env.FLUYO_HEAD_REF || "e86c7c4";
 function headTree() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "fluyo-head-"));
-  const files = execFileSync("git", ["-C", root, "ls-tree", "-r", "--name-only", "HEAD"], { encoding: "utf8" }).split("\n").filter((f) => /^(index\.html|js\/|css\/|s\/|assets\/|manifest\.webmanifest)/.test(f));
+  const files = execFileSync("git", ["-C", root, "ls-tree", "-r", "--name-only", ORACLE_REF], { encoding: "utf8" }).split("\n").filter((f) => /^(index\.html|js\/|css\/|s\/|assets\/|manifest\.webmanifest)/.test(f));
   for (const f of files) {
     fs.mkdirSync(path.dirname(path.join(dir, f)), { recursive: true });
-    fs.writeFileSync(path.join(dir, f), execFileSync("git", ["-C", root, "show", "HEAD:" + f], { maxBuffer: 64 * 1024 * 1024 }));
+    fs.writeFileSync(path.join(dir, f), execFileSync("git", ["-C", root, "show", ORACLE_REF + ":" + f], { maxBuffer: 64 * 1024 * 1024 }));
   }
   return dir;
 }
@@ -39,7 +42,7 @@ function headTree() {
 /* Documento de trabajo: A,B,C,D (ids 1-4), conexiones 5 (A→B con waypoints), 6 (B→C), 7 (C→D), 8 (A→D); B y D «No disponible»; Historia sobre la conexión 6. */
 const SETUP = () => {
   doc.pages.length = 1; doc.cur = 0; P().nodes = []; P().edges = []; P().scenarios = []; P().behaviors = []; doc.eventTypes = []; P().name = "Página 1"; doc.theme = "dark"; doc.customBg = "";
-  undoStack.length = 0; redoStack.length = 0; scReset(); clearSel(); P().nextId = 1;
+  undoStack.length = 0; redoStack.length = 0; scReset(); clearSel(); P().nextId = 1; P().nextScenarioId = 1;   // 018.7c: la página que queda puede ser una reinsertada por Undo
   const a = newNode("rect", 200, 200, { label: "A" }), b = newNode("rect", 520, 200, { label: "B" }), c = newNode("rect", 840, 200, { label: "C" }), d = newNode("rect", 1160, 200, { label: "D" });
   const e5 = newEdge(a.id, b.id, { waypoints: [{ x: 360, y: 140 }, { x: 360, y: 260 }], label: "uno" }); newEdge(b.id, c.id); newEdge(c.id, d.id); newEdge(a.id, d.id);
   setInitialAvailability(P(), b.id, "DOWN"); setInitialAvailability(P(), d.id, "DOWN");
@@ -322,11 +325,13 @@ async function script(browser, base, label) {
     console.log("\nF1 — borrar la primera página (A/B/C), Undo y Redo");
     check(same(a.f1.afterDelete, ["B:b0|", "C:c0"]) || a.f1.afterDelete.length === 2, "tras borrar A quedan B y C (" + a.f1.afterDelete.join(", ") + ")");
     const bEdit = a.f1.afterEdit[1];
-    check(a.f1.stacksAfterDelete.u === 0 && a.f1.stacksAfterDelete.r === 0, "las pilas de Undo y Redo quedan vacías");
-    check(same(a.f1.afterUndo, a.f1.afterDelete) && same(a.f1.afterRedo, a.f1.afterDelete), "Undo y Redo tras borrar no modifican ninguna página (B y C intactas)");
-    check(a.f1.afterDelete[1] === "C:c0", "C conserva su contenido");
+    /* 018.7c: el hotfix (vaciar Undo/Redo) se sustituye por Undo por referencia: borrar es una entrada más, Undo reinserta la MISMA
+       página y Redo la vuelve a quitar. La intención de la regresión se conserva: ninguna página recibe el contenido de otra. */
+    check(a.f1.stacksAfterDelete.u >= 1 && a.f1.stacksAfterDelete.r === 0, "el borrado es una entrada de Undo y conserva el historial (018.7c) " + JSON.stringify(a.f1.stacksAfterDelete));
+    check(same(a.f1.afterUndo, a.f1.afterEdit) && same(a.f1.afterRedo, a.f1.afterDelete), "Undo reinserta A con B y C intactas; Redo la vuelve a borrar (018.7c)");
+    check(a.f1.afterDelete[1] === "C:c0" && a.f1.afterUndo[2] === "C:c0", "C conserva su contenido");
     check(a.f1.later.nodesAfterUndo === a.f1.later.nodesBefore - 1, "una edición posterior al borrado vuelve a ser deshacible");
-    check(h.f1.afterUndo[1] !== "C:c0", "HEAD reproduce el defecto: Undo escribe el contenido de B en C (" + h.f1.afterUndo.join(", ") + ")");
+    check(h.f1.afterUndo[1] !== "C:c0", "el oráculo previo a 018.7a reproduce el defecto: Undo escribe el contenido de B en C (" + h.f1.afterUndo.join(", ") + ")");
     console.log("\nOrden Z");
     check(same(a.z.initial, [1, 2, 3, 4]), "orden inicial 1,2,3,4");
     check(same(a.z.front2, [1, 3, 4, 2]) && same(a.z.back2, [2, 1, 3, 4]) && same(a.z.fwd2, [1, 2, 3, 4]) && same(a.z.bwd2, [2, 1, 3, 4]), "al frente / al fondo / subir / bajar con un nodo: " + JSON.stringify([a.z.front2, a.z.back2, a.z.fwd2, a.z.bwd2]));
@@ -383,7 +388,7 @@ async function script(browser, base, label) {
     console.log("\nErrores de consola/página");
     const errs = [...A.errors, ...H.errors.filter((e) => !/head/.test(e) === false)];
     check(A.errors.length === 0, "sin errores de consola ni de página en el árbol de trabajo" + (A.errors.length ? ": " + A.errors.slice(0, 3).join(" | ") : ""));
-    fs.writeFileSync(path.join(shots, "report.json"), JSON.stringify({ wt: A.R, head: H.R, wtDialogs: A.dialogs.length }, null, 2));
+    fs.writeFileSync(path.join(shots, "report.json"), JSON.stringify({ wt: A.R, head: H.R, wtDialogs: A.dialogs.length, wtDocs: A.docs, headDocs: H.docs }, null, 2));
   } finally {
     await browser.close(); wt.server.close(); hd.server.close();
   }

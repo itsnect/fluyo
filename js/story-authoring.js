@@ -6,7 +6,7 @@
        storyboard*, stepDefinitionForEvent, storyboardSetWait, duplicateStep, retargetStep, setInitialAvailability,
        createEventTypeIn, updateEventTypeIn, deleteEventTypeIn, eventTypeDefinition, createNodeIn, createConnectionIn,
        updateNodeIn, updateConnectionIn, deleteNodeIn, deleteConnectionIn, createPageIn, renamePageIn,
-       setThemeIn, reorderNodesIn, duplicateNodesIn (FLUYO-018.7a): las mismas que ejecuta el editor);
+       setThemeIn, reorderNodesIn, duplicateNodesIn (FLUYO-018.7a), deletePageIn (FLUYO-018.7c): las mismas que ejecuta el editor);
      · FluyoIntegrity (la autoridad de integridad) sobre el ESTADO FINAL del lote y para explicar qué rompería
        borrar o cambiar un EventType usado.
    Aquí sólo viven la forma de las operaciones, la resolución de referencias del lote (`ref`) y la explicación
@@ -25,7 +25,7 @@ var FluyoAuthoring = (function(){
     add_step:"story", remove_step:"story", move_step:"story", duplicate_step:"story", retarget_step:"story", set_wait:"story",
     set_initial_availability:"page", create_node:"page", create_connection:"page",
     update_node:"page", update_connection:"page", delete_node:"page", delete_connection:"page",
-    create_page:"document", rename_page:"document", set_theme:"document",
+    create_page:"document", rename_page:"document", delete_page:"document", set_theme:"document",
     reorder_nodes:"page", duplicate_node:"page",
     create_event_type:"eventType", update_event_type:"eventType", delete_event_type:"eventType"
   };
@@ -46,7 +46,7 @@ var FluyoAuthoring = (function(){
     create_node:["spec","ref"], create_connection:["source","target","spec","ref"],
     update_node:["node","spec"], update_connection:["connection","source","target","spec"],
     delete_node:["node"], delete_connection:["connection"],
-    create_page:["name"], rename_page:["pageIndex","name"], set_theme:["theme","customBg"],
+    create_page:["name"], rename_page:["pageIndex","name"], delete_page:["pageIndex","expectedName"], set_theme:["theme","customBg"],
     reorder_nodes:["nodes","to"], duplicate_node:["nodes","connections","offset"],
     create_event_type:["name","primitive","sentence","symbol","motion","availability","presentation","ref"],
     update_event_type:["eventTypeId","name","primitive","sentence","symbol","motion","availability","presentation"],
@@ -77,12 +77,22 @@ var FluyoAuthoring = (function(){
     if(!isId(v)) throw reject("INVALID_OPERATION", `${what} debe ser un entero ≥ 1 o {ref}.`, {field:what});
     return {id:v};
   }
+  /* Páginas del lote (FLUYO-018.7c, índices estables): `ctx.pages[i]` es la página que el índice `i` designa DURANTE TODO el lote —su
+     posición al empezar, más las que create_page añade al final—. delete_page la quita del documento (ctx.d, siempre un documento válido)
+     pero deja el hueco (null): ningún índice cambia de significado a mitad de lote y usar uno eliminado es PAGE_DELETED. Los índices del
+     documento resultante salen en `pageMap`. Sin delete_page, ctx.pages y ctx.d.pages tienen las mismas páginas en el mismo orden. */
   function pageOf(ctx, op){
     if(!Number.isSafeInteger(op.pageIndex) || op.pageIndex<0) throw reject("INVALID_OPERATION", "pageIndex debe ser un entero ≥ 0.", {field:"pageIndex"});
-    const pg = ctx.d.pages[op.pageIndex];
-    if(!pg) throw reject("PAGE_NOT_FOUND", `pageIndex ${op.pageIndex} fuera de rango (el documento tiene ${ctx.d.pages.length} página(s)).`, {pageIndex:op.pageIndex});
+    const del = ctx.deletedPages.get(op.pageIndex);
+    if(del) throw reject("PAGE_DELETED", `La página ${op.pageIndex} («${del.name}») la eliminó la operación ${del.operationIndex} (delete_page) de este lote. Dentro de un lote los índices de página no se desplazan: las demás páginas conservan el suyo.`, {pageIndex:op.pageIndex, deletedBy:{operationIndex:del.operationIndex, operation:del.operation}});
+    const pg = ctx.pages[op.pageIndex];
+    if(!pg) throw reject("PAGE_NOT_FOUND", `pageIndex ${op.pageIndex} fuera de rango (el documento tiene ${ctx.pages.length} página(s)${ctx.deletedPages.size ? `, contando las ${ctx.deletedPages.size} eliminada(s) en este lote` : ""}).`, {pageIndex:op.pageIndex});
     return pg;
   }
+  /* Índice del lote ↔ índice en el documento (ctx.d.pages). Son el mismo mientras el lote no elimine páginas. */
+  const batchIndexOf = (ctx, liveIndex) => ctx.pages.indexOf(ctx.d.pages[liveIndex]);
+  const liveIndexOf = (ctx, batchIndex) => ctx.d.pages.indexOf(ctx.pages[batchIndex]);
+  const inBatch = (ctx, list) => list.map(e=>e.pageIndex===undefined ? e : Object.assign({}, e, {pageIndex:batchIndexOf(ctx, e.pageIndex)}));
   function storyOf(ctx, op, pg, editable){
     const r = ctxRef(ctx, "stories", op.storyId, "storyId");
     if(r.pageIndex!==undefined && r.pageIndex!==op.pageIndex) throw reject("INVALID_OPERATION", "La referencia de Historia pertenece a otra página.", {field:"storyId"});
@@ -246,13 +256,14 @@ var FluyoAuthoring = (function(){
     return same.length ? [{code:"DUPLICATE_EVENT_TYPE_NAME", message:`Ya existe${same.length===1 ? "" : "n"} evento${same.length===1 ? "" : "s"} con el nombre «${et.name}» (eventTypeId ${same.join(", ")}). Distínguelos por id.`, eventTypeIds:same}] : [];
   }
   const snapshotOf = ctx => projectToSerializable(ctx.d, ctx.settings);
-  function usageErrors(errors, d){
+  /* `errors` en índices del lote (inBatch). */
+  function usageErrors(errors, ctx){
     const stories = [], steps = [];
     for(const e of errors){
       if(e.storyId===undefined) continue;
       let s = stories.find(x=>x.pageIndex===e.pageIndex && x.storyId===e.storyId);
       if(!s){
-        const sc = d.pages[e.pageIndex] && d.pages[e.pageIndex].scenarios.find(x=>x.id===e.storyId);
+        const pg = ctx.pages[e.pageIndex], sc = pg && pg.scenarios.find(x=>x.id===e.storyId);
         s = {pageIndex:e.pageIndex, storyId:e.storyId, storyName:sc && sc.name, stepIds:[]}; stories.push(s);
       }
       if(e.stepId!==undefined && !s.stepIds.includes(e.stepId)){ s.stepIds.push(e.stepId); steps.push({pageIndex:e.pageIndex, storyId:e.storyId, stepId:e.stepId}); }
@@ -264,8 +275,8 @@ var FluyoAuthoring = (function(){
   /* ¿Qué rompería quitar o cambiar este EventType? Lo responde FluyoIntegrity sobre una copia; aquí sólo se da forma al rechazo. */
   function blockedByUse(ctx, et, candidate, code, field){
     const impact = FluyoIntegrity.eventTypeImpact(snapshotOf(ctx), et.id, candidate);
-    const found = usageErrors(impact.errors, ctx.d);
-    const use = eventTypeUsagesIn(ctx.d, et.id);
+    const found = usageErrors(inBatch(ctx, impact.errors), ctx);
+    const use = inBatch(ctx, eventTypeUsagesIn(ctx.d, et.id));
     const uses = found.affectedStories.length ? found : {affectedStories:use.map(u=>({pageIndex:u.pageIndex, storyId:u.storyId, storyName:u.storyName, stepIds:u.stepIds})),
                                affectedSteps:use.flatMap(u=>u.stepIds.map(stepId=>({pageIndex:u.pageIndex, storyId:u.storyId, stepId})))};
     const detail = code==="REFERENCED_ENTITY"
@@ -414,7 +425,8 @@ var FluyoAuthoring = (function(){
        · campos: solo los x,y,w,h (y puntos de waypoints) que el lote escribió y que siguen existiendo. */
   function limitErrors(ctx, d){
     const out = [];
-    d.pages.forEach((pg, pageIndex)=>{
+    ctx.pages.forEach((pg, pageIndex)=>{                               // índices del lote; una página eliminada no cuenta
+      if(!pg) return;
       const base = ctx.baseCounts[pageIndex] || {nodes:0, edges:0}, last = ctx.countOps[pageIndex] || {};
       for(const [list, limitName, field] of [[pg.nodes, "maxNodesPerPage", "nodes"], [pg.edges, "maxConnectionsPerPage", "connections"]]){
         const n = list.length, b = field==="nodes" ? base.nodes : base.edges;
@@ -423,7 +435,7 @@ var FluyoAuthoring = (function(){
       }
     });
     for(const w of ctx.watch.values()){
-      const pg = d.pages[w.pageIndex];
+      const pg = ctx.pages[w.pageIndex];
       const rec = pg && (w.kind==="node" ? pg.nodes : pg.edges).find(x=>x.id===w.id);
       if(!rec) continue;
       const where = `${w.kind==="node" ? "Elemento" : "Conexión"} ${w.id} (página ${w.pageIndex}, operación ${w.operationIndex}: ${w.operation})`;
@@ -587,16 +599,44 @@ var FluyoAuthoring = (function(){
       let r;
       try{ r = createPageIn(ctx.d, op.name); }
       catch(e){ throw fromPageDomain(e); }
-      // Las operaciones siguientes del lote usan este pageIndex: sale en `changes` (entityId) y en `pageIndex`.
-      ctx.baseCounts[r.pageIndex] = {nodes:0, edges:0};
-      return {entityKind:"page", entityId:r.pageIndex, pageIndex:r.pageIndex, created:true, name:r.page.name, affects:{stories:[]}};
+      // Las operaciones siguientes del lote usan este pageIndex (el del lote, siempre al final): sale en `changes` (entityId) y en `pageIndex`.
+      ctx.pages.push(ctx.d.pages[r.pageIndex]);                        // la página que el dominio creó, por su índice en el documento
+      const pageIndex = ctx.pages.length-1;
+      ctx.baseCounts[pageIndex] = {nodes:0, edges:0};
+      return {entityKind:"page", entityId:pageIndex, pageIndex, created:true, name:r.page.name, affects:{stories:[]}};
     },
     rename_page(ctx, op){
-      if(!Number.isSafeInteger(op.pageIndex) || op.pageIndex<0) throw reject("INVALID_OPERATION", "pageIndex debe ser un entero ≥ 0.", {field:"pageIndex"});
+      pageOf(ctx, op);
       let r;
-      try{ r = renamePageIn(ctx.d, op.pageIndex, op.name); }
+      try{ r = renamePageIn(ctx.d, liveIndexOf(ctx, op.pageIndex), op.name); }
       catch(e){ throw fromPageDomain(e, op); }
-      return {entityKind:"page", entityId:r.pageIndex, pageIndex:r.pageIndex, renamed:true, from:r.from, to:r.page.name, affects:{stories:[]}};
+      return {entityKind:"page", entityId:op.pageIndex, pageIndex:op.pageIndex, renamed:true, from:r.from, to:r.page.name, affects:{stories:[]}};
+    },
+    /* ── Eliminar página (FLUYO-018.7c): deletePageIn de model.js, la misma que la ✕ del editor. Cascada intrínseca (la página se va con
+       sus nodos, conexiones, Behaviors, Historias y Steps; los EventTypes se conservan) y regla de cur del dominio. Guarda de intención:
+       expectedName debe ser EXACTAMENTE el nombre actual de la página. Nunca deja 0 páginas (se comprueba en cada borrado). ── */
+    delete_page(ctx, op){
+      if(op.expectedName===undefined) throw reject("INVALID_FIELD", "delete_page necesita «expectedName»: el nombre ACTUAL de la página (el de describe_document). Protege de eliminar otra página por un índice desactualizado.", {field:"expectedName"});
+      if(typeof op.expectedName!=="string") throw reject("INVALID_FIELD", "«expectedName» debe ser un texto: el nombre actual de la página, exacto.", {field:"expectedName"});
+      const pg = pageOf(ctx, op);
+      if(pg.name!==op.expectedName)
+        throw reject("PAGE_MISMATCH", `La página ${op.pageIndex} se llama «${pg.name}», no «${op.expectedName}»: no se elimina nada. Vuelve a leer el documento (describe_document) y usa el nombre exacto.`, {pageIndex:op.pageIndex, expectedName:op.expectedName, actualName:pg.name});
+      const curFrom = batchIndexOf(ctx, ctx.d.cur);
+      let r;
+      try{ r = deletePageIn(ctx.d, liveIndexOf(ctx, op.pageIndex)); }
+      catch(e){
+        if(e && e.code==="last_page") throw reject("CANNOT_DELETE_LAST_PAGE", "No se puede eliminar la única página: un documento tiene siempre al menos una. Crea otra antes en el mismo lote (create_page) o vacía esta.", {pageIndex:op.pageIndex});
+        throw fromPageDomain(e, op);
+      }
+      ctx.pages[op.pageIndex] = null;
+      ctx.deletedPages.set(op.pageIndex, {operationIndex:ctx.opIndex, operation:op.op, name:pg.name});
+      for(const [k, t] of ctx.touched) if(t.pageIndex===op.pageIndex) ctx.touched.delete(k);
+      const im = r.impact;
+      return {entityKind:"page", entityId:op.pageIndex, pageIndex:op.pageIndex, deleted:true, name:pg.name,
+              contents:{nodes:im.nodes, connections:im.connections, behaviors:im.behaviors, stories:im.stories.length, steps:im.stories.reduce((n, s)=>n+s.steps, 0)},
+              affects:{stories:im.stories.map(s=>({pageIndex:op.pageIndex, storyId:s.storyId, name:s.name, moments:s.moments, steps:s.steps, deleted:true})),
+                       eventTypesFreed:im.eventTypesFreed},
+              cur:{from:curFrom, to:batchIndexOf(ctx, ctx.d.cur)}};
     },
     /* ── Aspecto del documento (scope document): setThemeIn de model.js, la misma que el editor ── */
     set_theme(ctx, op){
@@ -873,7 +913,7 @@ var FluyoAuthoring = (function(){
       if(before.motion!==after.motion) fields.push("motion");
       if(before.availability!==after.availability) fields.push("availability");
       if(!sameJson(before.presentation, after.presentation)) fields.push("presentation");
-      const uses = eventTypeUsagesIn(ctx.d, et.id);
+      const uses = inBatch(ctx, eventTypeUsagesIn(ctx.d, et.id));
       return {entityKind:"eventType", entityId:et.id, fields, from:eventTypeSummary(before), eventType:eventTypeSummary(after),
               warnings:fields.includes("name") ? duplicateNameWarnings(ctx.d, after) : [],
               affects:{stories:uses.map(u=>({pageIndex:u.pageIndex, storyId:u.storyId, name:u.storyName, stepIds:u.stepIds})), eventTypeUsedBy:uses.reduce((n, u)=>n+u.stepIds.length, 0),
@@ -898,7 +938,7 @@ var FluyoAuthoring = (function(){
   /* B2 del diagrama (FLUYO-018.3): los errores NUEVOS del estado final que se deben a algo que el lote eliminó (un elemento o
      una conexión, también la eliminada en cascada con su elemento) se agrupan por entidad eliminada y nombran la Historia, los
      Steps, la operación causante y qué hacer. Nada se limpia en silencio. Lo que no se pueda atribuir queda como INTEGRITY_VIOLATION. */
-  function explainRemovals(ctx, regress, d){
+  function explainRemovals(ctx, regress){
     const groups = new Map(), rest = [];
     for(const e of regress){
       const kind = e.entityKind==="edge" ? "connection" : e.entityKind==="node" ? "node" : null;
@@ -912,7 +952,7 @@ var FluyoAuthoring = (function(){
     // Orden estable: por operación, el elemento antes que sus conexiones y por id.
     const ordered = [...groups.values()].sort((a, b)=>a.del.operationIndex-b.del.operationIndex || (a.del.kind===b.del.kind ? 0 : a.del.kind==="node" ? -1 : 1) || a.del.id-b.del.id);
     for(const {del, errors} of ordered){
-      const uses = usageErrors(errors, d);
+      const uses = usageErrors(errors, ctx);
       const what = del.kind==="node" ? `El elemento ${del.id} «${del.label}»` : `La conexión ${del.id}`;
       const how = del.cascadedFrom ? `, eliminada en cascada al eliminar el elemento ${del.cascadedFrom.id}` : "";
       out.push(Object.assign({
@@ -945,7 +985,8 @@ var FluyoAuthoring = (function(){
     const baseline = FluyoIntegrity.validateProject(project);          // errores PREEXISTENTES: no se atribuyen al lote
     const d = norm.doc;                                                // copia profunda (projectFromProjectData no conserva la entrada)
     const ctx = {d, settings:norm.settings, watch:new Map(), countOps:{}, baseCounts:d.pages.map(pg=>({nodes:pg.nodes.length, edges:pg.edges.length})), refs:{stories:new Map(), steps:new Map(), eventTypes:new Map(), none:new Map()},
-                diagramRefs:{nodes:new Map(), edges:new Map()}, created:[], deleted:[], touched:new Map(), opIndex:0};
+                diagramRefs:{nodes:new Map(), edges:new Map()}, created:[], deleted:[], touched:new Map(), opIndex:0,
+                pages:d.pages.slice(), deletedPages:new Map()};
     const changes = [];
 
     for(let i=0; i<operations.length; i++){
@@ -974,10 +1015,13 @@ var FluyoAuthoring = (function(){
     if(over.length) return failure(over);
 
     const finalProject = projectToSerializable(d, norm.settings);
-    const after = FluyoIntegrity.validateProject(finalProject);        // se evalúa el ESTADO FINAL, no cada paso intermedio
+    // Se evalúa el ESTADO FINAL, no cada paso intermedio. Sus errores se expresan en índices del lote (los del documento de entrada para
+    // sus páginas): un error preexistente de una página que solo cambió de posición no se atribuye al lote.
+    const checked = FluyoIntegrity.validateProject(finalProject);
+    const after = Object.assign({}, checked, {errors:inBatch(ctx, checked.errors), stories:inBatch(ctx, checked.stories)});
     const known = new Set(baseline.errors.map(FluyoIntegrity.errorKey));
     const regress = after.errors.filter(e=>!known.has(FluyoIntegrity.errorKey(e)));
-    if(regress.length) return failure(explainRemovals(ctx, regress, d));
+    if(regress.length) return failure(explainRemovals(ctx, regress));
     // Garantía: toda Historia que el lote creó o editó es ejecutable por Fluyo.
     const bad = [];
     for(const t of ctx.touched.values()){
@@ -987,9 +1031,13 @@ var FluyoAuthoring = (function(){
     }
     if(bad.length) return failure(bad);
 
-    const refs = ctx.created.filter(c=>!ctx.deleted.some(x=>x.pageIndex===c.pageIndex && x.id===c.id && x.kind===(c.type==="node" ? "node" : "connection")));
-    return {ok:true, project:finalProject, changes, refs, touched:[...ctx.touched.values()],
-            validation:{valid:after.valid, preexistingErrors:after.errors.length}};
+    // refs y touched describen el documento RESULTANTE: sus pageIndex son los finales (= pageMap[i].to); lo de páginas eliminadas no sale.
+    // changes[] y los errores usan los índices del lote, los que escribió el agente.
+    const refs = ctx.created.filter(c=>ctx.pages[c.pageIndex] && !ctx.deleted.some(x=>x.pageIndex===c.pageIndex && x.id===c.id && x.kind===(c.type==="node" ? "node" : "connection")))
+      .map(c=>Object.assign({}, c, {pageIndex:liveIndexOf(ctx, c.pageIndex)}));
+    const touched = [...ctx.touched.values()].map(t=>Object.assign({}, t, {pageIndex:liveIndexOf(ctx, t.pageIndex)}));
+    return Object.assign({ok:true, project:finalProject, changes, refs, touched, validation:{valid:after.valid, preexistingErrors:after.errors.length}},
+      ctx.deletedPages.size ? {pageMap:ctx.pages.map((pg, from)=>({from, to:pg ? ctx.d.pages.indexOf(pg) : null}))} : {});
   }
 
   return {apply, normalizedProject, OPERATION_SCOPE, MAX_OPERATIONS, LIMITS};

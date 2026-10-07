@@ -53,7 +53,7 @@ const MUTATIONS = [
   ["M22 cambiar de página no detiene el Playback", "js/editor-scenarios.js",
     "  scStorySignature = \"\";\n  if (isScenarioPlaybackActive()) scReset();\n  if (scUiReady) {", "  scStorySignature = \"\";\n  if (scUiReady) {"],
   ["M23 Redo no rehace nada (Redo de eliminación roto)", "js/selection.js",
-    "applySnap(redoStack.pop());", "redoStack.pop();"],
+    "function redo(){ stepHistory(redoStack, undoStack); }", "function redo(){ redoStack.pop(); }"],   // 018.7c: ancla actualizada (Undo por referencia); misma intención
   ["M24 jerga «Scenario» visible en el diálogo de Evento", "index.html",
     "No afecta al tiempo de la historia.", "No afecta al tiempo del Scenario."],
   ["M25 el botón ⋯ ya no es interruptor", "js/editor-scenarios.js",

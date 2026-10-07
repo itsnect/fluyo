@@ -139,7 +139,7 @@ test("retarget de un SET_STATE conserva su estado; retarget de un SEND conserva 
 
 test("alcance: toda operación con el alcance contrario se rechaza (matriz completa)", () => {
   const scopeOf = K.call("FluyoAuthoring.OPERATION_SCOPE");
-  assert.equal(Object.keys(scopeOf).length, 25);          // 10 de Historia + 9 de página (set_initial_availability · create/update/delete de nodo y conexión, 018.2/018.3 · reorder_nodes y duplicate_node, 018.7a) + 3 de EventType (017.3) + 3 de documento (create_page, rename_page, 018.5 · set_theme, 018.7a)
+  assert.equal(Object.keys(scopeOf).length, 26);          // 10 de Historia + 9 de página (set_initial_availability · create/update/delete de nodo y conexión, 018.2/018.3 · reorder_nodes y duplicate_node, 018.7a) + 3 de EventType (017.3) + 4 de documento (create_page, rename_page, 018.5 · set_theme, 018.7a · delete_page, 018.7c)
   for (const [op, scope] of Object.entries(scopeOf)) {
     const wrong = scope === "story" ? "page" : "story";   // «document» también se rechaza con «story» o «page»
     const r = apply(simple(), [{ op, scope: wrong, pageIndex: 0 }]);

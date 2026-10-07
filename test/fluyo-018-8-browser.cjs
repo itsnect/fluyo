@@ -4,7 +4,9 @@
    modal de documento entrante → «Añadir el diagrama como página nueva» → cambia de página por las pestañas → Historias → «▶ Reproducir».
    Comprueba que el EventType visualizado y ejecutado es el del documento de ORIGEN («Reembolso», ↩), no el del receptor con el mismo id
    y la misma primitiva («Pago», 💵); que el Playback del editor coincide con el del Viewer (Trace y metadata); Ctrl+Z/Ctrl+Y sin efecto;
-   recarga. Se ejecuta contra el árbol de trabajo y contra HEAD (oráculo: HEAD reproduce «Pago», el bug de la auditoría).
+   recarga. Se ejecuta contra el árbol de trabajo y contra HEAD. Cuando se escribió, HEAD era 018.7 (2d960d9) y servía de oráculo del bug
+   de la auditoría (descartaba la biblioteca entrante y reproducía «Pago»); HEAD ya incluye 018.8 (a57ea1e): desde entonces HEAD debe
+   producir exactamente lo mismo que el árbol de trabajo (FLUYO-018.10, mismo criterio que 018.5).
    Uso: node test/fluyo-018-8-browser.cjs   (Playwright vía NODE_PATH; FLUYO_BROWSER=chrome por defecto) */
 let chromium;
 try { ({ chromium } = require("playwright")); } catch { ({ chromium } = require("playwright-core")); }
@@ -162,9 +164,10 @@ async function script(browser, base, label) {
     check(same(a.editor.trace, a.viewer.trace) && same(a.editor.meta, a.viewer.meta), "editor = Viewer: mismo Trace y misma metadata de Playback");
     check(a.undoSame && a.redoSame, "Ctrl+Z / Ctrl+Y tras añadir: sin efecto (frontera de estado)");
     check(same(a.reload.lib, a.afterAdd.lib) && a.reload.valid && same(a.reload.imported, ["Reembolso", "Confirmación"]), "recarga: documento combinado válido y con sus EventTypes");
-    check(same(h.afterAdd.pages, ["Caja", "Devoluciones"]) && same(h.afterAdd.lib, ["1:Pago:FLOW:💵", "2:Aviso:OCCURRENCE:⚠"]), "HEAD (oráculo): la biblioteca entrante se descartaba");
-    check(same(h.afterAdd.imported, ["Pago", "Aviso"]) && h.afterAdd.valid, "HEAD (oráculo): la Historia importada era VÁLIDA y se resolvía con «Pago»/«Aviso» (el fallo silencioso)");
-    check(h.tokensDuring.includes("💵") && !same(h.editor.meta, h.viewer.meta), "HEAD (oráculo): el editor reproducía 💵 y su metadata difería del Viewer");
+    check(same(h.afterAdd, a.afterAdd), "HEAD (que ya incluye 018.8): la biblioteca entrante se importa con ids nuevos, igual que en el árbol de trabajo " + JSON.stringify(h.afterAdd.lib));
+    check(same(h.afterAdd.imported, ["Reembolso", "Confirmación"]) && h.afterAdd.valid && same(h.reload, a.reload), "HEAD (que ya incluye 018.8): la Historia importada se resuelve con «Reembolso»/«Confirmación» (ya no el fallo silencioso) y sobrevive a la recarga");
+    check(same(h.tokensDuring, a.tokensDuring) && !h.tokensDuring.includes("💵") && same(h.editor, a.editor) && same(h.editor.meta, h.viewer.meta), "HEAD (que ya incluye 018.8): el editor reproduce ↩ (no 💵) y su Trace y metadata coinciden con el Viewer y con el árbol de trabajo");
+    check(same(h, a), "HEAD (que ya incluye 018.8): el guion entero da resultados idénticos al árbol de trabajo");
     check(A.errors.length === 0, "sin errores de consola/página" + (A.errors.length ? ": " + A.errors.join(" | ") : ""));
   } finally { await browser.close(); wt.server.close(); hd.server.close(); fs.rmSync(headDir, { recursive: true, force: true }); }
   console.log("\ncapturas en " + shots);

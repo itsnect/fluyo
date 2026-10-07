@@ -2,9 +2,10 @@
 /* FLUYO-018.7c — QA en Chrome REAL: ratón, teclado, diálogos confirm/prompt reales y táctil de Playwright sobre el editor.
    Borrar páginas (primera, intermedia, última, activa, con Historias y Behaviors), Cancelar/Aceptar, Undo/Redo estructural, cambio de
    página, F1, crear tras borrar, Playback, autoguardado + recarga, Share/Viewer, Presentar y viewport táctil estrecho.
-   El mismo guion se ejecuta contra el árbol de trabajo y contra HEAD (018.7a, hotfix que vaciaba Undo/Redo): los documentos tras
-   Cancelar y tras borrar sin deshacer deben COINCIDIR en páginas y contenido; difieren por diseño la página activa al borrar una
-   anterior (F2), el Undo/Redo del borrado (HEAD no lo tenía) y el texto del aviso (F3).
+   El mismo guion se ejecuta contra el árbol de trabajo y contra HEAD: los documentos tras Cancelar y tras borrar sin deshacer deben
+   COINCIDIR en páginas y contenido. Cuando se escribió, HEAD era 018.7a (hotfix que vaciaba Undo/Redo) y diferían por diseño la página
+   activa al borrar una anterior (F2) y el Undo/Redo del borrado. HEAD ya incluye 018.7c (2d960d9): desde entonces esos resultados de
+   HEAD deben ser IDÉNTICOS a los del árbol de trabajo (FLUYO-018.10, mismo criterio que 018.5 con el oráculo de 018.4).
    Playwright se proporciona externamente (NODE_PATH); capturas fuera del repo.
    Uso: node test/fluyo-018-7c-browser.cjs   (FLUYO_BROWSER=chrome por defecto; FLUYO_SHOTS=<dir>) */
 let chromium;
@@ -112,7 +113,8 @@ async function script(browser, base, label) {
   await key("Control+z"); R.delFirstUndo = { names: await names(), active: await active(), same: (await pagesJson()) === docs.initial };
   await key("Control+y"); R.delFirstRedo = { names: await names(), active: await active() };
   await key("Control+z"); R.delFirstUndo2 = { names: await names(), active: await active() };
-  /* HEAD no deshace borrados: a partir de aquí el guion solo tiene sentido en el árbol de trabajo. */
+  /* El guion de HEAD termina aquí. Cuando se escribió (HEAD = 018.7a) HEAD no deshacía borrados y lo que sigue solo tenía sentido en el
+     árbol de trabajo; HEAD ya los deshace y lo recorrido hasta aquí se exige idéntico al árbol de trabajo. */
   if (label === "head") { await ctx.close(); return { R, docs, errors, dialogs }; }
 
   /* ═══ Borrar la INTERMEDIA posterior a la activa y la ÚLTIMA siendo la activa; Undo×2 ═══ */
@@ -237,12 +239,13 @@ async function script(browser, base, label) {
     check(A.docs.afterCancel === H.docs.afterCancel && A.docs.initial === H.docs.initial, "documento idéntico a HEAD tras crear, renombrar y cancelar");
     console.log("\nBorrar la primera (anterior a la activa)");
     check(same(a.delFirst.names, ["B", "C", "D"]) && a.delFirst.active === "B", "quedan B,C,D y la activa sigue siendo B (F2 corregido) " + JSON.stringify(a.delFirst));
-    check(h.delFirst.active === "C", "HEAD saltaba a C (diferencia esperada, F2)");
+    check(same(h.delFirst, a.delFirst), "HEAD (que ya incluye 018.7c, F2): las mismas páginas, la activa sigue siendo B y la misma entrada de Undo que el árbol de trabajo " + JSON.stringify(h.delFirst));
     check(A.docs.delFirst === H.docs.delFirst, "mismas páginas y contenido que HEAD tras el borrado");
     check(a.delFirst.stacks.u === 1 && a.delFirst.stacks.r === 0, "una entrada de Undo (HEAD: " + JSON.stringify(h.delFirst.stacks) + ")");
     check(same(a.delFirstUndo, { names: ["A", "B", "C", "D"], active: "B", same: true }), "Ctrl+Z reinserta A en su sitio, idéntica; activa B");
     check(same(a.delFirstRedo, { names: ["B", "C", "D"], active: "B" }) && same(a.delFirstUndo2.names, ["A", "B", "C", "D"]), "Ctrl+Y la vuelve a borrar y Ctrl+Z la restaura");
-    check(same(h.delFirstUndo.names, ["B", "C", "D"]), "HEAD no podía deshacer el borrado (diferencia esperada)");
+    check(same(h.delFirstUndo, a.delFirstUndo) && same(h.delFirstRedo, a.delFirstRedo) && same(h.delFirstUndo2, a.delFirstUndo2),
+      "HEAD (que ya incluye 018.7c): Ctrl+Z / Ctrl+Y / Ctrl+Z del borrado, idénticos al árbol de trabajo (A vuelve en su sitio, idéntica)");
     console.log("\nIntermedia y última");
     check(same(a.delMiddle, { names: ["A", "B", "D"], active: "B" }), "borrar C (posterior a la activa): la activa no cambia");
     check(same(a.delLast, { names: ["A", "B"], active: "B" }), "borrar D siendo la última y activa: pasa a la anterior");

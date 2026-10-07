@@ -1,8 +1,10 @@
 "use strict";
 /* FLUYO-018.7d — QA en Chrome REAL: la biblioteca de EventTypes entra en Undo/Redo. Ratón y teclado reales: ✕ de la pestaña (confirm real),
    «⋯ → Eliminar de la biblioteca» del panel de Escenarios, Ctrl+Z / Ctrl+Y, Playback de la Historia restaurada y recarga.
-   Se ejecuta contra el árbol de trabajo y contra HEAD (018.7a): en HEAD el borrado de página no se puede deshacer, así que el escenario
-   «borrar página → eliminar evento → deshacer» no es reproducible allí; se registra su resultado como referencia.
+   Se ejecuta contra el árbol de trabajo y contra HEAD. Cuando se escribió, HEAD era 018.7a: el borrado de página no se podía deshacer y el
+   escenario «borrar página → eliminar evento → deshacer» no era reproducible allí (se registraba como referencia). HEAD ya incluye
+   018.7c/7d (2d960d9): desde entonces HEAD debe recorrer el guion con resultados IDÉNTICOS al árbol de trabajo (FLUYO-018.10, mismo
+   criterio que 018.5).
    Uso: node test/fluyo-018-7d-browser.cjs   (Playwright vía NODE_PATH; FLUYO_BROWSER=chrome por defecto) */
 let chromium;
 try { ({ chromium } = require("playwright")); } catch { ({ chromium } = require("playwright-core")); }
@@ -120,8 +122,8 @@ async function script(browser, base, label) {
     check(a.redo1 && a.redo2, "Ctrl+Y ×2: estados exactos tras el borrado y tras eliminar «Pago»");
     check(a.cycles.every(Boolean), "3 ciclos Undo×2/Redo×2 exactos");
     check(same(a.reload.lib, ["Aviso"]) && a.reload.valid && a.reload.stacks === 0, "recarga: estado final válido, sin historial");
-    check(same(h.afterDelete, a.afterDelete) && same(h.libAfterPago, ["Aviso"]), "HEAD (018.7a): el mismo borrado y la misma eliminación");
-    check(!h.undo2.same, "HEAD no puede deshacer el borrado de la página (hotfix 018.7a): el escenario no era reproducible antes de 018.7c");
+    check(same(h.afterDelete, a.afterDelete) && same(h.libAfterPago, ["Aviso"]), "HEAD: el mismo borrado y la misma eliminación");
+    check(same(h, a), "HEAD (que ya incluye 018.7c/7d): el mismo guion con resultados idénticos al árbol de trabajo (Undo ×2 al documento inicial exacto y válido, Historia reproducida, Redo, ciclos y recarga)");
     check(A.errors.length === 0, "sin errores de consola/página" + (A.errors.length ? ": " + A.errors.join(" | ") : ""));
   } finally { await browser.close(); wt.server.close(); hd.server.close(); fs.rmSync(headDir, { recursive: true, force: true }); }
   console.log("\ncapturas en " + shots);

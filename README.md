@@ -144,7 +144,7 @@ Los [diagramas de ejemplo](https://fluyo.space/ejemplos/) son archivos `.fluyo.j
 
 [**itsnect/fluyo-mcp**](https://github.com/itsnect/fluyo-mcp) es un servidor [Model Context Protocol](https://modelcontextprotocol.io) que permite a un asistente de IA crear y editar diagramas de Fluyo: describes la arquitectura en lenguaje natural y recibes un `.fluyo.json` que abres en el editor.
 
-Expone nueve tools: `create_diagram`, `edit_diagram`, `export_diagram`, `list_icons`, `list_colors`, `list_anims`, `list_fonts`, `list_templates` y `create_from_template`. Trabaja sobre el mismo formato, así que lo que genera se abre con el botón **Abrir** sin conversión de por medio.
+Expone quince tools: para crear (`create_diagram`, `list_templates`, `create_from_template`), leer y validar (`describe_document`, `run_story`), modificar (`author_document` y sus atajos `set_theme`, `reorder_nodes` y `duplicate_node`; `propose_layout` propone posiciones sin modificar nada), exportar (`export_diagram`) y consultar los catálogos (`list_icons`, `list_colors`, `list_anims`, `list_fonts`). Modifica con las mismas reglas que el editor y trabaja sobre el mismo formato: lo que genera se abre con el botón **Abrir**, o directamente con el enlace que trae cada respuesta con documento.
 
 Su exportador produce **solo SVG estático**: para el GIF animado, abre el documento en el editor y expórtalo desde ahí.
 

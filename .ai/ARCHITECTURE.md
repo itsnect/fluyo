@@ -236,7 +236,7 @@ FluyoAuthoring: reglas de entrada de nodo (HEX, icon, anim) + LIMITS sobre el ES
 ## Entrada de autoría y propose_layout (FLUYO-018.6)
 
 - `story-authoring.js`: `nodeInputRules` admite `fill:"none"`; `edgeInputRules` valida `lineColor`/`dotColor` (HEX o null) en `create_connection` y `update_connection` (decisión 97). Sin cambios en el editor, `index.html` ni `sw.js` (`CACHE` sigue en v63): `story-authoring.js` solo lo carga fluyo-mcp.
-- fluyo-mcp: `src/layout.ts` expone `layoutPage(page)` (única adaptación página → `layeredLayout`, usada por `edit_diagram.relayout` y `propose_layout`); `src/propose-layout.ts` es la tool nº 13 (decisión 98): normaliza con el kernel, calcula, comprueba `coordMax` (del kernel), arma lotes ≤200 aplicándolos en memoria con `authorDocument` para encadenar revisiones. No devuelve documento ni guarda estado.
+- fluyo-mcp: `src/layout.ts` expone `layoutPage(page)` (única adaptación página → `layeredLayout`, usada por `propose_layout`; hasta 018.10 también por `edit_diagram.relayout`, retirado); `src/propose-layout.ts` es la tool nº 13 (decisión 98): normaliza con el kernel, calcula, comprueba `coordMax` (del kernel), arma lotes ≤200 aplicándolos en memoria con `authorDocument` para encadenar revisiones. No devuelve documento ni guarda estado.
 - Pruebas: `test/fluyo-018-6.test.cjs` (Fluyo; golden `test/fixtures/fluyo-018-6-golden.json` compartido con fluyo-mcp), `test/fluyo-018-6-mutations.cjs`; fluyo-mcp `test/fluyo-018-6.test.ts`, `scripts/mutate-018-6.ts`.
 
 ## Aspecto, orden Z y duplicado (FLUYO-018.7a)
@@ -303,3 +303,15 @@ create_from_template ────┘  (la plantilla da la entrada de create_diag
 - Autoridad: el kernel (defaults, ids, reglas de entrada, auto-lazo, límites, nombres de página). `src/diagram.ts` solo adapta el contrato y traduce los errores (`input`, `key`, `requested` en los límites de conteo); el rechazo tiene la forma del de `author_document` y no devuelve documento (decisiones 110–112).
 - Dominio: `createNodeIn` pone los defaults de `code` antes del spec (decisión 113). `sw.js`: `CACHE` v67 → v68 (`model.js`). Kernel sincronizado en fluyo-mcp (`kernelId` nuevo).
 - Pruebas: Fluyo `test/fluyo-018-9.test.cjs` (createNodeIn + paridad con el editor real), `test/fluyo-018-9-mutations.cjs` (7), `test/fluyo-018-9-browser.cjs` (Chrome real: los `#d=` de las dos tools en el editor y el Viewer); MCP `test/fluyo-018-9.test.ts` (golden derivado del dominio `test/fixtures/fluyo-018-9-golden.json`, reglas, errores, plantillas, stdio), `scripts/mutate-018-9.ts` (30).
+
+## Retirada de edit_diagram y enlace del resultado (FLUYO-018.10)
+
+```text
+author_document (y set_theme · reorder_nodes · duplicate_node) ─► FluyoAuthoring ─► documento final ─► openLink (link.ts) ─► editorUrl
+create_diagram · create_from_template ─────────────────────────► documento v5 ──────► openLink (link.ts) ─► enlace en el resumen
+propose_layout ─► solo lectura (lotes para author_document)          edit_diagram: retirada (sin handler, sin schema, sin builders)
+```
+
+- MCP: 15 tools (`server.ts`, `verify-deploy.sh`). Una sola codificación `#d=` (`openLink`; `buildOpenLink` es su envoltorio). `src/diagram.ts` queda con `parseDocument` (export_diagram) y los adaptadores de 018.9. Decisiones 114–116.
+- Editor: solo documentación (`docs/index.html`, `README.md`); `CACHE` v69. Kernel sin cambios.
+- Pruebas: MCP `test/fluyo-018-10.test.ts` (editorUrl, contrato, cobertura del sustituto, búsqueda estática, stdio), `scripts/mutate-018-10.ts` (20); Fluyo `test/fluyo-018-10.test.cjs` (docs ↔ contrato, CACHE), `test/fluyo-018-10-mutations.cjs` (9), `test/fluyo-018-10-browser.cjs` (Chrome real: author_document → editorUrl → editor; docs/ precacheada v69 y offline).

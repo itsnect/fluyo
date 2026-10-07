@@ -279,7 +279,7 @@ test('Arquitectura: una sola receta de reproducción compartida; el viewer no ca
 
 test('Service worker: assets nuevos precacheados y versión subida',()=>{
   const sw=read('sw.js');
-  assert.match(sw,/fluyo-static-v66/);
+  assert.match(sw,/fluyo-static-v67/);
   for(const f of ['story-playback','scenario-engine','scenario-playback','viewer'])
     assert.ok(sw.includes('"./js/'+f+'.js"'),f);
   const idx=read('index.html');

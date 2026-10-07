@@ -167,13 +167,19 @@ function applyProjectData(d){
    tipografía son propiedades del documento, no de la página.
 
    Los ids de nodo y arista son por página (`newNode` usa `P().nextId`), así que
-   pegar páginas enteras no puede colisionar con nada y no hay que renumerar. */
+   pegar páginas enteras no puede colisionar con nada y no hay que renumerar.
+   Los EventTypes, en cambio, son del documento: las páginas llegan con su
+   biblioteca, con ids nuevos y los Steps reescritos (FLUYO-018.8). Eso lo hace
+   el dominio (importPagesIn, model.js); aquí solo queda la navegación y el
+   historial: la importación cambia páginas Y biblioteca, así que es una
+   frontera de estado como abrir un documento y Undo/Redo se vacían (una
+   entrada anterior restauraría la biblioteca sin los EventTypes importados). */
 function appendPagesFrom(d){
   const nd=documentFromProjectData(d);
   runWithoutAutosave(()=>{
-    const primeraNueva=doc.pages.length;
-    doc.pages.push(...nd.pages);
-    doc.cur=primeraNueva;
+    const {pageIndex}=importPagesIn(doc, nd);
+    doc.cur=pageIndex;
+    undoStack.length=0; redoStack.length=0;
     clearSel(); renderTabs();
   });
   resetAnalyticsBaseline();

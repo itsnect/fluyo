@@ -275,3 +275,17 @@ MCP author_document delete_page {pageIndex, expectedName} ─► FluyoAuthoring 
 - `selection.js`: `libSnap()` (mismos objetos EventType + copia de su contenido + `nextEventTypeId`) va en TODA entrada (`pageSnap`, `insertPage`); `stepHistory` captura la biblioteca actual para la inversa, aplica la entrada y, si aplica, `restoreLibrary` (contenido a los mismos objetos, array repuesto, contador sin bajar). Decisión 107.
 - Las rutas de biblioteca del editor (`scSaveEventType`, `scDeleteEventUI`) no cambian: ya hacían `pushUndo()` antes de mutar. `model.js`, kernel y MCP sin cambios. `sw.js`: `CACHE` v66.
 - Pruebas: `test/fluyo-018-7d.test.cjs`, `test/fluyo-018-7d-mutations.cjs` (12), `test/fluyo-018-7d-browser.cjs` (Chrome real); adaptados `fluyo-015-qa-browser.cjs` §11 y `fluyo-017-3-browser.cjs` §C.
+
+## «Añadir como página» con su biblioteca (FLUYO-018.8)
+
+```text
+Share → Viewer → «Abrir en Fluyo» (#d=) ─┐
+#d= de MCP · ?ejemplo= ─────────────────┴─► presentIncomingDocument ─► «Añadir … como página nueva» (incomingAsNewPage)
+   └─► appendPagesFrom (state.js): documentFromProjectData ─► importPagesIn(doc, nd) (model.js) ─► doc.cur = primera añadida ─► Undo/Redo vacíos
+```
+
+- **Dominio** (`importPagesIn`, decisión 108): páginas al final + TODOS los EventTypes del entrante con ids nuevos del receptor (bloque reservado, todo o nada) y los `eventTypeId` de sus Steps remapeados; los Steps hacia un EventType que el entrante no define apuntan a un id reservado inexistente (el error previo se conserva). Devuelve `{pageIndex, pages, eventTypes:[{from,to}], unresolved:[{from,to}]}`; errores `invalid_document(pages|eventTypes|page|incoming)`, `id_exhausted`. No toca `doc.cur`, tema, fondo ni la identidad de las páginas/EventTypes del receptor; no conserva referencias al entrante ni lo modifica.
+- **Editor**: `appendPagesFrom` solo navega (activa la primera página añadida), vacía `undoStack`/`redoStack` (decisión 109), `clearSel`/`renderTabs`; `incomingAsNewPage` sin cambios (autoguardado tras resolver). Sin aviso nuevo.
+- Invariante de las Historias: cada Historia importada conserva su semántica exacta (EventType salvo el id, frase, `FluyoStory.stepMeta`, Trace); las del receptor no cambian; el documento combinado es válido si lo eran los dos.
+- `sw.js`: `CACHE` v66 → v67 (`model.js`, `state.js`). Kernel sincronizado en fluyo-mcp (`kernelId` nuevo; ningún contrato MCP cambia).
+- Pruebas: `test/fluyo-018-8.test.cjs` (dominio, editor real completo con `test/fluyo-018-8-harness.cjs`, flujo Share → `decodeDeepLink` → modal → «Añadir como página» en `vm`, paridad editor ↔ dominio, regresiones 018.7c/7d, aleatorio), `test/fluyo-018-8-mutations.cjs` (21), `test/fluyo-018-8-browser.cjs` (Chrome real, oráculo HEAD).

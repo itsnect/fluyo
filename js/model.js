@@ -955,6 +955,54 @@ function restorePageIn(d, pageIndex, page){
   return {pageIndex, page, cur:{from, to:d.cur}};
 }
 
+/* ===================== Importar páginas de otro documento (FLUYO-018.8) =====================
+   Única autoridad de «Añadir como página» (appendPagesFrom, state.js). `incoming` es un documento YA normalizado
+   (documentFromProjectData). Sin DOM, selección, Undo, navegación ni autoguardado: no toca d.cur (como createPageIn).
+
+   · Lo único global que una página referencia son los EventTypes (nodos, conexiones, Behaviors, Historias y Steps son por página).
+     Por eso las páginas entrantes llegan con SU biblioteca: TODOS los EventTypes del entrante (también los que no usa ninguna
+     Historia: son vocabulario del documento, decisiones 67 y 103) se añaden al final de la del receptor, en su orden, con ids
+     NUEVOS del receptor y el contenido intacto. Nunca se reutiliza ni se modifica un EventType del receptor, aunque coincida en
+     nombre, primitiva o contenido; importar dos veces da dos copias.
+   · Los Steps importados se reescriben para apuntar a esos ids (un EventType de origen → un único EventType importado, lo usen
+     una o varias Historias o páginas). Es la ÚNICA transformación: el resto de la página se copia tal cual.
+   · Un Step cuyo eventTypeId no define su propio documento (entrante ya inválido) no se repara ni se resuelve contra el receptor:
+     apunta a un id reservado del contador del receptor, que no existe en la biblioteca ni se asignará nunca (el mismo error
+     `missing_event_type`, sin colisionar con nada). Un id colgante repetido conserva un único id.
+   · Ids reservados en un bloque antes de mutar (todo o nada). No conserva referencias al entrante ni lo modifica.
+   Devuelve {pageIndex (primera añadida), pages (los objetos insertados), eventTypes:[{from,to}], unresolved:[{from,to}]}.
+
+   Códigos: invalid_document(pages|eventTypes|page|incoming) · id_exhausted. */
+function importPagesIn(d, incoming){
+  if(!projectObject(d) || !Array.isArray(d.pages)) throw projectDataError("invalid_document","pages");
+  if(!Array.isArray(d.eventTypes)) throw projectDataError("invalid_document","eventTypes");
+  if(!projectObject(incoming) || incoming===d) throw projectDataError("invalid_document","incoming");
+  if(!Array.isArray(incoming.pages) || !incoming.pages.length) throw projectDataError("invalid_document","pages");
+  if(!Array.isArray(incoming.eventTypes)) throw projectDataError("invalid_document","eventTypes");
+  if(incoming.pages.some(pg=>d.pages.includes(pg))) throw projectDataError("invalid_document","page");
+  const pages=deep(incoming.pages), eventTypes=deep(incoming.eventTypes);
+  const defined=new Set(eventTypes.map(et=>et.id)), dangling=[];
+  for(const pg of pages) for(const sc of pg.scenarios||[]) for(const st of sc.steps||[])
+    if(st.eventTypeId!==undefined && !defined.has(st.eventTypeId) && !dangling.includes(st.eventTypeId)) dangling.push(st.eventTypeId);
+  const map=new Map(), unresolved=new Map();
+  const count=eventTypes.length+dangling.length;
+  if(count){
+    let maxId=0;
+    for(const et of d.eventTypes) maxId=Math.max(maxId,et.id);
+    const first=reserveProjectIds({nextEventTypeId:d.nextEventTypeId},"nextEventTypeId",count,maxId+1);   // en una copia: todo o nada
+    eventTypes.forEach((et,k)=>map.set(et.id, first+k));
+    dangling.forEach((id,k)=>unresolved.set(id, first+eventTypes.length+k));
+    for(const et of eventTypes){ et.id=map.get(et.id); validateEventType(et); }
+    for(const pg of pages) for(const sc of pg.scenarios||[]) for(const st of sc.steps||[])
+      if(st.eventTypeId!==undefined) st.eventTypeId=map.has(st.eventTypeId)? map.get(st.eventTypeId) : unresolved.get(st.eventTypeId);
+    d.nextEventTypeId=first+count;
+  }
+  const pageIndex=d.pages.length;
+  d.eventTypes.push(...eventTypes);
+  d.pages.push(...pages);
+  return {pageIndex, pages, eventTypes:[...map].map(([from,to])=>({from,to})), unresolved:[...unresolved].map(([from,to])=>({from,to}))};
+}
+
 /* ===================== Autoría del documento y del diagrama (FLUYO-018.7a) =====================
    Misma autoridad única: las llaman el editor (ui.js: themeSel/bgCustom; selection.js: orden Z, Ctrl+D, pegar) y
    FluyoAuthoring (set_theme, reorder_nodes, duplicate_node). Sin DOM, selección, undo, snap ni autoguardado.

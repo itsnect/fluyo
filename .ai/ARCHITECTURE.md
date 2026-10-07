@@ -289,3 +289,17 @@ Share → Viewer → «Abrir en Fluyo» (#d=) ─┐
 - Invariante de las Historias: cada Historia importada conserva su semántica exacta (EventType salvo el id, frase, `FluyoStory.stepMeta`, Trace); las del receptor no cambian; el documento combinado es válido si lo eran los dos.
 - `sw.js`: `CACHE` v66 → v67 (`model.js`, `state.js`). Kernel sincronizado en fluyo-mcp (`kernelId` nuevo; ningún contrato MCP cambia).
 - Pruebas: `test/fluyo-018-8.test.cjs` (dominio, editor real completo con `test/fluyo-018-8-harness.cjs`, flujo Share → `decodeDeepLink` → modal → «Añadir como página» en `vm`, paridad editor ↔ dominio, regresiones 018.7c/7d, aleatorio), `test/fluyo-018-8-mutations.cjs` (21), `test/fluyo-018-8-browser.cjs` (Chrome real, oráculo HEAD).
+
+## create_diagram y create_from_template por el dominio (FLUYO-018.9)
+
+```text
+create_diagram ──────────┐  key → ref · nombre de color → HEX · auto-layout (layeredLayout) · input = nodes[i]/edges[j]
+create_from_template ────┘  (la plantilla da la entrada de create_diagram)
+   └─► documento en blanco del editor: projectToSerializable(doc, settingsFromProjectData({...settings, ...ajustes}))  (model.js)
+       └─► rename_page · set_theme · create_node · create_connection ─► FluyoAuthoring.apply (lotes ≤ 200, encadenados por refs → ids)
+           └─► documento v5 canónico (= author_document byte a byte, misma revision)
+```
+
+- Autoridad: el kernel (defaults, ids, reglas de entrada, auto-lazo, límites, nombres de página). `src/diagram.ts` solo adapta el contrato y traduce los errores (`input`, `key`, `requested` en los límites de conteo); el rechazo tiene la forma del de `author_document` y no devuelve documento (decisiones 110–112).
+- Dominio: `createNodeIn` pone los defaults de `code` antes del spec (decisión 113). `sw.js`: `CACHE` v67 → v68 (`model.js`). Kernel sincronizado en fluyo-mcp (`kernelId` nuevo).
+- Pruebas: Fluyo `test/fluyo-018-9.test.cjs` (createNodeIn + paridad con el editor real), `test/fluyo-018-9-mutations.cjs` (7), `test/fluyo-018-9-browser.cjs` (Chrome real: los `#d=` de las dos tools en el editor y el Viewer); MCP `test/fluyo-018-9.test.ts` (golden derivado del dominio `test/fixtures/fluyo-018-9-golden.json`, reglas, errores, plantillas, stdio), `scripts/mutate-018-9.ts` (30).

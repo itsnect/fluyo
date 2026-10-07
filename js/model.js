@@ -724,13 +724,15 @@ function createNodeIn(pg, spec, context){
   const ref=authoringRef(spec,context);
   const id=authoringId(pg,spec);
   const [w,h]=DEFAULT_SIZES[shape];
-  const n=authoringAssign({ id, shape, x, y, w, h,
+  /* Los campos de `code` solo se ponen en nodos `code`, igual que `icon` solo va
+     en los de icono: no tiene sentido cargar todos los nodos con ellos. Son defaults
+     como los demás (FLUYO-018.9): van ANTES del spec, que los sustituye clave a clave;
+     completarlos después pisaba keywords/kwBg/kwColor si faltaba `lang`. */
+  const n=authoringAssign(Object.assign({ id, shape, x, y, w, h,
     label: shape==="text"?"Texto":shape==="code"?CODE_DEFAULT_LABEL:(shape==="icon"||shape==="image"||shape==="anim")?"":"Nodo",
     color:PALETTE[0].c, fill:null, border:"solid", lblPos:"center", textBg:null, textColor:null,
-    font:null, bold:false, pulse:false, order:pg.nodes.length }, spec, ["ref","id"]);
-  /* Los campos de `code` solo se ponen en nodos `code`, igual que `icon` solo va
-     en los de icono: no tiene sentido cargar todos los nodos con ellos. */
-  if(shape==="code" && !("lang" in n)) Object.assign(n,{lang:DEFAULT_LANG, keywords:null, kwBg:null, kwColor:null});
+    font:null, bold:false, pulse:false, order:pg.nodes.length },
+    shape==="code"? {lang:DEFAULT_LANG, keywords:null, kwBg:null, kwColor:null} : {}), spec, ["ref","id"]);
   /* `tint` nace apagado también en los iconos nuevos: el interruptor tiene que
      significar lo mismo en un diagrama de hoy y en uno de hace un mes. */
   if(shape==="icon" && !("tint" in n)) n.tint=false;

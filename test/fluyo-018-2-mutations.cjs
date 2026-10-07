@@ -42,7 +42,7 @@ const MUTATIONS = [
   ["D3 la ref repetida se sobrescribe en silencio", MODEL, "context.refs.has(spec.ref)) throw", "false) throw"],
   ["D4 el origen inexistente se acepta", MODEL, "  if(!pg.nodes.some(n=>n.id===source)) throw projectDataError(\"source_not_found\",\"source\");\n", ""],
   ["D5 el destino inexistente se acepta", MODEL, "  if(!pg.nodes.some(n=>n.id===target)) throw projectDataError(\"target_not_found\",\"target\");\n", ""],
-  ["D6 la ref se persiste en el nodo", MODEL, "pg.nodes.length }, spec, [\"ref\",\"id\"]);", "pg.nodes.length }, spec, [\"id\"]);"],
+  ["D6 la ref se persiste en el nodo", MODEL, ": {}), spec, [\"ref\",\"id\"]);", ": {}), spec, [\"id\"]);"],
 ];
 
 function copyTree(dest) {

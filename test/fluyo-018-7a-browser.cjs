@@ -29,6 +29,9 @@ const serve = async (dir) => {
 /* Oráculo = el estado PREVIO a 018.7a. Mientras 018.7a no estaba commiteado era HEAD; desde 018.7c (con 018.7a ya en HEAD) es su
    commit base e86c7c4. FLUYO_HEAD_REF permite elegir otro. */
 const ORACLE_REF = process.env.FLUYO_HEAD_REF || "e86c7c4";
+/* FLUYO-018.15: en HEAD un nodo nuevo nacía #6a9fb5; ahora nace DEFAULT_NODE_COLOR (#857F6C). Las comparaciones con HEAD deshacen
+   solo ese cambio deliberado (también dentro de JSON anidado); todo lo demás tiene que seguir siendo idéntico. */
+const UNDO15 = (s) => typeof s === "string" ? s.replace(/(\\*"color\\*":\\*")#857F6C/g, "$1#6a9fb5") : s;
 function headTree() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "fluyo-head-"));
   const files = execFileSync("git", ["-C", root, "ls-tree", "-r", "--name-only", ORACLE_REF], { encoding: "utf8" }).split("\n").filter((f) => /^(index\.html|js\/|css\/|s\/|assets\/|manifest\.webmanifest)/.test(f));
@@ -66,7 +69,7 @@ async function script(browser, base, label) {
   await reset();
   const R = {};
   const docs = {};
-  const json = () => ed.evaluate(() => JSON.stringify(serializeProject()));
+  const json = () => ed.evaluate(() => JSON.stringify(serializeProject())).then(UNDO15);
   const order = () => ed.evaluate(() => P().nodes.map((n) => n.id));
   const stacks = () => ed.evaluate(() => ({ u: undoStack.length, r: redoStack.length }));
   const sel = () => ed.evaluate(() => ({ n: [...selN].sort((a, b) => a - b), e: [...selE].sort((a, b) => a - b) }));
@@ -120,6 +123,7 @@ async function script(browser, base, label) {
   /* ═══ Orden Z ═══ */
   const z = {};
   const btn = (id) => ed.locator("#" + id);
+  /* FLUYO-018.14b: el panel va por grupos plegables; se despliegan como haría quien los usa (en HEAD no hay grupos: no hace nada) */ await ed.evaluate(() => document.querySelectorAll("#selBody details").forEach((d) => { d.open = true; }));
   z.initial = await order();
   await clickNode(2); if (process.env.DBG) console.log("DBG", JSON.stringify(await sel()), await ed.evaluate(() => [getComputedStyle(document.getElementById("rowZ")).display, document.body.className, document.getElementById("tabProperties").className, doc.pages.length, doc.cur, JSON.stringify(P().nodes.map((n) => [n.id, n.label, n.x, n.y]))]), await pt(2));
   await btn("btnFront").click(); z.front2 = await order(); docs.zFront = await json();
@@ -189,14 +193,16 @@ async function script(browser, base, label) {
   await reset();
 
   /* ═══ set_theme ═══ */
+  /* FLUYO-018.14b: tema y fondo del lienzo viven en «Lienzo ▾» (#canvasMenu); en HEAD (sin menú) no hace nada */
+  const lienzo = async () => { if (await ed.evaluate(() => { const m = document.getElementById("canvasMenu"); return !!m && m.hidden; })) await ed.locator("#btnCanvas").click(); };
   const th = {};
   th.pixels = {};
   for (const t of ["crema", "claro", "dark"]) {
-    await ed.locator("#themeSel").selectOption(t); await frame();
+    await lienzo(); await ed.locator("#themeSel").selectOption(t); await frame();
     th.pixels[t] = { theme: await ed.evaluate(() => doc.theme), bg: await bg() };
   }
   docs.themeDark = await json();
-  await ed.locator("#themeSel").selectOption("crema"); await frame();
+  await lienzo(); await ed.locator("#themeSel").selectOption("crema"); await frame();
   // customBg válido (el selector de color no se puede abrir: se dispara el mismo evento input)
   await ed.evaluate(() => { const i = document.getElementById("bgCustom"); i.value = "#336699"; i.dispatchEvent(new Event("input", { bubbles: true })); });
   await frame(); th.customBg = { value: await ed.evaluate(() => doc.customBg), bg: await bg() };
@@ -217,9 +223,9 @@ async function script(browser, base, label) {
   await ed.locator("#fileIn").setInputFiles({ name: "x.fluyo.json", mimeType: "application/json", buffer: Buffer.from(bad) });
   await ed.waitForFunction(() => doc.customBg === "not-a-color", null, { timeout: 5000 });
   await frame(); th.invalidOpened = { theme: await ed.evaluate(() => doc.theme), customBg: await ed.evaluate(() => doc.customBg) };
-  await ed.locator("#btnBgClear").click(); th.cleared = await ed.evaluate(() => doc.customBg);
+  await lienzo(); await ed.locator("#btnBgClear").click(); th.cleared = await ed.evaluate(() => doc.customBg);
   // Share/Viewer con tema y fondo
-  await ed.locator("#themeSel").selectOption("crema");
+  await lienzo(); await ed.locator("#themeSel").selectOption("crema");
   await ed.evaluate(() => { const i = document.getElementById("bgCustom"); i.value = "#336699"; i.dispatchEvent(new Event("input", { bubbles: true })); });
   await ed.evaluate(() => { scReset(); });
   await ed.locator("#btnShare").click(); await ed.locator("#shareCreate").click();
@@ -299,10 +305,11 @@ async function script(browser, base, label) {
   const od = {};
   od.opened = await ed.evaluate(() => ({ theme: doc.theme, customBg: doc.customBg, order: P().nodes.map((n) => [n.id, n.order]) }));
   await ed.evaluate(() => { viewX = 0; viewY = 0; viewZoom = 0.8; });
+  await ed.evaluate(() => document.querySelectorAll("#selBody details").forEach((d) => { d.open = true; })); /* 018.14b: tras recargar, los grupos vuelven a su estado por defecto */
   await clickNode(1); await btn("btnFront").click(); od.z = await order();
   await marquee(200, 200, 700, 400); await ed.keyboard.press("Control+d"); await ed.waitForTimeout(60);
   od.dup = await ed.evaluate(() => ({ nodes: P().nodes.map((n) => [n.id, n.order]), edges: P().edges.map((e) => [e.id, e.from, e.to]) }));
-  await ed.locator("#themeSel").selectOption("claro"); od.theme = await ed.evaluate(() => doc.theme);
+  await lienzo(); await ed.locator("#themeSel").selectOption("claro"); od.theme = await ed.evaluate(() => doc.theme);
   await ed.keyboard.press("Control+z"); await ed.waitForTimeout(60); od.undo = await ed.evaluate(() => P().nodes.length);
   R.od = od;
 

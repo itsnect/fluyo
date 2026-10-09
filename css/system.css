@@ -1,0 +1,386 @@
+/* ===================== Sistema visual de Fluyo (FLUYO-018.13) =====================
+   Una sola fuente para el aspecto del editor: tipografías, tokens y componentes.
+   styles.css solo coloca cosas; los colores, radios, alturas y voces salen de aquí.
+   Cambiar el sistema = cambiar tokens de este archivo, no buscar valores sueltos.
+
+   Dos capas deliberadas:
+   · el CHROME (cabecera, rail, panel, páginas, menús) es papel hueso con tinta;
+   · el LIENZO es la superficie de trabajo y su tema pertenece al documento
+     (oscuro, crema o claro, js/config.js). El chrome no lo imita: lo enmarca.
+
+   Solo editor: el Viewer (/s/) sigue con css/identity.css hasta su propio slice.
+   Las fuentes viven en assets/fonts (OFL, licencias al lado) y se sirven desde
+   este mismo origen: Fluyo sigue sin pedir nada a terceros para dibujar su UI. */
+
+/* ---- Tipografías: solo latin (cubre el español completo: ñ, tildes, ¿¡, «», —, …) ---- */
+@font-face{
+  font-family:"Playfair Display"; font-style:normal; font-weight:400; font-display:swap;
+  src:url("../assets/fonts/playfair-display-latin-400.woff2") format("woff2");
+  unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+@font-face{
+  font-family:"IBM Plex Mono"; font-style:normal; font-weight:400; font-display:swap;
+  src:url("../assets/fonts/ibm-plex-mono-latin-400.woff2") format("woff2");
+  unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+@font-face{
+  font-family:"IBM Plex Mono"; font-style:normal; font-weight:500; font-display:swap;
+  src:url("../assets/fonts/ibm-plex-mono-latin-500.woff2") format("woff2");
+  unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+
+:root{
+  /* ---- Primitivas: la familia hueso / tinta / oliva / terracota ---- */
+  --c-hueso:#F2EDE3;          /* superficie del chrome */
+  --c-hueso-claro:#F9F6F0;    /* campos, menús: un punto por encima del papel */
+  --c-hueso-hondo:#E8E1D3;    /* lecho del lienzo, pistas, hover */
+  --c-arena:#D6CCB9;          /* bordes de controles */
+  --c-tinta:#16150F;          /* estructura y texto */
+  --c-tinta-2:#3A372E;        /* texto secundario fuerte */
+  --c-grafito:#67624F;        /* metadatos, ayudas (5,2:1 sobre hueso) */
+  --c-piedra:#A39C8A;         /* deshabilitado, decoración (no para texto) */
+  --c-oliva:#4E5A3F;          /* activo / positivo */
+  --c-oliva-hondo:#3E4832;
+  --c-oliva-palido:#C3CDA4;   /* activo sobre el lienzo oscuro */
+  --c-terracota:#A33A22;      /* acción importante / atención */
+  --c-terracota-hondo:#86301B;
+
+  /* ---- Semánticos: lo que usan los componentes ---- */
+  --surface:var(--c-hueso);
+  --surface-raised:var(--c-hueso-claro);
+  --surface-sunken:var(--c-hueso-hondo);
+  --surface-inverse:var(--c-tinta);
+  --ink:var(--c-tinta);
+  --ink-2:var(--c-tinta-2);
+  --ink-3:var(--c-grafito);
+  --ink-off:var(--c-piedra);
+  --ink-inverse:var(--c-hueso);
+  --rule:rgba(22,21,15,.12);        /* divisores dentro del chrome */
+  --rule-2:rgba(22,21,15,.24);      /* bordes de controles */
+  --rule-ink:var(--c-tinta);        /* marco del lienzo, subrayados activos */
+  --active:var(--c-oliva);
+  --active-ink:var(--c-hueso);
+  --active-veil:rgba(78,90,63,.13);
+  --attention:var(--c-terracota);
+  --attention-hover:var(--c-terracota-hondo);
+  --attention-veil:rgba(163,58,34,.09);
+  --hover-veil:rgba(22,21,15,.06);
+  --press-veil:rgba(22,21,15,.11);
+
+  /* ---- Voces ---- */
+  --font-serif:"Playfair Display","Iowan Old Style","Palatino Linotype",Palatino,serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --fs-micro:10px;    /* rótulos en mayúsculas */
+  --fs-label:11px;    /* etiquetas de campo, metadatos */
+  --fs-ui:12px;       /* controles */
+  --fs-body:12.5px;   /* texto de lectura del chrome */
+  --fs-title:16px;    /* títulos serif de sección */
+  --fs-display:21px;  /* marca */
+  --track-micro:.09em;
+
+  /* ---- Proporción ---- */
+  --r-xs:3px; --r-sm:5px; --r-md:8px; --r-lg:12px; --r-pill:999px;
+  --ctl-h:30px;              /* control de escritorio */
+  --ctl-h-touch:40px;        /* objetivo táctil mínimo */
+  --ctl-pad:10px;
+  --ic:16px;                 /* tamaño de icono */
+  --ic-stroke:1.6;
+  --hdr-h:50px;
+  --s-1:4px; --s-2:8px; --s-3:12px; --s-4:16px; --s-5:24px;
+  --frame-inset:8px;         /* aire entre el chrome y el lienzo */
+
+  /* ---- Profundidad ---- */
+  --shadow-menu:0 1px 0 rgba(22,21,15,.04), 0 2px 6px -2px rgba(22,21,15,.14), 0 18px 40px -16px rgba(22,21,15,.38);
+  --shadow-float:0 1px 0 rgba(22,21,15,.05), 0 10px 28px -10px rgba(0,0,0,.5);
+  --shadow-frame:0 0 0 1px var(--rule-ink), 0 1px 0 1px rgba(22,21,15,.04);
+  --focus:2px solid var(--c-oliva);
+  --surface-hover:#FFFDF8;          /* hover de un control levantado */
+  --rule-hover:rgba(22,21,15,.42);
+  --sw-a:#CFC6B3; --sw-b:#F4EFE6;   /* tramado de las muestras especiales (automático, sin relleno) */
+  /* FLUYO-018.14b: los tintes que estaban escritos a mano en las reglas pasan a tokens, para que el tema oscuro de la
+     interfaz los redefina en un solo sitio (si una regla vuelve a escribir un rgba suelto, el modo oscuro queda a medias). */
+  --active-rule:rgba(78,90,63,.45);       /* borde de lo activo/conmutado */
+  --attention-rule:rgba(163,58,34,.48);   /* borde de lo destructivo al pasar */
+  --attention-fill:var(--c-terracota);    /* fondo del botón primario */
+  --attention-fill-hover:var(--c-terracota-hondo);
+  --swatch-edge:rgba(22,21,15,.16);       /* filete interior de una muestra de color */
+  --shadow-sheet:0 -14px 32px -12px rgba(22,21,15,.32);
+  --scrim:rgba(22,21,15,.5);
+  --select-arrow:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5l3 3 3-3' fill='none' stroke='%2367624F' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  --fs-field:11.5px;                      /* etiquetas del panel: un punto por encima de los metadatos */
+
+  /* ---- Iconos como máscara: para lo que se genera desde JS sin markup (pestañas de página) ---- */
+  --mask-x:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M6.5 6.5l11 11M17.5 6.5l-11 11'/%3E%3C/svg%3E");
+  --mask-plus:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round'%3E%3Cpath d='M12 5.5v13M5.5 12h13'/%3E%3C/svg%3E");
+  --mask-play:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='black'%3E%3Cpath d='M8 5.5v13l10.5-6.5z'/%3E%3C/svg%3E");
+  --mask-stop:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='black'%3E%3Crect x='6.5' y='6.5' width='11' height='11' rx='1.5'/%3E%3C/svg%3E");
+  --mask-replay:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12a7 7 0 1 0 2.1-5'/%3E%3Cpath d='M5 4.5V9h4.5'/%3E%3C/svg%3E");
+  --mask-check:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E");
+  --mask-more:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='black'%3E%3Ccircle cx='5' cy='12' r='1.7'/%3E%3Ccircle cx='12' cy='12' r='1.7'/%3E%3Ccircle cx='19' cy='12' r='1.7'/%3E%3C/svg%3E");
+  --mask-chevron:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 10l5 5 5-5'/%3E%3C/svg%3E");
+
+  /* ---- Compatibilidad: nombres de identity.css que ya usa el resto del CSS ----
+     (Historias, diálogos, compartir…): al redefinirlos aquí todo el editor pasa al
+     sistema sin tocar cada regla. --accent es el ESTADO ACTIVO (oliva); la acción
+     importante es --attention y la llevan button.primary y lo destructivo. */
+  --bg:var(--surface); --panel:var(--surface); --panel2:var(--surface-raised);
+  --line:var(--rule-2); --text:var(--ink); --muted:var(--ink-3);
+  --accent:var(--active); --accent2:var(--active);
+  --ui-font:400 var(--fs-ui)/1.5 var(--font-mono);
+  color-scheme:light;
+}
+/* Material inverso: lo que flota sobre el lienzo en Present (mando y rótulo). Por id además de por clase:
+   present-story.js reescribe el className del mando en cada fase. */
+.inverse, #presentBar, #presentStory{
+  --surface:var(--c-tinta); --surface-raised:#24221A; --surface-sunken:#0E0D09;
+  --ink:var(--c-hueso); --ink-2:#D9D2C3; --ink-3:#ABA491; --rule:rgba(242,237,227,.14); --rule-2:rgba(242,237,227,.26);
+  --hover-veil:rgba(242,237,227,.08); --press-veil:rgba(242,237,227,.14);
+  --surface-hover:#2E2B22; --rule-hover:rgba(242,237,227,.45);
+  --panel:var(--surface); --panel2:var(--surface-raised); --line:var(--rule-2); --text:var(--ink); --muted:var(--ink-3);
+  --accent:var(--c-oliva-palido); --active-veil:rgba(195,205,164,.16);
+  color:var(--ink);
+}
+@media (pointer:coarse){ :root{ --ctl-h:var(--ctl-h-touch); } }
+
+/* ===================== Interfaz oscura (FLUYO-018.14b, B4) =====================
+   El mismo Fluyo invertido: tinta profunda como superficie, hueso como texto, oliva pálido para lo activo y terracota
+   clara para la atención. Solo cambia el CHROME: el lienzo sigue con el tema de su documento (doc.theme), que este
+   atributo no lee ni escribe. Lo pone js/ui.js (applyUiTheme) desde una preferencia del navegador; el Viewer no lo usa.
+   Se redefinen semánticos y tintes, nunca reglas: todo lo que se pinta con tokens cambia a la vez. */
+:root[data-ui-theme="dark"]{
+  --c-noche:#1A1913; --c-noche-alta:#24221A; --c-noche-honda:#121109;
+  --surface:var(--c-noche);
+  --surface-raised:var(--c-noche-alta);
+  --surface-sunken:var(--c-noche-honda);
+  --surface-inverse:var(--c-hueso);
+  --ink:#EDE7DB; --ink-2:#D2CBBB; --ink-3:#A79F8B; --ink-off:#6F6958;
+  --ink-inverse:var(--c-tinta);
+  --rule:rgba(237,231,219,.10);
+  --rule-2:rgba(237,231,219,.20);
+  --rule-ink:rgba(237,231,219,.30);
+  --active:var(--c-oliva-palido);
+  --active-ink:var(--c-tinta);
+  --active-veil:rgba(195,205,164,.13);
+  --active-rule:rgba(195,205,164,.42);
+  --attention:#DE8B71;
+  --attention-hover:#E9A089;
+  --attention-veil:rgba(222,139,113,.12);
+  --attention-rule:rgba(222,139,113,.5);
+  --attention-fill:#A8402A;
+  --attention-fill-hover:#BC4D33;
+  --hover-veil:rgba(237,231,219,.06);
+  --press-veil:rgba(237,231,219,.11);
+  --surface-hover:#2B2920;
+  --rule-hover:rgba(237,231,219,.40);
+  --focus:2px solid var(--c-oliva-palido);
+  --sw-a:#4B473B; --sw-b:#2B2920;
+  --swatch-edge:rgba(237,231,219,.18);
+  --shadow-menu:0 1px 0 rgba(0,0,0,.2), 0 2px 6px -2px rgba(0,0,0,.5), 0 18px 40px -16px rgba(0,0,0,.75);
+  --shadow-float:0 1px 0 rgba(0,0,0,.25), 0 10px 28px -10px rgba(0,0,0,.8);
+  --shadow-frame:0 0 0 1px var(--rule-ink), 0 1px 0 1px rgba(0,0,0,.2);
+  --shadow-sheet:0 -14px 32px -12px rgba(0,0,0,.7);
+  --scrim:rgba(5,5,3,.62);
+  --select-arrow:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5l3 3 3-3' fill='none' stroke='%23A79F8B' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  color-scheme:dark;
+}
+/* El material inverso de Present (.inverse, más abajo) redefine sus propios tokens: en la interfaz oscura sigue igual. */
+
+/* ===================== Base ===================== */
+body{ font:var(--ui-font); letter-spacing:0; -webkit-font-smoothing:antialiased; }
+::selection{ background:var(--active-veil); }
+.serif{ font-family:var(--font-serif); font-weight:400; letter-spacing:0; }
+.kicker{ font:500 var(--fs-micro)/1.3 var(--font-mono); letter-spacing:var(--track-micro); text-transform:uppercase; color:var(--ink-3); }
+.meta{ font:400 var(--fs-label)/1.3 var(--font-mono); color:var(--ink-3); }
+.srOnly{ position:absolute !important; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); clip-path:inset(50%); white-space:nowrap; }
+hr.rule, .divider{ border:none; height:1px; background:var(--rule); margin:var(--s-2) 0; }
+.vdivider{ display:block; width:1px; align-self:stretch; background:var(--rule); margin:6px 2px; flex:none; }
+
+/* ---- Icono: un solo trazo para toda la UI (sprite #i-* en index.html) ---- */
+.ic{ width:var(--ic); height:var(--ic); flex:none; fill:none; stroke:currentColor; stroke-width:var(--ic-stroke); stroke-linecap:round; stroke-linejoin:round; vertical-align:middle; }
+.ic.solid{ fill:currentColor; stroke:none; }
+
+/* ===================== Botones =====================
+   Tres jerarquías y nada más:
+   · secundario (por defecto): papel claro con borde;
+   · fantasma (.btnGhost): sin caja hasta el hover; para acciones de baja jerarquía;
+   · primario (.primary): terracota, la acción importante de la vista (una por zona).
+   Más .iconBtn (cuadrado, solo icono) y .danger (destructivo: terracota en texto). */
+button, select{
+  font:400 var(--fs-ui)/1.25 var(--font-mono); letter-spacing:0; color:var(--ink);
+  background:var(--surface-raised); border:1px solid var(--rule-2); border-radius:var(--r-sm);
+  padding:6px var(--ctl-pad); cursor:pointer;
+  transition:background-color .12s ease, border-color .12s ease, color .12s ease, box-shadow .12s ease;
+}
+/* Control dimensionado: altura fija, icono + texto centrados. Lo llevan todos los
+   controles del chrome (cabecera, panel, páginas, barras flotantes, menús). La UI
+   interna de Historias conserva su propio tamaño hasta su slice. */
+.ctl, body > header button, body > header select, #bottomBar button, .touchBar button, .viewCtl button, #panelProperties button, #panelProperties select, .sheetHead button, .moreMenu button, .moreMenu select{
+  min-height:var(--ctl-h); padding:0 var(--ctl-pad);
+  display:inline-flex; align-items:center; justify-content:center; gap:7px; white-space:nowrap;
+}
+body > header button, body > header select, #bottomBar button, .touchBar button{ font-weight:500; }
+body > header select, #panelProperties select, .moreMenu select{ padding:0 26px 0 9px; justify-content:flex-start; font-weight:400; }
+button:hover{ border-color:var(--rule-hover); background:var(--surface-hover); }
+button:active{ background:var(--surface-sunken); }
+button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible, [tabindex]:focus-visible{ outline:var(--focus); outline-offset:2px; }
+button:disabled, select:disabled{ opacity:.42; cursor:default; }
+button:disabled:hover{ border-color:var(--rule-2); background:var(--surface-raised); }
+.btnGhost{ background:transparent; border-color:transparent; }
+.btnGhost:hover{ background:var(--hover-veil); border-color:transparent; }
+.btnGhost:active{ background:var(--press-veil); }
+.btnGhost:disabled:hover{ background:transparent; border-color:transparent; }
+button.primary{ background:var(--attention-fill); border-color:var(--attention-fill); color:var(--c-hueso); }
+button.primary:hover{ background:var(--attention-fill-hover); border-color:var(--attention-fill-hover); filter:none; }
+button.primary:active{ background:var(--c-terracota-hondo); }
+button.primary:disabled:hover{ background:var(--attention-fill); border-color:var(--attention-fill); }
+button.toggled, button[aria-pressed="true"]{ background:var(--active-veil); border-color:var(--active-rule); color:var(--active); }
+.danger, button.danger{ color:var(--attention); }
+button.danger:hover{ background:var(--attention-veil); border-color:var(--attention-rule); }
+.iconBtn{ width:var(--ctl-h); min-width:var(--ctl-h); padding:0; line-height:0; }
+.iconBtn svg{ width:var(--ic); height:var(--ic); fill:none; stroke:currentColor; stroke-width:var(--ic-stroke); stroke-linecap:round; stroke-linejoin:round; }
+.iconBtn:disabled{ opacity:.32; }
+
+/* ===================== Campos =====================
+   Selects, números, textos y áreas: la misma caja, la misma voz mono. */
+select{
+  -webkit-appearance:none; appearance:none; justify-content:flex-start; font-weight:400;
+  padding:0 26px 0 9px; text-align:left;
+  background-image:var(--select-arrow);
+  background-repeat:no-repeat; background-position:right 8px center; background-size:12px 12px;
+}
+select:hover{ border-color:var(--rule-hover); background-color:var(--surface-hover); }
+input[type=number], input[type=text], input[type=search], input:not([type]), textarea{
+  font:400 var(--fs-ui)/1.4 var(--font-mono); color:var(--ink);
+  background:var(--surface-raised); border:1px solid var(--rule-2); border-radius:var(--r-sm);
+  padding:5px 8px; min-height:var(--ctl-h);
+  transition:border-color .12s ease, box-shadow .12s ease;
+}
+input[type=number]:hover, input[type=text]:hover, input:not([type]):hover, textarea:hover{ border-color:var(--rule-hover); }
+input[type=number]:focus, input[type=text]:focus, input[type=search]:focus, input:not([type]):focus, textarea:focus{ outline:none; border-color:var(--active); box-shadow:0 0 0 3px var(--active-veil); }
+input::placeholder, textarea::placeholder{ color:var(--ink-off); }
+/* Interruptor: las casillas del chrome son estados, no formularios. */
+input[type=checkbox].switch, .row input[type=checkbox], .moreMenu input[type=checkbox]{
+  -webkit-appearance:none; appearance:none; flex:none; margin:0; cursor:pointer;
+  width:30px; height:18px; border-radius:var(--r-pill); position:relative;
+  background:var(--surface-sunken); border:1px solid var(--rule-2);
+  transition:background-color .15s ease, border-color .15s ease;
+}
+input[type=checkbox].switch::before, .row input[type=checkbox]::before, .moreMenu input[type=checkbox]::before{
+  content:""; position:absolute; top:2px; left:2px; width:12px; height:12px; border-radius:50%;
+  background:var(--surface-raised); box-shadow:0 0 0 1px var(--rule-2), 0 1px 2px rgba(22,21,15,.2);
+  transition:transform .15s ease;
+}
+input[type=checkbox].switch:checked, .row input[type=checkbox]:checked, .moreMenu input[type=checkbox]:checked{ background:var(--active); border-color:var(--active); }
+input[type=checkbox].switch:checked::before, .row input[type=checkbox]:checked::before, .moreMenu input[type=checkbox]:checked::before{ transform:translateX(12px); box-shadow:none; }
+/* Deslizador: hilo de tinta y un mando. */
+input[type=range]{ -webkit-appearance:none; appearance:none; background:transparent; height:22px; cursor:pointer; }
+input[type=range]::-webkit-slider-runnable-track{ height:2px; background:var(--rule-2); border-radius:2px; }
+input[type=range]::-moz-range-track{ height:2px; background:var(--rule-2); border-radius:2px; }
+input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:14px; height:14px; margin-top:-6px; border-radius:50%; background:var(--surface-raised); border:1.5px solid var(--ink); }
+input[type=range]::-moz-range-thumb{ width:12px; height:12px; border-radius:50%; background:var(--surface-raised); border:1.5px solid var(--ink); }
+input[type=range]:hover::-webkit-slider-thumb{ background:var(--active-veil); border-color:var(--active); }
+/* Color nativo como muestra cuadrada. */
+input[type=color]{ -webkit-appearance:none; appearance:none; width:26px; height:22px; padding:2px; border:1px solid var(--rule-2); border-radius:var(--r-xs); background:var(--surface-raised); cursor:pointer; }
+input[type=color]::-webkit-color-swatch-wrapper{ padding:0; }
+input[type=color]::-webkit-color-swatch{ border:none; border-radius:2px; }
+input[type=color]::-moz-color-swatch{ border:none; border-radius:2px; }
+
+/* ===================== Pestañas =====================
+   Subrayado de tinta para la activa; sin cajas. */
+.tabs{ display:flex; gap:var(--s-3); border-bottom:1px solid var(--rule); }
+.tabs > button, .tabBtn{
+  background:transparent; border:0; border-radius:0; min-height:36px; padding:0 2px; margin-bottom:-1px;
+  font:500 var(--fs-micro)/1 var(--font-mono); letter-spacing:var(--track-micro); text-transform:uppercase; color:var(--ink-3);
+  border-bottom:2px solid transparent;
+}
+.tabs > button:hover, .tabBtn:hover{ background:transparent; color:var(--ink); border-color:transparent transparent var(--rule-2); }
+.tabs > button.active, .tabBtn.active{ color:var(--ink); border-bottom-color:var(--rule-ink); background:transparent; }
+
+/* ===================== Insignias ===================== */
+.badge{ display:inline-flex; align-items:center; gap:4px; height:18px; padding:0 7px; border-radius:var(--r-pill); border:1px solid var(--rule-2); font:500 var(--fs-micro)/1 var(--font-mono); letter-spacing:.04em; color:var(--ink-2); background:var(--surface-raised); white-space:nowrap; }
+.badge.active{ color:var(--active); border-color:var(--active-rule); background:var(--active-veil); }
+.badge.attention{ color:var(--attention); border-color:var(--attention-rule); background:var(--attention-veil); }
+
+/* ===================== Superficies flotantes: menús y popovers =====================
+   Un único material para «Más», el menú de página y los menús de Historias. */
+.menu, .scPopover, .moreMenu{
+  background:var(--surface-raised); color:var(--ink);
+  border:1px solid var(--rule-2); border-radius:var(--r-md); box-shadow:var(--shadow-menu);
+}
+.menuSection{ display:flex; flex-direction:column; gap:1px; padding:4px 0; }
+.menuSection + .menuSection{ border-top:1px solid var(--rule); }
+.menuKicker{ display:block; padding:8px 10px 4px; font:500 var(--fs-micro)/1.3 var(--font-mono); letter-spacing:var(--track-micro); text-transform:uppercase; color:var(--ink-3); }
+.menuItem, .scPopover > button{
+  display:flex; align-items:center; justify-content:flex-start; gap:10px; width:100%;
+  min-height:34px; padding:6px 10px; border:0; border-radius:var(--r-sm); background:transparent;
+  font:400 var(--fs-ui)/1.35 var(--font-mono); color:var(--ink); text-align:left; text-decoration:none; white-space:normal;
+}
+.menuItem:hover, .scPopover > button:hover{ background:var(--hover-veil); border-color:transparent; }
+.menuItem:active, .scPopover > button:active{ background:var(--press-veil); }
+.menuItem .ic{ color:var(--ink-3); }
+.menuItem .menuHint{ margin-left:auto; font-size:var(--fs-label); color:var(--ink-3); }
+.menuItem.danger, .scPopover > button.scMenuDanger{ color:var(--attention); }
+.menuItem.danger .ic{ color:var(--attention); }
+.menuItem.danger:hover, .scPopover > button.scMenuDanger:hover{ background:var(--attention-veil); }
+@media (pointer:coarse){ .menuItem, .scPopover > button{ min-height:var(--ctl-h-touch); } }
+
+/* ===================== Tooltip =====================
+   [data-tip] en controles de solo icono: aparece al pasar el ratón o al enfocar
+   con teclado. Con el dedo no hay hover: el control lleva aria-label. */
+[data-tip]{ position:relative; }
+@media (hover:hover){
+  [data-tip]:hover::after, [data-tip]:focus-visible::after{
+    content:attr(data-tip); position:absolute; z-index:90; top:calc(100% + 7px); left:50%; transform:translateX(-50%);
+    padding:5px 8px; border-radius:var(--r-xs); background:var(--surface-inverse); color:var(--ink-inverse);
+    font:400 var(--fs-label)/1.2 var(--font-mono); letter-spacing:0; white-space:nowrap; pointer-events:none;
+    box-shadow:0 6px 16px -6px rgba(0,0,0,.4);
+  }
+  [data-tip-pos~="up"]:hover::after, [data-tip-pos~="up"]:focus-visible::after{ top:auto; bottom:calc(100% + 7px); }
+  [data-tip-pos~="end"]:hover::after, [data-tip-pos~="end"]:focus-visible::after{ left:auto; right:0; transform:none; }
+  [data-tip-pos~="start"]:hover::after, [data-tip-pos~="start"]:focus-visible::after{ left:0; transform:none; }
+  [data-tip-pos~="right"]:hover::after, [data-tip-pos~="right"]:focus-visible::after{ top:50%; left:calc(100% + 8px); transform:translateY(-50%); }
+}
+
+/* ===================== kbd ===================== */
+kbd{ font:500 var(--fs-micro)/1 var(--font-mono); color:var(--ink-2); background:transparent; border:1px solid var(--rule-2); border-radius:var(--r-xs); padding:1px 4px; white-space:nowrap; }
+
+@media (prefers-reduced-motion: reduce){
+  button, select, input, textarea, input[type=checkbox]::before{ transition:none !important; }
+}
+
+/* ===================== Conmutador segmentado (FLUYO-018.14b) =====================
+   Dos o tres estados excluyentes de un mismo eje (el modo de trabajo). Lecho hundido y la opción activa levantada:
+   se lee como una pieza física, no como dos botones sueltos. */
+.seg{ display:inline-flex; align-items:center; gap:2px; padding:2px; border-radius:calc(var(--r-sm) + 2px); background:var(--surface-sunken); border:1px solid var(--rule); }
+.seg > .segBtn{
+  min-height:calc(var(--ctl-h) - 2px); padding:0 11px; gap:7px; border:1px solid transparent; border-radius:var(--r-sm);
+  background:transparent; color:var(--ink-3); font:500 var(--fs-ui)/1 var(--font-mono);
+  display:inline-flex; align-items:center; justify-content:center; white-space:nowrap;
+}
+.seg > .segBtn:hover{ background:var(--hover-veil); border-color:transparent; color:var(--ink); }
+.seg > .segBtn.active, .seg > .segBtn[aria-pressed="true"]{ background:var(--surface-raised); border-color:var(--rule-2); color:var(--ink); box-shadow:0 1px 2px rgba(0,0,0,.08); }
+.seg > .segBtn.active .ic, .seg > .segBtn[aria-pressed="true"] .ic{ color:var(--active); }
+
+/* ===================== Grupo plegable (FLUYO-018.14b) =====================
+   <details> nativo: teclado, lector de pantalla y estado sin JS. El rótulo es mono en versalitas (mecanismo); el
+   cheurón gira. Un filete separa los grupos; nada de cajas. */
+.pgroup{ border-top:1px solid var(--rule); }
+.pgroup > summary{
+  list-style:none; display:flex; align-items:center; justify-content:space-between; gap:8px;
+  min-height:36px; padding:0 2px; cursor:pointer; user-select:none;
+  font:500 var(--fs-micro)/1.3 var(--font-mono); letter-spacing:var(--track-micro); text-transform:uppercase; color:var(--ink-3);
+}
+.pgroup > summary::-webkit-details-marker{ display:none; }
+.pgroup > summary::after{ content:""; width:12px; height:12px; flex:none; background:currentColor; opacity:.8; -webkit-mask:var(--mask-chevron) center/contain no-repeat; mask:var(--mask-chevron) center/contain no-repeat; transition:transform .15s ease; }
+.pgroup[open] > summary::after{ transform:rotate(180deg); }
+.pgroup > summary:hover{ color:var(--ink); }
+.pgroup > summary:focus-visible{ outline:var(--focus); outline-offset:-2px; border-radius:var(--r-xs); }
+.pgroup > .pgBody{ padding:2px 0 10px; }
+@media (pointer:coarse){
+  .pgroup > summary{ min-height:var(--ctl-h-touch); }
+  /* Interruptores con dedo: un punto más grandes (la fila entera también los activa). */
+  input[type=checkbox].switch, .row input[type=checkbox], .moreMenu input[type=checkbox]{ width:40px; height:24px; }
+  input[type=checkbox].switch::before, .row input[type=checkbox]::before, .moreMenu input[type=checkbox]::before{ width:18px; height:18px; }
+  input[type=checkbox].switch:checked::before, .row input[type=checkbox]:checked::before, .moreMenu input[type=checkbox]:checked::before{ transform:translateX(16px); }
+}
+@media (prefers-reduced-motion: reduce){ .pgroup > summary::after{ transition:none; } }

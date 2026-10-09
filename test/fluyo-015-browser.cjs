@@ -68,7 +68,7 @@ const SPY = `(() => { if (window.__spy) return; const s = window.__spy = { text:
   const p = CanvasRenderingContext2D.prototype, ft = p.fillText, st = p.stroke, cg = p.createRadialGradient;
   const isPrev = (c) => c.canvas && /scPreviewCanvas/.test(c.canvas.className || "");
   p.fillText = function (t, x, y, ...r) { if (isPrev(this)) s.preview.text++; else if (/^[^\\w\\s]/u.test(t) && t.length < 6) s.text.push({ t, x, y, px: parseFloat(/(\\d+(?:\\.\\d+)?)px/.exec(this.font)?.[1] || 0), a: this.globalAlpha }); return ft.call(this, t, x, y, ...r); };
-  p.stroke = function (...r) { if (this.lineCap === "round") { if (isPrev(this)) s.preview.round++; else s.round++; } if (!isPrev(this)) { if (this.strokeStyle === "#3aa7e8") s.accent++; if (this.strokeStyle === "#d0576a") s.red++; } return st.apply(this, r); };
+  p.stroke = function (...r) { if (this.lineCap === "round") { if (isPrev(this)) s.preview.round++; else s.round++; } if (!isPrev(this)) { if (this.strokeStyle === FLOW_ACCENT.toLowerCase() && Math.abs(this.lineWidth - 2.4) < 1e-3) s.accent++; /* FLUYO-018.15: el acento de llegada es el terracota del evento; el grosor (float32) lo distingue de un nodo de ese color */ if (this.strokeStyle === "#d0576a") s.red++; } return st.apply(this, r); };
   p.createRadialGradient = function (...r) { if (!isPrev(this)) s.grad++; return cg.apply(this, r); };
 })()`;
 const spyReset = (p) => p.evaluate(() => { __spy.text = []; __spy.round = 0; __spy.grad = 0; __spy.accent = 0; __spy.red = 0; __spy.preview = { text: 0, round: 0 }; });

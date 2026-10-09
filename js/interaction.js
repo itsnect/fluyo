@@ -20,8 +20,13 @@ function hitNode(x,y){
   }
   return null;
 }
+/* Tolerancia de acierto de una conexión. Era 8 unidades de MUNDO con ratón y con
+   dedo: a zoom 0,25 —el encaje de un diagrama en un móvil— son 2 px, y tocar una
+   conexión con el dedo era imposible. Ahora se mide en píxeles de pantalla (6 con
+   ratón, 16 con dedo) y nunca baja de las 8 u de antes (FLUYO-018.16). */
+function edgeHitTol(){ return Math.max(8, (isTouch()? 16 : 6)/viewZoom); }
 function hitEdge(x,y){
-  const es=P().edges;
+  const es=P().edges, tol=edgeHitTol();
   for(let i=es.length-1;i>=0;i--){
     const pts=edgePoints(es[i]);
     for(let j=1;j<pts.length;j++){
@@ -29,24 +34,28 @@ function hitEdge(x,y){
       const L2=(p2.x-p1.x)**2+(p2.y-p1.y)**2; if(L2===0) continue;
       let u=((x-p1.x)*(p2.x-p1.x)+(y-p1.y)*(p2.y-p1.y))/L2; u=clamp(u,0,1);
       const d=Math.hypot(x-(p1.x+u*(p2.x-p1.x)), y-(p1.y+u*(p2.y-p1.y)));
-      if(d<8) return es[i];
+      if(d<tol) return es[i];
     }
   }
   return null;
 }
+/* Puerto de conectar (FLUYO-018.16): un punto a CONNECT_PORT_OFF px de PANTALLA de
+   cada lado, acertado a CONNECT_PORT_HIT px (geometry.js). Se dibuja solo el del lado
+   que mira al cursor, pero cualquier punto de acierto de un puerto ES el lado que mira
+   al cursor, así que probar los cuatro da lo mismo y no depende del orden. Solo con
+   ratón: con el dedo se conecta desde «Conectar» (barra táctil) y no hay puerto que
+   acertar sin querer al arrastrar un nodo. */
 function hitSideArrow(n,x,y,r){
-  if(!n) return null;
-  const rad=r||14;
+  if(!n || isTouch()) return null;
+  const rad=r||arrowHitRadius();
   for(const s of SIDES){
-    const p=sidePoint(n,s), d=DIR[s];
-    if(Math.hypot(x-(p.x+d.x*ARROW_OFF), y-(p.y+d.y*ARROW_OFF))<rad) return s;
+    const q=connectPortPoint(n,s,viewZoom);
+    if(Math.hypot(x-q.x, y-q.y)<rad) return s;
   }
   return null;
 }
 /* arrowHostNode() vive en js/selection.js y se comparte entre los gestos del editor. */
-/* El radio va en unidades de mundo, así que con zoom bajo un objetivo de 14
-   queda por debajo del tamaño de un dedo. */
-function arrowHitRadius(){ return isTouch()? Math.max(18, 24/viewZoom) : 14; }
+function arrowHitRadius(){ return CONNECT_PORT_HIT/viewZoom; }
 /* Qué nodo tiene una flecha de conexión bajo el punto, en el MISMO orden Z que
    hitNode() —del que está encima hacia abajo—.
 
@@ -58,15 +67,26 @@ function hitSideArrowHost(x,y){
   for(let i=ns.length-1;i>=0;i--) if(hitSideArrow(ns[i],x,y,rad)) return ns[i];
   return null;
 }
+/* Esquinas y codos tenían un radio fijo de 10 unidades de MUNDO: a zoom 0,5 son
+   5 px de pantalla, imposibles con un dedo (FLUYO-018.11, P1-7). Con dedo el radio
+   pasa a ~22 px de pantalla, como ya hacían las flechas y los extremos. La esquina
+   se acota a un tercio del lado del nodo: si no, en un nodo pequeño las cuatro
+   zonas se comerían el centro y arrastrarlo lo redimensionaría. Con ratón no
+   cambia nada, y el dibujo de los manejadores tampoco. */
+function cornerHitRadius(n){
+  if(!isTouch()) return 10;
+  return Math.min(Math.max(10, 22/viewZoom), Math.max(10, Math.min(n.w,n.h)/3));
+}
 function hitCorner(n,x,y){
   if(!n) return -1;
-  const cs=nodeCorners(n);
-  for(let i=0;i<4;i++) if(Math.hypot(x-cs[i][0],y-cs[i][1])<10) return i;
+  const cs=nodeCorners(n), r=cornerHitRadius(n);
+  for(let i=0;i<4;i++) if(Math.hypot(x-cs[i][0],y-cs[i][1])<r) return i;
   return -1;
 }
 function hitWaypoint(e,x,y){
-  const wps=e.waypoints||[];
-  for(let i=0;i<wps.length;i++) if(Math.hypot(x-wps[i].x,y-wps[i].y)<10) return i;
+  /* el dibujo mide 7 px de pantalla (FLUYO-018.16): el acierto nunca es menor que eso ni que el de antes */
+  const wps=e.waypoints||[], r=isTouch()? Math.max(10, 18/viewZoom) : Math.max(10, 7/viewZoom);
+  for(let i=0;i<wps.length;i++) if(Math.hypot(x-wps[i].x,y-wps[i].y)<r) return i;
   return -1;
 }
 /* ===================== Extremos de arista =====================
@@ -77,7 +97,7 @@ function hitWaypoint(e,x,y){
    El radio es menor que el de las flechas de conexión (14) para que en un nodo
    con una arista enganchada las dos cosas sigan siendo alcanzables: el extremo
    pegado al borde, la flecha a 24 px por fuera. */
-function endHitRadius(){ return isTouch()? Math.max(16, 22/viewZoom) : 9; }
+function endHitRadius(){ return isTouch()? Math.max(16, 22/viewZoom) : Math.max(9, 7/viewZoom); }
 function hitEdgeEnd(e,x,y){
   const pts=edgePoints(e); if(pts.length<2) return null;
   const r=endHitRadius();
@@ -95,7 +115,9 @@ function hitEdgeEnd(e,x,y){
    para no invadir los vértices vecinos, que tienen manejador propio. */
 function hitSegment(e,x,y){
   const pts=edgePoints(e);
-  const r = isTouch()? Math.max(14, 18/viewZoom) : 9;
+  const r = isTouch()? Math.max(14, 18/viewZoom) : Math.max(9, 7/viewZoom);
+  /* la barra se dibuja de 16 px de pantalla (FLUYO-018.16); el agarre no es nunca más corto */
+  const grip = Math.max(SEG_GRIP, 10/viewZoom);
   for(const i of bendableSegs(e,pts)){
     const a=pts[i], b=pts[i+1];
     const mx=(a.x+b.x)/2, my=(a.y+b.y)/2;
@@ -103,7 +125,7 @@ function hitSegment(e,x,y){
     if(L<1){ if(Math.hypot(x-mx,y-my)<r) return i; continue; }
     const ux=(b.x-a.x)/L, uy=(b.y-a.y)/L;
     const t=(x-mx)*ux+(y-my)*uy;                 // distancia al centro, sobre el tramo
-    const media=Math.min(SEG_GRIP, L/2);
+    const media=Math.min(grip, L/2);
     if(Math.abs(t)>media) continue;
     if(Math.abs((x-mx)*-uy+(y-my)*ux)<r) return i;
   }
@@ -284,6 +306,32 @@ cv.addEventListener("contextmenu", ev => {
 const activeTouches=new Map();
 let pinch=null, lastPointerType="mouse", lastTap={t:0,x:0,y:0}, downPt=null;
 const isTouch=()=>lastPointerType==="touch";
+
+/* ===================== Modos táctiles explícitos (FLUYO-018.12) =====================
+   Con el dedo faltaban dos cosas que con ratón se hacen sin pensar: seleccionar
+   varios (Shift o marco) y conectar sin acertar una flecha de 22 px. Se resuelven
+   con dos modos explícitos que abre la barra táctil (#touchBar, js/ui.js):
+
+     · touchLink: el nodo seleccionado al pulsar «Conectar» es el ORIGEN; el
+       siguiente toque sobre otro nodo crea la conexión origen → destino y el modo
+       se cierra. Tocar el vacío no cancela (el dedo sigue moviendo el plano para
+       buscar el destino); se cancela con «Cancelar» o Escape.
+     · touchMulti: mientras dure, tocar un elemento lo suma o lo quita de la
+       selección y tocar el vacío no la vacía. Arrastrar un elemento seleccionado
+       mueve el grupo, como con ratón. Se cierra con «Listo».
+
+   No dependen del tipo de puntero una vez abiertos: si alguien cambia al ratón a
+   mitad, el modo sigue siendo visible (la barra se queda) y se comporta igual. */
+let touchMulti=false, touchLink=null;
+function touchModes(){ return {multi:touchMulti, link:touchLink}; }
+function startTouchLink(){
+  const s=singleSel();
+  if(!s || s.type!=="node" || !s.obj) return;
+  touchMulti=false; touchLink=s.obj.id; refreshPanel();
+}
+function cancelTouchLink(){ if(touchLink===null) return; touchLink=null; refreshPanel(); }
+function setTouchMulti(on){ touchMulti=!!on; touchLink=null; refreshPanel(); }
+function cancelTouchModes(){ touchMulti=false; touchLink=null; }
 function cancelGestures(){
   drag=null; resizing=null; wpDrag=null; marquee=null; connectDrag=null; panDrag=null;
   /* thaw incondicional: si el gesto se cancela a mitad, dejar el mapa congelado
@@ -344,7 +392,7 @@ cv.addEventListener("pointerdown", ev=>{
     pushUndo();
     let n;
     if(pendingIcon) n=newNode("icon",p.x,p.y,{icon:pendingIcon, label:ICONS[pendingIcon].n});
-    else if(pendingAnim) n=newNode("anim",p.x,p.y,{anim:pendingAnim, label:ANIMS[pendingAnim].n, color:PALETTE[0].c});
+    else if(pendingAnim) n=newNode("anim",p.x,p.y,{anim:pendingAnim, label:ANIMS[pendingAnim].n, color:DEFAULT_NODE_COLOR});
     else n=newNode(pendingShape,p.x,p.y);
     /* se mide al colocar el nodo, no al elegirlo en el cajón: elegir solo arma
        la herramienta y el usuario puede no llegar a poner nada nunca */
@@ -354,6 +402,23 @@ cv.addEventListener("pointerdown", ev=>{
     return;
   }
   const n=hitNode(p.x,p.y);
+
+  /* «Conectar» de la barra táctil: el origen ya está elegido, este toque busca el
+     destino. El Undo se apila solo si la conexión llega a crearse. */
+  if(touchLink!==null){
+    if(!nodeById(touchLink)){ touchLink=null; refreshPanel(); }
+    else {
+      if(n && n.id!==touchLink){
+        const snap=snapPage();
+        const e=newEdge(touchLink,n.id);
+        touchLink=null;
+        if(e){ pushUndoSnapshot(snap); selectOnly("edge",e.id); } else refreshPanel();
+        return;
+      }
+      if(ev.pointerType==="touch") panDrag={ x:ev.clientX, y:ev.clientY, startX:viewX, startY:viewY, isRight:false, moved:false };
+      return;
+    }
+  }
 
   if(mode==="connect"){
     if(n){
@@ -407,7 +472,7 @@ cv.addEventListener("pointerdown", ev=>{
       return;
     }
   }
-  // 3) flechas direccionales (conexión estilo draw.io)
+  // 3) puerto de conectar (solo ratón; ver hitSideArrow)
   const host=arrowHostNode();
   const arrowSide=hitSideArrow(host,p.x,p.y,arrowHitRadius());
   if(arrowSide && host){
@@ -417,9 +482,16 @@ cv.addEventListener("pointerdown", ev=>{
   // 4) nodo → seleccionar / arrastrar grupo
   if(n){
     if(ev.shiftKey){ toggleSel("node",n.id); return; }
-    if(!selN.has(n.id)) selectOnly("node",n.id);
-    pushUndo();
-    drag={offs:{}, wps:[], realin:[]};
+    /* En «Seleccionar varios» tocar suma; quitar se decide al soltar (toggleOff),
+       porque el mismo toque puede acabar siendo el arrastre del grupo. */
+    let toggleOff=null;
+    if(touchMulti){ if(selN.has(n.id)) toggleOff=n.id; else { selN.add(n.id); refreshPanel(); } }
+    else if(!selN.has(n.id)) selectOnly("node",n.id);
+    /* El Undo se apila con la foto de AHORA pero solo cuando el nodo se mueve de
+       verdad (pointermove). Antes se apilaba aquí, así que un simple clic o toque
+       sobre un nodo dejaba una entrada que no deshacía nada y, de paso, vaciaba
+       Rehacer. Con Deshacer/Rehacer a la vista (FLUYO-018.12) eso se notaba. */
+    drag={offs:{}, wps:[], realin:[], snap:snapPage(), toggleOff};
     for(const id of selN){
       const nn=nodeById(id);
       if(nn) drag.offs[id]={dx:p.x-nn.x, dy:p.y-nn.y, x:nn.x, y:nn.y};
@@ -450,7 +522,7 @@ cv.addEventListener("pointerdown", ev=>{
   // 5) flecha
   const e=hitEdge(p.x,p.y);
   if(e){
-    if(ev.shiftKey) toggleSel("edge",e.id);
+    if(ev.shiftKey || touchMulti) toggleSel("edge",e.id);
     else selectOnly("edge",e.id);
     return;
   }
@@ -492,6 +564,14 @@ cv.addEventListener("pointermove", ev=>{
   const p=toWorld(ev); mouse.x=p.x; mouse.y=p.y;
   if(marquee){ marquee.x1=p.x; marquee.y1=p.y; return; }
   if(drag){
+    if(drag.snap){
+      const mueve=Object.keys(drag.offs).some(id=>{
+        const o=drag.offs[id];
+        return snapV(p.x-o.dx)!==o.x || snapV(p.y-o.dy)!==o.y;
+      });
+      if(!mueve) return;
+      pushUndoSnapshot(drag.snap); drag.snap=null;
+    }
     for(const id in drag.offs){
       const nn=nodeById(+id);
       if(nn) editNode(nn,{x:snapV(p.x-drag.offs[id].dx), y:snapV(p.y-drag.offs[id].dy)});
@@ -528,7 +608,7 @@ cv.addEventListener("pointermove", ev=>{
   }
   /* Una flecha de conexión GANA al nodo que tenga debajo.
      Antes esto era un respaldo condicionado a `!hoverNode`, así que solo corría
-     sobre lienzo vacío. Las flechas se dibujan a ARROW_OFF=24 px POR FUERA del
+     sobre lienzo vacío. Los puertos se dibujan a CONNECT_PORT_OFF px POR FUERA del
      borde, así que las de un nodo metido dentro de otro caen dentro de la caja
      del de fuera: hitNode devolvía el de fuera, el respaldo no llegaba a
      ejecutarse y los puntos de conexión del de dentro eran inalcanzables.
@@ -656,6 +736,8 @@ cv.addEventListener("pointerup", ev=>{
   /* Realinear puede dejar un waypoint encima de su vecino, igual que topar al
      deslizar: se poda al soltar y no durante el arrastre. */
   if(drag) for(const r of drag.realin){ const e=edgeById(r.id); if(e) podarWaypoints(e); }
+  /* «Seleccionar varios»: tocar sin arrastrar un elemento que ya estaba en la selección lo quita. */
+  if(drag && drag.snap && drag.toggleOff!==null){ selN.delete(drag.toggleOff); refreshPanel(); }
   // Sin desplazamiento real, la limpieza de rutas sigue siendo selección.
   if(drag && Object.keys(drag.offs).every(id=>{
     const n=nodeById(+id), o=drag.offs[id];
@@ -686,6 +768,9 @@ function isDoubleTap(ev){
 }
 function handleTouchTap(ev){
   const p=toWorld(ev);
+  /* En «Seleccionar varios» dos toques seguidos sobre un elemento son sumar y
+     quitar, no editar su texto; y tocar el vacío no tira la selección construida. */
+  if(touchMulti) return;
   if(isDoubleTap(ev)){ openEditorAt(p); return; }
   if(!hitNode(p.x,p.y) && !hitEdge(p.x,p.y)) clearSel();
 }
@@ -884,10 +969,12 @@ document.addEventListener("keydown", ev=>{
      lados flotantes—, así que soltar la variable no lo deshace. El pushUndo() de
      pointerdown se apiló antes de tocar nada, o sea que esto devuelve la arista
      a su ruta automática. */
+  if(ev.key==="Escape" && (touchMulti || touchLink!==null)){ cancelTouchModes(); refreshPanel(); }
   if(ev.key==="Escape"){ if(segDrag){ segDrag=null; undo(); } pendingShape=null; pendingIcon=null; pendingAnim=null; connecting=null; connectDrag=null; endDrag=null; thawEdgeLabels(); marquee=null; $("iconDrawer").style.display="none"; $("animDrawer").style.display="none"; syncRail(); }
   if(k==="v") setMode("select");
   if(k==="c"){
-    if(typeof isScenarioPlaybackActive!=="function" || !isScenarioPlaybackActive()) setMode("connect");
+    /* FLUYO-018.14b: en modo Historia no se construye (el rail no está): C no arma una herramienta invisible. */
+    if((typeof isScenarioPlaybackActive!=="function" || !isScenarioPlaybackActive()) && !document.body.classList.contains("storyMode")) setMode("connect");
   }
   /* R: devuelve la flecha seleccionada a su ruta automática. Solo hace algo si
      hay una única flecha seleccionada y tiene tramos movidos a mano, así que no

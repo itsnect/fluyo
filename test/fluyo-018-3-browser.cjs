@@ -30,6 +30,9 @@ const serve = async (dir) => {
   return { server, base: "http://127.0.0.1:" + server.address().port };
 };
 /* El árbol de HEAD tal como está commiteado (sólo lo que sirve el editor y el visor). */
+/* FLUYO-018.15: en HEAD un nodo nuevo nacía #6a9fb5; ahora nace DEFAULT_NODE_COLOR (#857F6C). Las comparaciones con HEAD deshacen
+   solo ese cambio deliberado (también dentro de JSON anidado); todo lo demás tiene que seguir siendo idéntico. */
+const UNDO15 = (s) => typeof s === "string" ? s.replace(/(\\*"color\\*":\\*")#857F6C/g, "$1#6a9fb5") : s;
 function headTree() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "fluyo-head-"));
   const files = execFileSync("git", ["-C", root, "ls-tree", "-r", "--name-only", "HEAD"], { encoding: "utf8" }).split("\n").filter((f) => /^(index\.html|js\/|css\/|s\/|assets\/|manifest\.webmanifest)/.test(f));
@@ -57,7 +60,7 @@ async function script(browser, base, label) {
     viewX = 0; viewY = 0; viewZoom = 1; P().nextId = 1;
   });
   const docs = [];
-  const snap = async (name) => docs.push({ name, json: await ed.evaluate(() => JSON.stringify(serializeProject())) });
+  const snap = async (name) => docs.push({ name, json: UNDO15(await ed.evaluate(() => JSON.stringify(serializeProject()))) });
   const client = (x, y) => ed.evaluate(({ x, y }) => { const r = cv.getBoundingClientRect(); return { x: r.left + x * viewZoom + viewX, y: r.top + y * viewZoom + viewY }; }, { x, y });
   const nodePt = (i, dx = 0, dy = 0) => ed.evaluate(({ i, dx, dy }) => { const n = P().nodes[i], r = cv.getBoundingClientRect(); return { x: r.left + (n.x + dx) * viewZoom + viewX, y: r.top + (n.y + dy) * viewZoom + viewY }; }, { i, dx, dy });
   const cornerPt = (i, c) => ed.evaluate(({ i, c }) => { const n = P().nodes[i], r = cv.getBoundingClientRect(), p = nodeCorners(n)[c]; return { x: r.left + p[0] * viewZoom + viewX, y: r.top + p[1] * viewZoom + viewY }; }, { i, c });
@@ -90,8 +93,10 @@ async function script(browser, base, label) {
   await snap("redimensionar");
   /* 6. editar con el panel: forma, color, negrita, pulso, etiqueta */
   await selectNode(0);
+  /* FLUYO-018.14b: el panel va por grupos plegables; se despliegan como haría quien los usa (en HEAD no hay grupos: no hace nada) */ await ed.evaluate(() => document.querySelectorAll("#selBody details").forEach((d) => { d.open = true; }));
   await ed.locator("#shapeSel").selectOption("diamond");
-  await ed.locator("#swatches .swatch").nth(3).click();
+  /* FLUYO-018.15: la rejilla empieza por la muestra del color por defecto; se elige «IA» por su valor, no por la posición */
+  await ed.locator("#swatches .swatch[data-v=\"#9b7fb5\"]").click();
   await ed.locator("#boldChk").check(); await ed.locator("#pulseChk").check();
   await ed.locator("#lblEdit").fill("Cliente final");
   await snap("editar nodo (panel)");
@@ -134,7 +139,7 @@ async function script(browser, base, label) {
   const orphanBehaviors = await ed.evaluate(() => P().behaviors.filter((b) => !P().nodes.some((n) => n.id === b.nodeId)).length);
   /* 11. Undo / Redo: los clics de selección también apilan undo (pushUndo en pointerdown): se deshace hasta recuperar el estado
      de «nodos extra» y se rehace hasta volver al final; el Behavior del nodo reaparece con su nodo. */
-  const now = () => ed.evaluate(() => JSON.stringify(serializeProject()));
+  const now = () => ed.evaluate(() => JSON.stringify(serializeProject())).then(UNDO15);
   const before = await now();
   const extra = docs.find((d) => d.name === "nodos extra").json;
   let undone = 0, behaviorBack = -1;

@@ -13,13 +13,14 @@ function refreshPanel(){
   $("noSel").style.display = total===0 ? "block":"none";
   $("multiSel").style.display = total>1 ? "block":"none";
   $("selBody").style.display = s ? "block":"none";
+  syncSelMeta(total, s);
   if(total>1){
     const parts=[];
     if(selN.size) parts.push(selN.size+(selN.size===1?" nodo":" nodos"));
     if(selE.size) parts.push(selE.size+(selE.size===1?" flecha":" flechas"));
     $("multiCount").textContent=parts.join(" y ")+" seleccionados";
   }
-  if(!s || !s.obj) return;
+  if(!s || !s.obj){ syncPanelGroups(); return; }
   const obj=s.obj, isNode=s.type==="node";
   $("lblEdit").value=obj.label||"";
   $("fsIn").value=obj.fs||"";
@@ -91,7 +92,19 @@ function refreshPanel(){
     [...$("lineSw").children].forEach(sw=>sw.classList.toggle("sel", (obj.lineColor||"")===sw.dataset.c));
     [...$("dotSw").children].forEach(sw=>sw.classList.toggle("sel", (obj.dotColor||"")===sw.dataset.c));
   }
+  syncPanelGroups();
   if(typeof scRenderCanvasActions === "function") scRenderCanvasActions();
+}
+/* Metadatos de la selección (FLUYO-018.13): qué es y cómo se llama para el
+   documento y para el MCP (el id). Es solo lectura y vive junto al título del
+   panel; typeof/null-check porque los arneses de vm montan un DOM mínimo. */
+const SHAPE_NAMES={rect:"Caja", cylinder:"BD", diamond:"Rombo", circle:"Círculo", hex:"Hexágono", text:"Texto", code:"Código", icon:"Icono", image:"Imagen", anim:"GIF"};
+function syncSelMeta(total, s){
+  const m=$("selMeta"); if(!m) return;
+  let txt="";
+  if(total>1) txt=total+" elementos";
+  else if(s && s.obj) txt = s.type==="node" ? (SHAPE_NAMES[s.obj.shape]||s.obj.shape)+" · id "+s.obj.id : "Conexión · "+s.obj.from+" → "+s.obj.to;
+  m.textContent=txt; m.hidden=!txt;
 }
 /* ===================== Teclado en las rejillas de swatches =====================
    Los swatches son <div> a propósito (son muestras de color, no texto), pero eso
@@ -128,8 +141,9 @@ function enableSwatchKeyboard(containerId, label){
   });
 }
 
-const DASH_PAT="repeating-linear-gradient(45deg,#5a5a5a 0 4px,#2e3134 4px 8px)";
-const CHECKER_PAT="repeating-conic-gradient(#3a3d40 0% 25%, #26292c 0% 50%) 0 0/10px 10px";
+/* Muestras especiales («automático», «sin relleno»): sus dos tonos son tokens del sistema (--sw-a/--sw-b, css/system.css). */
+const DASH_PAT="repeating-linear-gradient(45deg,var(--sw-a) 0 4px,var(--sw-b) 4px 8px)";
+const CHECKER_PAT="repeating-conic-gradient(var(--sw-a) 0% 25%, var(--sw-b) 0% 50%) 0 0/10px 10px";
 /* Rejilla de swatches para propiedades de nodo (paleta amplia + opciones especiales) */
 function buildNodeSwatches(containerId, field, extras){
   const cont=$(containerId); cont.innerHTML="";
@@ -150,6 +164,8 @@ function buildNodeSwatches(containerId, field, extras){
   };
   (extras||[]).forEach(e=>mk(e.pattern, e.label, e.value, true));
   const seen=new Set();
+  /* FLUYO-018.15: el color con el que nace un nodo encabeza su rejilla, para poder volver a él */
+  if(field==="color"){ seen.add(DEFAULT_NODE_COLOR); mk(DEFAULT_NODE_COLOR,"Piedra (por defecto)",DEFAULT_NODE_COLOR); }
   PALETTE.forEach(p=>{ if(!seen.has(p.c)){ seen.add(p.c); mk(p.c,p.n,p.c); } });
   SWATCH_COLORS.forEach(c=>{ if(!seen.has(c)){ seen.add(c); mk(c,c,c); } });
 }
@@ -229,7 +245,7 @@ function buildEdgeSwatches(containerId, field){
   const mk=(color,title)=>{
     const d=document.createElement("div");
     d.className="swatch";
-    d.style.background = color || "repeating-linear-gradient(45deg,#5a5a5a 0 4px,#2e3134 4px 8px)";
+    d.style.background = color || DASH_PAT;
     d.title=title; d.dataset.c=color||"";
     d.setAttribute("role","button");
     d.setAttribute("aria-label",title);
@@ -243,6 +259,62 @@ buildEdgeSwatches("lineSw","lineColor");
 buildEdgeSwatches("dotSw","dotColor");
 enableSwatchKeyboard("lineSw","Color de línea de la flecha");
 enableSwatchKeyboard("dotSw","Color de los puntos animados");
+/* ===================== Grupos del panel y muestras compactas (FLUYO-018.14b, B6) =====================
+   El panel deja de ser un formulario de 30 filas: las filas viven en grupos <details> (index.html). El estado
+   abierto/plegado ES el <details> —no hay variable espejo—. Por defecto, en escritorio, abiertos los grupos que se tocan
+   en cada elemento (Texto, Forma y color, Recorrido, Trazo) y plegados los raros (Código, Flujo, Capas y aparición) y lo
+   del documento (Animación del lienzo, Atajos). En la hoja móvil todos empiezan plegados y son un acordeón (uno
+   abierto a la vez): el texto, siempre a la vista arriba, y un toque lleva a cualquier grupo; la hoja cabe en pantalla.
+
+   refreshPanel decide qué FILAS se ven (como siempre); aquí solo se oculta el grupo que se queda sin filas y el botón
+   «Más colores» de la rejilla que ya cabe entera. */
+function applyGroupDefaults(){
+  const sheet=isSheetLayout();
+  document.querySelectorAll("#selBody > details.pgroup").forEach(d=>{
+    d.open = !sheet && ["grpText","grpShape","grpRoute","grpStroke"].includes(d.id);
+  });
+}
+function syncPanelGroups(){
+  document.querySelectorAll("#selBody > details.pgroup").forEach(d=>{
+    const rows=[...d.querySelectorAll(":scope > .pgBody > *")];
+    d.hidden=!rows.some(r=>r.style.display!=="none" && !r.hidden);
+  });
+  syncSwatchMore();
+}
+/* En la hoja móvil, abrir un grupo pliega los demás: lo que se edita queda arriba y a la vista. */
+document.querySelectorAll("#selBody > details.pgroup").forEach(d=>{
+  d.addEventListener("toggle", ()=>{
+    if(!d.open || !isSheetLayout()) return;
+    document.querySelectorAll("#selBody > details.pgroup").forEach(o=>{ if(o!==d) o.open=false; });
+    if(d.scrollIntoView) d.scrollIntoView({block:"nearest"});
+  });
+});
+/* «Más colores»: cada rejilla enseña dos filas; el botón la despliega entera. Si la muestra elegida queda escondida, la
+   rejilla se abre sola (el color actual nunca se pierde de vista). */
+function addSwatchMore(gridId){
+  const grid=$(gridId), tools=grid.parentNode.querySelector(".colorTools");
+  const b=document.createElement("button");
+  b.type="button"; b.className="swMore btnGhost"; b.textContent="Más colores";
+  b.setAttribute("aria-expanded","false"); b.setAttribute("aria-controls", gridId);
+  b.onclick=()=>{ const on=!grid.classList.contains("expanded"); grid.classList.toggle("expanded", on); b.setAttribute("aria-expanded", String(on)); b.textContent=on ? "Menos colores" : "Más colores"; };
+  if(tools) tools.appendChild(b); else grid.after(b);
+  grid._more=b;
+}
+/* función y no constante: refreshPanel puede llegar antes de que se evalúe esta parte del archivo */
+function swatchGrids(){ return ["textColorSw","swatches","fillSw","textBgSw","kwBgSw","kwColorSw","lineSw","dotSw"]; }
+swatchGrids().forEach(addSwatchMore);
+function syncSwatchMore(){
+  for(const id of swatchGrids()){
+    const grid=$(id), b=grid._more;
+    if(!b || !grid.offsetParent) continue;
+    const sel=grid.querySelector(".swatch.sel");
+    if(sel && !grid.classList.contains("expanded") && sel.getBoundingClientRect().bottom > grid.getBoundingClientRect().bottom+1){
+      grid.classList.add("expanded"); b.setAttribute("aria-expanded","true"); b.textContent="Menos colores";
+    }
+    b.hidden = !grid.classList.contains("expanded") && grid.scrollHeight<=grid.clientHeight+2;
+  }
+}
+
 $("lineCustom").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); editEdge(e,{lineColor:$("lineCustom").value}); refreshPanel(); scheduleAutosave(); } };
 $("dotCustom").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); editEdge(e,{dotColor:$("dotCustom").value}); refreshPanel(); scheduleAutosave(); } };
 
@@ -250,10 +322,18 @@ $("dotCustom").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); editEdge(
 (function buildFontSelects(){
   const per=$("fontSel"), glob=$("fontGlobalSel");
   const og=document.createElement("option"); og.value=""; og.textContent="(Global)"; per.appendChild(og);
-  FONTS.forEach(ft=>{
-    const a=document.createElement("option"); a.value=ft.f; a.textContent=ft.n; a.style.fontFamily=ft.f; per.appendChild(a);
-    const b=document.createElement("option"); b.value=ft.f; b.textContent=ft.n; b.style.fontFamily=ft.f; glob.appendChild(b);
-  });
+  /* FLUYO-018.14a: las voces del sistema arriba, las históricas debajo. Solo cambia
+     dónde se ven: los valores (la pila CSS que guarda el documento) son los de FONTS. */
+  const SYSTEM_FONTS=["Playfair Display","IBM Plex Mono"];
+  const groups=[["Fluyo", FONTS.filter(ft=>SYSTEM_FONTS.includes(ft.n))], ["Clásicas", FONTS.filter(ft=>!SYSTEM_FONTS.includes(ft.n))]];
+  for(const sel of [per, glob]){
+    for(const [label, list] of groups){
+      if(!list.length) continue;
+      const g=document.createElement("optgroup"); g.label=label;
+      list.forEach(ft=>{ const o=document.createElement("option"); o.value=ft.f; o.textContent=ft.n; o.style.fontFamily=ft.f; g.appendChild(o); });
+      sel.appendChild(g);
+    }
+  }
   glob.value=settings.font||DEFAULT_FONT;
 })();
 $("fontSel").onchange=()=>{ const s=singleSel(); if(s&&s.obj){ pushUndo(); editObj(s.obj,{font:$("fontSel").value||null}); scheduleAutosave(); } };
@@ -342,10 +422,54 @@ function syncTouchDelete(){
   const hay = selN.size>0 || selE.size>0;
   const tactil = typeof isTouch==="function" && isTouch();
   document.body.classList.toggle("touchSel", hay && tactil);
+  syncTouchBar();
 }
 /* deleteSel() termina en clearSel() -> refreshPanel() -> syncTouchDelete(), así
    que el botón se apaga solo al vaciarse la selección. */
 $("btnDelTouch").onclick=deleteSel;
+
+/* ===================== Barra táctil de la selección (FLUYO-018.12) =====================
+   La papelera resolvía borrar; esta barra resuelve las otras dos cosas que el
+   dedo no podía hacer: conectar sin acertar una flecha diminuta y seleccionar
+   varios sin Shift ni marco. Los modos viven en js/interaction.js (touchModes);
+   aquí solo se decide qué se enseña.
+
+   Se ve con puntero táctil y selección, o mientras un modo esté abierto (con el
+   puntero que sea: un modo abierto nunca puede quedar invisible). Nunca durante
+   el Playback ni en Present, donde no se edita. typeof porque refreshPanel()
+   puede llegar antes de que interaction.js haya definido touchModes(). */
+function syncTouchBar(){
+  const bar=$("touchBar"); if(!bar) return;
+  const tm=typeof touchModes==="function" ? touchModes() : {multi:false, link:null};
+  const frozen=(typeof isScenarioPlaybackActive==="function" && isScenarioPlaybackActive()) || presenting;
+  const total=selN.size+selE.size;
+  const touch=typeof isTouch==="function" && isTouch();
+  const linking=tm.link!==null;
+  const show=!frozen && (tm.multi || linking || (touch && total>0));
+  bar.hidden=!show;
+  if(!show) return;
+  const s=singleSel();
+  $("tbMsg").textContent = linking ? "Toca el elemento de destino"
+    : tm.multi ? (total ? total+(total===1?" seleccionado":" seleccionados") : "Toca elementos para seleccionarlos")
+    : "";
+  $("tbConnect").hidden = linking || tm.multi || !(s && s.type==="node" && s.obj);
+  $("tbMulti").hidden = linking || tm.multi;
+  $("tbAll").hidden = !tm.multi;
+  $("tbDone").hidden = !tm.multi;
+  $("tbCancel").hidden = !linking;
+}
+$("tbConnect").onclick=()=>startTouchLink();
+$("tbCancel").onclick=()=>cancelTouchLink();
+$("tbMulti").onclick=()=>setTouchMulti(true);
+$("tbDone").onclick=()=>setTouchMulti(false);
+$("tbAll").onclick=()=>selectAll();
+
+/* Con el dedo la UI necesita alguna pista más que con ratón (p. ej. el menú de
+   la pestaña activa). Se decide por el ÚLTIMO puntero usado, igual que la
+   papelera: un equipo híbrido cambia de una a otra según cómo se use. */
+document.addEventListener("pointerdown", ev=>{
+  document.body.classList.toggle("touchUI", ev.pointerType==="touch");
+}, true);
 
 /* ===================== Rail / barra superior ===================== */
 function setMode(m){ mode=m; pendingShape=null; pendingIcon=null; pendingAnim=null; connecting=null; syncRail(); }
@@ -371,9 +495,11 @@ document.querySelectorAll(".rail button[data-mode],.rail button[data-shape]").fo
     else { pendingShape=b.dataset.shape; pendingIcon=null; pendingAnim=null; mode="select"; connecting=null; syncRail(); }
   };
 });
+/* El icono lo decide la clase `toggled` (CSS); aquí solo cambia la palabra. */
+function setPlayLabel(txt){ const b=$("btnPlay"), l=b.querySelector && b.querySelector(".lbl"); if(l) l.textContent=txt; else b.textContent=txt; }
 function togglePlay(){
-  if(playing){ pausedAt=now(); playing=false; $("btnPlay").textContent="▶ Play"; $("btnPlay").classList.remove("toggled"); }
-  else { t0=performance.now()-pausedAt*1000; playing=true; $("btnPlay").textContent="⏸ Pausa"; $("btnPlay").classList.add("toggled"); }
+  if(playing){ pausedAt=now(); playing=false; setPlayLabel("Play"); $("btnPlay").classList.remove("toggled"); }
+  else { t0=performance.now()-pausedAt*1000; playing=true; setPlayLabel("Pausa"); $("btnPlay").classList.add("toggled"); }
 }
 $("btnPlay").onclick=togglePlay;
 /* Estos cinco iban asignados dos veces por un merge: la segunda asignación,
@@ -427,6 +553,8 @@ $("btnIcons").onclick=()=>{
   const show=dr.style.display!=="block";
   $("animDrawer").style.display="none";
   dr.style.display=show?"block":"none";
+  /* en móvil el cajón y la hoja del panel se tapan entre sí: abrir uno cierra la otra */
+  if(show && isSheetLayout()) closeSurface();
   syncRail();
 };
 
@@ -453,6 +581,7 @@ $("btnAnims").onclick=()=>{
   const show=dr.style.display!=="block";
   $("iconDrawer").style.display="none";
   dr.style.display=show?"block":"none";
+  if(show && isSheetLayout()) closeSurface();
   syncRail();
 };
 
@@ -466,6 +595,19 @@ function renderTabs(){
     t.className="tab"+(i===doc.cur?" active":"");
     const name=document.createElement("span"); name.textContent=pg.name;
     t.appendChild(name);
+    /* FLUYO-018.12: renombrar era solo doble clic + prompt(), y con el dedo el doble
+       toque no llega a la pestaña. La activa lleva un ▾ (visible con puntero táctil,
+       CSS) que abre el menú de la página; tocar la pestaña activa también lo abre. */
+    if(i===doc.cur){
+      /* span con rol de botón, como la ✕ de al lado: dentro de la pestaña, y sin convertirse en un segundo
+         `#pagesBar button` (ese es «＋» para quien lo busca). Teclado: Enter y Espacio. */
+      const more=document.createElement("span");
+      more.className="pgMore"; more.textContent="▾"; more.title="Opciones de la página"; more.tabIndex=0;
+      if(more.setAttribute){ more.setAttribute("role","button"); more.setAttribute("aria-haspopup","true"); more.setAttribute("aria-label","Opciones de la página "+pg.name); }
+      more.onclick=ev=>{ ev.stopPropagation(); openPageMenu(i, more); };
+      more.onkeydown=ev=>{ if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); ev.stopPropagation(); openPageMenu(i, more); } };
+      t.appendChild(more);
+    }
     if(doc.pages.length>1){
       const x=document.createElement("span"); x.className="x"; x.textContent="✕";
       x.title="Cerrar página";
@@ -474,13 +616,18 @@ function renderTabs(){
       x.onclick=ev=>{ ev.stopPropagation(); requestDeletePage(i); };
       t.appendChild(x);
     }
+    t.onpointerdown=ev=>{ t.lastPointer=ev.pointerType; };
     t.onclick=()=>{
+      if(i===doc.cur && t.lastPointer==="touch"){ openPageMenu(i, t); return; }
       if(i!==doc.cur && typeof isScenarioPlaybackActive==="function" && isScenarioPlaybackActive()){
         if(typeof scReset==="function") scReset();
       }
       doc.cur=i; clearSel(); renderTabs(); scheduleAutosave();
     };
     t.ondblclick=()=>{
+      /* Con el dedo manda el menú: dos toques seguidos (cambiar de pestaña y tocar la activa) llegan como dblclick sintético y
+         abrirían a la vez el menú y el prompt. El doble clic queda para el ratón, como siempre. */
+      if(t.lastPointer==="touch") return;
       if(typeof isScenarioPlaybackActive==="function" && isScenarioPlaybackActive()) return;
       const nn=prompt("Nombre de la página:",pg.name); if(!nn) return;
       try{ renamePage(i,nn); }
@@ -493,12 +640,74 @@ function renderTabs(){
     bar.appendChild(t);
   });
   const add=document.createElement("button");
-  add.textContent="＋"; add.title="Nueva página"; add.style.padding="4px 10px";
+  /* FLUYO-018.13: el «＋» sigue en el texto (accesible, y es como lo buscan los tests); el trazo lo pinta .pgAdd (styles.css). */
+  add.textContent="＋"; add.title="Nueva página"; add.className="pgAdd btnGhost";
   add.onclick=()=>{
     if(typeof isScenarioPlaybackActive==="function" && isScenarioPlaybackActive()){ if(typeof scReset==="function") scReset(); }
     addPage(); clearSel(); renderTabs(); scheduleAutosave();
   };
   bar.appendChild(add);
+}
+/* ===================== Menú de la página (FLUYO-018.12) =====================
+   Renombrar y eliminar sin doble clic. Reutiliza el aspecto de los menús de
+   Historias (.scPopover) y su comportamiento: interruptor sobre su botón, se
+   cierra al tocar fuera o con Escape. Renombrar es un campo en el propio menú, no
+   un prompt(): el nombre inválido se explica ahí mismo y no se pierde lo escrito.
+   Eliminar delega en requestDeletePage (la misma confirmación y el mismo Undo que
+   la ✕). Este tramo (de renderTabs al marcador de Modo presentación) lo copian
+   los arneses de vm con un DOM mínimo: aquí solo se DECLARA; nada se ejecuta al
+   cargar y nada de esto se llama desde renderTabs salvo al pulsar. */
+let pageMenuAnchor=null;
+function closePageMenu(restore){
+  const m=$("pageMenu");
+  if(m.hidden) return;
+  m.hidden=true; m.replaceChildren();
+  if(restore && pageMenuAnchor && pageMenuAnchor.isConnected) pageMenuAnchor.focus();
+  pageMenuAnchor=null;
+}
+function placePageMenu(anchor){
+  const m=$("pageMenu");
+  const r=anchor && anchor.isConnected ? anchor.getBoundingClientRect() : {left:12, top:innerHeight-60};
+  m.style.left=Math.max(8, Math.min(r.left, innerWidth-m.offsetWidth-8))+"px";
+  m.style.top=Math.max(8, r.top-m.offsetHeight-6)+"px";
+}
+function openPageMenu(i, anchor){
+  const m=$("pageMenu"), pg=doc.pages[i];
+  if(!pg) return;
+  if(!m.hidden && pageMenuAnchor===anchor){ closePageMenu(true); return; }
+  m.replaceChildren(); m.hidden=false; pageMenuAnchor=anchor;
+  const head=document.createElement("div"); head.className="scMenuHead"; head.textContent=pg.name; m.appendChild(head);
+  const playing=typeof isScenarioPlaybackActive==="function" && isScenarioPlaybackActive();
+  const item=(label, fn, cls)=>{ const b=document.createElement("button"); b.type="button"; b.textContent=label; if(cls) b.className=cls; b.onclick=fn; m.appendChild(b); return b; };
+  const ren=item("Renombrar…", ()=>showPageRename(i));
+  /* como el doble clic: con una Historia reproduciéndose no se toca la página */
+  ren.disabled=playing;
+  if(doc.pages.length>1) item("Eliminar página", ()=>{ closePageMenu(false); requestDeletePage(i); }, "scMenuDanger");
+  placePageMenu(anchor);
+  const first=m.querySelector("button:not(:disabled)"); if(first) first.focus();
+}
+function showPageRename(i){
+  const m=$("pageMenu"), pg=doc.pages[i];
+  if(!pg) return;
+  m.replaceChildren();
+  const label=document.createElement("label"); label.textContent="Nombre de la página";
+  const input=document.createElement("input");
+  input.id="pageNameIn"; input.value=pg.name; input.maxLength=PAGE_NAME_MAX; input.autocomplete="off";
+  label.appendChild(input); m.appendChild(label);
+  const err=document.createElement("p"); err.className="pmError"; err.setAttribute("role","alert"); err.hidden=true; m.appendChild(err);
+  const save=document.createElement("button"); save.type="button"; save.id="pageNameSave"; save.textContent="Guardar nombre"; m.appendChild(save);
+  const commit=()=>{
+    try{ renamePage(i, input.value); }
+    catch(e){
+      if(e && e.code==="invalid_page_name"){ err.textContent=`Escribe un nombre de 1 a ${PAGE_NAME_MAX} caracteres.`; err.hidden=false; input.focus(); return; }
+      throw e;
+    }
+    closePageMenu(false); renderTabs(); scheduleAutosave();
+  };
+  save.onclick=commit;
+  input.onkeydown=ev=>{ if(ev.key==="Enter"){ ev.preventDefault(); commit(); } };
+  placePageMenu(pageMenuAnchor);
+  input.focus(); input.select();
 }
 
 /* ===================== Modo presentación =====================
@@ -537,11 +746,13 @@ function enterPresent(){
   if(document.activeElement && document.activeElement.blur) document.activeElement.blur();
   preView={x:viewX, y:viewY, z:viewZoom};
   presenting=true;
+  cancelTouchModes();
   clearSel();
   setMode("select");
   $("iconDrawer").style.display="none";
   $("animDrawer").style.display="none";
-  document.body.classList.remove("panelOpen");
+  closeMoreMenu(false); closeCanvasMenu(false); closePageMenu(false);
+  closeSurface();
   document.body.classList.add("presenting");
   /* la pantalla completa puede denegarse (permiso, iframe sin allow). No es
      motivo para no presentar: el modo funciona igual dentro de la ventana. */
@@ -585,34 +796,303 @@ document.addEventListener("fullscreenchange", ()=>{
   if(!document.fullscreenElement && presenting) exitPresent();
 });
 
-/* ===================== Panel de propiedades en móvil ===================== */
-$("btnPanel").onclick=()=>{
-  const open=!document.body.classList.contains("panelOpen");
-  document.body.classList.toggle("panelOpen", open);
-  $("btnPanel").setAttribute("aria-expanded", String(open));
-};
+/* ===================== Modo de trabajo y superficies (FLUYO-018.12 → 018.14b) =====================
+   Dos modos de toda la interfaz (B1): EDITAR construye el diagrama; HISTORIA lo cuenta. El modo es estado de UI y vive
+   en UN sitio, `uiMode`; `body.storyMode` lo refleja para el CSS (rail fuera, superficie de Historia, conmutador de la
+   cabecera) y activeSurface() se deriva de él. No se guarda en el documento.
 
-/* ===================== Pestañas del panel derecho ===================== */
-function switchPanelTab(tab){
-  const isScenarios = tab === "scenarios";
-  $("panelProperties").style.display = isScenarios ? "none" : "block";
-  $("panelScenarios").style.display = isScenarios ? "flex" : "none";
-  $("panelScenarios").closest("aside").classList.toggle("scenariosOpen", isScenarios);
-  if(!isScenarios && typeof scCancelPlacement === "function"){ scCancelPlacement(); scHidePalette(); }
-  $("tabProperties").classList.toggle("active", !isScenarios);
-  $("tabScenarios").classList.toggle("active", isScenarios);
-  if(isScenarios){
+   El panel derecho muestra la superficie del modo: Propiedades (Editar) o Historias (Historia). En escritorio es una
+   columna fija; a ≤700 px es una hoja inferior que se abre y se cierra (`body.panelOpen`), con su propio cierre, y la
+   de Historias tiene dos alturas (compacta / ampliada, `body.storyExpanded`) sin gestos nuevos.
+
+   openSurface/closeSurface/toggleSurface siguen siendo la única puerta (decisión 117): quien quiere Historias llama a
+   openSurface("stories") y no sabe si eso es una columna, una hoja o un modo. */
+const mqCompact=window.matchMedia ? matchMedia("(max-width: 1100px)") : null;
+const mqSheet=window.matchMedia ? matchMedia("(max-width: 700px)") : null;
+let uiMode="edit";
+function isSheetLayout(){ return !!(mqSheet && mqSheet.matches); }
+function activeSurface(){ return uiMode==="story" ? "stories" : "properties"; }
+/* La hoja de Historias en su altura compacta: ahí la biblioteca de eventos va como paleta flotante (editor-scenarios.js). */
+function storyCompactSheet(){ return uiMode==="story" && isSheetLayout() && !document.body.classList.contains("storyExpanded"); }
+function syncSurfaceButtons(){
+  const open=document.body.classList.contains("panelOpen"), s=activeSurface();
+  $("btnPanel").setAttribute("aria-expanded", String(open && s==="properties"));
+  $("btnStories").setAttribute("aria-expanded", String(uiMode==="story" && (open || !isSheetLayout())));
+  for(const [id, on] of [["tabProperties", uiMode==="edit"], ["tabScenarios", uiMode==="story"]]){
+    const b=$(id); b.classList.toggle("active", on); b.setAttribute("aria-pressed", String(on));
+  }
+}
+function setUiMode(mode){
+  const story=mode==="story";
+  const playing=typeof isScenarioPlaybackActive==="function" && isScenarioPlaybackActive();
+  /* B3: salir del modo nunca se bloquea; si se estaba reproduciendo, se detiene antes (sin restos, decisión 64). */
+  if(!story && playing && typeof scReset==="function") scReset();
+  if(story && uiMode!=="story"){
+    /* se narra, no se construye: fuera herramientas armadas, cajones y modos táctiles */
+    if(typeof cancelTouchModes==="function") cancelTouchModes();
+    setMode("select");
+    $("iconDrawer").style.display="none"; $("animDrawer").style.display="none"; syncRail();
+  }
+  uiMode=story ? "story" : "edit";
+  document.body.classList.toggle("storyMode", story);
+  if(!story) setStoryExpanded(false);
+  $("panelProperties").style.display = story ? "none" : "block";
+  $("panelScenarios").style.display = story ? "flex" : "none";
+  $("panelScenarios").closest("aside").classList.toggle("scenariosOpen", story);
+  if(!story && typeof scCancelPlacement === "function"){ scCancelPlacement(); scHidePalette(); }
+  if(story){
     if(typeof ensureScenariosUI === "function") ensureScenariosUI();
     if(typeof scRefreshIfVisible === "function") scRefreshIfVisible();
+    if(typeof scSyncCompact === "function") scSyncCompact();
   } else {
     refreshPanel();
   }
   if(typeof scRenderCanvasActions === "function") scRenderCanvasActions();
+  syncSurfaceButtons();
 }
-$("tabProperties").onclick = () => switchPanelTab("properties");
-$("tabScenarios").onclick = () => switchPanelTab("scenarios");
+/* Compatibilidad: scRun y quien pulsaba las antiguas pestañas siguen llamando a switchPanelTab. */
+function switchPanelTab(tab){ setUiMode(tab==="scenarios" ? "story" : "edit"); }
+function setStoryExpanded(on){
+  const was=document.body.classList.contains("storyExpanded");
+  document.body.classList.toggle("storyExpanded", !!on);
+  $("btnStoryExpand").setAttribute("aria-expanded", String(!!on));
+  $("btnStoryExpand").setAttribute("aria-label", on ? "Reducir la hoja de Historias" : "Ampliar la hoja de Historias");
+  if(was!==!!on && typeof scSyncCompact==="function") scSyncCompact();
+}
+function openSurface(name){
+  const playing=typeof isScenarioPlaybackActive==="function" && isScenarioPlaybackActive();
+  if(name==="properties" && playing) name="stories";
+  const mode=name==="stories" ? "story" : "edit";
+  if(uiMode!==mode) setUiMode(mode);
+  document.body.classList.add("panelOpen");
+  syncSurfaceButtons();
+  revealAboveSheet(name==="stories" ? "page" : "selection");
+}
+/* La hoja tapa la mitad inferior del lienzo. Si lo que importa queda debajo —la
+   selección al abrir Propiedades, el diagrama al abrir Historias o al reproducir—
+   la vista se desplaza para que se vea en la zona libre de encima. Solo si hace
+   falta: si ya se ve, no se toca la vista del usuario. Con la selección solo se
+   desplaza; con la página entera también reduce el zoom si no cabe. La altura de
+   la hoja se lee de su caja (offsetHeight no depende de la transición). */
+function revealAboveSheet(what){
+  if(!isSheetLayout() || !document.body.classList.contains("panelOpen")) return;
+  const cr=cv.getBoundingClientRect();
+  const visTop=cr.top, visBot=Math.min(cr.bottom, $("bottomBar").getBoundingClientRect().top - document.querySelector("aside").offsetHeight);
+  const availH=visBot-visTop;
+  if(availH<80) return;
+  let box=null;
+  if(what==="selection"){
+    const ns=[...selN].map(nodeById).filter(Boolean);
+    if(!ns.length) return;
+    const x0=Math.min(...ns.map(n=>n.x-n.w/2)), y0=Math.min(...ns.map(n=>n.y-n.h/2));
+    box={x:x0, y:y0, w:Math.max(...ns.map(n=>n.x+n.w/2))-x0, h:Math.max(...ns.map(n=>n.y+n.h/2))-y0};
+  } else if(P().nodes.length) box=getBounds();
+  if(!box) return;
+  const top=visTop+viewY+box.y*viewZoom, bot=top+box.h*viewZoom;
+  if(top>=visTop && bot<=visBot) return;
+  if(what==="page"){
+    const z=Math.min(viewZoom, cr.width/box.w, availH/box.h);
+    viewZoom=Math.max(0.05, z);
+    viewX=(cr.width-box.w*viewZoom)/2 - box.x*viewZoom;
+  }
+  viewY=(availH-box.h*viewZoom)/2 - box.y*viewZoom;
+}
+function closeSurface(){
+  document.body.classList.remove("panelOpen");
+  syncSurfaceButtons();
+}
+/* Salir del modo Historia: la salida inequívoca (B1/B2). En la hoja móvil, además, vuelve al lienzo. */
+function exitStoryMode(){
+  setUiMode("edit");
+  if(isSheetLayout()) closeSurface();
+}
+function toggleSurface(name){
+  const playing=typeof isScenarioPlaybackActive==="function" && isScenarioPlaybackActive();
+  const open=document.body.classList.contains("panelOpen");
+  const mine=activeSurface()===name || (name==="properties" && playing);
+  if(isSheetLayout() && open && mine){ if(name==="stories") exitStoryMode(); else closeSurface(); }
+  else openSurface(name);
+}
+$("btnPanel").onclick=()=>toggleSurface("properties");
+$("btnStories").onclick=()=>toggleSurface("stories");
+$("btnPanelClose").onclick=()=>closeSurface();
+$("btnStoryExit").onclick=()=>exitStoryMode();
+$("btnStoryExpand").onclick=()=>{ setStoryExpanded(!document.body.classList.contains("storyExpanded")); revealAboveSheet("page"); };
+$("tabProperties").onclick=()=>setUiMode("edit");
+$("tabScenarios").onclick=()=>setUiMode("story");
+
+/* Tocar fuera (B8). Con la hoja de Propiedades abierta, un toque sin arrastre en el VACÍO del lienzo (el mismo que
+   deselecciona) cierra la hoja: no hace falta buscar la ✕. Tocar otro elemento cambia la selección y la hoja se queda.
+   En Historias el lienzo sirve para colocar eventos, así que tocarlo no sale del modo: solo devuelve la hoja ampliada a
+   su altura compacta. Sin velo: el lienzo sigue manejable con la hoja abierta. */
+(function sheetTapOutside(){
+  let down=null;
+  cv.addEventListener("pointerdown", ev=>{ down={x:ev.clientX, y:ev.clientY, id:ev.pointerId}; }, true);
+  cv.addEventListener("pointerup", ev=>{
+    const d=down; down=null;
+    if(!d || d.id!==ev.pointerId || Math.hypot(ev.clientX-d.x, ev.clientY-d.y)>8) return;
+    if(!isSheetLayout() || !document.body.classList.contains("panelOpen")) return;
+    setTimeout(()=>{
+      const tm=typeof touchModes==="function" ? touchModes() : {multi:false, link:null};
+      if(uiMode==="edit" && selN.size+selE.size===0 && !tm.multi && tm.link===null) closeSurface();
+      else if(uiMode==="story" && document.body.classList.contains("storyExpanded")) setStoryExpanded(false);
+    }, 0);
+  }, true);
+})();
+
+/* ===================== Menús de la cabecera: «Lienzo» y «Más» (FLUYO-018.12 D8, 018.14b) =====================
+   «Lienzo» = ajustes del DOCUMENTO (tema, fondo, tipografía global, cuadrícula, ajustar). «Más» = Archivo, la
+   INTERFAZ (preferencia del navegador) y los enlaces del proyecto. Se cierran al tocar fuera, con Escape, con su botón o
+   al usar una acción; los selectores y casillas no los cierran, que se suelen tocar varios seguidos. */
+function placeMenu(menu, btn){
+  const hb=document.querySelector("header").getBoundingClientRect(), br=btn.getBoundingClientRect();
+  menu.style.top=(hb.bottom+6)+"px";
+  if(btn.id==="btnCanvas"){
+    const w=menu.offsetWidth || 296;
+    menu.style.left=Math.max(8, Math.min(br.right-w, innerWidth-w-8))+"px"; menu.style.right="auto";
+  }
+}
+function openMoreMenu(){
+  closeCanvasMenu(false);
+  const m=$("moreMenu");
+  m.hidden=false;
+  placeMenu(m, $("btnMore"));
+  $("btnMore").setAttribute("aria-expanded","true");
+  const first=m.querySelector("button,select,input,a"); if(first) first.focus();
+}
+function closeMoreMenu(restore){
+  const m=$("moreMenu");
+  if(m.hidden) return;
+  m.hidden=true;
+  $("btnMore").setAttribute("aria-expanded","false");
+  if(restore) $("btnMore").focus();
+}
+function openCanvasMenu(){
+  closeMoreMenu(false);
+  const m=$("canvasMenu");
+  m.hidden=false;
+  placeMenu(m, $("btnCanvas"));
+  $("btnCanvas").setAttribute("aria-expanded","true");
+  const first=m.querySelector("select,input,button"); if(first) first.focus();
+}
+function closeCanvasMenu(restore){
+  const m=$("canvasMenu");
+  if(m.hidden) return;
+  m.hidden=true;
+  $("btnCanvas").setAttribute("aria-expanded","false");
+  if(restore) $("btnCanvas").focus();
+}
+$("btnMore").onclick=()=>{ if($("moreMenu").hidden) openMoreMenu(); else closeMoreMenu(true); };
+$("btnCanvas").onclick=()=>{ if($("canvasMenu").hidden) openCanvasMenu(); else closeCanvasMenu(true); };
+$("moreMenu").addEventListener("click", ev=>{
+  const b=ev.target.closest("button,a");
+  if(b && b.id!=="btnBgClear") closeMoreMenu(false);
+});
+document.addEventListener("pointerdown", ev=>{
+  const m=$("moreMenu");
+  if(!m.hidden && !m.contains(ev.target) && !$("btnMore").contains(ev.target)) closeMoreMenu(false);
+  const cm=$("canvasMenu");
+  if(!cm.hidden && !cm.contains(ev.target) && !$("btnCanvas").contains(ev.target)) closeCanvasMenu(false);
+  const pm=$("pageMenu");
+  if(!pm.hidden && !pm.contains(ev.target) && !(pageMenuAnchor && pageMenuAnchor.contains(ev.target))) closePageMenu(false);
+}, true);
+document.addEventListener("keydown", ev=>{
+  if(ev.key!=="Escape") return;
+  if(!$("pageMenu").hidden){ ev.stopPropagation(); closePageMenu(true); return; }
+  if(!$("canvasMenu").hidden){ ev.stopPropagation(); closeCanvasMenu(true); return; }
+  if(!$("moreMenu").hidden){ ev.stopPropagation(); closeMoreMenu(true); }
+}, true);
+
+/* ===================== Tema de la INTERFAZ (FLUYO-018.14b, B4) =====================
+   Preferencia de este navegador, no del documento: se guarda en localStorage["fluyo.ui.theme"] y NUNCA entra en
+   serializeProject, el autoguardado ni los enlaces. No lee ni escribe doc.theme (el tema del lienzo, en «Lienzo»), ni al
+   revés. El <head> ya la aplicó antes del primer pintado; aquí se sincroniza el interruptor y se guarda el cambio. Un
+   localStorage inaccesible (modo privado estricto) deja la interfaz clara y el editor funcionando. */
+const UI_THEME_KEY="fluyo.ui.theme";
+function readUiTheme(){ try{ return localStorage.getItem(UI_THEME_KEY)==="dark" ? "dark" : "light"; }catch(e){ return "light"; } }
+function applyUiTheme(theme){
+  const dark=theme==="dark";
+  if(dark) document.documentElement.setAttribute("data-ui-theme","dark"); else document.documentElement.removeAttribute("data-ui-theme");
+  const meta=document.querySelector('meta[name="theme-color"]'); if(meta) meta.setAttribute("content", dark ? "#1A1913" : "#F2EDE3");
+  $("chkUiDark").checked=dark;
+}
+function setUiTheme(theme){
+  applyUiTheme(theme);
+  try{ if(theme==="dark") localStorage.setItem(UI_THEME_KEY,"dark"); else localStorage.removeItem(UI_THEME_KEY); }catch(e){}
+}
+applyUiTheme(readUiTheme());
+$("chkUiDark").onchange=()=>setUiTheme($("chkUiDark").checked ? "dark" : "light");
+
+/* ===================== Cabecera adaptable (FLUYO-018.12 → 018.14b) =====================
+   Reubicar, no rediseñar. Los mismos elementos (mismos ids, mismos handlers) cambian de sitio según la anchura:
+     · >700 px: cabecera de tres zonas; «Lienzo» es un popover y Archivo vive en «Más».
+     · ≤700 px: Exportar va a «Más» (dentro de Archivo, antes de Limpiar), la sección Lienzo también, y Presentar baja a
+       la barra inferior junto a Historias. Cabecera: Deshacer/Rehacer · Compartir · ⚙ · Más.
+   Mover un nodo del DOM conserva sus handlers, así que nadie más se entera. */
+function placeChrome(){
+  const mobile=isSheetLayout();
+  const header=document.querySelector("header"), more=$("moreTools"), tools=$("hdrTools");
+  const exp=$("btnExport"), pres=$("btnPresent"), canvasTools=$("canvasTools");
+  if(mobile){
+    if(exp.parentNode!==tools) tools.insertBefore(exp, $("btnClear"));
+    if(canvasTools.parentNode!==more) more.appendChild(canvasTools);
+    if(pres.parentNode!==$("modeBar")) $("modeBar").appendChild(pres);
+  } else {
+    if(exp.parentNode!==header) header.insertBefore(exp, $("btnShare"));
+    if(canvasTools.parentNode!==$("canvasMenu")) $("canvasMenu").appendChild(canvasTools);
+    if(pres.parentNode!==header) header.insertBefore(pres, $("btnPanel"));
+  }
+  closeMoreMenu(false); closeCanvasMenu(false);
+  if(!mobile) document.body.classList.remove("panelOpen");
+  else if(uiMode==="story") document.body.classList.add("panelOpen");
+  applyGroupDefaults();
+  if(typeof scSyncCompact==="function") scSyncCompact();
+  syncSurfaceButtons();
+}
+for(const mq of [mqCompact, mqSheet]) if(mq && mq.addEventListener) mq.addEventListener("change", placeChrome);
+
+/* ===================== Deshacer / Rehacer visibles (FLUYO-018.12) =====================
+   Hasta ahora solo existían como atajo: con el dedo, cualquier error era
+   definitivo. Los botones llaman a lo mismo que Ctrl+Z / Ctrl+Y. Se apagan con la
+   pila vacía y mientras el documento está congelado (Playback, Present). El
+   estado se sincroniza desde el bucle del editor (editor-runtime.js), que es el
+   único sitio por el que pasan TODAS las formas de llenar o vaciar las pilas
+   (gestos, panel, Historias, abrir un documento…); solo escribe si cambia. */
+function syncHistoryButtons(){
+  const frozen=presenting || (typeof isScenarioPlaybackActive==="function" && isScenarioPlaybackActive());
+  const u=!frozen && undoStack.length>0, r=!frozen && redoStack.length>0;
+  const bu=$("btnUndo"), br=$("btnRedo");
+  if(bu.disabled===u) bu.disabled=!u;
+  if(br.disabled===r) br.disabled=!r;
+}
+$("btnUndo").onclick=()=>{ commitEditBox(); undo(); syncHistoryButtons(); };
+$("btnRedo").onclick=()=>{ commitEditBox(); redo(); syncHistoryButtons(); };
+
+/* ===================== Vista del lienzo (FLUYO-018.13) =====================
+   Zoom con botones, alrededor del centro del lienzo y con los mismos pasos y
+   topes que Ctrl+rueda (interaction.js). «100%» vuelve a escala real y el
+   botón de encajar usa fitView, como al abrir un documento. Solo la vista: ni
+   Undo ni autoguardado. La lectura del zoom se sincroniza desde el bucle del
+   editor, igual que Deshacer/Rehacer, y solo escribe si cambia. */
+function zoomTo(z){
+  const r=cv.getBoundingClientRect(), sx=r.width/2, sy=r.height/2;
+  const nz=clamp(z, 0.1, 5), wx=(sx-viewX)/viewZoom, wy=(sy-viewY)/viewZoom;
+  viewZoom=nz; viewX=sx-wx*nz; viewY=sy-wy*nz;
+  commitEditBox();
+}
+function zoomBy(f){ zoomTo(viewZoom*f); }
+function syncZoomReadout(){
+  const el=$("zoomPct"); if(!el) return;
+  const t=Math.round(viewZoom*100)+"%";
+  if(el.textContent!==t) el.textContent=t;
+}
+$("zoomOut").onclick=()=>zoomBy(0.9);
+$("zoomIn").onclick=()=>zoomBy(1.1);
+$("zoomPct").onclick=()=>zoomTo(1);
+$("zoomFit").onclick=()=>{ commitEditBox(); fitView(); };
 
 renderTabs();
+placeChrome();
 
 /* Ofrece restaurar la sesión guardada, si la hay. Se llama desde el arranque y
    también más tarde, desde quien traía un documento por la URL y no consiguió

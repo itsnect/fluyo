@@ -185,7 +185,7 @@ const VACIO = `(() => { ${RESET}
     assert.equal(await ed.evaluate(() => scPlayback.trace.events.length), await ed.evaluate(() => FluyoScenarios.runScenario({ nodes: P().nodes, edges: P().edges }, P().behaviors, P().scenarios[1]).trace.events.length));
     await ed.waitForFunction(() => scStatus === "completed", null, { timeout: 15000 });
     await ed.locator("#scReset").click();
-    assert.equal(await noRemnants(), true, "Volver a editar limpia");
+    assert.equal(await noRemnants(), true, "«Terminar» limpia (FLUYO-018.14b, B2)");
     ok("Run reproduce sólo la activa; cambiar durante Playback detiene y limpia; Reset");
 
     /* ───────── 6. Adversarial de Playback: duplicar, eliminar, nueva, abrir Share, página ───────── */
@@ -247,7 +247,8 @@ const VACIO = `(() => { ${RESET}
     assert.equal(await status(), "running");
     await ed.waitForFunction(() => scStatus === "completed", null, { timeout: 15000 });
     await ed.locator("#btnShare").click();
-    assert.match(await ed.locator("#shareMessage").innerText(), /Volver a editar/);
+    /* FLUYO-018.14b (B2): el Playback terminado se cierra con «Terminar»; «Volver a editar» es la salida del modo Historia */
+    assert.match(await ed.locator("#shareMessage").innerText(), /Pulsa «Terminar» antes de compartir/);
     await ed.locator("#shareClose").click();
     await ed.locator("#scReset").click();
     assert.equal(await ed.evaluate(() => JSON.stringify(serializeProject())), shareDoc, "ni Playback ni abrir Share escriben en el documento");
@@ -486,9 +487,10 @@ const VACIO = `(() => { ${RESET}
     for (const [w, h] of [[1366, 768], [768, 1024], [390, 844]]) {
       await ed.setViewportSize({ width: w, height: h });
       await ed.evaluate(() => { scReset(); renderTabs(); });
-      /* ≤700 px el panel es un cajón lateral que abre el botón ⚙ */
-      if (w <= 700 && !(await ed.evaluate(() => document.body.classList.contains("panelOpen")))) await ed.locator("#btnPanel").click();
-      await ed.locator("#tabScenarios").click();
+      /* FLUYO-018.14b: Historias es un modo; ≤700 px se entra por «Historias» de la barra inferior (hoja), más ancho por el conmutador de la cabecera */
+      await ed.waitForTimeout(250); /* que el cambio de media query (placeChrome) se aplique antes de decidir */
+      if (w <= 700) { if (!(await ed.evaluate(() => document.body.classList.contains("storyMode") && document.body.classList.contains("panelOpen")))) await ed.locator("#btnStories").click(); }
+      else await ed.locator("#tabScenarios").click();
       await ed.waitForTimeout(350);
       const m = await ed.evaluate(() => {
         const box = (id) => { const r = document.getElementById(id).getBoundingClientRect(); return { l: r.left, r: r.right, t: r.top, b: r.bottom, w: r.width, h: r.height }; };

@@ -54,16 +54,16 @@ cd fluyo
 python -m http.server 8000</code></pre>
 <p>Y abre <code>http://localhost:8000</code>. Cualquier servidor de archivos estáticos sirve.</p>
 <div class="note">
-  <p>El primer nodo: elige una forma en la barra izquierda y haz clic en el lienzo. Para conectar, pasa el ratón sobre un nodo y arrastra una de las flechas azules que aparecen en sus lados.</p>
+  <p>El primer nodo: elige una forma en la barra izquierda y haz clic en el lienzo. Para conectar, pasa el ratón sobre un nodo y arrastra el punto que aparece en el lado más cercano (con el dedo: selecciona el nodo y pulsa «Conectar»).</p>
 </div>
 
 <h2>Referencia de features</h2>
 
 <h3>Lienzo y navegación</h3>
 <p>El lienzo es infinito. Se mueve con la rueda del ratón, con <kbd>clic derecho</kbd>, <kbd>clic central</kbd> o <kbd>Alt</kbd>+arrastrar, y se hace zoom con <kbd>Ctrl</kbd>+rueda.</p>
-<p>En pantalla táctil: <strong>un dedo sobre el vacío</strong> desplaza el plano, <strong>un dedo sobre un nodo</strong> lo arrastra y <strong>dos dedos</strong> hacen zoom. Doble toque edita el texto. El marco de selección múltiple es lo único que se queda fuera del táctil: necesita el ratón.</p>
-<p>En móvil el panel de propiedades es un cajón lateral que abre y cierra el botón <strong>⚙</strong> de la cabecera.</p>
-<p>Un documento puede tener <strong>varias páginas</strong>, con pestañas en la barra inferior. Doble clic en una pestaña la renombra. Cada página se exporta por separado.</p>
+<p>En pantalla táctil: <strong>un dedo sobre el vacío</strong> desplaza el plano, <strong>un dedo sobre un nodo</strong> lo arrastra y <strong>dos dedos</strong> hacen zoom. Doble toque edita el texto. Con algo seleccionado aparece una barra con <strong>Conectar</strong> (toca después el elemento de destino: la conexión sale del que tenías seleccionado) y <strong>Seleccionar varios</strong> (cada toque suma o quita; <strong>Todo</strong> y <strong>Listo</strong>), además de la papelera para borrar.</p>
+<p>En móvil, las propiedades y las Historias se abren en una hoja sobre la parte baja del lienzo: el botón de ajustes de la cabecera abre las propiedades, <strong>Historias</strong> (en la barra inferior, junto a Presentar) abre las Historias, y la propia hoja tiene un botón para cerrarla. <strong>Deshacer</strong> y <strong>Rehacer</strong> están siempre en la cabecera; los ajustes del lienzo y las acciones de archivo, en el menú <strong>⋯</strong>.</p>
+<p>Un documento puede tener <strong>varias páginas</strong>, con pestañas en la barra inferior. Doble clic en una pestaña la renombra; con el dedo, toca la pestaña activa (o su ▾) para renombrarla o eliminarla. <strong>Ejemplo</strong> abre un diagrama de muestra en una página nueva, sin tocar las tuyas. Cada página se exporta por separado.</p>
 
 <h3>Movimiento libre y rejilla</h3>
 <p>Por defecto los nodos se mueven libremente, píxel a píxel. Si prefieres alineación automática, activa <strong>Ajustar a rejilla</strong> en la barra superior. La cuadrícula visible se enciende y apaga aparte, con <strong>Cuadrícula</strong>.</p>
@@ -83,7 +83,7 @@ python -m http.server 8000</code></pre>
 <p>El orden de dibujado se controla con <strong>Al frente</strong>, <strong>Al fondo</strong>, <strong>Subir</strong> y <strong>Bajar</strong>. No hay que confundirlo con <strong>Orden de aparición</strong>, que es un número distinto: controla la secuencia de la animación de entrada, no qué tapa a qué.</p>
 
 <h3>Conexiones</h3>
-<p>Pasa el ratón sobre un nodo y arrastra una de las flechas azules de sus lados. La flecha queda anclada a ese lado, así que se mantiene coherente cuando muevas los nodos. Se puede elegir ruta recta u ortogonal, fijar por qué lado sale y entra, y poner o quitar punta en cada extremo.</p>
+<p>Pasa el ratón sobre un nodo y arrastra el punto que aparece en el lado más cercano; con el dedo, selecciona el nodo, pulsa «Conectar» y toca el destino. La flecha queda anclada a ese lado, así que se mantiene coherente cuando muevas los nodos. Se puede elegir ruta recta u ortogonal, fijar por qué lado sale y entra, y poner o quitar punta en cada extremo.</p>
 <p>Con una flecha seleccionada aparecen <strong>puntos huecos</strong>: arrástralos para doblarla; doble clic en un codo lo elimina.</p>
 
 <h3>Animación y GIF</h3>
@@ -160,7 +160,7 @@ python -m http.server 8000</code></pre>
   <li><code>x</code> e <code>y</code> son el <strong>centro</strong> del nodo, no su esquina.</li>
   <li><code>shape</code> puede ser <code>rect</code>, <code>cylinder</code>, <code>diamond</code>, <code>circle</code>, <code>hex</code>, <code>text</code>, <code>icon</code>, <code>image</code>, <code>anim</code> o <code>code</code>. <code>icon</code>, <code>image</code> y <code>anim</code> usan además <code>icon</code>, <code>img</code> o <code>anim</code> como clave.</li>
   <li>En <code>shape:"code"</code> el <code>label</code> es el código, con <code>
-</code> entre líneas. Cuatro campos propios: <code>lang</code> (<code>"sql"</code> o <code>"none"</code>), <code>keywords</code> (lista propia que sustituye al preset), <code>kwBg</code> y <code>kwColor</code> (los dos colores del resaltado). Reutiliza los campos de siempre para el resto: <code>fill</code> pinta el panel, <code>textBg</code> el fondo del bloque, <code>textColor</code> el código y <code>font</code> la tipografía, que por defecto es <code>Mono</code>.</li>
+</code> entre líneas. Cuatro campos propios: <code>lang</code> (<code>"sql"</code> o <code>"none"</code>), <code>keywords</code> (lista propia que sustituye al preset), <code>kwBg</code> y <code>kwColor</code> (los dos colores del resaltado; sin <code>kwBg</code>, la palabra clave se distingue por color y peso, sin caja). Reutiliza los campos de siempre para el resto: <code>fill</code> pinta el panel, <code>textBg</code> el fondo del bloque, <code>textColor</code> el código y <code>font</code> la tipografía, que por defecto es <code>IBM Plex Mono</code>.</li>
   <li>Al abrir un archivo antiguo, los campos que falten se rellenan con valores por defecto: no hace falta escribir todas las claves a mano.</li>
 </ul>
 <p>Los <a href="../ejemplos/">diagramas de ejemplo</a> son archivos <code>.fluyo.json</code> reales, así que sirven de referencia viva del formato.</p>

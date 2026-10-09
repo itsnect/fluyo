@@ -531,11 +531,12 @@ function scRun(opts) {
   }
   scPlayback = started.playback;
   scStatus = "running";
+  /* FLUYO-018.14b: reproducir es del modo Historia (B1); la salida «Editar»/«Volver a editar» nunca se bloquea (B3). */
   if (!inPresent && typeof switchPanelTab === "function") switchPanelTab("scenarios");
-  const tabProp = $("tabProperties");
-  if (tabProp) tabProp.disabled = true;
   scRenderButtons();
   scRenderPanel();
+  /* FLUYO-018.12: en móvil la hoja se compacta al reproducir; si el diagrama quedaba debajo, se trae a la vista. */
+  if (!inPresent && typeof revealAboveSheet === "function") revealAboveSheet("page");
   scScheduleTick();
 }
 
@@ -599,6 +600,22 @@ function scButton(text, fn, cls) {
   el.type = "button";
   el.onclick = fn;
   return el;
+}
+/* Marca de estado en <body> para el CSS de la hoja móvil (FLUYO-018.12). Tolerante a los DOM falsos de los tests. */
+/* FLUYO-018.14b: el glifo de un control (▶ ■ ↻ ▾) sigue en su texto —lo leen los tests y el lector de pantalla lo
+   ignora (aria-hidden)— pero se pinta con el trazo del sistema (.glyph, styles.css). Tolerante a los DOM falsos de vm. */
+function scGlyphText(el, glyph, cls, label, glyphFirst) {
+  el.textContent = glyphFirst ? glyph + " " + label : label + " " + glyph;
+  if (typeof document.createTextNode !== "function" || typeof el.replaceChildren !== "function") return;
+  const g = scEl("span", "glyph " + cls, glyph);
+  if (g.setAttribute) g.setAttribute("aria-hidden", "true");
+  const t = document.createTextNode(glyphFirst ? " " + label : label + " ");
+  if (glyphFirst) el.replaceChildren(g, t);
+  else el.replaceChildren(t, g);
+}
+function scBodyFlag(name, on) {
+  const b = document.body;
+  if (b && b.classList) b.classList.toggle(name, !!on);
 }
 function scNotice(message) {
   const el = $("scNotice");
@@ -688,7 +705,7 @@ function scRenderPanel() {
 function scRenderHeader() {
   const s = scActiveScenario(),
     title = $("scScenarioTitle");
-  if (title) title.textContent = (s ? s.name : "Sin historias") + " ▾";
+  if (title) scGlyphText(title, "▾", "g-chev", s ? s.name : "Sin historias", false);
   const u = $("scUnsupported");
   if (u) u.hidden = !s || s.engineVersion === FluyoScenarios.ENGINE_VERSION;
 }
@@ -704,21 +721,27 @@ function scRenderButtons() {
     run = $("scRun"),
     reset = $("scReset");
   if (run) {
-    run.textContent = scStatus === "completed" ? "↻ Repetir" : "▶ Reproducir";
+    if (scStatus === "completed") scGlyphText(run, "↻", "g-replay", "Repetir", true);
+    else scGlyphText(run, "▶", "g-play", "Reproducir", true);
     run.hidden = scStatus === "running";
     run.disabled = !s || !s.steps.length || s.engineVersion !== FluyoScenarios.ENGINE_VERSION;
     run.title = !run.disabled ? "" : !s ? "Crea una historia para poder reproducirla." : !s.steps.length ? "Añade un evento a la historia para poder reproducirla." : "Esta historia necesita una versión compatible de Fluyo.";
   }
   if (reset) {
     reset.hidden = scStatus === "idle";
-    reset.textContent = scStatus === "running" ? "■ Detener" : "Volver a editar";
+    /* B2: «Volver a editar» es la salida del modo; terminar una reproducción acabada es «Terminar». */
+    if (scStatus === "running") scGlyphText(reset, "■", "g-stop", "Detener", true);
+    else reset.textContent = "Terminar";
   }
   const panel = $("panelScenarios");
   if (panel) panel.classList.toggle("scPlaying", isScenarioPlaybackActive());
+  /* FLUYO-018.12: en móvil la hoja se compacta mientras se reproduce, para que se vea la Historia en el lienzo. */
+  scBodyFlag("scPlaybackOn", isScenarioPlaybackActive());
   if ($("scEventNew")) $("scEventNew").disabled = isScenarioPlaybackActive();
   if ($("scPaletteToggle")) $("scPaletteToggle").disabled = isScenarioPlaybackActive();
 }
 function scRenderStatus() {
+  scRenderNow();
   const el = $("scStatus");
   if (!el) return;
   el.textContent =
@@ -727,6 +750,30 @@ function scRenderStatus() {
       : scStatus === "running"
         ? "Reproduciendo · " + scFormatTime(scPlayback?.cursorVirtual || 0)
         : "Reproducción terminada";
+}
+/* FLUYO-018.14b (B9): qué está pasando ahora, con la misma lectura que Present (FluyoStory.describe). Solo escribe si
+   cambia; se llama desde scTick a cada fotograma. */
+let scNowLast = "";
+function scRenderNow() {
+  const box = $("scNow");
+  if (!box) return;
+  const sc = scActiveScenario();
+  const on = scStatus !== "idle" && !!scPlayback && !!sc;
+  let label = "", caption = "", progress = "";
+  if (on) {
+    const d = FluyoStory.describe(scStatus === "running" ? "playing" : "finished", sc, scPlayback, (id) => scNodeFallback(id), (id) => edgeById(id));
+    label = scStatus === "running" ? "Reproduciendo" : "Terminada";
+    caption = scStatus === "running" ? (d.caption ? d.title + " · " + d.caption : d.title) : d.summary ? d.caption + " · " + d.summary : d.caption;
+    progress = d.moments.length > 1 ? Math.max(0, d.idx + 1) + " / " + d.moments.length : "";
+  }
+  const sig = [on, label, caption, progress].join("|");
+  if (sig === scNowLast) return;
+  scNowLast = sig;
+  box.hidden = !on;
+  if (box.classList) box.classList.toggle("done", scStatus === "completed");
+  if ($("scNowLabel")) $("scNowLabel").textContent = label;
+  if ($("scNowCaption")) $("scNowCaption").textContent = caption;
+  if ($("scNowProgress")) $("scNowProgress").textContent = progress;
 }
 function scScenarioMenu(anchor) {
   const none = !scActiveScenario();
@@ -982,8 +1029,11 @@ function scRenderStoryboard() {
     if (g.steps.length > 1) section.appendChild(scEl("div", "scTogether", "Al mismo tiempo"));
     for (const [index, step] of g.steps.entries()) {
       const row = scStoryRow(step);
-      if (g.steps.length > 1 && !isScenarioPlaybackActive())
-        row.querySelector(".scStatusMark").textContent = index === g.steps.length - 1 ? "└" : "├";
+      if (g.steps.length > 1 && !isScenarioPlaybackActive()) {
+        const m = row.querySelector(".scStatusMark");
+        m.textContent = index === g.steps.length - 1 ? "└" : "├";
+        if (m.dataset) m.dataset.mark = index === g.steps.length - 1 ? "branchEnd" : "branch";
+      }
       section.appendChild(row);
     }
     if (g.steps.length > 1 && g.steps.some((x) => x.action === "SET_STATE"))
@@ -1019,6 +1069,8 @@ function scStoryRow(step) {
   };
   const mark = scEl("span", "scStatusMark", isScenarioPlaybackActive() ? scStatusMark(r.status) : "●");
   mark.setAttribute("aria-label", labels[r.status]);
+  /* FLUYO-018.14b: la marca se dibuja con el trazo del sistema según su estado (styles.css); el glifo queda como texto. */
+  if (mark.dataset) mark.dataset.mark = isScenarioPlaybackActive() ? r.status : "dot";
   row.appendChild(mark);
   if (!isScenarioPlaybackActive() && !d.missing) {
     const handle = scButton("", () => {}, "scHandle");
@@ -1803,8 +1855,12 @@ function scPreviewFrame(now) {
   c.clearRect(0, 0, w, h);
   c.fillStyle = T.bg; c.fillRect(0, 0, w, h);
   const nw = Math.min(64, w * 0.24), nh = 34, y = h / 2, x0 = 12 + nw, x1 = w - 12 - nw;
-  c.strokeStyle = T.edge; c.lineWidth = 2;
-  c.beginPath(); c.moveTo(x0, y); c.lineTo(x1, y); c.stroke();
+  /* FLUYO-018.16: la conexión de la vista previa es la del lienzo (edgeStroke: línea de 1,5 y aguja que no toca el destino) */
+  const previewStroke = edgeStroke({ endArrow: true }, [{ x: x0, y }, { x: x1, y }]);
+  c.strokeStyle = T.edge; c.lineWidth = EDGE_W;
+  c.beginPath(); traceSegments(c, previewStroke.line); c.stroke();
+  c.fillStyle = T.edge;
+  for (const hd of previewStroke.heads) { c.beginPath(); traceSegments(c, hd); c.fill(); }
   c.font = "600 11px 'Segoe UI', system-ui, sans-serif"; c.textAlign = "center"; c.textBaseline = "middle";
   for (const [cx, label] of [[12 + nw / 2, "Cliente"], [w - 12 - nw / 2, "Comercio"]]) {
     c.fillStyle = T.lblBg; c.strokeStyle = T.edge; c.lineWidth = 1.5;
@@ -2031,6 +2087,8 @@ function scCancelPlacement() {
   scContext = null;
   const bar = $("scPlacementBar");
   if (bar) bar.hidden = true;
+  /* FLUYO-018.12: en móvil la hoja de Historias se aparta mientras se coloca un evento (CSS, body.scPlacing). */
+  scBodyFlag("scPlacing", false);
   if ($("panelScenarios")?.classList.contains("scCompact")) $("scPaletteToggle")?.focus();
   else if (scFocusReturn?.isConnected) scFocusReturn.focus();
 }
@@ -2038,6 +2096,7 @@ function scUpdatePlacementBar() {
   const bar = $("scPlacementBar");
   if (!bar) return;
   bar.hidden = !scPlacement && !scContext;
+  scBodyFlag("scPlacing", !bar.hidden);
   if (bar.hidden) return;
   const p = scPlacement,
     et = eventTypeById(p?.eventTypeId);
@@ -2544,14 +2603,22 @@ function scInitUI() {
       const p = $("panelScenarios"),
         aside = p.closest("aside");
       if (!aside) return;
-      const narrow = aside.getBoundingClientRect().width < 300;
-      p.classList.toggle("scCompact", narrow);
-      if (!narrow) scHidePalette();
+      scSyncCompact();
     });
     scResizeObserver.observe($("panelScenarios").closest("aside"));
   }
   scSelectStory(P().scenarios?.[0]?.id ?? null);
   scRenderPanel();
+}
+/* La biblioteca pasa a paleta flotante cuando no cabe: panel estrecho (< 300 px) o, desde FLUYO-018.14b, la hoja
+   móvil de Historias en su altura compacta (storyCompactSheet, ui.js). */
+function scSyncCompact() {
+  const p = $("panelScenarios"),
+    aside = p && p.closest && p.closest("aside");
+  if (!aside || !p.classList) return;
+  const narrow = aside.getBoundingClientRect().width < 300 || (typeof storyCompactSheet === "function" && storyCompactSheet());
+  p.classList.toggle("scCompact", narrow);
+  if (!narrow) scHidePalette();
 }
 function ensureScenariosUI() {
   if (scUiReady) return;
@@ -2567,6 +2634,7 @@ window.scReset = scReset;
 window.scSyncPage = scSyncPage;
 window.ensureScenariosUI = ensureScenariosUI;
 window.scRefreshIfVisible = scRefreshIfVisible;
+window.scSyncCompact = scSyncCompact;
 window.eventTypeById = eventTypeById;
 window.renderEventSentence = renderEventSentence;
 window.eventTypeAllowedTargets = eventTypeAllowedTargets;

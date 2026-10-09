@@ -677,7 +677,8 @@ test("016.1: Share durante Playback se BLOQUEA (no detiene ni modifica): decisi�
   const block = src.slice(src.indexOf("function showShareDialog"), src.indexOf("commitEditBox()"));
   assert.match(block, /isScenarioPlaybackActive\(\)/);
   assert.match(block, /Detén la reproducción de la historia antes de compartir/);
-  assert.match(block, /Volver a editar/);
+  /* FLUYO-018.14b (B2): «Volver a editar» es la salida del modo Historia; el Playback terminado se cierra con «Terminar». */
+  assert.match(block, /Pulsa «Terminar» antes de compartir/);
   assert.match(block, /shareCreate"\)\.hidden=true/);
   assert.doesNotMatch(block, /scReset|scRun|pushUndo/, "abrir Share no tiene efectos secundarios");
 });

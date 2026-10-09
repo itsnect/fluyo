@@ -5,7 +5,7 @@
      · la tabla de docs/ nombra exactamente las 15 tools del contrato (y, si fluyo-mcp está al lado, las mismas que registra su server.ts);
      · edit_diagram solo aparece como retirada; los recuentos dicen 15;
      · README.md nombra las 15 y no edit_diagram;
-     · sw.js: CACHE v69 (cambió un asset servido) y ./docs/ sigue en el precache. */
+     · sw.js: CACHE v72 (cambió un asset servido) y ./docs/ sigue en el precache. */
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -53,9 +53,9 @@ test("README.md: nombra las 15 tools y no edit_diagram", () => {
   assert.match(mcp, /quince tools/);
 });
 
-test("sw.js: CACHE v69 y ./docs/ en el precache de páginas (PAGE_ASSETS)", () => {
+test("sw.js: CACHE v72 y ./docs/ en el precache de páginas (PAGE_ASSETS)", () => {
   const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v69";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v75";/);
   const pages = /const PAGE_ASSETS = \[([\s\S]*?)\];/.exec(sw)[1];
   assert.ok(pages.includes('"./docs/"'), "./docs/ debe seguir en el precache de páginas");
   assert.match(sw, /cache\.addAll\(PAGE_ASSETS\)/, "y ese precache se instala");

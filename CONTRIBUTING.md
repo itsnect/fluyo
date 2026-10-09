@@ -52,9 +52,12 @@ assets/
   og-image.png          Imagen de previsualización social (1200x630).
   icon-192.png          Icono de la PWA.
   icon-512.png          Icono de la PWA.
+  fonts/                Playfair Display e IBM Plex Mono (woff2, subset latin) y sus licencias OFL.
 
 css/
-  styles.css            Estilos del editor.
+  identity.css          Identidad compartida editor/Viewer (el Viewer solo usa esta y share.css).
+  system.css            Sistema visual del editor: tipografías, tokens y componentes.
+  styles.css            Layout del editor (dónde va cada cosa; los valores salen de system.css).
   pages.css             Estilos de las páginas estáticas (/docs, /ejemplos).
 
 js/
@@ -63,7 +66,7 @@ js/
   examples.js           Carga de ejemplos vía ?ejemplo= y su lista blanca.
   state.js              Estado del documento, páginas, fábricas y autoguardado.
   selection.js          Selección, portapapeles y deshacer/rehacer.
-  geometry.js           Anclas, rutas y cálculo de las flechas.
+  geometry.js           Anclas, rutas y trazo de las conexiones (edgeStroke).
   render.js             Dibujado del lienzo y bucle de animación.
   interaction.js        Ratón, teclado, zoom/pan y pegar/soltar imágenes.
   ui.js                 Panel lateral, herramientas, cajones y pestañas.
@@ -85,10 +88,12 @@ Los archivos de `js/` se cargan como scripts clásicos en orden de dependencia (
 | Cómo se dibujan los nodos o la animación | `js/render.js` |
 | Atajos de teclado, zoom/pan, arrastrar/soltar | `js/interaction.js` |
 | Panel derecho, barra de herramientas, pestañas | `js/ui.js` |
+| Modo Editar/Historias, menús «Lienzo» y «Más», hojas móviles, tema de la interfaz | `js/ui.js` (+ tokens del tema oscuro en `css/system.css`) |
 | Autoguardado y restauración de sesión | `js/state.js` |
 | Export a GIF/PNG/JPG/SVG | `js/export.js` |
 | Comportamiento offline | `sw.js` |
-| Aspecto del editor | `css/styles.css` |
+| Colores, tipografías, radios, alturas, botones, campos y menús del editor | `css/system.css` (tokens) |
+| Colocación y responsive del editor | `css/styles.css` |
 | Aspecto de /docs y /ejemplos | `css/pages.css` |
 
 ## Qué PRs son bienvenidas

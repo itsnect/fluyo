@@ -54,6 +54,7 @@ function asset(url){
     await editor.evaluate(()=>{doc.pages[0].nodes=[];});
     await editor.locator('#imgIn').setInputFiles({name:'local.svg',mimeType:'image/svg+xml',buffer:Buffer.from(svg)});
     await editor.waitForFunction(()=>P().nodes.length===1 && getImg(P().nodes[0].img).naturalWidth===40);
+    if (await editor.evaluate(() => { const m = document.getElementById("moreMenu"); return !!m && m.hidden && !!document.getElementById("btnJsonOut").closest("#moreMenu"); })) await editor.locator("#btnMore").click(); /* 018.14b: «Guardar» vive en «Más» */
     const [download]=await Promise.all([editor.waitForEvent('download'),editor.locator('#btnJsonOut').click()]);
     const saved=fs.readFileSync(await download.path());
     await editor.evaluate(()=>{doc={theme:'dark',customBg:'',cur:0,pages:[blankPage('Nueva')]};});

@@ -28,6 +28,9 @@ const serve = async (dir) => {
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
   return { server, base: "http://127.0.0.1:" + server.address().port };
 };
+/* FLUYO-018.15: en HEAD un nodo nuevo nacía #6a9fb5; ahora nace DEFAULT_NODE_COLOR (#857F6C). Las comparaciones con HEAD deshacen
+   solo ese cambio deliberado (también dentro de JSON anidado); todo lo demás tiene que seguir siendo idéntico. */
+const UNDO15 = (s) => typeof s === "string" ? s.replace(/(\\*"color\\*":\\*")#857F6C/g, "$1#6a9fb5") : s;
 function headTree() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "fluyo-head-"));
   const files = execFileSync("git", ["-C", root, "ls-tree", "-r", "--name-only", "HEAD"], { encoding: "utf8" }).split("\n").filter((f) => /^(index\.html|js\/|css\/|s\/|assets\/|manifest\.webmanifest)/.test(f));
@@ -55,7 +58,7 @@ async function script(browser, base, label, opts = {}) {
     viewX = 0; viewY = 0; viewZoom = 1; P().nextId = 1; renderTabs();
   });
   const docs = [];
-  const snap = async (name) => docs.push({ name, json: await ed.evaluate(() => JSON.stringify(serializeProject())) });
+  const snap = async (name) => docs.push({ name, json: UNDO15(await ed.evaluate(() => JSON.stringify(serializeProject()))) });
   const client = (x, y) => ed.evaluate(({ x, y }) => { const r = cv.getBoundingClientRect(); return { x: r.left + x * viewZoom + viewX, y: r.top + y * viewZoom + viewY }; }, { x, y });
   const nodePt = (i, dx = 0, dy = 0) => ed.evaluate(({ i, dx, dy }) => { const n = P().nodes[i], r = cv.getBoundingClientRect(); return { x: r.left + (n.x + dx) * viewZoom + viewX, y: r.top + (n.y + dy) * viewZoom + viewY }; }, { i, dx, dy });
   const place = async (shape, x, y) => { await ed.locator(`button[data-shape="${shape}"]`).click(); const p = await client(x, y); await ed.mouse.click(p.x, p.y); };
@@ -110,8 +113,10 @@ async function script(browser, base, label, opts = {}) {
   await ed.locator("#scReset").click();
   await ed.waitForFunction(() => scStatus === "idle");
   await snap("playback");
+  /* FLUYO-018.14b (B1): las formas se crean en modo Editar (en modo Historia el rail no está) */
+  await ed.locator("#tabProperties").click();
   /* 7. Undo / Redo sobre la página nueva */
-  const now = () => ed.evaluate(() => JSON.stringify(serializeProject()));
+  const now = () => ed.evaluate(() => JSON.stringify(serializeProject())).then(UNDO15);
   await place("circle", 500, 500);
   const withCircle = await now();
   await ed.keyboard.press("Control+z"); await ed.waitForTimeout(80);

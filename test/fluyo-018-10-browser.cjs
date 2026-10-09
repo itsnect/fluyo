@@ -4,7 +4,7 @@
       abierto en el editor de ESTE árbol de trabajo, sin sesión previa, serializeProject() es ese documento byte a byte (dos páginas,
       tema y fondo, Historias, EventTypes, Behaviors). Lo mismo para una tool de una operación
       (set_theme) encadenada sobre el resultado.
-   B) docs/ (asset servido, D3): la tabla de tools es la del contrato (15, sin edit_diagram), el SW precachea ./docs/ con CACHE v69 y la
+   B) docs/ (asset servido, D3): la tabla de tools es la del contrato (15, sin edit_diagram), el SW precachea ./docs/ con CACHE v72 y la
       página funciona offline.
    0 errores de consola / página (telemetría externa bloqueada, cloud.umami.is).
    Requiere fluyo-mcp compilado al lado (`npm run build:test` en ../fluyo-mcp, o FLUYO_MCP=<ruta>).
@@ -89,10 +89,10 @@ const check = (ok, what) => { results.push([!!ok, what]); console.log(`${ok ? " 
       }
     }
     if (PART.includes("B")) {
-      console.log("\nB) docs/ (asset servido): tools del contrato y precache v69");
+      console.log("\nB) docs/ (asset servido): tools del contrato y precache v72");
       const sw = fs.readFileSync(path.join(root, "sw.js"), "utf8");
       const cache = /const CACHE = "([^"]+)"/.exec(sw)[1];
-      check(cache === "fluyo-static-v69", `sw.js: CACHE = ${cache}`);
+      check(cache === "fluyo-static-v75", `sw.js: CACHE = ${cache}`);
       check(sw.includes('"./docs/"'), "sw.js precachea ./docs/");
       const ctx = await newCtx();
       const pg = watch(await ctx.newPage());
@@ -105,7 +105,7 @@ const check = (ok, what) => { results.push([!!ok, what]); console.log(`${ok ? " 
       const mentions = text.split(/(?<=[.!?])s+/).filter((x) => x.includes("edit_diagram"));
       check(mentions.length > 0 && mentions.every((x) => /retir/.test(x)), "docs/: edit_diagram solo aparece como retirada");
       check(/15 tools|quince tools/i.test(text) && !/nueve tools|9 tools/i.test(text), "docs/: el recuento es 15");
-      // Precache real: el SW instala v69 y sirve /docs/ sin red.
+      // Precache real: el SW instala v72 y sirve /docs/ sin red.
       await pg.goto(base + "/");
       await pg.evaluate(async () => { await navigator.serviceWorker.ready; });
       const t0 = Date.now();
@@ -115,13 +115,13 @@ const check = (ok, what) => { results.push([!!ok, what]); console.log(`${ok ? " 
         await pg.waitForTimeout(200);
       }
       const keys = await pg.evaluate(() => caches.keys());
-      check(JSON.stringify(keys) === '["fluyo-static-v69"]', `la caché instalada es solo fluyo-static-v69 (${keys.join()})`);
-      const cached = await pg.evaluate(async (b) => !!(await (await caches.open("fluyo-static-v69")).match(b + "/docs/")), base);
-      check(cached, "el SW (v69) tiene ./docs/ en caché");
+      check(JSON.stringify(keys) === '["fluyo-static-v75"]', `la caché instalada es solo fluyo-static-v75 (${keys.join()})`);
+      const cached = await pg.evaluate(async (b) => !!(await (await caches.open("fluyo-static-v75")).match(b + "/docs/")), base);
+      check(cached, "el SW (v72) tiene ./docs/ en caché");
       await ctx.setOffline(true);
       const off = watch(await ctx.newPage());
       const resp = await off.goto(base + "/docs/").catch(() => null);
-      check(!!resp && /servidor MCP|tools/i.test(await off.evaluate(() => document.body.innerText)), "docs/ se abre offline desde la caché v69");
+      check(!!resp && /servidor MCP|tools/i.test(await off.evaluate(() => document.body.innerText)), "docs/ se abre offline desde la caché v72");
       await off.screenshot({ path: path.join(shots, "docs-offline.png"), fullPage: false });
       await ctx.setOffline(false);
       await ctx.close();

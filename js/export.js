@@ -71,10 +71,20 @@ $("incomingKeep").onclick=incomingKeepMine;
    Enciende `build`: la aparición escalonada es lo que hace que un funnel se lea
    como un proceso y no como un dibujo, y es el diferenciador del producto. Es lo
    mismo que traen los tres ejemplos de negocio en sus `settings`. */
+/* FLUYO-018.12 (D9): «Ejemplo» abre el funnel en una página NUEVA y nunca toca la
+   actual. Antes vaciaba la página activa (nodos y conexiones) y la única vuelta
+   atrás era Ctrl+Z: con el dedo, el trabajo se perdía. La página se crea con la
+   misma autoridad que «＋» (createPageIn) y, como crear páginas, queda fuera de
+   Undo: no destruye nada que haya que recuperar, y se elimina como cualquier otra. */
+function examplePageName(){
+  const used=new Set(doc.pages.map(p=>p.name));
+  if(!used.has("Ejemplo")) return "Ejemplo";
+  let k=2; while(used.has("Ejemplo "+k)) k++;
+  return "Ejemplo "+k;
+}
 $("btnDemo").onclick=()=>{
   if(typeof isScenarioPlaybackActive==="function" && isScenarioPlaybackActive()){ if(typeof scReset==="function") scReset(); return; }
-  pushUndo();
-  const pg=P(); pg.nodes=[]; pg.edges=[]; /* pg.nextId se conserva: IDs eliminados no se reutilizan. */ clearSel();
+  const r=createPageIn(doc, examplePageName()); doc.cur=r.pageIndex; clearSel();
   const T=newNode("text",1180,300,{label:"Funnel de ventas"}); T.color="#d08b5b"; T.w=620; T.order=0;
   const A=newNode("icon",460,580,{icon:"users",label:"Visitantes"}); A.color="#6a9fb5"; A.order=1;
   const B=newNode("rect",790,580);  B.label="Lead\nregistrado";  B.color="#6a9fb5"; B.order=2;
@@ -91,7 +101,9 @@ $("btnDemo").onclick=()=>{
   e=newEdge(E2.id,F.id); e.label="firma";      e.fromSide="e"; e.toSide="w"; e.route="ortho";
   e=newEdge(C.id,G.id);  e.label="no";         e.fromSide="s"; e.toSide="n"; e.route="ortho"; e.dashed=true;
   settings.build=true; t0=performance.now(); pausedAt=0; syncProjectControls();
+  renderTabs();
   centerView();
+  scheduleAutosave();
   resetAnalyticsBaseline();
   trackEvent("example_loaded",{example:"demo"});
 };
@@ -123,16 +135,11 @@ function downloadTextFile(filename, content, mimeType){
   document.body.appendChild(link); link.click(); link.remove();
   setTimeout(()=>URL.revokeObjectURL(url),3000);
 }
-function buildSVGDefs(){
-  return `<defs>
-  <marker id="fluyo-arrow-end" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="strokeWidth">
-    <path d="M 0 0 L 10 4 L 0 8 z" fill="context-stroke"/>
-  </marker>
-  <marker id="fluyo-arrow-start" markerWidth="10" markerHeight="8" refX="1" refY="4" orient="auto-start-reverse" markerUnits="strokeWidth">
-    <path d="M 0 0 L 10 4 L 0 8 z" fill="context-stroke"/>
-  </marker>
-</defs>`;
-}
+/* FLUYO-018.16: las puntas de las conexiones ya no son <marker> en un <defs> inicial.
+   El marcador medía 20×16 (10×8 en unidades de strokeWidth) frente al 12×12 del
+   lienzo, y su `fill="context-stroke"` es SVG 2: más de un visor lo pinta negro o no
+   lo pinta. Ahora cada punta es un <path> explícito con el color de la línea, de la
+   misma geometría que el lienzo (edgeStroke, geometry.js; ver renderConnectorToSVG). */
 /* ===================== Símbolos reutilizables =====================
    Un icono se incrustaba como data URI COMPLETO dentro de cada nodo que lo usaba.
    En una arquitectura real eso es lo normal —varios Cloud Run, varias Cloud SQL,
@@ -256,10 +263,10 @@ function renderNodeToSVG(n, theme, syms){
       parts.push(svgLabelLines(n,theme));
       break;
     case "cylinder":{
-      const {x,y,w,h}=n, ry=Math.min(16,h*.18), top=y-h/2, bot=y+h/2;
-      const d=`M ${(x-w/2).toFixed(2)} ${(top+ry).toFixed(2)} L ${(x-w/2).toFixed(2)} ${(bot-ry).toFixed(2)} C ${(x-w/2).toFixed(2)} ${(bot+ry*.8).toFixed(2)} ${(x+w/2).toFixed(2)} ${(bot+ry*.8).toFixed(2)} ${(x+w/2).toFixed(2)} ${(bot-ry).toFixed(2)} L ${(x+w/2).toFixed(2)} ${(top+ry).toFixed(2)} C ${(x+w/2).toFixed(2)} ${(top-ry*.8).toFixed(2)} ${(x-w/2).toFixed(2)} ${(top-ry*.8).toFixed(2)} ${(x-w/2).toFixed(2)} ${(top+ry).toFixed(2)} Z`;
-      parts.push(`<path d="${d}" fill="${fill}" stroke="${stroke}" stroke-width="2.5"${dash}/>`);
-      parts.push(`<ellipse cx="${x}" cy="${(top+ry).toFixed(2)}" rx="${(w/2).toFixed(2)}" ry="${ry.toFixed(2)}" fill="none" stroke="${stroke}" stroke-width="2.5"/>`);
+      /* FLUYO-018.14a: los mismos segmentos que el lienzo (cylinderSegments, js/geometry.js) */
+      const seg=cylinderSegments(n);
+      parts.push(`<path d="${segmentsToSVGPath(seg.outline)}" fill="${fill}" stroke="${stroke}" stroke-width="2.5"${dash}/>`);
+      parts.push(`<path d="${segmentsToSVGPath(seg.lip)}" fill="none" stroke="${stroke}" stroke-width="2.5"${dash}/>`);
       parts.push(svgLabelLines(n,theme));
       break;
     }
@@ -274,7 +281,7 @@ function renderNodeToSVG(n, theme, syms){
          caracteres a 16px mide 35.19px natural y 38.40 exactos con textLength. */
       const L=codeBlockLayout(n), col=codeColors(n,theme);
       const x=n.x-n.w/2, y=n.y-n.h/2;
-      const fam=escapeAttribute(codeFont(n)), peso=n.bold===false?"":' font-weight="700"';
+      const fam=escapeAttribute(codeFont(n));
       const clip=`code-clip-${n.id}`;
       parts.push(`<clipPath id="${clip}"><rect x="${(x+2).toFixed(2)}" y="${(y+2).toFixed(2)}" width="${(n.w-4).toFixed(2)}" height="${(n.h-4).toFixed(2)}" rx="9" ry="9"/></clipPath>`);
       parts.push(`<rect x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${n.w}" height="${n.h}" rx="10" ry="10" fill="${escapeAttribute(col.panel)}" stroke="${stroke}" stroke-width="2.5"${dash}/>`);
@@ -282,8 +289,9 @@ function renderNodeToSVG(n, theme, syms){
       parts.push(`<rect x="${L.bx.toFixed(2)}" y="${L.by.toFixed(2)}" width="${L.bw.toFixed(2)}" height="${L.blockH.toFixed(2)}" rx="6" ry="6" fill="${escapeAttribute(col.paper)}"/>`);
       for(const row of L.rows){
         for(const tk of row.tokens){
-          if(tk.kw) parts.push(`<rect x="${(tk.x-2).toFixed(2)}" y="${(row.ly-L.fs/2-2).toFixed(2)}" width="${(tk.w+4).toFixed(2)}" height="${(L.fs+6).toFixed(2)}" fill="${escapeAttribute(col.kwBg)}"/>`);
-          parts.push(`<text x="${tk.x.toFixed(2)}" y="${row.ly.toFixed(2)}" font-family="${fam}" font-size="${L.fs.toFixed(2)}"${peso} fill="${escapeAttribute(tk.kw?col.kwText:col.text)}" dominant-baseline="middle" textLength="${tk.w.toFixed(3)}" lengthAdjust="spacing">${escapeXML(tk.t)}</text>`);
+          if(tk.kw && col.kwBg) parts.push(`<rect x="${(tk.x-2).toFixed(2)}" y="${(row.ly-L.fs/2-2).toFixed(2)}" width="${(tk.w+4).toFixed(2)}" height="${(L.fs+6).toFixed(2)}" fill="${escapeAttribute(col.kwBg)}"/>`);
+          const peso=codeTokenWeight(n,tk.kw), w=peso===400?"":` font-weight="${peso}"`;
+          parts.push(`<text x="${tk.x.toFixed(2)}" y="${row.ly.toFixed(2)}" font-family="${fam}" font-size="${L.fs.toFixed(2)}"${w} fill="${escapeAttribute(tk.kw?col.kwText:col.text)}" dominant-baseline="middle" textLength="${tk.w.toFixed(3)}" lengthAdjust="spacing">${escapeXML(tk.t)}</text>`);
         }
       }
       parts.push("</g>");
@@ -322,11 +330,9 @@ function renderConnectorToSVG(e, theme){
   const T=THEMES[theme];
   const lineCol=escapeAttribute(e.lineColor||T.edge);
   const dash=e.dashed? ' stroke-dasharray="8 7"':"";
-  let markers="";
-  if(e.endArrow!==false) markers+=' marker-end="url(#fluyo-arrow-end)"';
-  if(e.startArrow) markers+=' marker-start="url(#fluyo-arrow-start)"';
-  const ptsStr=pts.map(p=>`${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(" ");
-  const parts=[`<polyline points="${ptsStr}" fill="none" stroke="${lineCol}" stroke-width="2" stroke-linejoin="round"${dash}${markers}/>`];
+  const stroke=edgeStroke(e,pts);
+  const parts=[`<path d="${segmentsToSVGPath(stroke.line)}" fill="none" stroke="${lineCol}" stroke-width="${EDGE_W}" stroke-linejoin="round"${dash}/>`];
+  for(const h of stroke.heads) parts.push(`<path d="${segmentsToSVGPath(h)}" fill="${lineCol}"/>`);
   if(e.label){
     const m=labelPointFor(e,pts), efs=edgeLabelFs(e);
     const family=e.font||settings.font||DEFAULT_FONT, bold=!!e.bold;
@@ -343,8 +349,7 @@ function buildSVGDocument(scale=1){
   const theme=doc.theme;
   const parts=[
     '<?xml version="1.0" encoding="UTF-8"?>',
-    `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${width}" height="${height}" viewBox="0 0 ${W} ${H}">`,
-    buildSVGDefs()
+    `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${width}" height="${height}" viewBox="0 0 ${W} ${H}">`
   ];
   /* La misma colocación que en el lienzo, pero midiendo con getBBox en vez de
      con measureText: el SVG exportado tiene que enseñar las etiquetas donde el
@@ -355,8 +360,8 @@ function buildSVGDocument(scale=1){
   });
   for(const e of page.edges||[]) parts.push(renderConnectorToSVG(e,theme));
   /* Los símbolos se recogen dibujando, así que el <defs> con los iconos solo se
-     conoce al final. Se inserta después de las marcas de flecha en vez de al
-     final del documento: un id se resuelve igual esté donde esté, pero un SVG que
+     conoce al final. Se inserta después de las conexiones y antes de los nodos en
+     vez de al final del documento: un id se resuelve igual esté donde esté, pero un SVG que
      declara antes de usar es el que abren sin quejarse los editores externos. */
   const syms=svgSymbols();
   const nodos=(page.nodes||[]).map(n=>renderNodeToSVG(n,theme,syms));
@@ -401,9 +406,12 @@ $("exGo").onclick=()=>{
           "PNG, JPG y SVG no dependen de esa librería y funcionan igual.");
     return;
   }
-  if(fmt==="gif") exportGIF(scale, $("exTr").checked);
-  else if(fmt==="svg") exportSVG(scale);
-  else exportStatic(fmt, scale, $("exTr").checked);
+  /* FLUYO-018.14a: GIF/PNG/JPG se rasterizan en un lienzo propio, que solo usa las
+     webfonts ya cargadas; se espera a las del documento (con tope) antes de pintar.
+     El SVG no rasteriza: lleva la pila y quien lo abra usa la reserva si le falta. */
+  if(fmt==="svg"){ exportSVG(scale); return; }
+  const tr=$("exTr").checked;
+  waitForRenderFonts(doc).then(()=>{ if(fmt==="gif") exportGIF(scale, tr); else exportStatic(fmt, scale, tr); });
 };
 function exportStatic(fmt,scale,transparent){
   const b = getBounds();

@@ -30,6 +30,16 @@ const PALETTE=[
   {c:"#d0576a", n:"Error"},
   {c:"#5b9bd0", n:"Info"},
 ];
+/* FLUYO-018.15: color con el que NACE un nodo nuevo (createNodeIn). Es estructura, no
+   categoría: piedra media, el punto medio exacto entre los tokens grafito (#67624F) y
+   piedra (#A39C8A) de css/system.css. Pasa 3:1 sobre los tres temas del lienzo
+   (oscuro 4,5 · crema 3,5 · claro 4,0); el azul «Servicio» daba 2,5 sobre crema y 2,9
+   sobre claro. El color aparece cuando quien diagrama le da significado.
+
+   Solo afecta a nodos NUEVOS. Un nodo guardado sin `color` se sigue leyendo como
+   PALETTE[0] (normalizeProjectNode, js/model.js): cambiar ese respaldo repintaría
+   documentos existentes. «Servicio» sigue en la paleta con su valor de siempre. */
+const DEFAULT_NODE_COLOR="#857F6C";
 /* Paleta amplia para el selector de color (rejilla de swatches) */
 const EVENT_SWATCHES=[
   "#d0576a","#d08b5b","#c9b458","#7bb85b","#5bb0a0",
@@ -50,14 +60,20 @@ const SWATCH_COLORS=[
 /* Los cuatro tokens `code*` los usa la forma `code`. Están en el tema y no como
    constantes del renderer porque los consumen TRES renderers —lienzo, exportador
    SVG de la app y svg.ts del MCP—: un ternario sobre el nombre del tema
-   triplicado es la forma exacta en que se abrió el drift anterior. */
+   triplicado es la forma exacta en que se abrió el drift anterior.
+
+   FLUYO-018.14a: `code` es un objeto de Fluyo, no un editor incrustado. El bloque
+   es un velo de tinta (oscuro) o de papel (crema, claro) sobre el panel teñido del
+   nodo; el texto, hueso o tinta; la palabra clave, oliva y sin caja
+   (`codeKwBg:""`: sin fondo salvo que el nodo lo pida con `kwBg`). Son respaldos:
+   `textBg`, `textColor`, `kwBg` y `kwColor` del nodo siguen mandando. */
 const THEMES={
   dark : {bg:"#161616", grid:"rgba(255,255,255,.045)", text:"#ededed", edge:"#777", edgeLbl:"#bdbdbd", lblBg:"#161616",
-          codeBg:"#101010", codeText:"#e8e8e8", codeKwBg:"#a8b34a", codeKwText:"#0c0a09"},
+          codeBg:"rgba(0,0,0,.32)", codeText:"#e8e1d3", codeKwBg:"", codeKwText:"#c3cda4"},
   crema: {bg:"#f4eee1", grid:"rgba(0,0,0,.06)",        text:"#2b2620", edge:"#8a8275", edgeLbl:"#6b6457", lblBg:"#f4eee1",
-          codeBg:"#e7ddc9", codeText:"#1a1a1a", codeKwBg:"#a8b34a", codeKwText:"#0c0a09"},
+          codeBg:"rgba(22,21,15,.055)", codeText:"#16150f", codeKwBg:"", codeKwText:"#4e5a3f"},
   claro: {bg:"#ffffff", grid:"rgba(0,0,0,.05)",        text:"#111111", edge:"#888888", edgeLbl:"#444444", lblBg:"#ffffff",
-          codeBg:"#101010", codeText:"#e8e8e8", codeKwBg:"#a8b34a", codeKwText:"#0c0a09"},
+          codeBg:"rgba(22,21,15,.045)", codeText:"#16150f", codeKwBg:"", codeKwText:"#4e5a3f"},
 };
 
 /* ===================== Bloques de código =====================
@@ -118,9 +134,17 @@ const FONTS=[
   {n:"Courier",     f:"'Courier New', Courier, monospace"},
   {n:"Impact",      f:"Impact, Haettenschweiler, sans-serif"},
   {n:"Comic Sans",  f:"'Comic Sans MS', 'Comic Sans', cursive"},
+  /* FLUYO-018.14a: las dos voces del sistema visual, autoalojadas en assets/fonts
+     (sin terceros). Van aquí, entre las históricas y «Mono»: la PRIMERA entrada es la
+     global por defecto y la ÚLTIMA la reserva de `code`, y ninguna de las dos cambia.
+     Cada pila termina en su reserva histórica, así que un SVG abierto sin la fuente
+     instalada degrada a Georgia o a la mono del sistema. */
+  {n:"Playfair Display", f:"'Playfair Display', Georgia, serif"},
+  {n:"IBM Plex Mono",    f:'\'IBM Plex Mono\', ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace'},
   /* Pila de sistema, sin webfont ni CDN: no introduce ningún tercero y por tanto
-     no toca la política de privacidad publicada. Es la fuente por defecto de la
-     forma `code`. */
+     no toca la política de privacidad publicada. Es la reserva de la forma `code`
+     (su fuente por defecto es «IBM Plex Mono», que acaba en esta misma pila: ver
+     codeFont en js/geometry.js). */
   {n:"Mono",        f:'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace'},
 ];
 const DEFAULT_FONT=FONTS[0].f;

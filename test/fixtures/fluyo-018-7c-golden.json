@@ -1,5 +1,5 @@
 {
- "baseRevision": "sha256:b8219f14d6598d2744c65e1a9f6078004d1614cfcc61709024b40a0bb40ef978",
+ "baseRevision": "sha256:46e6ce7d8234a3dcbe928fd43d5dd81a8c847f455879d6ca75ec44c0ee1f15d2",
  "document": {
   "version": 5,
   "app": "fluyo",
@@ -115,7 +115,7 @@
        "w": 180,
        "h": 70,
        "label": "Portada",
-       "color": "#6a9fb5",
+       "color": "#857F6C",
        "fill": null,
        "border": "solid",
        "lblPos": "center",
@@ -144,7 +144,7 @@
        "w": 180,
        "h": 70,
        "label": "Cliente",
-       "color": "#6a9fb5",
+       "color": "#857F6C",
        "fill": null,
        "border": "solid",
        "lblPos": "center",
@@ -163,7 +163,7 @@
        "w": 180,
        "h": 70,
        "label": "Banco",
-       "color": "#6a9fb5",
+       "color": "#857F6C",
        "fill": null,
        "border": "solid",
        "lblPos": "center",
@@ -182,7 +182,7 @@
        "w": 180,
        "h": 70,
        "label": "Comercio",
-       "color": "#6a9fb5",
+       "color": "#857F6C",
        "fill": null,
        "border": "solid",
        "lblPos": "center",
@@ -297,7 +297,7 @@
        "w": 180,
        "h": 70,
        "label": "Almacén",
-       "color": "#6a9fb5",
+       "color": "#857F6C",
        "fill": null,
        "border": "solid",
        "lblPos": "center",
@@ -316,7 +316,7 @@
        "w": 180,
        "h": 70,
        "label": "Reparto",
-       "color": "#6a9fb5",
+       "color": "#857F6C",
        "fill": null,
        "border": "solid",
        "lblPos": "center",
@@ -402,7 +402,7 @@
      "expectedName": "Inicio"
     }
    ],
-   "resultRevision": "sha256:2ee123613f2e2a73eabb628349e1857a0ebcad91deb54abefda34b4bafc560ed",
+   "resultRevision": "sha256:a3cfb682dcd8527c58f4c1f9f8e4816cc9611786d9a612c61e3d761a0f5f46b1",
    "pageMap": [
     {
      "from": 0,
@@ -433,7 +433,7 @@
      "expectedName": "Pagos"
     }
    ],
-   "resultRevision": "sha256:5f4a2afdef22ed07ca47f2953e73d8d615c07470deceedd8ac172aed009c96e2",
+   "resultRevision": "sha256:5c1d26c7612aca6cdae6a2aa757e646032479b5ae28dce91cefd6e941695af34",
    "pageMap": [
     {
      "from": 0,
@@ -464,7 +464,7 @@
      "expectedName": "Envíos"
     }
    ],
-   "resultRevision": "sha256:8013fb96d4746f0bc366fee0db23093a57b25b06560f9b3aa6e15e5054141a56",
+   "resultRevision": "sha256:243d92ce1f32606c7ff2d5e54feb7d97731c0aa65e3d57ecdf702d313d7ea04e",
    "pageMap": [
     {
      "from": 0,
@@ -495,7 +495,7 @@
      "expectedName": "Vacía"
     }
    ],
-   "resultRevision": "sha256:78489745d61eba0adc9138cc7c8fba0f3e5c4e38508876002667247ba1e09134",
+   "resultRevision": "sha256:a45ca15c05970e6b152b309407223f59f3e016f51fe27aa8a2df21892fc12731",
    "pageMap": [
     {
      "from": 0,
@@ -532,7 +532,7 @@
      "expectedName": "Pagos"
     }
    ],
-   "resultRevision": "sha256:07ea17d9211ae46f514f7b65e1b71c2175bf557029c155258a26a81268ea8b07",
+   "resultRevision": "sha256:f956be50cf252986548afb04f598451cf4ad95cbe1ecfec462e423adca7f249f",
    "pageMap": [
     {
      "from": 0,
@@ -569,7 +569,7 @@
      "name": "Logística"
     }
    ],
-   "resultRevision": "sha256:5608f53380b4b0535c057f4e89cf968d7eae26f758f8764e90d952db86784fd4",
+   "resultRevision": "sha256:5bc3e4f0650c08fe443a0e4c0ad41e1d6d89ec6563fabd2a8d3e6e33da02b670",
    "pageMap": [
     {
      "from": 0,

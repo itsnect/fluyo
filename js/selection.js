@@ -10,18 +10,20 @@ function singleSel(){
   if(selE.size===1 && selN.size===0) return {type:"edge", obj:edgeById([...selE][0])};
   return null;
 }
-/* Con ratón las flechas de conexión salen al pasar por encima de un nodo. En
-   táctil no existe el «pasar por encima»: sin esto no habría ninguna forma de
-   conectar dos cajas con el dedo. Por eso el nodo seleccionado también las
-   muestra — que además es lo que hacen draw.io o Figma.
+/* Nodo que enseña el puerto de conectar (FLUYO-018.16): el que está bajo el ratón,
+   y nada más. Antes también el seleccionado —era la única vía táctil y la que usan
+   draw.io o Figma—, pero junto al marco de selección las cuatro flechas se leían
+   como tiradores de redimensionar. Desde 018.12 el dedo conecta con «Conectar» de
+   la barra táctil, así que en táctil no hay puerto (isTouch, js/interaction.js, se
+   carga después: de ahí el typeof).
 
    Vive aquí porque los gestos y el runtime del editor comparten esta única
    resolución; el modelo y el renderer read-only no conocen esta regla. */
 function arrowHostNode(){
-  const s=singleSel();
-  const n=hoverNode || ((s && s.type==="node") ? s.obj : null);
+  if(typeof isTouch==="function" && isTouch()) return null;
+  const n=hoverNode;
   /* hoverNode sobrevive a un cambio de página o a cargar un ejemplo: sin esta
-     comprobación se pintarían flechas de un nodo que ya no está en el lienzo. */
+     comprobación se pintaría el puerto de un nodo que ya no está en el lienzo. */
   return (n && P().nodes.includes(n)) ? n : null;
 }
 function selectAll(){

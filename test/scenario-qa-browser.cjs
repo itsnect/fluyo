@@ -26,6 +26,7 @@ const server=http.createServer((req,res)=>{
   }catch{res.writeHead(404);res.end();}
 });
 const save=async page=>{
+  if (await page.evaluate(() => { const m = document.getElementById("moreMenu"); return !!m && m.hidden && !!document.getElementById("btnJsonOut").closest("#moreMenu"); })) await page.locator("#btnMore").click(); /* 018.14b: «Guardar» vive en «Más» */
   const [download]=await Promise.all([page.waitForEvent('download'),page.locator('#btnJsonOut').click()]);
   return JSON.parse(fs.readFileSync(await download.path(),'utf8'));
 };

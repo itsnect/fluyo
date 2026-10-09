@@ -14,33 +14,49 @@
 <!-- CSP del viewer (FLUYO-003 §8). frame-ancestors solo se puede fijar por
      cabecera HTTP: depende del hosting estático existente. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cloud.umami.is; style-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://cloud.umami.is https://gateway.umami.is; object-src 'none'; base-uri 'none'">
-<meta name="theme-color" content="#111213">
+<meta name="theme-color" content="#F2EDE3">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23161616'/%3E%3Ccircle cx='18' cy='32' r='7' fill='%23d08b5b'/%3E%3Ccircle cx='40' cy='32' r='5' fill='%23d08b5b' opacity='.65'/%3E%3Ccircle cx='54' cy='32' r='3.4' fill='%23d08b5b' opacity='.35'/%3E%3C/svg%3E">
+<!-- FLUYO-018.14a: el Viewer usa el mismo sistema visual que el editor (tokens, voces, componentes), con las
+     fuentes servidas desde este origen. La CSP sigue igual: sin estilos inline, sin terceros (font-src cae en 'self'). -->
+<link rel="preload" href="../assets/fonts/ibm-plex-mono-latin-400.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="../css/identity.css">
+<link rel="stylesheet" href="../css/system.css">
 <link rel="stylesheet" href="../css/share.css">
 </head>
 <body>
+
+<!-- Iconos: el mismo trazo que el editor. Se oculta con la clase .sprite (share.css): la CSP no admite style inline. -->
+<svg class="sprite" width="0" height="0" aria-hidden="true" focusable="false">
+  <symbol id="i-fit" viewBox="0 0 24 24"><path d="M4 9V5a1 1 0 0 1 1-1h4M15 4h4a1 1 0 0 1 1 1v4M20 15v4a1 1 0 0 1-1 1h-4M9 20H5a1 1 0 0 1-1-1v-4"/><rect x="8.5" y="8.5" width="7" height="7" rx="1"/></symbol>
+  <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5.5 12h13"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5.5v13M5.5 12h13"/></symbol>
+  <symbol id="i-present" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="12.5" rx="1.5"/><path d="M10.5 8.3v5l4-2.5z"/><path d="M12 17v3M8.5 20h7"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M14.5 5.5l4 4M4 20l1-4.5L15.5 5a2 2 0 0 1 2.8 0l.7.7a2 2 0 0 1 0 2.8L8.5 19z"/></symbol>
+  <symbol id="i-prev" viewBox="0 0 24 24"><path d="M14.5 6l-6 6 6 6"/></symbol>
+  <symbol id="i-next" viewBox="0 0 24 24"><path d="M9.5 6l6 6-6 6"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></symbol>
+</svg>
 
 <header id="chrome">
   <a class="logo" href="../" title="Fluyo" aria-label="Fluyo">flu<b>yo</b><span class="dots" aria-hidden="true"><span></span><span></span><span></span></span></a>
   <nav id="pgTabs" aria-label="Páginas del diagrama" hidden></nav>
   <div class="tools">
-    <button id="btnFit" type="button" disabled title="Encajar el diagrama en la vista">Encajar</button>
-    <button id="btnZoomOut" type="button" disabled title="Alejar">−</button>
-    <button id="btnZoomIn" type="button" disabled title="Acercar">+</button>
-    <button id="btnPresent" type="button" disabled title="Presentar las páginas como diapositivas">Presentar</button>
-    <span class="spacer"></span>
-    <button id="btnOpen" type="button" disabled class="primary" title="Abrir una copia editable de este diagrama en el editor">Abrir en Fluyo</button>
+    <button id="btnFit" type="button" class="iconBtn btnGhost" disabled title="Encajar el diagrama en la vista" aria-label="Encajar el diagrama en la vista"><svg class="ic" aria-hidden="true"><use href="#i-fit"/></svg></button>
+    <button id="btnZoomOut" type="button" class="iconBtn btnGhost" disabled title="Alejar" aria-label="Alejar"><svg class="ic" aria-hidden="true"><use href="#i-minus"/></svg></button>
+    <button id="btnZoomIn" type="button" class="iconBtn btnGhost" disabled title="Acercar" aria-label="Acercar"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></button>
+    <span class="vdivider" aria-hidden="true"></span>
+    <button id="btnPresent" type="button" class="btnGhost" disabled title="Presentar las páginas como diapositivas" aria-label="Presentar"><svg class="ic" aria-hidden="true"><use href="#i-present"/></svg><span class="lbl">Presentar</span></button>
+    <button id="btnOpen" type="button" disabled class="primary" title="Abrir una copia editable de este diagrama en el editor" aria-label="Abrir en Fluyo"><svg class="ic" aria-hidden="true"><use href="#i-edit"/></svg><span class="lbl">Abrir<span class="lblRest"> en Fluyo</span></span></button>
   </div>
 </header>
 
 <main id="wrap">
   <canvas id="sv"></canvas>
-  <div id="prBar" hidden>
-    <button id="prPrev" type="button" title="Página anterior">‹ Anterior</button>
+  <div id="prBar" class="inverse" hidden>
+    <button id="prPrev" type="button" title="Página anterior"><svg class="ic" aria-hidden="true"><use href="#i-prev"/></svg>Anterior</button>
     <span id="prPos"></span>
-    <button id="prNext" type="button" title="Página siguiente">Siguiente ›</button>
-    <button id="prExit" type="button" title="Salir de la presentación">Salir</button>
+    <button id="prNext" type="button" title="Página siguiente">Siguiente<svg class="ic" aria-hidden="true"><use href="#i-next"/></svg></button>
+    <button id="prExit" type="button" title="Salir de la presentación"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg>Salir</button>
   </div>
   <div id="status" role="status"></div>
 </main>

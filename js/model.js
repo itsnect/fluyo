@@ -730,7 +730,7 @@ function createNodeIn(pg, spec, context){
      completarlos después pisaba keywords/kwBg/kwColor si faltaba `lang`. */
   const n=authoringAssign(Object.assign({ id, shape, x, y, w, h,
     label: shape==="text"?"Texto":shape==="code"?CODE_DEFAULT_LABEL:(shape==="icon"||shape==="image"||shape==="anim")?"":"Nodo",
-    color:PALETTE[0].c, fill:null, border:"solid", lblPos:"center", textBg:null, textColor:null,
+    color:DEFAULT_NODE_COLOR, fill:null, border:"solid", lblPos:"center", textBg:null, textColor:null,
     font:null, bold:false, pulse:false, order:pg.nodes.length },
     shape==="code"? {lang:DEFAULT_LANG, keywords:null, kwBg:null, kwColor:null} : {}), spec, ["ref","id"]);
   /* `tint` nace apagado también en los iconos nuevos: el interruptor tiene que
@@ -1183,6 +1183,8 @@ function normalizeProjectNode(n,i){
     if(typeof n[key]!=="number" || !Number.isFinite(n[key])) throw projectDataError();
   }
   if(n.w<=0 || n.h<=0 || n.order<0 || ![n.x-n.w/2,n.x+n.w/2,n.y-n.h/2,n.y+n.h/2].every(Number.isFinite)) throw projectDataError();
+  /* Respaldo HISTÓRICO, no el de los nodos nuevos (DEFAULT_NODE_COLOR, FLUYO-018.15): un nodo guardado
+     sin color se ha visto siempre así, y debe seguir viéndose igual en editor, Viewer, SVG y MCP. */
   if(n.color==null) n.color=PALETTE[0].c;
   if(n.fill===undefined) n.fill=null;
   if(!n.border) n.border="solid";

@@ -11,7 +11,7 @@
    estaba sirviendo al iframe una copia vieja de js/interaction.js. Por eso ese
    test ahora desregistra el SW antes de cargar nada — y por eso esta versión
    sube también cuando solo cambia el contenido. */
-const CACHE = "fluyo-static-v69";
+const CACHE = "fluyo-static-v75";
 /* Núcleo: si algo de aquí falla, la instalación falla (cache.addAll es atómico)
    y es lo correcto, porque sin estos archivos la app no funciona. */
 const ASSETS = [
@@ -20,7 +20,12 @@ const ASSETS = [
   "./manifest.webmanifest",
   "./sw.js",
   "./css/identity.css",
+  "./css/system.css",
   "./css/styles.css",
+  /* Tipografías del sistema visual (FLUYO-018.13): servidas desde este origen, sin terceros. */
+  "./assets/fonts/ibm-plex-mono-latin-400.woff2",
+  "./assets/fonts/ibm-plex-mono-latin-500.woff2",
+  "./assets/fonts/playfair-display-latin-400.woff2",
   "./js/analytics.js",
   "./js/examples.js",
   "./js/deeplink.js",

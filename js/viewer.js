@@ -92,9 +92,11 @@ function showShareError(code){
 /* ─────────────────────── Render y bucle ─────────────────────── */
 
 function viewerRenderState(){
+  /* Tamaño en px CSS y densidad aparte: resizeCanvas dimensiona el respaldo a la densidad de la pantalla (FLUYO-018.12). */
+  const dpr=sv.fluyoDpr||1;
   return makeReadOnlyRenderState({
     x:view.x, y:view.y, zoom:view.zoom,
-    width:sv.width, height:sv.height, presenting
+    width:sv.width/dpr, height:sv.height/dpr, dpr, presenting
   });
 }
 function renderViewerFrame(){
@@ -387,6 +389,13 @@ async function bootViewer(){
   catch(e){if(generation===viewerGeneration) showShareError(e&&e.code);return;}
   if(generation!==viewerGeneration) return;
   if(viewerSourceKey()!==key){bootViewer();return;}
+  /* FLUYO-018.14a: el lienzo solo pinta con webfonts ya cargadas. Antes del primer
+     render se espera (con tope) a las que usa el documento: Playfair o IBM Plex Mono
+     en etiquetas y la mono del bloque `code`. Sin ellas se pinta con la reserva. */
+  if(typeof waitForRenderFonts==="function"){
+    await waitForRenderFonts(loaded.project.doc, 2000, loaded.project.settings);
+    if(generation!==viewerGeneration) return;
+  }
   /* Instalar el snapshot read-only en el modelo compartido. Es la única
      "instalación" que hace el viewer: el modelo no toca DOM, autosave ni
      persistencia; todo lo demás es estado de vista local a este archivo. */

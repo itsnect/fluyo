@@ -29,6 +29,7 @@ const mime={'.html':'text/html','.js':'application/javascript','.css':'text/css'
     await editor.goto(base+'/');await editor.waitForFunction(()=>typeof confirmShare==='function');
     for(const kind of ['tiny','small','moderate']){
       await editor.evaluate(buildRealisticEditorDocument,kind);
+      if (await editor.evaluate(() => { const m = document.getElementById("moreMenu"); return !!m && m.hidden && !!document.getElementById("btnJsonOut").closest("#moreMenu"); })) await editor.locator("#btnMore").click(); /* 018.14b: «Guardar» vive en «Más» */
       const [download]=await Promise.all([editor.waitForEvent('download'),editor.locator('#btnJsonOut').click()]);
       const saved=JSON.parse(fs.readFileSync(await download.path(),'utf8'));
       await editor.evaluate(()=>{

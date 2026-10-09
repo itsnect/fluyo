@@ -16,7 +16,7 @@ const MUTATIONS = [
   ["M5 vuelve relayout como consejo", "docs/index.html", "partir de lo que propone <code>propose_layout</code>", "usar <code>relayout</code>"],
   ["M6 el README vuelve a listar edit_diagram", "README.md", "exportar (`export_diagram`)", "exportar (`export_diagram`), editar (`edit_diagram`)"],
   ["M7 el README pierde author_document", "README.md", "modificar (`author_document` y sus atajos", "modificar (sus atajos"],
-  ["M8 CACHE no sube (sigue v68)", "sw.js", 'const CACHE = "fluyo-static-v69";', 'const CACHE = "fluyo-static-v68";'],
+  ["M8 CACHE no sube (sigue v72)", "sw.js", 'const CACHE = "fluyo-static-v75";', 'const CACHE = "fluyo-static-v74";'],
   ["M9 ./docs/ sale del precache", "sw.js", '  "./docs/",\n', ""],
 ];
 

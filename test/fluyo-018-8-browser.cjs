@@ -27,6 +27,9 @@ const serve = async (dir) => {
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
   return { server, base: "http://127.0.0.1:" + server.address().port };
 };
+/* FLUYO-018.15: en HEAD un nodo nuevo nacía #6a9fb5; ahora nace DEFAULT_NODE_COLOR (#857F6C). Las comparaciones con HEAD deshacen
+   solo ese cambio deliberado (también dentro de JSON anidado); todo lo demás tiene que seguir siendo idéntico. */
+const UNDO15 = (s) => typeof s === "string" ? s.replace(/(\\*"color\\*":\\*")#857F6C/g, "$1#6a9fb5") : s;
 function headTree() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "fluyo-head-"));
   const files = execFileSync("git", ["-C", root, "ls-tree", "-r", "--name-only", "HEAD"], { encoding: "utf8" }).split("\n").filter((f) => /^(index\.html|js\/|css\/|s\/|assets\/|manifest\.webmanifest)/.test(f));
@@ -145,7 +148,7 @@ async function script(browser, base, label) {
   const browser = await chromium.launch({ channel: process.env.FLUYO_BROWSER || "chrome", headless: true });
   let failed = 0;
   const check = (c, m) => { console.log((c ? "  ✔ " : "  ✘ ") + m); if (!c) failed++; };
-  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  const same = (a, b) => UNDO15(JSON.stringify(a)) === UNDO15(JSON.stringify(b));
   try {
     const A = await script(browser, wt.base, "wt"), H = await script(browser, hd.base, "head");
     const a = A.R, h = H.R;

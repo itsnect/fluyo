@@ -393,6 +393,105 @@ function bendableSegs(e,pts){
   const out=[]; for(let i=1;i<=n-2;i++) out.push(i);
   return out;
 }
+/* ===================== Trazo de una conexión (FLUYO-018.16) =====================
+   UNA geometría para DIBUJAR una conexión, que recorren el lienzo (editor, Present
+   y Viewer, js/render.js), el exportador SVG (js/export.js) y, portada, svg.ts del
+   MCP, cuyo test de paridad carga este archivo y la compara. edgePoints() sigue
+   siendo la ruta: anclas, acierto, etiquetas y puntos de flujo no cambian; esto
+   solo decide cómo se pinta encima de ella.
+
+   La gramática (ver .ai/tasks/FLUYO-018.16.md):
+     · línea fina (EDGE_W) del color de la estructura: el nodo (2,5) pesa más que
+       la relación;
+     · esquinas redondeadas (EDGE_CORNER) con una Bézier cuadrática cuyo control
+       es el propio vértice: nunca se separa de la ruta más de ~0,3·r;
+     · sin marca en el origen;
+     · la dirección es una aguja con muesca que NO toca el destino: la punta queda
+       a EDGE_GAP del ancla, por fuera del trazo del nodo, y la línea termina en la
+       muesca para no asomar bajo la punta.
+   Antes el lienzo dibujaba un triángulo de 12×12 que pisaba el borde y el SVG otro
+   de 20×16 (<marker> en strokeWidth): dos flechas distintas para el mismo
+   documento. Ahora las dos salen de aquí.
+
+   Devuelve segmentos {op:"M"|"L"|"Q"|"Z"} (los de cylinderSegments más "Q"):
+   `line` para trazar y `heads` (0, 1 o 2) para rellenar con el color de la línea. */
+const EDGE_W=1.5, EDGE_CORNER=8, EDGE_GAP=3, EDGE_HEAD_LEN=11, EDGE_HEAD_HALF=4, EDGE_HEAD_NOTCH=2.8;
+/* Dirección del último tramo con longitud, recorriendo `pts` desde el final (o desde
+   el principio con `fromStart`): un waypoint repetido no puede dejar la punta sin
+   orientación. */
+function strokeDir(pts, fromStart){
+  const n=pts.length;
+  for(let k=1;k<n;k++){
+    const a=fromStart? pts[k] : pts[n-1-k], b=fromStart? pts[k-1] : pts[n-k];
+    const L=Math.hypot(b.x-a.x, b.y-a.y);
+    if(L>0.01) return {x:(b.x-a.x)/L, y:(b.y-a.y)/L, L};
+  }
+  return null;
+}
+function edgeHeadSegs(tip, u){
+  const nx=-u.y, ny=u.x, bx=tip.x-u.x*EDGE_HEAD_LEN, by=tip.y-u.y*EDGE_HEAD_LEN, k=EDGE_HEAD_LEN-EDGE_HEAD_NOTCH;
+  return [
+    {op:"M", x:tip.x, y:tip.y},
+    {op:"L", x:bx+nx*EDGE_HEAD_HALF, y:by+ny*EDGE_HEAD_HALF},
+    {op:"L", x:tip.x-u.x*k, y:tip.y-u.y*k},
+    {op:"L", x:bx-nx*EDGE_HEAD_HALF, y:by-ny*EDGE_HEAD_HALF},
+    {op:"Z"},
+  ];
+}
+function edgeStroke(e, pts){
+  const out={line:[], heads:[]};
+  if(!pts || pts.length<2) return out;
+  const line=pts.map(p=>({x:p.x, y:p.y}));
+  /* Recorta un extremo `d` px sobre su tramo, sin dejarlo por debajo de 1 px. */
+  const trim=(i, j, d)=>{
+    const a=line[j], b=line[i], L=Math.hypot(b.x-a.x, b.y-a.y);
+    if(L<=0.01) return;
+    const k=Math.min(d, Math.max(0, L-1));
+    b.x-=(b.x-a.x)/L*k; b.y-=(b.y-a.y)/L*k;
+  };
+  const n=line.length;
+  if(e.endArrow!==false){
+    const u=strokeDir(pts,false);
+    if(u){
+      const z=pts[n-1], tip={x:z.x-u.x*EDGE_GAP, y:z.y-u.y*EDGE_GAP};
+      out.heads.push(edgeHeadSegs(tip,u));
+      trim(n-1, n-2, EDGE_GAP+EDGE_HEAD_LEN-EDGE_HEAD_NOTCH);
+    }
+  }
+  if(e.startArrow){
+    const u=strokeDir(pts,true);
+    if(u){
+      const z=pts[0], tip={x:z.x-u.x*EDGE_GAP, y:z.y-u.y*EDGE_GAP};
+      out.heads.push(edgeHeadSegs(tip,u));
+      trim(0, 1, EDGE_GAP+EDGE_HEAD_LEN-EDGE_HEAD_NOTCH);
+    }
+  }
+  out.line.push({op:"M", x:line[0].x, y:line[0].y});
+  for(let i=1;i<n-1;i++){
+    const a=line[i-1], b=line[i], c=line[i+1];
+    const l1=Math.hypot(b.x-a.x, b.y-a.y), l2=Math.hypot(c.x-b.x, c.y-b.y);
+    const k=Math.min(EDGE_CORNER, l1/2, l2/2);
+    /* sin giro (vértice colineal, frecuente en orthoRoute) no hay esquina que redondear */
+    const giro=l1>0 && l2>0 ? Math.abs((b.x-a.x)*(c.y-b.y)-(b.y-a.y)*(c.x-b.x))/(l1*l2) : 0;
+    if(k<0.5 || giro<1e-6){ out.line.push({op:"L", x:b.x, y:b.y}); continue; }
+    out.line.push({op:"L", x:b.x-(b.x-a.x)/l1*k, y:b.y-(b.y-a.y)/l1*k});
+    out.line.push({op:"Q", cx:b.x, cy:b.y, x:b.x+(c.x-b.x)/l2*k, y:b.y+(c.y-b.y)/l2*k});
+  }
+  out.line.push({op:"L", x:line[n-1].x, y:line[n-1].y});
+  return out;
+}
+/* ===================== Puerto de conectar (FLUYO-018.16) =====================
+   Sustituye a las cuatro flechas de bloque «estilo draw.io». Con ratón aparece UN
+   puerto, en el lado del nodo que mira al cursor, a CONNECT_PORT_OFF px de PANTALLA
+   del borde; el acierto también va en píxeles de pantalla, así que a ningún zoom se
+   mete dentro del nodo (18 − 11 = 7 px libres). En táctil no hay puerto: se conecta
+   con «Conectar» (js/ui.js). Lo comparten el dibujo (render.js) y el acierto
+   (interaction.js). */
+const CONNECT_PORT_OFF=18, CONNECT_PORT_HIT=11, CONNECT_PORT_R=4.5;
+function connectPortPoint(n, side, zoom){
+  const p=sidePoint(n,side), d=DIR[side], off=CONNECT_PORT_OFF/(zoom||1);
+  return {x:p.x+d.x*off, y:p.y+d.y*off};
+}
 /* ===================== Bloques de código =====================
    Toda la maquetación de un nodo `code` sale de aquí, y sale como DATOS: nada de
    dibujar. Los tres renderers —lienzo, exportador SVG de la app y svg.ts del
@@ -450,18 +549,86 @@ function codeBlockLayout(n){
   }));
   return {lines, fs, adv, lh, blockH, bx, by, bw, x0, rows};
 }
-/* Los cinco colores, con el tema como respaldo de cada uno. */
+/* Los cinco colores, con el tema como respaldo de cada uno.
+
+   FLUYO-018.14a: el panel por defecto es el MISMO tinte que el relleno automático
+   de las demás formas (el color del nodo al 16 % en crema, al 18 % en el resto: ver
+   fillFor en js/render.js y svgFillColor en js/export.js), así que `code` se lee
+   como un nodo más. `fill:"none"` conserva lo de siempre: el fondo del tema. El
+   resto de respaldos vive en THEMES (js/config.js); `kwBg:""` significa «sin caja».
+   Lo explícito del nodo (fill, textBg, textColor, kwBg, kwColor) manda siempre. */
+function codePanelTint(color,theme){
+  if(typeof color!=="string" || !/^#[0-9a-f]{6}$/i.test(color)) return null;
+  const v=parseInt(color.slice(1),16);
+  return `rgba(${v>>16&255},${v>>8&255},${v&255},${theme==="crema"?.16:.18})`;
+}
 function codeColors(n,theme){
   const T=THEMES[theme];
   return {
-    panel: n.fill && n.fill!=="none" ? n.fill : (T.lblBg||"#161616"),
+    panel: n.fill && n.fill!=="none" ? n.fill : (n.fill==="none" ? (T.lblBg||"#161616") : (codePanelTint(n.color,theme) || T.lblBg || "#161616")),
     paper: n.textBg || T.codeBg,
     text:  n.textColor || T.codeText,
-    kwBg:  n.kwBg || T.codeKwBg,
+    kwBg:  n.kwBg || T.codeKwBg || "",
     kwText:n.kwColor || T.codeKwText,
   };
 }
-function codeFont(n){ return n.font || FONTS[FONTS.length-1].f; }
+/* Tipografía del bloque: la del nodo si la tiene; si no, IBM Plex Mono (018.14a),
+   cuya pila termina en «Mono» —la reserva histórica, última entrada de FONTS—. Su
+   avance es exactamente CODE_ADV (0,6 em): la rejilla no se mueve. */
+const CODE_DEFAULT_FONT=(FONTS.find(f=>f.n==="IBM Plex Mono") || FONTS[FONTS.length-1]).f;
+function codeFont(n){ return n.font || CODE_DEFAULT_FONT; }
+/* Peso de un token: negrita del nodo (700; como siempre, todo lo que no sea `bold:false`) o, sin ella, 500 para la palabra clave y
+   400 para el resto. Es la jerarquía del resaltado ahora que no hay caja. */
+function codeTokenWeight(n,kw){ return n.bold===false ? (kw?500:400) : 700; }
+
+/* ===================== Cilindro (FLUYO-018.14a) =====================
+   UNA geometría para la forma `cylinder`, que recorren el lienzo (editor y Viewer,
+   js/render.js) y el exportador SVG (js/export.js); fluyo-mcp la porta en svg.ts y su
+   test de paridad la compara con esta. Antes cada renderer tenía la suya: el contorno
+   cerraba por arriba con una Bézier (controles a 0,8·ry) que culmina ~0,35·ry por
+   ENCIMA de la elipse de la tapa, y la elipse se dibujaba entera encima: dos arcos
+   traseros, la «doble línea».
+
+   Ahora todo son arcos de elipse reales sobre un único juego de medidas:
+     contorno = lateral izq. → media elipse inferior (frente) → lateral der. →
+                media elipse superior (fondo)            → se rellena y se traza
+     labio    = la otra mitad de la MISMA elipse superior (frente) → un trazo
+   Los laterales nacen en (cx±rx, top+ry), donde la tangente de la elipse es
+   vertical: son tangentes por construcción. La caja, los anclajes, el acierto y la
+   etiqueta no cambian (siguen saliendo de x, y, w, h). Ángulos en el sentido del
+   lienzo (y hacia abajo): π/2 es el punto más bajo de una elipse. */
+function cylinderGeom(n){
+  const ry=Math.min(16,n.h*.18);
+  return {cx:n.x, rx:n.w/2, ry, top:n.y-n.h/2, bot:n.y+n.h/2};
+}
+function cylinderSegments(n){
+  const g=cylinderGeom(n), L=g.cx-g.rx, R=g.cx+g.rx, capY=g.top+g.ry, baseY=g.bot-g.ry;
+  return {
+    outline:[
+      {op:"M", x:L, y:capY},
+      {op:"L", x:L, y:baseY},
+      {op:"A", cx:g.cx, cy:baseY, rx:g.rx, ry:g.ry, a0:Math.PI, a1:0, ccw:true},
+      {op:"L", x:R, y:capY},
+      {op:"A", cx:g.cx, cy:capY, rx:g.rx, ry:g.ry, a0:0, a1:Math.PI, ccw:true},
+      {op:"Z"},
+    ],
+    lip:[
+      {op:"M", x:R, y:capY},
+      {op:"A", cx:g.cx, cy:capY, rx:g.rx, ry:g.ry, a0:0, a1:Math.PI, ccw:false},
+    ],
+  };
+}
+/* Los mismos segmentos como `d` de SVG: un arco de 180° con sweep 0 si va en sentido
+   antihorario (ccw) y 1 si va en horario. */
+function segmentsToSVGPath(segs){
+  const f=v=>(+v).toFixed(2);
+  return segs.map(s=>{
+    if(s.op==="M"||s.op==="L") return `${s.op} ${f(s.x)} ${f(s.y)}`;
+    if(s.op==="Q") return `Q ${f(s.cx)} ${f(s.cy)} ${f(s.x)} ${f(s.y)}`;   // esquinas de una conexión (edgeStroke)
+    if(s.op==="A") return `A ${f(s.rx)} ${f(s.ry)} 0 0 ${s.ccw?0:1} ${f(s.cx+s.rx*Math.cos(s.a1))} ${f(s.cy+s.ry*Math.sin(s.a1))}`;
+    return "Z";
+  }).join(" ");
+}
 
 /* ===================== Escalado y maquetación de la etiqueta =====================
    UNA regla para todas las formas con texto, y es la MISMA que ya usaba `code`:

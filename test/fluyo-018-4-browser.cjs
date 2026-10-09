@@ -27,6 +27,9 @@ const serve = async (dir) => {
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
   return { server, base: "http://127.0.0.1:" + server.address().port };
 };
+/* FLUYO-018.15: en HEAD un nodo nuevo nacía #6a9fb5; ahora nace DEFAULT_NODE_COLOR (#857F6C). Las comparaciones con HEAD deshacen
+   solo ese cambio deliberado (también dentro de JSON anidado); todo lo demás tiene que seguir siendo idéntico. */
+const UNDO15 = (s) => typeof s === "string" ? s.replace(/(\\*"color\\*":\\*")#857F6C/g, "$1#6a9fb5") : s;
 function headTree() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "fluyo-head-"));
   const files = execFileSync("git", ["-C", root, "ls-tree", "-r", "--name-only", "HEAD"], { encoding: "utf8" }).split("\n").filter((f) => /^(index\.html|js\/|css\/|s\/|assets\/|manifest\.webmanifest)/.test(f));
@@ -93,6 +96,7 @@ async function noImpactScript(browser, base, label) {
   const docs = [];
   await S.build();
   await S.stub(true);
+  const initial = await S.docJson();
   /* nodo sin Historias afectadas (Libre está solo en una conexión que ninguna Historia usa) y conexión sin Historias */
   await S.click("edge", 2); await ed.keyboard.press("Delete");               // conexión libre
   docs.push(["borrar conexión sin Historia", await S.docJson()]);
@@ -109,7 +113,7 @@ async function noImpactScript(browser, base, label) {
   docs.push(["crear/mover/redimensionar", await S.docJson()]);
   const reopened = await ed.evaluate(async () => { const t = JSON.stringify(serializeProject(), null, 2); return t.length; });
   await S.ctx.close();
-  return { docs, confirms, errors: S.errors, reopened };
+  return { docs, confirms, errors: S.errors, reopened, initial };
 }
 
 (async () => {
@@ -123,8 +127,17 @@ async function noImpactScript(browser, base, label) {
     const a = await noImpactScript(browser, wt.base, "wt"), b = await noImpactScript(browser, hd.base, "head");
     ok(a.errors.length + b.errors.length === 0, "0 errores de consola/página" + (a.errors.concat(b.errors).length ? ": " + a.errors.concat(b.errors).join(" | ") : ""));
     ok(a.confirms === 0, "borrar nodo/conexión sin Historias afectadas NO abre ningún diálogo (aunque la página tenga Historias)");
+    const norm = (j) => { const d = JSON.parse(j); return UNDO15(JSON.stringify(d)); };
+    ok(norm(a.initial) === norm(b.initial), "documento de partida idéntico a HEAD");
     a.docs.forEach(([name, json], i) => {
-      const norm = (j) => { const d = JSON.parse(j); return JSON.stringify(d); };
+      /* FLUYO-018.12 (decisión 119): un clic sin mover ya no apila Undo. En HEAD el clic que selecciona «Aparte» apilaba una
+         entrada vacía, así que dos Ctrl+Z deshacían solo el borrado del nodo; ahora deshacen los dos borrados, que es lo que se
+         pidió. Se afirma el resultado correcto y se deja constancia de la diferencia, en vez de exigir la entrada vacía de HEAD. */
+      if (name === "undo ×2") {
+        ok(norm(json) === norm(a.initial), "«undo ×2»: dos Ctrl+Z deshacen los dos borrados (vuelve el documento de partida)");
+        ok(norm(b.docs[i][1]) === norm(b.docs[0][1]), "HEAD: «undo ×2» solo deshacía uno (el clic de selección apilaba una entrada vacía) — diferencia intencional de 018.12");
+        return;
+      }
       ok(norm(json) === norm(b.docs[i][1]), `«${name}»: documento idéntico a HEAD`);
     });
 

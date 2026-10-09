@@ -1,5 +1,5 @@
 {
- "baseRevision": "sha256:333cbed6fab696da21ce5aeaaa9a4ce538fab19940fa3f69f8db3cb554495482",
+ "baseRevision": "sha256:18e82e9498b57e54c3ede813b74bb0d7355d0c87e1a0bf2f7d6e7033ec638a5a",
  "document": {
   "version": 5,
   "app": "fluyo",
@@ -57,7 +57,7 @@
        "w": 180,
        "h": 70,
        "label": "A",
-       "color": "#6a9fb5",
+       "color": "#857F6C",
        "fill": null,
        "border": "solid",
        "lblPos": "center",
@@ -76,7 +76,7 @@
        "w": 180,
        "h": 70,
        "label": "B",
-       "color": "#6a9fb5",
+       "color": "#857F6C",
        "fill": null,
        "border": "solid",
        "lblPos": "center",
@@ -95,7 +95,7 @@
        "w": 180,
        "h": 70,
        "label": "C",
-       "color": "#6a9fb5",
+       "color": "#857F6C",
        "fill": null,
        "border": "solid",
        "lblPos": "center",
@@ -114,7 +114,7 @@
        "w": 180,
        "h": 70,
        "label": "D",
-       "color": "#6a9fb5",
+       "color": "#857F6C",
        "fill": null,
        "border": "solid",
        "lblPos": "center",
@@ -261,7 +261,7 @@
      "customBg": "#f4eee1"
     }
    ],
-   "resultRevision": "sha256:564e8b8e9bb8da833e18839d7a1f7b6f5e3fb83f472032cb2890e8114ff84ec0"
+   "resultRevision": "sha256:86c36168c33a848345fa51344461cf71875508ee294eaea670805690649d4373"
   },
   {
    "name": "reorder_nodes: subir 2 y 3 una capa",
@@ -281,7 +281,7 @@
      "to": "forward"
     }
    ],
-   "resultRevision": "sha256:b8fbf071f1cb06ddf8daa630b1f0fba5fd2e45ce19f08b0858b7c66c5c417644"
+   "resultRevision": "sha256:62c784d33c05351a29ead03762828aaed704f7450b9cdac857765fa7218d1749"
   },
   {
    "name": "reorder_nodes: 1 al frente",
@@ -298,7 +298,7 @@
      "to": "front"
     }
    ],
-   "resultRevision": "sha256:09809a490d4e08276e401259bfb2f919054b44903fa6d02170c0b01c3acc1cda"
+   "resultRevision": "sha256:2b865d065894093cf50552c3516813428053aecdd043d61ab1bd2b2988214e54"
   },
   {
    "name": "reorder_nodes: 4 al fondo",
@@ -315,7 +315,7 @@
      "to": "back"
     }
    ],
-   "resultRevision": "sha256:88d2c912ac27e287e372292e08977dd9292eafd46fa27c381dd6e0ffdd139f6e"
+   "resultRevision": "sha256:0b07718bc4c0e819c13ffd0640f81bf0499aa8859180f8462f6e46d8fe3fb44a"
   },
   {
    "name": "duplicate_node: conjunto 1,2,3",
@@ -343,7 +343,7 @@
      ]
     }
    ],
-   "resultRevision": "sha256:8e9ae157786a641490bef7be4ae6c2e05ad7a3b3feda0e2605a7e827ad1f01cb"
+   "resultRevision": "sha256:9d7d4b74652e0e6736c2d7e2784d1b09910e091b2c42f7f9ed47c5bb6589c50d"
   },
   {
    "name": "duplicate_node: un nodo con Behavior",
@@ -361,7 +361,7 @@
      ]
     }
    ],
-   "resultRevision": "sha256:407159044f0a5539475cb935df48ea38dc8dc355fed213963b3ac7bb08f6d0d0"
+   "resultRevision": "sha256:fe42db964f8fce5c4ca18f2e8d4e565ca3105e206ee0710107d3f88b305a2da8"
   }
  ]
 }

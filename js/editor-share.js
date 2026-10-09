@@ -15,7 +15,7 @@ function selectedShareKind(){
 function showShareDialog(){
   if(typeof isScenarioPlaybackActive==="function" && isScenarioPlaybackActive()){
     shareControl("shareMessage").textContent=typeof scStatus!=="undefined" && scStatus==="completed"
-      ?"Pulsa «Volver a editar» antes de compartir."
+      ?"Pulsa «Terminar» antes de compartir."
       :"Detén la reproducción de la historia antes de compartir.";
     shareControl("shareConfirm").hidden=true;
     shareControl("shareResult").hidden=true;

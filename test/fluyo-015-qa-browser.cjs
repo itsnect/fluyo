@@ -37,7 +37,7 @@ const SPY = `(() => { if (window.__spy) return; const s = window.__spy = { text:
   const p = CanvasRenderingContext2D.prototype, ft = p.fillText, st = p.stroke, cg = p.createRadialGradient;
   const isPrev = (c) => c.canvas && /scPreviewCanvas/.test(c.canvas.className || "");
   p.fillText = function (t, x, y, ...r) { if (!isPrev(this) && /^[^\\w\\s]/u.test(t) && t.length < 6) s.text.push({ t, x, y, px: parseFloat(/(\\d+(?:\\.\\d+)?)px/.exec(this.font)?.[1] || 0) }); return ft.call(this, t, x, y, ...r); };
-  p.stroke = function (...r) { if (!isPrev(this)) { if (this.lineCap === "round") s.round++; if (this.strokeStyle === "#3aa7e8") s.accent++; } return st.apply(this, r); };
+  p.stroke = function (...r) { if (!isPrev(this)) { if (this.lineCap === "round") s.round++; if (this.strokeStyle === FLOW_ACCENT.toLowerCase() && Math.abs(this.lineWidth - 2.4) < 1e-3) s.accent++; /* FLUYO-018.15: el acento de llegada es el terracota del evento; el grosor (float32) lo distingue de un nodo de ese color */ } return st.apply(this, r); };
   p.createRadialGradient = function (...r) { if (!isPrev(this)) s.grad++; return cg.apply(this, r); };
   const dt = window.drawEventToken, da = window.drawEventArrival;
   window.drawEventToken = function (c, pts, send, T) { s.calls.push({ prev: /scPreviewCanvas/.test(c.canvas.className || ""), conn: JSON.stringify(send.connection), token: send.token, p: send.progress }); return dt.apply(this, arguments); };

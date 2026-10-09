@@ -1,33 +1,49 @@
-/* Viewer read-only de /s/<id> — chrome mínimo coherente con el editor.
-   Todo el diagrama se dibuja en canvas; aquí sólo hay estados de vista. */
+/* Viewer read-only de /s/<id> — FLUYO-018.14a: la misma familia visual que el editor.
+   Los valores (color, voces, alturas, radios) salen de los tokens de css/system.css;
+   aquí solo se coloca. Todo el diagrama se dibuja en canvas: el lienzo va a sangre,
+   con el tema del documento, y el chrome es papel hueso con tinta, orientado a leer.
+   CSP: sin estilos inline (el sprite se oculta con .sprite). */
 
 *{ box-sizing:border-box; }
 html,body{ height:100%; }
 body{
   margin:0; display:flex; flex-direction:column;
-  background:var(--bg); color:var(--text);
+  background:var(--surface); color:var(--ink);
   font:var(--ui-font);
   overflow:hidden;
 }
+.sprite{ position:absolute; width:0; height:0; overflow:hidden; }
 
-/* ── Chrome superior: tabs de página + controles de vista ── */
+/* ── Cabecera: marca · páginas ··· vista · Presentar · Abrir en Fluyo ── */
 #chrome{
-  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
-  padding:8px 14px; background:var(--panel); border-bottom:1px solid var(--line);
+  display:flex; align-items:center; gap:6px; flex-wrap:nowrap; min-height:var(--hdr-h);
+  padding:0 10px 0 16px; background:var(--surface); border-bottom:1px solid var(--rule-2);
 }
-.logo{ color:var(--text); text-decoration:none; }
+#chrome .logo{
+  font-family:var(--font-serif); font-size:var(--fs-display); line-height:1; letter-spacing:-.01em;
+  color:var(--ink); text-decoration:none; display:flex; align-items:baseline; gap:0; margin-right:10px; flex:none;
+}
+#chrome .logo b{ color:var(--attention); font-weight:400; }
+#chrome .logo .dots{ margin-left:7px; }
+#chrome .logo .dots span{ display:inline-block; width:5px; height:5px; border-radius:50%; background:var(--attention); margin-left:2px; animation:flow 1.6s infinite; }
+#chrome .logo .dots span:nth-child(2){ animation-delay:.25s; opacity:.65; }
+#chrome .logo .dots span:nth-child(3){ animation-delay:.5s; opacity:.35; }
+@media (prefers-reduced-motion: reduce){ #chrome .logo .dots span{ animation:none; } }
 
-#pgTabs{ display:flex; gap:4px; max-width:100%; overflow-x:auto; }
+/* Páginas: nombre en serif (es significado), la activa levantada; con muchas, desliza. */
+#pgTabs{ display:flex; gap:2px; flex:1 1 auto; min-width:0; overflow-x:auto; scrollbar-width:thin; }
 #pgTabs[hidden]{ display:none; }
 #pgTabs button{
-  background:var(--panel2); color:var(--muted);
-  padding:5px 10px; border-radius:7px 7px 0 0; white-space:nowrap; font-size:12px;
+  flex:none; min-height:30px; padding:0 10px; border-radius:var(--r-sm); border:1px solid transparent;
+  background:transparent; color:var(--ink-3); font:400 14px/1 var(--font-serif); white-space:nowrap;
 }
-#pgTabs button:hover{ color:var(--text); }
-#pgTabs button.active{ color:var(--accent); border-color:#4a3d2c; background:#2c2620; }
+#pgTabs button:hover{ background:var(--hover-veil); color:var(--ink); border-color:transparent; }
+#pgTabs button.active{ background:var(--surface-raised); border-color:var(--rule-2); color:var(--ink); }
 
-.tools{ display:flex; align-items:center; gap:6px; margin-left:auto; flex-wrap:wrap; }
-.tools .spacer{ width:8px; }
+.tools{ display:flex; align-items:center; gap:2px; margin-left:auto; flex:none; }
+.tools .vdivider{ height:22px; align-self:center; margin:0 6px; background:var(--rule-2); }
+#chrome .tools button{ min-height:var(--ctl-h); }
+#btnOpen{ margin-left:4px; }
 button:disabled{ opacity:.4; cursor:default; }
 
 /* ── Lienzo ── */
@@ -37,45 +53,63 @@ button:disabled{ opacity:.4; cursor:default; }
 
 #status{
   position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-  text-align:center; padding:24px; color:var(--muted); font-size:16px;
-  pointer-events:none;
+  text-align:center; padding:24px; color:var(--ink-3); font:400 var(--fs-body)/1.6 var(--font-mono);
+  pointer-events:none; background:var(--surface);
 }
+#status:empty{ background:transparent; }
 #status[hidden]{ display:none; }
 
-/* ── Barra de presentación ── */
+/* ── Presentación: mando flotante en material inverso (como el del editor) ── */
 #prBar{
   position:absolute; left:50%; bottom:18px; transform:translateX(-50%);
-  display:flex; align-items:center; gap:10px; max-width:calc(100% - 16px); flex-wrap:wrap; justify-content:center;
-  background:var(--panel); border:1px solid var(--line); border-radius:12px;
-  padding:8px 14px; box-shadow:0 6px 24px #0008;
+  display:flex; align-items:center; gap:6px; max-width:calc(100% - 16px); flex-wrap:wrap; justify-content:center;
+  background:rgba(22,21,15,.86); border:1px solid var(--rule-2); border-radius:var(--r-pill);
+  padding:6px 8px; box-shadow:var(--shadow-float);
 }
 #prBar[hidden]{ display:none; }
-#prPos{ color:var(--muted); min-width:52px; text-align:center; }
+#prBar button{ min-height:38px; border-radius:var(--r-pill); display:inline-flex; align-items:center; gap:6px; padding:0 14px; }
+#prPos{ color:var(--ink-3); min-width:56px; text-align:center; font:500 var(--fs-label)/1 var(--font-mono); font-variant-numeric:tabular-nums; }
 
-/* ── Historia compartida ── */
+/* ── Historia compartida: tarjeta de lectura ──
+   Rótulo mono, título serif, el paso actual en mono y la acción principal en terracota. */
 #story{
   display:flex; flex-direction:column; align-items:center; gap:6px; text-align:center;
-  padding:10px 16px 12px; background:var(--panel); border-top:1px solid var(--line);
+  padding:12px 16px 14px; background:var(--surface); border-top:1px solid var(--rule-2);
 }
 #story[hidden], #story button[hidden]{ display:none; }
-#story .stKicker{ font-size:12px; font-weight:600; letter-spacing:.02em; opacity:.65; margin-bottom:2px; overflow-wrap:anywhere; }
-#story .stTitle{ font-size:16px; font-weight:600; line-height:1.25; overflow-wrap:anywhere; max-width:100%; }
-#story .stCaption{ font-size:14px; overflow-wrap:anywhere; max-width:100%; }
-#story .stSummary{ font-size:12px; color:var(--muted); overflow-wrap:anywhere; }
+/* sin text-transform: el rótulo es texto de la Historia («Historia · nombre») y se lee tal cual */
+#story .stKicker{ font:500 var(--fs-label)/1.3 var(--font-mono); letter-spacing:.02em; color:var(--ink-3); overflow-wrap:anywhere; }
+#story .stTitle{ font:400 19px/1.25 var(--font-serif); color:var(--ink); overflow-wrap:anywhere; max-width:100%; }
+#story .stCaption{ font:400 var(--fs-body)/1.55 var(--font-mono); color:var(--ink-2); overflow-wrap:anywhere; max-width:min(100%, 640px); }
+#story .stSummary{ font:400 var(--fs-label)/1.4 var(--font-mono); color:var(--ink-3); overflow-wrap:anywhere; }
 #story .stCaption:empty, #story .stSummary:empty{ display:none; }
-#story .stActions{ display:flex; gap:8px; flex-wrap:wrap; justify-content:center; max-width:100%; }
-#story .stActions button{ min-height:40px; padding:0 18px; border-radius:999px; font-size:14px; }
-#story #stPlay{ font-weight:600; }
+#story .stActions{ display:flex; gap:8px; flex-wrap:wrap; justify-content:center; max-width:100%; margin-top:4px; }
+#story .stActions button{ min-height:var(--ctl-h-touch); padding:0 18px; border-radius:var(--r-pill); font-weight:500; }
 body.presenting #story{ display:none; }
 
-/* ── Branding ── */
-#brand{
-  padding:6px 12px; text-align:center; background:var(--panel);
-  border-top:1px solid var(--line);
-}
-#brand a{ color:var(--muted); text-decoration:none; font-size:12px; }
-#brand a:hover{ color:var(--text); }
+/* ── Firma: metadato discreto ── */
+#brand{ padding:6px 12px; text-align:center; background:var(--surface); border-top:1px solid var(--rule); }
+#brand a{ color:var(--ink-3); text-decoration:none; font:400 var(--fs-label)/1.6 var(--font-mono); display:inline-block; min-height:24px; padding:2px 6px; }
+#brand a:hover{ color:var(--ink); }
 
 /* ── Presentación: chrome fuera, lienzo a pantalla completa ── */
 body.presenting #chrome, body.presenting #brand{ display:none; }
 body.presenting #sv{ cursor:default; }
+
+/* ── Estrecho: la cabecera sigue en una fila (iconos), las páginas bajan a su tira ── */
+@media (max-width:700px){
+  #chrome{ flex-wrap:wrap; padding:0 6px 0 12px; column-gap:2px; }
+  #chrome .logo{ font-size:19px; margin-right:4px; }
+  #chrome .logo .dots{ display:none; }
+  #btnPresent{ width:var(--ctl-h); min-width:var(--ctl-h); padding:0; }
+  #btnPresent .lbl{ position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+  .tools .vdivider{ margin:0 2px; }
+  #pgTabs{ order:3; flex:1 0 100%; padding:0 0 6px; }
+  #story .stTitle{ font-size:17px; }
+}
+/* A 375–420 px «Abrir en Fluyo» se queda en «Abrir» (el nombre completo lo da aria-label): la fila tiene que caber. */
+@media (max-width:420px){
+  #btnOpen{ padding:0 12px; gap:6px; }
+  #btnOpen .lblRest{ display:none; }
+  .tools .vdivider{ display:none; }
+}

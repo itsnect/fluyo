@@ -315,3 +315,116 @@ propose_layout ─► solo lectura (lotes para author_document)          edit_di
 - MCP: 15 tools (`server.ts`, `verify-deploy.sh`). Una sola codificación `#d=` (`openLink`; `buildOpenLink` es su envoltorio). `src/diagram.ts` queda con `parseDocument` (export_diagram) y los adaptadores de 018.9. Decisiones 114–116.
 - Editor: solo documentación (`docs/index.html`, `README.md`); `CACHE` v69. Kernel sin cambios.
 - Pruebas: MCP `test/fluyo-018-10.test.ts` (editorUrl, contrato, cobertura del sustituto, búsqueda estática, stdio), `scripts/mutate-018-10.ts` (20); Fluyo `test/fluyo-018-10.test.cjs` (docs ↔ contrato, CACHE), `test/fluyo-018-10-mutations.cjs` (9), `test/fluyo-018-10-browser.cjs` (Chrome real: author_document → editorUrl → editor; docs/ precacheada v69 y offline).
+
+## Base táctil y móvil (FLUYO-018.12)
+
+```text
+              >1100 px                         ≤1100 px                          ≤700 px
+cabecera  todo a la vista (order CSS)   ajustes y archivo → menú «Más»   + Exportar → «Más», Presentar → barra inferior
+panel     columna fija, pestañas        columna fija, pestañas           hoja inferior: ⚙ (Propiedades) · Historias · Cerrar
+                     openSurface / closeSurface / toggleSurface (ui.js) — la única puerta a las dos superficies
+```
+
+- `ui.js`: `placeChrome` (reubica los mismos nodos según `matchMedia`), superficies + `revealAboveSheet`, menú «Más» (enlaces del proyecto y Open Source), menú de la pestaña activa (`openPageMenu`: renombrar en línea, eliminar con `requestDeletePage`), `syncTouchBar`, `syncHistoryButtons`. El tramo `renderTabs` … «Modo presentación» lo copian los arneses de vm: ahí solo se declara.
+- `interaction.js`: modos táctiles `touchLink`/`touchMulti` (`touchModes`), Undo de arrastre diferido al primer movimiento real (`drag.snap`), radios de acierto de esquinas y codos ampliados con dedo (sin cambio visual).
+- `render.js`: `canvasDpr`/`resizeCanvas` (respaldo × densidad, tope 2) y una escala en `render()`; `editor-runtime.js` y `viewer.js` pasan la vista en px CSS + `dpr`. `editor-runtime.js` sincroniza Deshacer/Rehacer cada fotograma (solo escribe si cambia).
+- `editor-scenarios.js`: solo dos marcas en `<body>` (`scPlaybackOn`, `scPlacing`) y revelar el diagrama al reproducir.
+- `export.js`: «Ejemplo» en página nueva. `sw.js`: `CACHE` v70. Sin cambios en `model.js` ni `config.js` (kernel del MCP intacto). Decisiones 117–122.
+- Pruebas: `test/fluyo-018-12.test.cjs` (precache, ids, cabecera, `renderTabs` en vm, DPR en vm, Ejemplo con el editor completo de 018.8), `test/fluyo-018-12-mutations.cjs` (18: 8 estáticas/vm + 10 en Chrome), `test/fluyo-018-12-browser.cjs` (Chrome real: 390/375/768 táctil y 1280/1440 ratón, 16 flujos; escritorio idéntico a HEAD; diferencias móviles frente a HEAD documentadas; DPR 2 en editor y Viewer).
+
+## Sistema visual (FLUYO-018.13)
+
+```text
+index.html ── css/identity.css ── css/system.css ──────────── css/styles.css
+              (compartido con      tipografías (@font-face local)  layout: cabecera, rail, marco del
+               el Viewer)          tokens  --c-* → --surface…      lienzo, panel, páginas, menús,
+                                   componentes: botones, campos,   responsive. Sin valores propios:
+                                   pestañas, insignias, menús,     usa los tokens.
+                                   tooltip, kbd, material inverso
+s/index.html ─ css/identity.css ── css/share.css   (el Viewer NO carga system.css)
+```
+
+- Dos capas: el chrome es papel hueso con tinta; el lienzo es la superficie de trabajo y su tema es del documento (`doc.theme`, `config.js`, sin cambios). El chrome lo enmarca (`.stage` + `#wrap`: aire, filete de tinta, radio, sombra interior); en ≤700 px va a sangre.
+- Tokens: primitivas `--c-*` (hueso, tinta, oliva, terracota, grafito, piedra) → semánticos (`--surface*`, `--ink*`, `--rule*`, `--active*` = oliva, `--attention*` = terracota, `--font-serif`, `--font-mono`, `--fs-*`, `--r-*`, `--ctl-h` de 30 px que pasa a 40 px con `pointer:coarse`). Los nombres de `identity.css` (`--bg`, `--panel`, `--text`, `--muted`, `--accent`…) se redefinen sobre los tokens: Historias y los diálogos pasan al sistema sin reescribirse.
+- Componentes: `button` secundario por defecto, `.btnGhost`, `.primary` (terracota), `.iconBtn`, `.danger`; campos mono; casillas como interruptor (`.row`, menú «Más»); `.tabs`; `.badge`; `.menu`/`.menuSection`/`.menuKicker`/`.menuItem` (también `.scPopover` y `.moreMenu`); `[data-tip]`; `.inverse` (mando y rótulo de Present, también por id porque `present-story.js` reescribe el `className` del mando).
+- La cabecera de la app se selecciona como `body > header`: Historias y los diálogos tienen sus propios `<header>`.
+- Iconos: sprite `<symbol id="i-…">` en `index.html` (trazo 1,6 sobre 24, tamaño `--ic`). Lo generado desde JS sin markup (✕ ▾ ＋ de las pestañas de página) conserva el glifo como texto y se pinta con máscaras CSS (`--mask-*`).
+- Lienzo: `render.js` pinta las marcas del editor (selección, tiradores, marco de selección, vista previa de conexión, flechas de los lados) con `editorMark(theme)` (oliva por tema). El diagrama (formas, radios, trazos, texto) no cambia: lo comparten lienzo, SVG exportado y Viewer.
+- `ui.js`: `syncSelMeta` (metadato de la selección junto al título del panel), `zoomTo`/`zoomBy`/`syncZoomReadout` (controles de vista en la barra inferior, solo >700 px; `editor-runtime.js` sincroniza la lectura) y `togglePlay`, que cambia solo la palabra. `placeChrome` no cambia.
+- `sw.js`: `CACHE` v71; `css/system.css` y las tres fuentes en el núcleo del precache. Sin cambios en `model.js`, `config.js` ni `identity.css` (en 018.14a `config.js` cambia: ver la sección siguiente). Decisiones 123–127.
+- Pruebas: `test/fluyo-018-13.test.cjs` (fuentes y licencias, precache, tokens, sprite, cabecera, alcance), `test/fluyo-018-13-browser.cjs` (Chrome real: 1440/1280 ratón, 1024/768/390/375 táctil; fuentes sin terceros, tokens en superficies, una fila, objetivos táctiles, menú, panel, páginas, vista, barra táctil, Present, SW offline) y `test/fluyo-018-13-mutations.cjs`.
+
+## Viewer, tipografía y nodos `code`/BD en el sistema (FLUYO-018.14a)
+
+```text
+js/config.js (kernel) ── FONTS (+ Playfair Display, IBM Plex Mono antes de «Mono») · THEMES.code* (respaldos de code)
+        │                         └─ fluyo-mcp: sync:config → src/generated/config.ts · sync:kernel → KERNEL_ID nuevo
+js/geometry.js ── codeColors · codeFont · codeTokenWeight · cylinderGeom/cylinderSegments/segmentsToSVGPath
+        ├─ js/render.js  (lienzo del editor y del Viewer: drawNode, drawCodeNode, shapePath)
+        ├─ js/export.js  (SVG de la app)
+        └─ fluyo-mcp src/svg.ts (port; el test de paridad carga geometry.js real y compara)
+```
+
+- **Cilindro**: una sola geometría de arcos reales (`cylinderSegments`). El contorno (lateral, media elipse inferior, lateral, media elipse superior trasera) se rellena y se traza; el labio es la otra mitad de la misma elipse superior. El lienzo la recorre con `traceSegments` y el SVG con `segmentsToSVGPath`. `shapePath` también la usa, así que el resaltado de Historias abraza el cilindro. Caja, anclajes, acierto y etiqueta no cambian.
+- **`code`**: el panel por defecto es el tinte del color del nodo (como `fillFor`). Los respaldos del bloque, el texto y la palabra clave viven en `THEMES.code*` (`codeKwBg:""` = sin caja). La palabra clave se marca con peso 500 (`codeTokenWeight`). Sin `font` propio, el bloque usa IBM Plex Mono (`codeFont`), cuya pila acaba en «Mono». Los valores explícitos del nodo mandan siempre. La maquetación (`codeBlockLayout`) no cambia.
+- **Fuentes del lienzo**: `renderFontStacks`/`waitForRenderFonts` (`render.js`) dicen qué pilas usa el documento (global, nodos, conexiones y la del bloque `code`) y esperan a `document.fonts.load`, con un tope de tiempo. Las usan el Viewer (antes del primer render) y la exportación GIF/PNG/JPG (antes de rasterizar). El SVG lleva la pila con su reserva.
+- **Viewer**: `s/index.html` carga `identity.css` + `system.css` + `share.css` y precarga la mono. El sprite se oculta con una clase (la CSP no admite `style` inline). La cabecera va en una fila y la Historia es una tarjeta de lectura. El mando de Present usa el material inverso. Los textos con glifo de la Historia (`▶ Reproducir historia`, `↻ Repetir`) los escribe `viewer.js` y no cambian.
+- `sw.js`: `CACHE` v72. `model.js` y el formato no cambian. Decisiones 128–130.
+- Pruebas: `test/fluyo-018-14a.test.cjs` (contrato `FONTS` y diff de `config.js` frente a HEAD, documentos con fuentes históricas, respaldos y datos explícitos de `code`, geometría del cilindro, uso compartido en lienzo/SVG, espera de fuentes, Viewer CSP-safe), `test/fluyo-018-14a-browser.cjs` (Chrome real, 5 viewports × oscuro/crema: tapa de la BD por píxeles en lienzo, SVG y Viewer; cian 0; cajas verdes solo con `kwBg`; Plex cargada; selector; reabrir; Viewer; exportar espera a las fuentes) y `test/fluyo-018-14a-mutations.cjs`. En fluyo-mcp: paridad de `codeColors`, `codeFont`, `codeTokenWeight` y `cylinderSegments` en `test/visual-regression.test.ts`, y la salida de `pageToSVG` en `test/render.test.ts`.
+
+## Modo Historia, panel por grupos, cabecera e interfaz oscura (FLUYO-018.14b)
+
+```text
+estado                 dónde                                         ¿se guarda?
+documento              doc / settings (model.js, state.js)            .fluyo.json · autoguardado · #d=
+interfaz (preferencia) localStorage["fluyo.ui.theme"] → <html data-ui-theme>   no (solo este navegador)
+modo de trabajo        uiMode (ui.js) → body.storyMode                no
+superficies            body.panelOpen · body.storyExpanded · <details open>     no
+Historia               scActiveId · scStatus · scPlayback (editor-scenarios.js) no
+```
+
+- **Modo** (`ui.js`): `setUiMode("edit"|"story")` es la única puerta; `switchPanelTab`, `openSurface`, `toggleSurface`, el conmutador de la cabecera, `#btnStories` y «Volver a editar» (`exitStoryMode`) pasan por ella. `activeSurface()` deriva de `uiMode`. Salir detiene la Historia. En modo Historia el rail no se ve (CSS) y la tecla C no arma «Conectar» (`interaction.js`).
+- **Cabecera**: `#modeSwitch` (`.seg`), `#btnCanvas` → `#canvasMenu` (`#canvasTools`: ajustes del documento), Exportar/Compartir/Presentar y «Más» (`#moreTools` > `#hdrTools`: Archivo; `#uiSection`: interfaz; enlaces). `placeChrome` mueve en móvil Exportar a Archivo, `#canvasTools` a «Más» y Presentar a la barra inferior. Menús con la misma política (fuera/Escape/acción los cierran; selectores y casillas no).
+- **Panel**: `#rowLabel` arriba y grupos `details.pgroup` (`system.css`); `syncPanelGroups` (al final de `refreshPanel`) oculta grupos sin filas y gestiona «Más colores» (`syncSwatchMore`); `applyGroupDefaults` aplica los abiertos por defecto según la anchura; en la hoja móvil, acordeón. 288 px (> 1024), 216 (tableta); Historias 320 (escritorio), 300 (tableta), 352 (≥ 1600).
+- **Hojas** (≤ 700 px): `#propSheetHead` (título + `#btnPanelClose`), toque en el vacío del lienzo (`sheetTapOutside`), Historias compacta/ampliada (`setStoryExpanded`, `#btnStoryExpand`; `scSyncCompact` pasa la biblioteca a paleta flotante en la altura compacta).
+- **Historias** (`editor-scenarios.js`, solo UI): `scGlyphText` (glifo como `.glyph` sin cambiar el texto), `scRenderNow` (bloque `#scNow` con `FluyoStory.describe`), marcas con `data-mark`, «Terminar», `scSyncCompact`. Sin cambios de semántica, Steps, Trace ni Playback.
+- **Interfaz oscura**: `:root[data-ui-theme="dark"]` en `system.css` redefine todos los semánticos y los tintes tokenizados; `applyUiTheme`/`setUiTheme` (`ui.js`) y el script del `<head>`. El lienzo, el Viewer y la exportación no lo leen.
+- `sw.js`: `CACHE` v73 (sin archivos servidos nuevos). `model.js`, kernel, formato, `render.js`, `viewer.js`, `config.js` y MCP sin cambios. Decisiones 131–139.
+- Pruebas: `test/fluyo-018-14b.test.cjs` (alcance, tokens del oscuro completos, separación de temas, cabecera, inventario del panel, modo, hojas y transporte en vm), `test/fluyo-018-14b-browser.cjs` (matriz de Chrome real: 1440/1280/1101/768/390/375 × interfaz clara/oscura × lienzo oscuro/crema × editor/panel/Historia/reproduciendo; persistencia; SW v73) y `test/fluyo-018-14b-mutations.cjs`.
+
+## Color del documento (FLUYO-018.15)
+
+```text
+qué                                   valor                         dónde                      alcance
+nodo nuevo sin color                  DEFAULT_NODE_COLOR #857F6C    config.js → createNodeIn    kernel (editor + MCP)
+nodo guardado sin color (histórico)   PALETTE[0].c #6a9fb5          normalizeProjectNode        kernel; nunca cambia
+«Servicio» y la paleta                PALETTE (14, sin cambios)     config.js                  datos; list_colors
+activo (selección, colocar, Resaltar) activeMark(theme): oliva      render.js (EDITOR_MARK)     editor · Present · Viewer
+evento en tránsito                    FLOW_ACCENT #d08b5b           render.js                   editor · Present · Viewer
+```
+
+- El color de un nodo es dato: trazo, tinte del relleno (`fillFor`), texto de un nodo `text`/`anim`, puntos de flujo que salen de él (`e.dotColor||A.color`) y brillo del pulso. El render no lo reinterpreta: editor, Viewer, SVG (`export.js`) y `export_diagram` (`fluyo-mcp/src/svg.ts`) dibujan el mismo valor.
+- `ui.js`: la rejilla de color del nodo empieza por «Piedra (por defecto)». `interaction.js`: la herramienta de animaciones crea con `DEFAULT_NODE_COLOR`.
+- Los respaldos de `drawAnim`/`colHex` (`render.js`) son `PALETTE[0].c`, el mismo respaldo histórico de la normalización.
+- `sw.js`: `CACHE` v74. Formato sin cambios. Kernel: `config.js` (constante nueva) y `model.js` (una línea); fluyo-mcp sincronizado (`KERNEL_ID` `cbb6ec00…`). Decisiones 140–142.
+- Pruebas: `test/fluyo-018-15.test.cjs` (contrato del default, alcance de `model.js`, compatibilidad de ejemplos y fixtures, render sin cian), `test/fluyo-018-15-browser.cjs` (Chrome real: 1440/1280/1101/768/390/375 × interfaz clara/oscura × lienzo claro/crema/oscuro; editor, Historia real, SVG, Viewer) y `test/fluyo-018-15-mutations.cjs`. Fixture compartido con fluyo-mcp: `test/fixtures/fluyo-018-15-colores.json` (allí, `test/fluyo-018-15.test.ts` y `scripts/mutate-018-15.ts`).
+
+## Conexiones (FLUYO-018.16)
+
+```text
+qué                         dónde                                  superficies
+ruta (anclas, carriles)     geometry.js edgePoints (sin cambios)   todas; port en svg.ts
+trazo + puntas              geometry.js edgeStroke → segmentos     lienzo (traceSegments), SVG (segmentsToSVGPath), svg.ts (port)
+funda de selección          render.js EDITOR_MARK.sleeve           solo editor
+instrumentos de edición     render.js drawEdge (px de pantalla)    solo editor
+puerto de conectar          geometry.js connectPortPoint;          solo editor, solo ratón
+                            render.js drawConnectPort;
+                            interaction.js hitSideArrow
+origen de «Conectar»        render.js drawLinkOrigin (linkFrom)    solo editor, barra táctil
+```
+
+- `edgeStroke(e, pts)` devuelve `{line, heads}` con operaciones `M/L/Q/Z`; `traceSegments` y `segmentsToSVGPath` entienden `Q`. Constantes `EDGE_W`, `EDGE_CORNER`, `EDGE_GAP`, `EDGE_HEAD_*` y `CONNECT_PORT_*` en `geometry.js` (no son kernel: el MCP las porta y la paridad las compara).
+- `arrowHostNode()` (`selection.js`) es el nodo bajo el ratón; `null` con el dedo. Aciertos de arista, extremos, codos y tramos en px de pantalla (`interaction.js`), nunca menores que antes.
+- El SVG ya no lleva `<defs>` de marcadores: cada conexión es un `<path>` de trazo (`stroke-width="1.5"`) y una `<path>` rellena por punta.
+- `sw.js`: `CACHE` v75. Formato, modelo y kernel sin cambios. Decisiones 143–145.
+- Pruebas: `test/fluyo-018-16.test.cjs` (geometría en vm, contratos de render/interacción/export), `test/fluyo-018-16-browser.cjs` (Chrome real: 6 viewports × interfaz clara/oscura × 3 lienzos; normal, selección, instrumentos, acierto a zoom bajo, conectar con ratón y con dedo, SVG = golden del MCP, Viewer, Historia) y `test/fluyo-018-16-mutations.cjs`. Fixtures compartidos con fluyo-mcp: `test/fixtures/fluyo-018-16-conexiones.json` y `fluyo-018-16-conexiones-svg.json` (allí, `test/fluyo-018-16.test.ts`, la paridad de `edgeStroke` en `visual-regression.test.ts` y `scripts/mutate-018-16.ts`).

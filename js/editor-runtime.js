@@ -8,13 +8,16 @@ function now(){ return playing? (performance.now()-t0)/1000 : pausedAt; }
 function buildEditorRenderState(){
   const single=singleSel();
   const rs={
-    viewport:{x:viewX,y:viewY,zoom:viewZoom,width:cv.width,height:cv.height,presenting:!!presenting},
+    /* width/height en px CSS: el respaldo del lienzo puede ser mayor (pantallas de alta densidad, FLUYO-018.12)
+       y render() escala una sola vez con `dpr`. Todo lo demás —gestos, vista, textarea— sigue en px CSS. */
+    viewport:{x:viewX,y:viewY,zoom:viewZoom,width:cv.width/(cv.fluyoDpr||1),height:cv.height/(cv.fluyoDpr||1),dpr:cv.fluyoDpr||1,presenting:!!presenting},
     interaction:{
       mode,
       pendingShape:!!pendingShape,
       pendingIcon:!!pendingIcon,
       pendingAnim:!!pendingAnim,
       connecting,
+      linkFrom:typeof touchModes==="function" ? touchModes().link : null,
       drag:!!drag,
       resizing:!!resizing,
       wpDrag:!!wpDrag,
@@ -53,6 +56,10 @@ function renderEditorFrame(){
   render(ctx,now(),{renderState:buildEditorRenderState()});
   /* El textarea de edición vive en el DOM, fuera del canvas. */
   if(typeof syncEditBoxIfMoved==="function") syncEditBoxIfMoved();
+  /* Deshacer/Rehacer visibles (ui.js): el bucle es el único sitio por el que pasan todos los cambios de las pilas. */
+  if(typeof syncHistoryButtons==="function") syncHistoryButtons();
+  /* Lectura del zoom en la barra inferior (ui.js, FLUYO-018.13): mismo criterio, solo escribe si cambia. */
+  if(typeof syncZoomReadout==="function") syncZoomReadout();
 }
 
 /* Se pide el siguiente frame antes de dibujar para que un fallo aislado no

@@ -39,7 +39,20 @@ function shapePath(c,n){
     case "hex":{ const i=Math.min(24,w*.18);
       c.moveTo(x-w/2+i,y-h/2); c.lineTo(x+w/2-i,y-h/2); c.lineTo(x+w/2,y);
       c.lineTo(x+w/2-i,y+h/2); c.lineTo(x-w/2+i,y+h/2); c.lineTo(x-w/2,y); c.closePath(); break;}
+    /* FLUYO-018.14a: el contorno real del cilindro (el resaltado de Historias lo abraza) */
+    case "cylinder": traceSegments(c, cylinderSegments(n).outline); break;
     default: roundRect(c,x-w/2,y-h/2,w,h,10);
+  }
+}
+/* Recorre segmentos de geometría compartida (js/geometry.js) sobre el contexto 2D.
+   No abre ni cierra el trazo por su cuenta salvo la Z del propio segmento. */
+function traceSegments(c,segs){
+  for(const s of segs){
+    if(s.op==="M") c.moveTo(s.x,s.y);
+    else if(s.op==="L") c.lineTo(s.x,s.y);
+    else if(s.op==="Q") c.quadraticCurveTo(s.cx,s.cy,s.x,s.y);
+    else if(s.op==="A") c.ellipse(s.cx,s.cy,s.rx,s.ry,0,s.a0,s.a1,s.ccw);
+    else if(s.op==="Z") c.closePath();
   }
 }
 function objFont(o,fs){
@@ -94,7 +107,7 @@ function nodeCorners(n){
           [n.x+n.w/2+6,n.y+n.h/2+6],[n.x-n.w/2-6,n.y+n.h/2+6]];
 }
 function drawAnim(c,n,t,theme,glow){
-  const col=n.color||"#3aa7e8";
+  const col=n.color||PALETTE[0].c;   // mismo respaldo histórico que normalizeProjectNode
   const cx=n.x, cy=n.y - (n.label? 8:0);
   const r=Math.max(10, Math.min(n.w, n.h - (n.label?26:8))*.34);
   const rate=Math.max(.4, settings.speed*2);
@@ -223,21 +236,23 @@ function drawCodeNode(c,n,theme,glow){
   c.beginPath(); roundRect(c,x+2,y+2,n.w-4,n.h-4,9); c.clip();
   c.fillStyle=col.paper;
   c.beginPath(); roundRect(c,L.bx,L.by,L.bw,L.blockH,6); c.fill();
-  c.font=`${n.bold===false?"":"700 "}${L.fs}px ${codeFont(n)}`;
+  const fam=codeFont(n);
   c.textBaseline="middle"; c.textAlign="left";
   for(const row of L.rows){
     for(const tk of row.tokens){
-      if(tk.kw){
+      /* FLUYO-018.14a: la caja de la palabra clave solo existe si el nodo la pide (kwBg) */
+      if(tk.kw && col.kwBg){
         c.fillStyle=col.kwBg;
         c.fillRect(tk.x-2, row.ly-L.fs/2-2, tk.w+4, L.fs+6);
       }
+      c.font=`${codeTokenWeight(n,tk.kw)} ${L.fs}px ${fam}`;
       c.fillStyle = tk.kw ? col.kwText : col.text;
       for(let j=0;j<tk.t.length;j++) c.fillText(tk.t[j], tk.x+j*L.adv, row.ly);
     }
   }
   c.restore();
 }
-function colHex(c){ return (typeof c==="string" && c[0]==="#")? c : "#3aa7e8"; }
+function colHex(c){ return (typeof c==="string" && c[0]==="#")? c : PALETTE[0].c; }   // color no hex (histórico): respaldo de normalizeProjectNode
 function prefersReducedMotion(){
   try{ return !!(typeof window!=="undefined" && window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches); }
   catch(e){ return false; }
@@ -400,14 +415,39 @@ function drawScenarioNodeOverlay(c,n,t,state,theme,rs){
       c.restore();
     }
     if(fx.highlight || (fx.blink && !fx.fillColor && !fx.dim)){
-      c.shadowColor = "#3aa7e8"; c.shadowBlur = 14;
-      c.strokeStyle = "rgba(58,167,232,.9)"; c.lineWidth = 2.5;
+      /* FLUYO-018.15: «Resaltar» es estado activo de la Historia: el mismo oliva con el que el editor marca
+         el paso que se está colocando (scHighlight), no el cian del editor antiguo */
+      const M = activeMark(theme);
+      c.shadowColor = M.ink; c.shadowBlur = 14;
+      c.strokeStyle = M.arrow; c.lineWidth = 2.5;
       shapePath(c,n); c.stroke();
     }
     c.restore();
   }
 }
 
+/* ===================== Marcas del editor (FLUYO-018.13) =====================
+   Selección, tiradores, marco de selección, vista previa de conexión y flechas
+   de los lados: todo lo que el EDITOR dibuja encima del diagrama y que nunca
+   sale en el Viewer ni en una exportación. Antes era azul (#3aa7e8) en los tres
+   temas y se confundía con los nodos azules; ahora es el color de «activo» del
+   sistema (oliva), en la variante que se lee sobre cada tema del lienzo. El
+   diagrama en sí —formas, bordes, radios, texto— no cambia: lo comparten el
+   lienzo, el SVG exportado y el Viewer, y deben seguir siendo idénticos. */
+const EDITOR_MARK={
+  dark :{ink:"#C3CDA4", soft:"rgba(195,205,164,.14)", arrow:"rgba(195,205,164,.92)", sleeve:"rgba(195,205,164,.26)"},
+  crema:{ink:"#4E5A3F", soft:"rgba(78,90,63,.12)",    arrow:"rgba(78,90,63,.88)",    sleeve:"rgba(78,90,63,.20)"},
+  claro:{ink:"#4E5A3F", soft:"rgba(78,90,63,.10)",    arrow:"rgba(78,90,63,.88)",    sleeve:"rgba(78,90,63,.20)"},
+};
+/* `sleeve` (FLUYO-018.16): la funda bajo una conexión seleccionada. */
+/* FLUYO-018.15: el oliva de «activo» sobre cada tema. Lo usan las marcas del editor y, fuera del editor,
+   el efecto «Resaltar» de una Historia (editor, Present y Viewer): un mismo estado, un mismo color. */
+function activeMark(theme){ return EDITOR_MARK[theme]||EDITOR_MARK.dark; }
+function editorMark(theme){
+  const m=activeMark(theme);
+  /* el relleno de los tiradores es el fondo real del lienzo (incluido un fondo personalizado) */
+  return {ink:m.ink, soft:m.soft, arrow:m.arrow, sleeve:m.sleeve, knob:(typeof doc!=="undefined" && doc.customBg)||((THEMES[theme]||THEMES.dark).bg)};
+}
 function drawNode(c,n,t,theme,isExport,rs){
   const a=nodeAlpha(n,t); if(a<=0) return;
   c.save(); c.globalAlpha=a;
@@ -420,7 +460,7 @@ function drawNode(c,n,t,theme,isExport,rs){
   if(n.shape==="image" && n.img){
     const im=getImg(n.img);
     if(im.complete && im.naturalWidth){
-      if(glow>0){c.shadowColor="#3aa7e8"; c.shadowBlur=20*glow;}
+      if(glow>0){c.shadowColor=n.color; c.shadowBlur=20*glow;}   // como el resto de formas (FLUYO-018.15)
       c.drawImage(im, n.x-n.w/2, n.y-n.h/2, n.w, n.h);
       c.shadowBlur=0;
     }
@@ -435,18 +475,15 @@ function drawNode(c,n,t,theme,isExport,rs){
     if(n.label) drawLabelLines(c,n,theme,rs.interaction.editing);
   }
   else if(n.shape==="cylinder"){
-    const {x,y,w,h}=n, ry=Math.min(16,h*.18), top=y-h/2, bot=y+h/2;
-    const fc=fillFor(n,theme);
+    /* FLUYO-018.14a: geometría compartida (cylinderSegments, js/geometry.js): la tapa
+       se dibuja UNA vez —su mitad trasera cierra el contorno; la delantera es el labio— */
+    const seg=cylinderSegments(n), fc=fillFor(n,theme);
     c.strokeStyle=n.color; c.lineWidth=2.5+glow*1.5;
     if(glow>0){c.shadowColor=n.color; c.shadowBlur=18*glow;}
-    c.beginPath();
-    c.moveTo(x-w/2,top+ry); c.lineTo(x-w/2,bot-ry);
-    c.bezierCurveTo(x-w/2,bot+ry*.8, x+w/2,bot+ry*.8, x+w/2,bot-ry);
-    c.lineTo(x+w/2,top+ry);
-    c.bezierCurveTo(x+w/2,top-ry*.8, x-w/2,top-ry*.8, x-w/2,top+ry);
+    c.beginPath(); traceSegments(c, seg.outline);
     if(fc){ c.fillStyle=fc; c.fill(); }
     borderDash(n,c); c.stroke();
-    c.beginPath(); c.ellipse(x,top+ry,w/2,ry,0,0,Math.PI*2); c.stroke();
+    c.beginPath(); traceSegments(c, seg.lip); c.stroke();
     c.setLineDash([]);
     c.shadowBlur=0;
     drawLabelLines(c,n,theme,rs.interaction.editing);
@@ -479,15 +516,17 @@ function drawNode(c,n,t,theme,isExport,rs){
 
   if(!isExport && typeof scHighlight==="function"){
     const highlight=scHighlight("node",n.id);
-    if(highlight){c.save();c.strokeStyle=highlight===2?"#3aa7e8":"rgba(58,167,232,.35)";c.lineWidth=highlight===2?5:2;c.setLineDash(highlight===2?[]:[6,4]);shapePath(c,n);c.stroke();c.restore();}
+    if(highlight){const M=editorMark(theme);c.save();c.strokeStyle=highlight===2?M.ink:M.arrow;c.globalAlpha=highlight===2?1:.45;c.lineWidth=highlight===2?5:2;c.setLineDash(highlight===2?[]:[6,4]);shapePath(c,n);c.stroke();c.restore();}
   }
   if(!isExport && rs.selection.nodes.has(n.id)){
+    const M=editorMark(theme);
     c.save();
-    c.setLineDash([6,5]); c.strokeStyle="#3aa7e8"; c.lineWidth=1.5;
-    c.strokeRect(n.x-n.w/2-6,n.y-n.h/2-6,n.w+12,n.h+12); c.setLineDash([]);
+    /* marco fino y continuo: la selección es un estado, no un aviso */
+    c.strokeStyle=M.ink; c.lineWidth=1.25;
+    c.strokeRect(n.x-n.w/2-6,n.y-n.h/2-6,n.w+12,n.h+12);
     const s=rs.selection.single;
     if(s && s.type==="node" && s.obj && s.obj.id===n.id){
-      c.fillStyle="#fff"; c.strokeStyle="#3aa7e8"; c.lineWidth=1.5;
+      c.fillStyle=M.knob; c.strokeStyle=M.ink; c.lineWidth=1.5;
       for(const [cx,cy] of nodeCorners(n)){
         c.beginPath(); c.rect(cx-HANDLE/2,cy-HANDLE/2,HANDLE,HANDLE); c.fill(); c.stroke();
       }
@@ -503,12 +542,6 @@ function measureCanvasLabel(c){
     c.font=objFont(e,efs);
     return {w:c.measureText(e.label).width, h:efs*1.7};
   };
-}
-function arrowHead(c,x,y,ang,col){
-  c.save(); c.translate(x,y); c.rotate(ang);
-  c.fillStyle=col; c.beginPath();
-  c.moveTo(1,0); c.lineTo(-11,-6); c.lineTo(-11,6); c.closePath(); c.fill();
-  c.restore();
 }
 /* ===================== Puntos por flecha =====================
    Por defecto una flecha usa el número de puntos y la velocidad globales. Solo
@@ -641,7 +674,10 @@ function drawFlowBalls(c,t){
    Es función pura de progress/ageMs: sin timers, estado ni listeners. El motor y
    el Trace no conocen nada de esto. */
 const FLOW_EMOJI_FONT = '"Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", Georgia, serif';
-const FLOW_ACCENT = "#3aa7e8";
+/* FLUYO-018.15: el acento de un evento en tránsito (halo, pulso y brillo de llegada) es el MISMO terracota del
+   punto que lo representa cuando no tiene símbolo: un evento, un color. Antes era el cian del editor antiguo,
+   y un punto terracota llevaba un halo azul. */
+const FLOW_ACCENT = "#d08b5b";
 const FLOW_EASINGS = {
   direct: t => t,
   smooth: t => 0.5 - 0.5*Math.cos(Math.PI*t),
@@ -708,7 +744,7 @@ function drawEventToken(c, pts, send, T){
   if(token){
     flowText(c, token, p.x, p.y, px*scale, T);
   } else {
-    c.save(); c.fillStyle = "#d08b5b"; c.shadowColor = "#d08b5b"; c.shadowBlur = 12;
+    c.save(); c.fillStyle = FLOW_ACCENT; c.shadowColor = FLOW_ACCENT; c.shadowBlur = 12;
     c.beginPath(); c.arc(p.x, p.y, 6*px/20*scale, 0, Math.PI*2); c.fill(); c.restore();
   }
 }
@@ -787,19 +823,24 @@ function drawEdge(c,e,t,theme,isExport,rs){
   const single=!isExport && (()=>{ const s=rs.selection.single; return s && s.type==="edge" && s.obj && s.obj.id===e.id; })();
   c.save(); c.globalAlpha=a;
   const lineCol=e.lineColor||T.edge;
-  c.strokeStyle=seld? "#3aa7e8":lineCol; c.lineWidth=seld?2.6:2;
+  /* marcas del editor solo si hay selección: el Viewer y la exportación nunca las piden */
+  const M=(seld||single)? editorMark(theme) : null;
+  /* FLUYO-018.16: la geometría del trazo es compartida con el SVG y el MCP (edgeStroke, geometry.js) */
+  const stroke=edgeStroke(e,pts), zoom=(rs.viewport && rs.viewport.zoom) || 1;
+  /* Seleccionada: la línea NO cambia —ni color ni grosor—; debajo aparece una funda
+     oliva, el análogo del marco de un nodo. Es un estado sobre la línea, no otra
+     línea encima. Mide lo mismo en pantalla a cualquier zoom. */
+  if(seld){
+    c.save(); c.strokeStyle=M.sleeve; c.lineWidth=10/zoom; c.lineCap="round"; c.lineJoin="round";
+    c.beginPath(); traceSegments(c,stroke.line); c.stroke(); c.restore();
+  }
+  c.strokeStyle=lineCol; c.lineWidth=EDGE_W;
   c.lineJoin="round";
   if(e.dashed) c.setLineDash([8,7]);
-  c.beginPath(); c.moveTo(pts[0].x,pts[0].y);
-  for(let i=1;i<pts.length;i++) c.lineTo(pts[i].x,pts[i].y);
+  c.beginPath(); traceSegments(c,stroke.line);
   c.stroke(); c.setLineDash([]);
-  const last=pts[pts.length-1], prev=pts[pts.length-2];
-  if(e.endArrow!==false)
-    arrowHead(c,last.x,last.y,Math.atan2(last.y-prev.y,last.x-prev.x), seld?"#3aa7e8":lineCol);
-  if(e.startArrow){
-    const f0=pts[0], f1=pts[1];
-    arrowHead(c,f0.x,f0.y,Math.atan2(f0.y-f1.y,f0.x-f1.x), seld?"#3aa7e8":lineCol);
-  }
+  c.fillStyle=lineCol;
+  for(const h of stroke.heads){ c.beginPath(); traceSegments(c,h); c.fill(); }
   /* con la pelota única los puntos por flecha se apagan: si no, se verían las
      dos animaciones a la vez sobre la misma línea */
   /* Durante Scenario playback se suprime el flujo decorativo para no competir
@@ -834,22 +875,28 @@ function drawEdge(c,e,t,theme,isExport,rs){
     if(rs.interaction.editing!==e){ c.fillStyle=T.edgeLbl; c.fillText(e.label,m.x,m.y); }
   }
   if(single){
-    c.lineWidth=1.6;
+    /* FLUYO-018.16: instrumentos de edición, no parte del diagrama. Tamaño constante
+       en PANTALLA (antes eran unidades de mundo: 1,5 px a zoom 0,25) y una forma por
+       operación: círculo = extremo, cuadrado = codo, barra = deslizar tramo, anillo =
+       insertar codo. Los radios de acierto (interaction.js) nunca son menores. */
+    const px=v=>v/zoom;
+    c.lineWidth=px(1.5);
     (e.waypoints||[]).forEach(wp=>{
-      c.fillStyle="#3aa7e8"; c.beginPath(); c.arc(wp.x,wp.y,6,0,Math.PI*2); c.fill();
-      c.strokeStyle="#fff"; c.stroke();
+      const s=px(7);
+      c.beginPath(); c.rect(wp.x-s/2,wp.y-s/2,s,s);
+      c.fillStyle=M.knob; c.fill(); c.strokeStyle=M.ink; c.stroke();
     });
     /* Manejadores de EXTREMO, sobre el borde del nodo. Relleno = el extremo está
        fijado a un lado (fromSide/toSide con valor); hueco = conexión flotante,
        el motor elige el punto. La distinción es la que el usuario necesita para
        saber por qué una flecha se mueve sola al desplazar un nodo y otra no. */
     for(const [q,fijo] of [[pts[0], !!e.fromSide], [pts[pts.length-1], !!e.toSide]]){
-      c.beginPath(); c.arc(q.x,q.y,6,0,Math.PI*2);
-      c.fillStyle = fijo ? "#5ac47d" : (theme==="crema"?"#f4eee1":"#161616");
+      c.beginPath(); c.arc(q.x,q.y,px(4.5),0,Math.PI*2);
+      c.fillStyle = fijo ? M.ink : M.knob;
       c.fill();
-      c.strokeStyle="#5ac47d"; c.lineWidth=2; c.stroke();
+      c.strokeStyle=M.ink; c.lineWidth=px(1.5); c.stroke();
     }
-    c.lineWidth=1.6;
+    c.lineWidth=px(1.25);
     /* Un manejador por tramo. La FORMA dice lo que va a pasar al agarrarlo, que
        no es lo mismo en los dos casos:
 
@@ -857,32 +904,32 @@ function drawEdge(c,e,t,theme,isExport,rs){
          por su perpendicular, así que el manejador tiene que parecer un tramo.
          Un punto prometía «vas a arrastrar un vértice», que es justo lo que ya
          no hace.
-       · ruta recta → punto. Ahí sí se inserta un codo donde agarras.
+       · ruta recta → anillo. Ahí sí se inserta un codo donde agarras.
 
        Ver bendableSegs() en js/geometry.js. */
     for(const i of bendableSegs(e,pts)){
       const a=pts[i], b=pts[i+1];
       const mx=(a.x+b.x)/2, my=(a.y+b.y)/2;
-      c.fillStyle=theme==="crema"?"#f4eee1":"#161616";
-      c.strokeStyle="#3aa7e8";
+      c.fillStyle=M.knob;
+      c.strokeStyle=M.ink;
       if(e.route!=="ortho"){
-        c.beginPath(); c.arc(mx,my,5,0,Math.PI*2); c.fill(); c.stroke();
+        c.beginPath(); c.arc(mx,my,px(3.5),0,Math.PI*2); c.fill(); c.stroke();
         continue;
       }
       const L=Math.hypot(b.x-a.x,b.y-a.y) || 1;
       const ux=(b.x-a.x)/L, uy=(b.y-a.y)/L;
-      const half=Math.min(SEG_GRIP, L/2);
+      const half=Math.min(px(8), L/2);
       c.lineCap="round";
-      c.lineWidth=7; c.strokeStyle=theme==="crema"?"#f4eee1":"#161616";
+      c.lineWidth=px(6); c.strokeStyle=M.knob;
       c.beginPath(); c.moveTo(mx-ux*half,my-uy*half); c.lineTo(mx+ux*half,my+uy*half); c.stroke();
-      c.lineWidth=3.5; c.strokeStyle="#3aa7e8";
+      c.lineWidth=px(3); c.strokeStyle=M.ink;
       c.beginPath(); c.moveTo(mx-ux*half,my-uy*half); c.lineTo(mx+ux*half,my+uy*half); c.stroke();
-      c.lineCap="butt"; c.lineWidth=1.6;
+      c.lineCap="butt"; c.lineWidth=px(1.25);
     }
   }
   if(!isExport && typeof scHighlight==="function"){
     const highlight=scHighlight("edge",e.id);
-    if(highlight){c.save();c.strokeStyle=highlight===2?"#3aa7e8":"rgba(58,167,232,.35)";c.lineWidth=highlight===2?6:3;c.setLineDash(highlight===2?[]:[8,6]);c.beginPath();c.moveTo(pts[0].x,pts[0].y);for(let i=1;i<pts.length;i++)c.lineTo(pts[i].x,pts[i].y);c.stroke();c.restore();}
+    if(highlight){const M=editorMark(theme);c.save();c.strokeStyle=highlight===2?M.ink:M.arrow;c.globalAlpha=highlight===2?1:.45;c.lineWidth=highlight===2?6:3;c.setLineDash(highlight===2?[]:[8,6]);c.lineJoin="round";c.beginPath();traceSegments(c,stroke.line);c.stroke();c.restore();}
   }
   if(rs.scenarioRuntime && !isExport){
     const active = rs.scenarioRuntime.activeSends.filter(s => s.edgeId === e.id);
@@ -903,48 +950,99 @@ function drawEdge(c,e,t,theme,isExport,rs){
 function drawDropPreview(c, theme, desde, excluirId, rs){
   const {mouse, hoverNode} = rs.interaction;
   const viewZoom = rs.viewport.zoom;
+  const M=editorMark(theme);
   c.save();
-  c.strokeStyle="#3aa7e8"; c.setLineDash([6,5]); c.lineWidth=2/viewZoom;
+  c.strokeStyle=M.ink; c.setLineDash([6,5]); c.lineWidth=2/viewZoom;
   c.beginPath(); c.moveTo(desde.x,desde.y); c.lineTo(mouse.x,mouse.y); c.stroke();
   c.setLineDash([]);
   if(hoverNode && hoverNode.id!==excluirId){
-    c.strokeStyle="#3aa7e8"; c.lineWidth=2.5/viewZoom;
+    c.strokeStyle=M.ink; c.lineWidth=2/viewZoom;
     c.strokeRect(hoverNode.x-hoverNode.w/2-4,hoverNode.y-hoverNode.h/2-4,hoverNode.w+8,hoverNode.h+8);
     const near=nearestAnchorSide(hoverNode,mouse,ANCHOR_SNAP);
     for(const s of SIDES){
       const q=sidePoint(hoverNode,s);
-      c.beginPath(); c.arc(q.x,q.y,6/viewZoom,0,Math.PI*2);
+      c.beginPath(); c.arc(q.x,q.y,CONNECT_PORT_R/viewZoom,0,Math.PI*2);
       if(s===near){
-        c.fillStyle="#3aa7e8"; c.fill();
-        c.strokeStyle="#fff"; c.lineWidth=1.6/viewZoom; c.stroke();
+        c.fillStyle=M.ink; c.fill();
+        c.strokeStyle=M.knob; c.lineWidth=1.6/viewZoom; c.stroke();
       } else {
-        c.fillStyle=theme==="crema"?"#f4eee1":"#161616"; c.fill();
-        c.strokeStyle="#3aa7e8"; c.lineWidth=1.6/viewZoom; c.stroke();
+        c.fillStyle=M.knob; c.fill();
+        c.strokeStyle=M.ink; c.lineWidth=1.6/viewZoom; c.stroke();
       }
     }
   }
   c.restore();
 }
-function drawSideArrows(c,n){
+/* Puerto de conectar (FLUYO-018.16). Sustituye a las cuatro flechas de bloque
+   «estilo draw.io»: UN punto, en el lado del nodo que mira al cursor, unido al borde
+   por un filete. Junto al marco de selección, cuatro puntos se leían como los ocho
+   tiradores de redimensionar de un editor clásico y tapaban la punta de la conexión
+   que entraba por ese lado. Con el puntero encima de cualquier nodo hay como mucho
+   una marca de conectar en pantalla, sea cual sea el tamaño del diagrama. El lado y
+   la posición salen de inferSide/connectPortPoint, los mismos que usa el acierto. */
+function drawConnectPort(c, n, rs){
+  const {mouse} = rs.interaction, zoom = rs.viewport.zoom || 1;
+  const M=editorMark(doc.theme);
+  const side=inferSide(n, mouse), p=sidePoint(n,side), d=DIR[side], q=connectPortPoint(n,side,zoom);
   c.save();
-  for(const s of SIDES){
-    const p=sidePoint(n,s), d=DIR[s];
-    const bx=p.x+d.x*ARROW_OFF, by=p.y+d.y*ARROW_OFF;
-    const ang=Math.atan2(d.y,d.x);
-    c.translate(bx,by); c.rotate(ang);
-    c.fillStyle="rgba(58,167,232,.9)";
-    c.beginPath();
-    c.moveTo(10,0); c.lineTo(-4,-9); c.lineTo(-4,-3.5); c.lineTo(-12,-3.5);
-    c.lineTo(-12,3.5); c.lineTo(-4,3.5); c.lineTo(-4,9); c.closePath(); c.fill();
-    c.rotate(-ang); c.translate(-bx,-by);
-  }
+  c.strokeStyle=M.ink; c.lineWidth=1/zoom; c.globalAlpha=.55;
+  c.beginPath(); c.moveTo(p.x+d.x*4/zoom, p.y+d.y*4/zoom); c.lineTo(q.x-d.x*(CONNECT_PORT_R+.5)/zoom, q.y-d.y*(CONNECT_PORT_R+.5)/zoom); c.stroke();
+  c.globalAlpha=1;
+  c.beginPath(); c.arc(q.x,q.y,CONNECT_PORT_R/zoom,0,Math.PI*2);
+  c.fillStyle=M.ink; c.fill(); c.strokeStyle=M.knob; c.lineWidth=1.5/zoom; c.stroke();
   c.restore();
 }
-function resizeCanvas(canvas, container){
-  const r=container.getBoundingClientRect();
-  if(canvas.width!==Math.round(r.width) || canvas.height!==Math.round(r.height)){
-    canvas.width=Math.round(r.width); canvas.height=Math.round(r.height);
+/* «Conectar» de la barra táctil (018.12) abierto: el origen lleva un marco
+   discontinuo mientras se espera el destino. Sin puntero no hay goma elástica que
+   dibujar; el mensaje de la barra dice qué hacer. */
+function drawLinkOrigin(c, n, theme, zoom){
+  const M=editorMark(theme), pad=10/zoom;
+  c.save(); c.strokeStyle=M.ink; c.lineWidth=1.5/zoom; c.setLineDash([5/zoom,4/zoom]);
+  c.strokeRect(n.x-n.w/2-pad, n.y-n.h/2-pad, n.w+2*pad, n.h+2*pad);
+  c.restore();
+}
+/* ===================== Fuentes del lienzo (FLUYO-018.14a) =====================
+   El lienzo solo pinta con una webfont YA cargada: si no, usa la reserva de la pila
+   y no avisa. El DOM del editor carga Playfair e IBM Plex Mono porque las usa su
+   UI, pero una exportación o el Viewer pueden necesitarlas antes. Estas dos
+   funciones dicen qué pilas usa el documento (global, nodos, conexiones y la del
+   bloque `code`) y esperan a que el navegador las tenga, con un tope para no colgar
+   nada si una fuente no llega. Pilas sin webfont declarada se resuelven al instante. */
+function renderFontStacks(d, st){
+  const out=new Set(), doc0=d||doc, set0=st||(typeof settings!=="undefined" ? settings : null);
+  if(set0 && set0.font) out.add(set0.font);
+  out.add(typeof DEFAULT_FONT!=="undefined" ? DEFAULT_FONT : "serif");
+  for(const pg of (doc0&&doc0.pages)||[]){
+    for(const n of pg.nodes||[]){ if(n.font) out.add(n.font); if(n.shape==="code") out.add(codeFont(n)); }
+    for(const e of pg.edges||[]) if(e.font) out.add(e.font);
   }
+  return [...out];
+}
+function waitForRenderFonts(d, timeoutMs=2500, st){
+  if(typeof document==="undefined" || !document.fonts || !document.fonts.load) return Promise.resolve([]);
+  const loads=[];
+  for(const stack of renderFontStacks(d, st)) for(const w of ["400","500","700"]){
+    try{ loads.push(document.fonts.load(`${w} 16px ${stack}`).catch(()=>[])); }catch(e){ /* pila no válida como font CSS: la usa la reserva */ }
+  }
+  return Promise.race([Promise.all(loads), new Promise(r=>setTimeout(r,timeoutMs))]);
+}
+
+/* Densidad del lienzo (FLUYO-018.12). El respaldo medía lo mismo que la caja en px
+   CSS, así que en una pantalla de densidad 2 o 3 —todos los móviles, casi todos
+   los portátiles actuales— el navegador estiraba la imagen y texto y líneas salían
+   borrosos. Ahora el respaldo mide caja × densidad y render() escala una vez al
+   empezar; nada más cambia de unidades: gestos, vista, textarea y exportación
+   siguen en px CSS / unidades de mundo. Tope 2: a densidad 3 el coste de pintar
+   se multiplica por 9 para una ganancia que a esa distancia no se aprecia. */
+function canvasDpr(){
+  const d=typeof devicePixelRatio==="number" && devicePixelRatio>0 ? devicePixelRatio : 1;
+  return Math.min(2, d);
+}
+function resizeCanvas(canvas, container){
+  const r=container.getBoundingClientRect(), dpr=canvasDpr();
+  const w=Math.round(r.width*dpr), h=Math.round(r.height*dpr);
+  if(canvas.width!==w || canvas.height!==h){ canvas.width=w; canvas.height=h; }
+  canvas.fluyoDpr=dpr;
 }
 
 function render(c,t,opts={}){
@@ -973,11 +1071,13 @@ function render(c,t,opts={}){
     return;
   }
 
-  const vp=rs.viewport;
-  const cw=vp.width||c.canvas.width, ch=vp.height||c.canvas.height;
-  c.clearRect(0,0,cw,ch);
+  const vp=rs.viewport, dpr=vp.dpr||1;
+  const cw=vp.width||c.canvas.width/dpr, ch=vp.height||c.canvas.height/dpr;
+  /* se limpia el respaldo entero (en px de respaldo: aún no hay escala aplicada) */
+  c.clearRect(0,0,(c.canvas&&c.canvas.width)||cw*dpr,(c.canvas&&c.canvas.height)||ch*dpr);
 
   c.save();
+  if(dpr!==1) c.scale(dpr, dpr);
   c.translate(vp.x, vp.y);
   c.scale(vp.zoom, vp.zoom);
 
@@ -1010,7 +1110,11 @@ function render(c,t,opts={}){
   const I=rs.interaction, S=rs.selection;
   if(!vp.presenting && I.mode==="select" && !I.drag && !I.resizing && !I.wpDrag && !I.connectDrag && !I.endDrag && !I.marquee && !I.pendingShape && !I.pendingIcon && !I.pendingAnim){
     const host=S.arrowHost;
-    if(host) drawSideArrows(c,host);
+    if(host) drawConnectPort(c,host,rs);
+  }
+  if(I.linkFrom!==null && I.linkFrom!==undefined){
+    const A=nodeById(I.linkFrom);
+    if(A) drawLinkOrigin(c, A, theme, vp.zoom);
   }
   if(I.connectDrag){
     const A=nodeById(I.connectDrag.fromId);
@@ -1030,20 +1134,22 @@ function render(c,t,opts={}){
   }
   if(I.connecting!==null){
     const A=nodeById(I.connecting);
-    if(A){ c.save(); c.strokeStyle="#3aa7e8"; c.setLineDash([5,5]); c.lineWidth=2/vp.zoom;
+    if(A){ c.save(); c.strokeStyle=editorMark(theme).ink; c.setLineDash([5,5]); c.lineWidth=2/vp.zoom;
       c.beginPath(); c.moveTo(A.x,A.y); c.lineTo(I.mouse.x,I.mouse.y); c.stroke(); c.restore(); }
   }
   if(I.marquee){
     const r=normRect(I.marquee);
+    const M=editorMark(theme);
     c.save();
-    c.fillStyle="rgba(58,167,232,.12)";
-    c.strokeStyle="#3aa7e8"; c.lineWidth=1/vp.zoom;
+    c.fillStyle=M.soft;
+    c.strokeStyle=M.ink; c.lineWidth=1/vp.zoom;
     c.fillRect(r.x,r.y,r.w,r.h); c.strokeRect(r.x,r.y,r.w,r.h);
     c.restore();
   }
   if(P().nodes.length===0 && !vp.presenting){
     c.fillStyle=theme==="crema"?"#00000055":"#ffffff44";
-    c.font=(20/vp.zoom)+"px Georgia, serif"; c.textAlign="center";
+    /* voz editorial del chrome (css/system.css); sin ella cargada, cae a la serif del sistema */
+    c.font=(20/vp.zoom)+'px "Playfair Display", Georgia, serif'; c.textAlign="center";
     c.fillText(opts.emptyHint ?? "Elige una forma o icono a la izquierda y haz clic aquí — o pulsa «Ejemplo»", (cw/2 - vp.x) / vp.zoom, (ch/2 - vp.y) / vp.zoom);
   }
 

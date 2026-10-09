@@ -29,14 +29,15 @@ function editor() {
 const page = () => ({ name: "P", nodes: [], edges: [], nextId: 1, behaviors: [], scenarios: [], nextScenarioId: 1 });
 const project = (pg) => ({ version: 5, app: "fluyo", doc: { theme: "dark", customBg: "", eventTypes: [], nextEventTypeId: 1, pages: [pg], cur: 0 }, settings: {} });
 
-/* La implementación original de state.js (antes de 018.1), para comparar byte a byte. */
+/* La implementación original de state.js (antes de 018.1), para comparar byte a byte. Único cambio posterior y
+   deliberado: FLUYO-018.15 cambió el color con el que nace un nodo (PALETTE[0] → DEFAULT_NODE_COLOR). */
 const LEGACY = `
 function legacyNode(pg,shape,x,y,extra={}){
   const [w,h]=DEFAULT_SIZES[shape]||[160,70];
   const id=reserveStructureIds(pg);
   const n=Object.assign({ id, shape, x:snapV(x), y:snapV(y), w, h,
     label: shape==="text"?"Texto":shape==="code"?CODE_DEFAULT_LABEL:(shape==="icon"||shape==="image"||shape==="anim")?"":"Nodo",
-    color:PALETTE[0].c, fill:null, border:"solid", lblPos:"center", textBg:null, textColor:null,
+    color:DEFAULT_NODE_COLOR, fill:null, border:"solid", lblPos:"center", textBg:null, textColor:null,
     font:null, bold:false, pulse:false, order:pg.nodes.length }, extra, {id});
   if(shape==="code" && !("lang" in n)) Object.assign(n,{lang:DEFAULT_LANG, keywords:null, kwBg:null, kwColor:null});
   if(shape==="icon" && !("tint" in n)) n.tint=false;
@@ -58,7 +59,7 @@ const code = (fn) => { try { fn(); } catch (e) { return { code: e.code, field: e
 test("createNodeIn: nodo mínimo = el registro completo que producía el editor", () => {
   const K = kernel(); K.run("var pg=" + JSON.stringify(page()));
   const n = J(K.run('createNodeIn(pg,{shape:"rect",x:200,y:300})'));
-  assert.deepEqual(n, { id: 1, shape: "rect", x: 200, y: 300, w: 180, h: 70, label: "Nodo", color: "#6a9fb5", fill: null, border: "solid", lblPos: "center", textBg: null, textColor: null, font: null, bold: false, pulse: false, order: 0 });
+  assert.deepEqual(n, { id: 1, shape: "rect", x: 200, y: 300, w: 180, h: 70, label: "Nodo", color: "#857F6C", fill: null, border: "solid", lblPos: "center", textBg: null, textColor: null, font: null, bold: false, pulse: false, order: 0 });
   assert.equal(K.run("pg.nextId"), 2);
   assert.deepEqual(J(K.run("pg.behaviors")), [], "un nodo no crea Behavior");
 });

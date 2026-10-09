@@ -29,6 +29,9 @@ const serve = async (dir) => {
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
   return { server, base: "http://127.0.0.1:" + server.address().port };
 };
+/* FLUYO-018.15: en HEAD un nodo nuevo nacía #6a9fb5; ahora nace DEFAULT_NODE_COLOR (#857F6C). Las comparaciones con HEAD deshacen
+   solo ese cambio deliberado (también dentro de JSON anidado); todo lo demás tiene que seguir siendo idéntico. */
+const UNDO15 = (s) => typeof s === "string" ? s.replace(/(\\*"color\\*":\\*")#857F6C/g, "$1#6a9fb5") : s;
 function headTree() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "fluyo-head-"));
   const files = execFileSync("git", ["-C", root, "ls-tree", "-r", "--name-only", "HEAD"], { encoding: "utf8" }).split("\n").filter((f) => /^(index\.html|js\/|css\/|s\/|assets\/|manifest\.webmanifest)/.test(f));
@@ -76,7 +79,7 @@ async function script(browser, base, label) {
   const names = () => ed.evaluate(() => doc.pages.map((p) => p.name));
   const active = () => ed.evaluate(() => doc.pages[doc.cur].name);
   const stacks = () => ed.evaluate(() => ({ u: undoStack.length, r: redoStack.length }));
-  const pagesJson = () => ed.evaluate(() => JSON.stringify(serializeProject().doc.pages));
+  const pagesJson = () => ed.evaluate(() => JSON.stringify(serializeProject().doc.pages)).then(UNDO15);
   /* contenido de una página sin contadores de identidad (nunca bajan con Undo: un id eliminado no se reutiliza) */
   const pageContent = (name) => ed.evaluate((n) => JSON.stringify(doc.pages.find((p) => p.name === n) || null, (k, v) => /^next(Id|ScenarioId|StepId)$/.test(k) ? undefined : v), name);
   const pageJson = (name) => ed.evaluate((n) => JSON.stringify(doc.pages.find((p) => p.name === n) || null), name);

@@ -13,7 +13,7 @@ const UNIT = ["--test", "test/fluyo-018-17.test.cjs"];
 const BROWSER = ["test/fluyo-018-17-browser.cjs"];
 /* [nombre, suite, archivo, desde, hasta, ONLY del browser test] */
 const MUTATIONS = [
-  ["U1 CACHE no sube (sigue v75)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v76";', 'const CACHE = "fluyo-static-v75";'],
+  ["U1 CACHE no sube (sigue v75)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v77";', 'const CACHE = "fluyo-static-v75";'],
   ["U2 los objetivos críticos vuelven a 40 px", UNIT, "css/system.css", "  --ctl-h-touch:44px;", "  --ctl-h-touch:40px;"],
   ["U3 los campos con dedo vuelven a 12 px (zoom de iOS)", UNIT, "css/system.css", "@media (pointer:coarse){ input[type=number], input[type=text], input[type=search], input:not([type]), textarea, select{ font-size:16px; } }\n", ""],
   ["U4 la hoja de Propiedades vuelve a 52dvh", UNIT, "css/styles.css", "height:clamp(220px, 40dvh, 360px); z-index:45;", "height:clamp(260px, 52dvh, 560px); z-index:45;"],
@@ -44,9 +44,11 @@ const MUTATIONS = [
   ["B9 la barra táctil vuelve a caer sobre la selección", BROWSER, "js/ui.js", '  const tb=$("touchBar"); if(vis(tb)){ const r=tb.getBoundingClientRect(); if(r.top<(top+bottom)/2) top=Math.max(top, r.bottom); }\n', "", "m390"],
   ["B10 sin reencaje a 768 (el diagrama queda cortado)", BROWSER, "js/ui.js", "  if(fitAfter) requestAnimationFrame(()=>{ if(uiMode===\"story\" && !isSheetLayout() && diagramCut()) fitView(); });\n", "", "t768"],
   ["B11 «Cancelar» vuelve a 29 px", BROWSER, "css/styles.css", "#scPlacementBar button{flex:none; min-height:var(--ctl-h); padding:0 14px;}", "#scPlacementBar button{flex:none; min-height:0; height:29px; padding:0 10px;}", "m390"],
-  ["B12 «＋» deja de estar fijo (se pierde al desplazar)", BROWSER, "css/styles.css", "  #pagesBar > .pgAdd{position:sticky; right:0;", "  #pagesBar > .pgAdd{position:static;", "m375"],
+  /* 018.18 (D10): en el teléfono la tira de pestañas (y su «＋» fijo) ya no se pinta; lo que protege la barra móvil es el selector */
+  ["B12 la tira de pestañas vuelve al teléfono (el selector deja de bastar)", BROWSER, "css/styles.css", "  #pagesBar > .tab, #pagesBar > .pgAdd{display:none;}\n", "", "m375"],
   ["B13 ⚙ siempre visible (M2)", BROWSER, "js/ui.js", '    if(total===0) scheduleSheetIdleCheck();\n', "", "m390"],
-  ["B14 «Terminar» vuelve a la hoja (y Repetir se le superpone)", BROWSER, "css/styles.css", '  #panelScenarios[data-sc-status="completed"] #scReset{display:none;}\n', "", "m390"],
+  /* 018.18 (D5): terminada, «Detener» SÍ está en la hoja; se vigila el defecto contrario (que se oculte) */
+  ["B14 terminada, «Detener» desaparece de la hoja", BROWSER, "css/styles.css", '  body.scPlaybackOn #panelScenarios .scHeaderRow{display:none;}', '  body.scPlaybackOn #panelScenarios .scHeaderRow{display:none;}\n  #panelScenarios[data-sc-status="completed"] #scReset{display:none;}', "m390"],
   ["B15 reproducir ya no recoge la hoja ampliada", BROWSER, "js/editor-scenarios.js", '  if (!inPresent && typeof setStoryExpanded === "function" && typeof isSheetLayout === "function" && isSheetLayout()) setStoryExpanded(false);\n', "", "m390"],
   ["B16 los campos con dedo vuelven a 12 px", BROWSER, "css/styles.css", "@media (pointer:coarse){ textarea#lblEdit, #panelProperties .row select,", "@media (pointer:fine){ textarea#lblEdit, #panelProperties .row select,", "m390"],
   ["B17 el rail enciende varios botones (toggle sin booleano)", BROWSER, "js/ui.js", 'b.classList.toggle("toggled", !!(', 'b.classList.toggle("toggled", (', "d1280"],

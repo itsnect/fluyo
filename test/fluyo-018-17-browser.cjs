@@ -137,7 +137,9 @@ const TARGET = (stepIndex) => {
 const PAGE_IN = () => { const v = visibleCanvasRect(), b = getBounds(); return viewX + b.x * viewZoom >= v.left - 1 && viewY + b.y * viewZoom >= v.top - 1 && viewX + (b.x + b.w) * viewZoom <= v.right + 1 && viewY + (b.y + b.h) * viewZoom <= v.bottom + 1; };
 const CRIT_EDIT = (vp) => ["btnUndo", "btnRedo", "btnShare", "btnPresent", "btnMore", ...(vp.mobile && !vp.landscape ? ["btnStories"] : ["tabProperties", "tabScenarios"])];
 const CRIT_STORY = (vp) => ["btnUndo", "btnShare", "btnPresent", "btnMore", "btnStoryExit", "scRun", ...(vp.mobile && !vp.landscape ? ["btnStories", "btnStoryExpand"] : ["tabProperties", "tabScenarios"])];
-const CRIT_PLAY = (vp) => ["btnStoryExit", "scReset", "scNow", ...(vp.mobile && !vp.landscape ? ["btnStories", "btnStoryExpand"] : ["tabProperties"])];
+/* FLUYO-018.18 (D4): el momento en curso (#scNow) vive SOBRE el lienzo y no recibe el puntero (no es un control): su
+   visibilidad la mide r.now.on, y fluyo-018-18-browser que no tapa el destino. Los críticos son los controles. */
+const CRIT_PLAY = (vp) => ["btnStoryExit", "scReset", ...(vp.mobile && !vp.landscape ? ["btnStories", "btnStoryExpand"] : ["tabProperties"])];
 const nodeAt = (page, idx) => page.evaluate((i) => { const n = P().nodes[i], r = cv.getBoundingClientRect(); return { x: r.left + viewX + n.x * viewZoom, y: r.top + viewY + n.y * viewZoom, id: n.id }; }, idx);
 
 /* ═════════ un viewport, interfaz clara/oscura ═════════ */
@@ -257,12 +259,15 @@ async function journey(browser, base, vp) {
       check(targets.length >= 2 && targets.every((x) => x.inside && x.zoom >= 0.6 - 1e-6), `${tag} reproduciendo: el destino del paso activo está en la zona libre en ${targets.length} pasos distintos ${JSON.stringify(targets.map((x) => [x.id, x.inside]))}`);
       await page.waitForFunction(() => scStatus === "completed", null, { timeout: 30000 }); await page.waitForTimeout(150);
       r = await m(["btnStoryExit", "scRun", "btnStoryExpand"]);
-      check(r.state === "playing" && !r.resetVisible && r.now.on && /Terminada/.test(await page.evaluate(() => $("scNowLabel").textContent)) && r.critical.length === 0, `${tag} terminada: Repetir y Volver a editar; sin «Terminar» en la hoja (lo hacen ▾ y Ampliar)`);
+      /* FLUYO-018.18 (D5, D6): terminada hay «Detener» en la hoja (una sola palabra) y Ampliar solo amplía: la línea de tiempo
+         ampliada sirve para volver a un momento. */
+      check(r.state === "playing" && r.resetVisible && r.now.on && /Terminada/.test(await page.evaluate(() => $("scNowLabel").textContent)) && (await page.evaluate(() => $("scReset").textContent)) === "■ Detener" && r.critical.length === 0, `${tag} terminada: Repetir, «Detener» y Volver a editar a la vista`);
       await press(t, "#btnStoryExpand", vp);
-      check(await page.evaluate(() => scStatus === "idle" && document.body.dataset.story === "expanded"), `${tag} terminada: Ampliar termina la reproducción y abre el taller`);
+      check(await page.evaluate(() => scStatus === "completed" && document.body.dataset.story === "playing" && document.body.classList.contains("storyExpanded")), `${tag} terminada: Ampliar amplía sin detener (la línea de tiempo sirve para saltar)`);
       await press(t, "#btnStoryExpand", vp);
+      await press(t, "#scReset", vp);
     } else {
-      /* columna: reproducir ⇒ fila activa a la vista, paleta oculta; terminada ⇒ «Terminar» */
+      /* columna: reproducir ⇒ fila activa a la vista, paleta oculta; terminada ⇒ «Detener» (018.18, D5) */
       await press(t, "#scRun", vp, 500); await quiet(page);
       r = await m(CRIT_PLAY(vp));
       /* en apaisado (844×390, fuera de alcance: D8) la línea de tiempo mide ~80 px y una fila de dos líneas no cabe entera */
@@ -271,7 +276,7 @@ async function journey(browser, base, vp) {
       check(tg && tg.inside, `${tag} reproduciendo en columna: el destino activo está en el lienzo`);
       await page.waitForFunction(() => scStatus === "completed", null, { timeout: 30000 }); await page.waitForTimeout(150);
       r = await m(["scReset", "btnStoryExit"]);
-      check(r.resetVisible && r.critical.length === 0 && (await page.evaluate(() => $("scReset").textContent)) === "Terminar", `${tag} terminada en columna: «Terminar» sigue`);
+      check(r.resetVisible && r.critical.length === 0 && (await page.evaluate(() => $("scReset").textContent)) === "■ Detener", `${tag} terminada en columna: «Detener» (ya no «Terminar»)`);
       await press(t, "#scReset", vp);
     }
     /* ── volver a editar ── */
@@ -364,10 +369,13 @@ async function journey(browser, base, vp) {
     check(cutBefore && before.join() === after.join(), `columna: una vista ya cortada (acercada por el usuario) no se reencaja al entrar en Historias`);
   }
   await press(t, "#btnStoryExit", vp);
-  /* ── páginas: «＋» a la vista y la segunda página alcanzable ── */
+  /* ── páginas: «＋» a la vista y la segunda página alcanzable ──
+     FLUYO-018.18 (D10): en el teléfono la tira es UN selector (la activa por su nombre) que abre la lista con «＋ Nueva página»;
+     por encima de 700 px, las pestañas y «＋» como antes. */
   await load(page, FIXTURE);
-  const pages = await page.evaluate(() => { const f = $("pagesBar"), fr = f.getBoundingClientRect(); const box = (e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.left >= fr.left - 1 && r.right <= fr.right + 1; }; const tabs = [...f.querySelectorAll(".tab")]; return { add: box(f.querySelector(".pgAdd")), tabs: tabs.map(box), addW: Math.round(f.querySelector(".pgAdd").getBoundingClientRect().width), overflow: f.scrollWidth - f.clientWidth }; });
-  check(pages.add && pages.tabs.every(Boolean) && pages.addW >= (vp.touch ? 44 : 28), `páginas: «＋» (${pages.addW} px) y las dos pestañas a la vista ${JSON.stringify(pages)}`);
+  const pages = await page.evaluate(() => { const f = $("pagesBar"), fr = f.getBoundingClientRect(); const box = (e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.left >= fr.left - 1 && r.right <= fr.right + 1; }; const tabs = [...f.querySelectorAll(".tab")]; const sel = f.querySelector(".pgSelect"); return { add: box(f.querySelector(".pgAdd")), tabs: tabs.map(box), addW: Math.round(f.querySelector(".pgAdd").getBoundingClientRect().width), overflow: f.scrollWidth - f.clientWidth, select: box(sel), selectH: Math.round(sel.getBoundingClientRect().height) }; });
+  if (vp.mobile && !vp.landscape) check(pages.select && pages.selectH >= 44 && !pages.add && pages.tabs.every((x) => !x), `páginas: selector de página a la vista (${pages.selectH} px) ${JSON.stringify(pages)}`);
+  else check(pages.add && pages.tabs.every(Boolean) && pages.addW >= (vp.touch ? 44 : 28), `páginas: «＋» (${pages.addW} px) y las dos pestañas a la vista ${JSON.stringify(pages)}`);
   check(t.errors.length === 0, "0 errores de consola/página " + JSON.stringify(t.errors));
   await t.ctx.close();
 }
@@ -381,7 +389,7 @@ async function serviceWorker(browser, base) {
   await page.goto(base + "/"); await page.waitForFunction(() => typeof renderTabs === "function");
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
   const keys = await page.evaluate(() => caches.keys());
-  check(keys.length === 1 && keys[0] === "fluyo-static-v76", "caché instalada: fluyo-static-v76 " + JSON.stringify(keys));
+  check(keys.length === 1 && keys[0] === "fluyo-static-v77", "caché instalada: fluyo-static-v77 " + JSON.stringify(keys));
   await ctx.setOffline(true);
   await page.reload(); await page.waitForFunction(() => typeof storyState === "function");
   const off = await page.evaluate(() => ({ css: getComputedStyle(document.documentElement).getPropertyValue("--ctl-h-touch").trim(), hint: !!document.getElementById("scRunHint") }));

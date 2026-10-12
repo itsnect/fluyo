@@ -185,7 +185,7 @@ const VACIO = `(() => { ${RESET}
     assert.equal(await ed.evaluate(() => scPlayback.trace.events.length), await ed.evaluate(() => FluyoScenarios.runScenario({ nodes: P().nodes, edges: P().edges }, P().behaviors, P().scenarios[1]).trace.events.length));
     await ed.waitForFunction(() => scStatus === "completed", null, { timeout: 15000 });
     await ed.locator("#scReset").click();
-    assert.equal(await noRemnants(), true, "«Terminar» limpia (FLUYO-018.14b, B2)");
+    assert.equal(await noRemnants(), true, "«Detener» limpia (FLUYO-018.14b B2; 018.18 D5: la misma palabra en cualquier estado)");
     ok("Run reproduce sólo la activa; cambiar durante Playback detiene y limpia; Reset");
 
     /* ───────── 6. Adversarial de Playback: duplicar, eliminar, nueva, abrir Share, página ───────── */
@@ -247,8 +247,8 @@ const VACIO = `(() => { ${RESET}
     assert.equal(await status(), "running");
     await ed.waitForFunction(() => scStatus === "completed", null, { timeout: 15000 });
     await ed.locator("#btnShare").click();
-    /* FLUYO-018.14b (B2): el Playback terminado se cierra con «Terminar»; «Volver a editar» es la salida del modo Historia */
-    assert.match(await ed.locator("#shareMessage").innerText(), /Pulsa «Terminar» antes de compartir/);
+    /* FLUYO-018.14b (B2): «Volver a editar» es la salida del modo Historia; 018.18 (D5): el Playback terminado se cierra con «Detener» */
+    assert.match(await ed.locator("#shareMessage").innerText(), /Pulsa «Detener» antes de compartir/);
     await ed.locator("#shareClose").click();
     await ed.locator("#scReset").click();
     assert.equal(await ed.evaluate(() => JSON.stringify(serializeProject())), shareDoc, "ni Playback ni abrir Share escriben en el documento");

@@ -12,6 +12,15 @@ let chromium;
 try { ({ chromium } = require("playwright")); } catch { ({ chromium } = require("playwright-core")); }
 const assert = require("node:assert/strict");
 const fs = require("node:fs"), path = require("node:path"), os = require("node:os"), http = require("node:http");
+/* FLUYO-018.18 (D11): HEAD pulsa la ✕ de la pestaña; el árbol de trabajo (sin ✕: se llamaba «Cerrar página» y eliminaba) usa
+   «Eliminar página» del menú de ESA página, que llama a la misma requestDeletePage (misma confirmación, mismo Undo). */
+async function deleteTab(page, i) {
+  const x = page.locator("#pagesBar .tab").nth(i).locator(".x");
+  if (await x.count()) { await x.click(); return; }
+  await page.evaluate((i) => openPageMenu(i, document.querySelectorAll("#pagesBar .tab")[i]), i);
+  await page.locator("#pageMenu .scMenuDanger").click();
+}
+
 const { execFileSync } = require("node:child_process");
 const root = path.resolve(__dirname, "..");
 const shots = process.env.FLUYO_SHOTS || fs.mkdtempSync(path.join(os.tmpdir(), "fluyo-018-7c-"));
@@ -75,7 +84,7 @@ async function script(browser, base, label) {
   const open = async () => { await ed.goto(base + "/"); await ed.waitForFunction(() => typeof newNode === "function" && typeof FluyoStory !== "undefined"); if (await ed.locator("#autosaveModal").isVisible()) await ed.locator("#autosaveDiscard").click(); };
   const R = {}, docs = {};
   const tab = (i) => ed.locator("#pagesBar .tab").nth(i);
-  const close = async (i) => { await tab(i).locator(".x").click(); await ed.waitForTimeout(60); };
+  const close = async (i) => { await deleteTab(ed, i); await ed.waitForTimeout(60); };
   const names = () => ed.evaluate(() => doc.pages.map((p) => p.name));
   const active = () => ed.evaluate(() => doc.pages[doc.cur].name);
   const stacks = () => ed.evaluate(() => ({ u: undoStack.length, r: redoStack.length }));
@@ -89,8 +98,12 @@ async function script(browser, base, label) {
   /* ═══ Crear y renombrar páginas con la UI real (＋ y doble clic → prompt) ═══ */
   const build = async () => {
     await ed.evaluate(() => { doc.pages.length = 1; doc.cur = 0; P().nodes = []; P().edges = []; P().scenarios = []; P().behaviors = []; P().nextId = 1; doc.eventTypes = []; scReset(); undoStack.length = 0; redoStack.length = 0; renderTabs(); });
-    for (let k = 0; k < 3; k++) await ed.locator("#pagesBar button").click();
-    for (const [i, n] of [[0, "A"], [1, "B"], [2, "C"], [3, "D"]]) { promptValue = n; await tab(i).dblclick(); }
+    for (let k = 0; k < 3; k++) await ed.locator("#pagesBar .pgAdd").click();   /* .pgAdd: desde 018.18 la barra lleva también el selector de página */
+    /* HEAD: doble clic → prompt. 018.18 (D11): doble clic → renombrado en línea del menú de la página (sin prompt) */
+    for (const [i, n] of [[0, "A"], [1, "B"], [2, "C"], [3, "D"]]) {
+      promptValue = n; await tab(i).dblclick(); await ed.waitForTimeout(60);
+      if (await ed.locator("#pageNameIn").isVisible().catch(() => false)) { await ed.locator("#pageNameIn").fill(n); await ed.locator("#pageNameSave").click(); }
+    }
     promptValue = null;
     await ed.evaluate(`(${FILL.toString()})()`);
     await tab(1).click();                                                     // activa: B
@@ -152,7 +165,7 @@ async function script(browser, base, label) {
 
   /* ═══ Borrar y luego crear otra página; Undo ═══ */
   await close(2);                                                             // C
-  await ed.locator("#pagesBar button").click();
+  await ed.locator("#pagesBar .pgAdd").click();
   R.createAfter = { names: await names(), active: await active() };
   await key("Control+z");
   R.createAfterUndo = { names: await names(), active: await active() };
@@ -214,6 +227,12 @@ async function script(browser, base, label) {
   const mx = mp.locator("#pagesBar .tab").nth(1).locator(".x");
   R.mobile = { visible: await mx.isVisible() };
   if (R.mobile.visible) { const b = await mx.boundingBox(); R.mobile.box = b && [Math.round(b.width), Math.round(b.height)]; await mx.tap(); await mp.waitForTimeout(100); }
+  else if (await mp.locator("#pgSelect").isVisible()) {
+    /* 018.18 (D10): en el teléfono, selector › la página › selector › «Eliminar página» (misma confirmación y mismo Undo) */
+    const b = await mp.locator("#pgSelect").boundingBox(); R.mobile = { visible: true, box: b && [Math.round(b.width), Math.round(b.height)], via: "selector" };
+    await mp.locator("#pgSelect").tap(); await mp.locator("#pageMenu .pgItem").nth(1).tap(); await mp.waitForTimeout(80);
+    await mp.locator("#pgSelect").tap(); await mp.locator("#pageMenu .scMenuDanger").tap(); await mp.waitForTimeout(100);
+  }
   R.mobile.names = await mp.evaluate(() => doc.pages.map((p) => p.name));
   R.mobile.undo = await mp.evaluate(() => { undo(); return doc.pages.map((p) => p.name); });
   await mp.screenshot({ path: path.join(shots, label + "-mobile.png") });
@@ -234,7 +253,8 @@ async function script(browser, base, label) {
     const H = await script(browser, hd.base, "head");
     const a = A.R, h = H.R;
     console.log("\nCrear y renombrar con la UI");
-    check(same(a.built, { names: ["A", "B", "C", "D"], active: "B", tabs: 4, x: 4 }), "＋ ×3 y doble clic → A,B,C,D, activa B, 4 ✕ " + JSON.stringify(a.built));
+    /* 018.18 (D11): sin ✕ en las pestañas (eliminar vive en el menú de la página) */
+    check(same(a.built, { names: ["A", "B", "C", "D"], active: "B", tabs: 4, x: 0 }), "＋ ×3 y doble clic → A,B,C,D, activa B, sin ✕ " + JSON.stringify(a.built));
     console.log("\nCancelar");
     check(a.cancel.same && same(a.cancel.stacks, a.cancel.before) && a.cancel.active === "B", "Cancelar no cambia documento, página activa ni pilas");
     check(/«B» tiene 3 elementos, 2 conexiones, 1 condición de disponibilidad inicial y 2 Historias/.test(a.cancel.message) && /• Compra — 2 momentos/.test(a.cancel.message) && /• Vacía — sin momentos/.test(a.cancel.message) && /Ctrl\+Z/.test(a.cancel.message), "el aviso nombra el contenido, las Historias y sus momentos");
@@ -272,7 +292,7 @@ async function script(browser, base, label) {
     check(a.present.pos === `${a.viewerExpected.cur + 1} / ${a.viewerExpected.names.length}`, "Presentar: diapositivas = páginas restantes (" + a.present.pos + ")");
     console.log("\nÚltima página y táctil");
     check(a.single.x === 0 && a.single.names.length === 1, "con una sola página no hay ✕");
-    check(a.mobile.visible ? same(a.mobile.names, ["Página 1"]) && same(a.mobile.undo, ["Página 1", "Móvil"]) : true, "viewport 390×844 táctil: " + (a.mobile.visible ? "la ✕ (" + JSON.stringify(a.mobile.box) + ") responde al toque, confirma y se deshace" : "la ✕ no es visible"));
+    check(a.mobile.visible ? same(a.mobile.names, ["Página 1"]) && same(a.mobile.undo, ["Página 1", "Móvil"]) : true, "viewport 390×844 táctil: " + (a.mobile.visible ? (a.mobile.via === "selector" ? "selector (" + JSON.stringify(a.mobile.box) + ") › «Eliminar página» responde al toque, confirma y se deshace" : "la ✕ (" + JSON.stringify(a.mobile.box) + ") responde al toque, confirma y se deshace") : "la ✕ no es visible"));
     console.log("\nErrores de consola/página");
     check(A.errors.length === 0, "sin errores en el árbol de trabajo" + (A.errors.length ? ": " + A.errors.slice(0, 3).join(" | ") : ""));
     fs.writeFileSync(path.join(shots, "report.json"), JSON.stringify({ wt: A.R, head: H.R, wtDialogs: A.dialogs, headErrors: H.errors }, null, 2));

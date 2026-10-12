@@ -29,18 +29,21 @@ function element(html, id) {
   throw new Error("sin cerrar #" + id);
 }
 
-test("alcance: kernel, render, geometría, exportación, interacción, Viewer y Share idénticos a HEAD", () => {
+test("alcance: kernel, render, geometría, exportación y Share idénticos a HEAD", () => {
   const gitRoot = process.env.FLUYO_GIT_ROOT || root;
+  /* FLUYO-018.18 cambia a propósito interaction.js (toque en Present, Espacio), viewer.js, present-story.js, editor-share.js
+     («Detener»), s/index.html y css/share.css; su propio test de alcance (fluyo-018-18.test.cjs) los cubre. Aquí sigue lo que
+     ninguno de los dos slices toca. */
   for (const f of ["js/model.js", "js/config.js", "js/scenario-engine.js", "js/scenario-playback.js", "js/story-playback.js", "js/document-integrity.js", "js/story-authoring.js",
-    "js/render.js", "js/geometry.js", "js/export.js", "js/interaction.js", "js/viewer.js", "js/present-story.js", "js/share-url.js", "js/editor-share.js", "s/index.html", "css/share.css", "css/identity.css"]) {
+    "js/render.js", "js/geometry.js", "js/export.js", "js/share-url.js", "css/identity.css"]) {
     const head = execFileSync("git", ["-C", gitRoot, "show", "HEAD:" + f], { encoding: "utf8" }).replace(/\r\n/g, "\n");
     assert.equal(read(f), head, f + " sin cambios");
   }
 });
 
-test("sw.js: CACHE v76; lo que toca 018.17 ya estaba en el precache; sin archivos servidos nuevos", () => {
+test("sw.js: CACHE subido (v77 desde 018.18); lo que toca 018.17 sigue en el precache y nada de index.html queda fuera", () => {
   const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v76";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v77";/);
   for (const f of ["./index.html", "./css/system.css", "./css/styles.css", "./js/ui.js", "./js/editor-scenarios.js", "./docs/"]) assert.ok(sw.includes('"' + f + '"'), f + " precacheado");
   const html = read("index.html");
   const local = [...html.matchAll(/(?:src|href)="((?!https?:|#|data:)[^"]+\.(?:js|css|woff2|webmanifest|svg|png))"/g)].map((m) => m[1]).filter((u) => !u.startsWith("//"));
@@ -58,7 +61,8 @@ test("index.html: ids conservados, nodos nuevos (pista, hogares, secciones de «
   const more = element(html, "moreMenu");
   assert.ok(more.includes('id="animSection"') && more.includes('id="helpSection"'), "las secciones viven en «Más»");
   assert.match(element(html, "helpSection"), /Ayuda y gestos/);
-  assert.match(html, /<button id="scReset" type="button" hidden>Terminar<\/button>/, "«Terminar» sigue (escritorio; en la hoja lo oculta el CSS)");
+  /* FLUYO-018.18 (D5): «Detener» en cualquier estado; «Terminar» ya no existe (ni en escritorio). */
+  assert.match(html, /<button id="scReset" type="button" hidden>■ Detener<\/button>/, "«Detener» es la única palabra para parar");
   const ids = [...html.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]);
   assert.deepEqual(ids.filter((x, i) => ids.indexOf(x) !== i), [], "ids repetidos");
   assert.ok(!/NECT/.test(html.replace(/itsnect/g, "")), "sin branding");
@@ -82,11 +86,15 @@ test("styles.css: hoja de Historias por contenido con tope --canvas-useful, cuat
   assert.match(mobile, /:root\{ --canvas-useful:max\(300px, 40dvh\); \}/, "el tope lo pone lo que el lienzo necesita");
   assert.match(mobile, /aside\.scenariosOpen\{height:auto; max-height:calc\(100dvh - 52px - var\(--bb-h\) - var\(--canvas-useful\)\); padding-top:12px; overflow:hidden;/, "altura por contenido; la hoja no desplaza");
   assert.match(mobile, /body\.storyMode \.scHeader\{display:grid; grid-template-columns:minmax\(0,1fr\) auto auto; grid-template-areas:"title menu expand" "run exit exit";/, "cabecera de dos filas");
-  assert.match(mobile, /body\.storyMode \.storyBar, body\.storyMode \.scHeaderRow, body\.storyMode \.scPlaybackControls\{display:contents;\}/, "mismos nodos, mismos ids");
+  /* FLUYO-018.18: la envoltura del transporte (.scTransport) es la que se disuelve; los controles van en una fila propia */
+  assert.match(mobile, /body\.storyMode \.storyBar, body\.storyMode \.scHeaderRow, body\.storyMode \.scTransport\{display:contents;\}/, "mismos nodos, mismos ids");
   assert.match(mobile, /body\.storyMode \.storyKicker, body\.storyMode #panelScenarios #scStoryAdd, body\.storyMode #scStoriesLabel, body\.storyMode #scStatus, body\.storyMode #scPaletteToggle\{display:none;\}/, "sin rótulo, «+» ni paleta en la hoja");
   assert.match(mobile, /#btnStoryExit\{grid-area:exit; justify-self:end;\}/, "«Volver a editar» en la fila B, fuera de cualquier scroll");
-  assert.match(mobile, /#scNow\{grid-area:title;/, "reproduciendo, el momento en curso ocupa la fila A");
-  assert.match(mobile, /#panelScenarios\[data-sc-status="completed"\] #scReset\{display:none;\}/, "terminada: sin «Terminar» en la hoja");
+  /* FLUYO-018.18 (D4, D5): reproduciendo, la fila A es el transporte (el momento se lee SOBRE el lienzo, #scNow en #wrap) y
+     terminada también hay «Detener» en la hoja. */
+  assert.match(mobile, /body\[data-story="playing"\] \.scHeader\{grid-template-areas:"ctl ctl expand" "stop exit exit";\}/, "reproduciendo, la fila A es el transporte");
+  assert.ok(!/#scNow\{grid-area:title;/.test(mobile), "el momento ya no ocupa la hoja");
+  assert.ok(!/#panelScenarios\[data-sc-status="completed"\] #scReset\{display:none;\}/.test(mobile), "terminada: «Detener» a la vista");
   assert.match(mobile, /body\[data-story="compact"\] #scLibrarySection, body\[data-story="compact"\] \.scStorySection,\n\s*body\[data-story="playing"\] #scLibrarySection, body\[data-story="playing"\]:not\(\.storyExpanded\) \.scStorySection\{display:none;\}/, "qué se ve en cada estado");
   assert.match(mobile, /#scLibrarySection\{flex:none; display:flex; flex-direction:row; align-items:center;[^}]*overflow-x:auto;/, "fichas en un carril horizontal");
   assert.match(mobile, /\.scEventRow\{flex:none; min-height:var\(--ctl-h\); border:1px solid var\(--rule-2\); border-radius:var\(--r-pill\);/, "cada evento es una ficha de 44 px");
@@ -128,7 +136,8 @@ test("ui.js: estado derivado, zona libre, suelo de zoom, toque en el vacío, ree
   assert.ok(idle.includes("if(pointerBusy){ scheduleSheetIdleCheck(); return; }") && idle.includes('$("btnPanel").hidden=true;') && idle.includes('if(uiMode==="edit" && document.body.classList.contains("panelOpen")) closeSurface();'), "M2: al reposo (sin puntero apoyado), sin ⚙ y la hoja se cierra");
   assert.match(ui, /\$\("tbConnect"\)\.hidden = linking \|\| tm\.multi \|\| !\(s && s\.type==="node" && s\.obj\) \|\| document\.body\.classList\.contains\("storyMode"\);/, "M3");
   const expand = between(ui, '$("btnStoryExpand").onclick=()=>{', "\n};");
-  assert.ok(expand.includes('scStatus==="completed" && typeof scReset==="function") scReset();'), "terminada: Ampliar termina y abre el taller");
+  /* FLUYO-018.18 (D5, D6): Ampliar solo amplía; «Detener» está en la hoja y la línea de tiempo ampliada sirve para saltar. */
+  assert.ok(!expand.includes("scReset()"), "Ampliar ya no detiene la Historia terminada");
 });
 
 test("revisión manual: el rail enciende exactamente lo elegido; un fondo predefinido sustituye al color propio", () => {
@@ -145,7 +154,7 @@ test("editor-scenarios.js: seguimiento del paso activo, scroll solo del contened
   assert.ok(!/scrollIntoView\(\{ block: "nearest" \}\)/.test(es.replace(/scVisualPicker[^\n]*/g, "")), "ningún scrollIntoView sobre filas (desplazaba la hoja)");
   assert.match(es, /function scScrollIntoView\(el\) \{/);
   assert.ok(between(es, "function scScrollIntoView(el) {", "\n}\n").includes("while (c && c !== document.body) {"), "busca el contenedor desplazable más cercano");
-  const tick = between(es, "function scTick(now) {", "\n}\n");
+  const tick = between(es, "function scTick() {", "\n}\n");   /* 018.18: el reloj es el de la Historia (scNow), no el del fotograma */
   assert.ok(tick.includes("scRenderStoryboard();\n  scFollowActive();"), "scTick sigue el paso activo tras pintar la línea de tiempo");
   const follow = between(es, "function scFollowActive() {", "\n}\n");
   assert.ok(follow.includes('String(step.id) === String(scFollowedStep)) return;') && follow.includes("performance.now() - scUserScrollAt > 2000) scScrollIntoView(row);") && follow.includes("scTargetOffscreen(step)) scRevealTarget(step, false);") && follow.includes("const past = sc.steps.filter((s) => s.at <= cur);"), "solo al cambiar de paso; respeta el scroll manual; también los momentos instantáneos; trae el destino si sale");
@@ -163,9 +172,11 @@ test("editor-scenarios.js: seguimiento del paso activo, scroll solo del contened
   assert.ok(notice.includes("innerHeight - pb.getBoundingClientRect().top + 12") && notice.includes("b += aside.offsetHeight"), "el aviso se pone encima de la hoja o de la barra de colocación");
 });
 
-test("docs/index.html: los cuatro estados y «Terminar» en móvil están explicados", () => {
+test("docs/index.html: los cuatro estados y el mando de la reproducción están explicados", () => {
   const d = read("docs/index.html");
-  for (const t of ["<strong>compacta</strong>", "<strong>ampliada</strong>", "<strong>reproduciendo</strong>", "«Terminar» existe en escritorio"]) assert.ok(d.includes(t), t);
+  /* FLUYO-018.18: «Terminar» ya no existe; el mando es Pausar/Reanudar, anterior/siguiente y Detener */
+  for (const t of ["<strong>compacta</strong>", "<strong>ampliada</strong>", "<strong>reproduciendo</strong>", "<strong>Pausar</strong>", "<strong>Detener</strong>"]) assert.ok(d.includes(t), t);
+  assert.ok(!d.includes("«Terminar»"), "sin «Terminar»");
 });
 
 /* ───────── vm: scRenderButtons con el editor de Historias real (editor-scenarios.js) ───────── */
@@ -191,7 +202,7 @@ function editor(sheet) {
   return ctx;
 }
 
-test("vm: reproduciendo no hay paleta; el estado va al panel; terminada sigue «Terminar» (lo oculta el CSS de la hoja)", () => {
+test("vm: reproduciendo no hay paleta; el estado va al panel; terminada dice «Detener» (018.18, D5)", () => {
   const ctx = editor(false);
   assert.equal(ctx.run('$("scPaletteToggle").hidden'), false);
   assert.equal(ctx.run('$("panelScenarios").getAttribute("data-sc-status")'), "idle");
@@ -200,7 +211,7 @@ test("vm: reproduciendo no hay paleta; el estado va al panel; terminada sigue «
   assert.equal(ctx.run('$("panelScenarios").getAttribute("data-sc-status")'), "running");
   ctx.run('scStatus="completed"; scRenderButtons();');
   assert.equal(ctx.run('$("panelScenarios").getAttribute("data-sc-status")'), "completed");
-  assert.equal(ctx.run('$("scReset").textContent'), "Terminar");
+  assert.equal(ctx.run('$("scReset").textContent'), "■ Detener");
   ctx.run("scReset()");
   assert.equal(ctx.run('$("scPaletteToggle").hidden'), false);
   assert.ok(ctx.states.length >= 3, "cada cambio de botones sincroniza el estado de la hoja");

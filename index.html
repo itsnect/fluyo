@@ -153,6 +153,11 @@ try{
   <symbol id="i-swatch" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 15.5l5-5 4 4 2.5-2.5L20 16.5"/></symbol>
   <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6.5" y="6.5" width="11" height="11" rx="1.2"/></symbol>
   <symbol id="i-replay" viewBox="0 0 24 24"><path d="M5 12a7 7 0 1 0 2.1-5"/><path d="M5 4.5V9h4.5"/></symbol>
+  <!-- FLUYO-018.18: momento anterior/siguiente (transporte de Historia) y página anterior/siguiente (Present). -->
+  <symbol id="i-step-back" viewBox="0 0 24 24"><path d="M7 6v12"/><path d="M18 6.5v11L9.5 12z"/></symbol>
+  <symbol id="i-step-fwd" viewBox="0 0 24 24"><path d="M17 6v12"/><path d="M6 6.5v11l8.5-5.5z"/></symbol>
+  <symbol id="i-prev" viewBox="0 0 24 24"><path d="M14.5 6l-6 6 6 6"/></symbol>
+  <symbol id="i-next" viewBox="0 0 24 24"><path d="M9.5 6l6 6-6 6"/></symbol>
 </svg>
 
 <!--
@@ -310,6 +315,14 @@ try{
     <div id="wrap">
       <canvas id="cv" width="2560" height="1440"></canvas>
       <textarea id="editBox" rows="1" wrap="off" spellcheck="false" aria-label="Editar texto"></textarea>
+      <!-- FLUYO-018.18 (D4): el momento activo, SOBRE el lienzo y en una línea (antes, un recuadro «Reproduciendo» en la hoja
+           o la columna). Mismo contenido que lee Present (FluyoStory.describe). Lo coloca scPlaceNow (editor-scenarios.js):
+           arriba de la zona libre, o al pie si el destino del momento queda debajo. -->
+      <div id="scNow" class="scNow momentCard" hidden>
+        <span class="scNowKicker"><i class="scLive" aria-hidden="true"></i><span id="scNowLabel">Reproduciendo</span></span>
+        <span id="scNowCaption" class="scNowCaption" aria-live="polite"></span>
+        <span id="scNowProgress" class="scNowProgress"></span>
+      </div>
     </div>
     <div id="iconDrawer" role="dialog" aria-label="Iconos"></div>
     <div id="animDrawer" role="dialog" aria-label="GIFs animados"></div>
@@ -545,6 +558,28 @@ try{
             </label>
           </div>
         </div>
+          <div class="row" id="rowDash"><label for="dashChk">Línea punteada</label><input type="checkbox" id="dashChk"></div>
+          <!-- FLUYO-018.18 (D12): la dirección de una conexión, donde se busca, nombrando las dos cosas distintas que existen:
+               las PUNTAS (startArrow/endArrow, se dibujan siempre, también en PNG/SVG) y el SENTIDO de los puntos animados
+               (flowDir: normal → «Hacia el destino», reverse → «Hacia el origen», alternate → «Ida y vuelta»). Mismo dato,
+               mismos valores; #flowSel sigue siendo el control nativo y el segmentado lo refleja (decisión 36). -->
+          <p class="pgSub" id="dirKicker">Dirección</p>
+          <div class="row" id="rowArrS"><label for="arrSChk">Punta al inicio</label><input type="checkbox" id="arrSChk"></div>
+          <div class="row" id="rowArrE"><label for="arrEChk">Punta al final</label><input type="checkbox" id="arrEChk"></div>
+          <div class="row" id="rowAnim"><label for="animChk">Puntos en movimiento</label><input type="checkbox" id="animChk"></div>
+          <div class="row" id="rowFlow" data-stack><span class="lblText" id="flowLbl">Sentido de los puntos</span>
+          <div class="seg flowSeg" id="flowSeg" role="radiogroup" aria-labelledby="flowLbl">
+            <button type="button" class="segBtn" role="radio" data-flow="normal" aria-checked="true">Hacia el destino</button>
+            <button type="button" class="segBtn" role="radio" data-flow="reverse" aria-checked="false">Hacia el origen</button>
+            <button type="button" class="segBtn" role="radio" data-flow="alternate" aria-checked="false">Ida y vuelta</button>
+          </div>
+          <select id="flowSel" class="srOnly" tabindex="-1" aria-hidden="true"><option value="normal">Hacia el destino</option><option value="reverse">Hacia el origen</option><option value="alternate">Ida y vuelta</option></select>
+        </div>
+        </div>
+      </details>
+      <details class="pgroup" id="grpFlow" data-group="Puntos">
+        <summary><span class="pgTitle">Puntos</span></summary>
+        <div class="pgBody">
           <div class="row" id="rowDotC" data-stack>
           <label>Color de puntos</label>
           <div class="swatches" id="dotSw"></div>
@@ -554,15 +589,6 @@ try{
             </label>
           </div>
         </div>
-          <div class="row" id="rowDash"><label for="dashChk">Línea punteada</label><input type="checkbox" id="dashChk"></div>
-          <div class="row" id="rowArrS"><label for="arrSChk">Punta al inicio</label><input type="checkbox" id="arrSChk"></div>
-          <div class="row" id="rowArrE"><label for="arrEChk">Punta al final</label><input type="checkbox" id="arrEChk"></div>
-        </div>
-      </details>
-      <details class="pgroup" id="grpFlow" data-group="Flujo">
-        <summary><span class="pgTitle">Flujo</span></summary>
-        <div class="pgBody">
-          <div class="row" id="rowAnim"><label for="animChk">Puntos animados</label><input type="checkbox" id="animChk"></div>
           <div class="row" id="rowSpeedF"><label>Velocidad (× global)</label>
           <select id="speedFacSel">
             <option value="1">1× (global)</option>
@@ -574,9 +600,6 @@ try{
           <div class="row" id="rowDotsGlobal"><label for="dotsGlobalChk">Puntos globales</label><input type="checkbox" id="dotsGlobalChk"></div>
           <div class="row" id="rowDots"><label>Puntos (esta flecha)</label>
           <input type="number" id="edgeDotsIn" min="1" max="6" step="1">
-        </div>
-          <div class="row" id="rowFlow"><label>Flujo de puntos</label>
-          <select id="flowSel"><option value="normal">Normal →</option><option value="reverse">Inverso ←</option><option value="alternate">Alterno ⇄</option></select>
         </div>
         </div>
       </details>
@@ -634,11 +657,11 @@ try{
         </div>
         <div class="scStoriesLabel" id="scStoriesLabel">Historias</div>
         <div class="scHeaderRow"><button id="scScenarioTitle" type="button" aria-haspopup="true" aria-labelledby="scStoriesLabel scScenarioTitle" title="Elegir historia">Sin historias ▾</button><button id="scStoryAdd" type="button" aria-label="Nueva historia" title="Nueva historia">+</button><button id="scScenarioMenu" type="button" aria-label="Opciones de la historia" title="Opciones de la historia">⋯</button></div>
-        <div class="scPlaybackControls"><button id="scRun" type="button" class="primary">▶ Reproducir</button><button id="scReset" type="button" hidden>Terminar</button><span id="scRunHint" class="scRunHint" hidden>Añade eventos desde Ampliar</span></div>
-        <!-- B9: qué está pasando ahora, mientras se reproduce (FluyoStory.describe, la misma lectura que Present). -->
-        <div id="scNow" class="scNow" hidden>
-          <span class="scNowKicker"><i class="scLive" aria-hidden="true"></i><span id="scNowLabel">Reproduciendo</span><span id="scNowProgress" class="scNowProgress"></span></span>
-          <span id="scNowCaption" class="scNowCaption" aria-live="polite"></span>
+        <!-- FLUYO-018.18: el transporte de la Historia. Reproducir · Pausar/Reanudar · momento anterior/siguiente · Detener.
+             El momento en curso se lee sobre el lienzo (#scNow, dentro de #wrap). -->
+        <div class="scTransport">
+          <div class="scPlaybackControls"><button id="scPrev" type="button" class="iconBtn" hidden aria-label="Momento anterior" title="Momento anterior"><svg class="ic" aria-hidden="true"><use href="#i-step-back"/></svg></button><button id="scRun" type="button" class="primary">▶ Reproducir</button><button id="scPause" type="button" hidden>Pausar</button><button id="scNext" type="button" class="iconBtn" hidden aria-label="Momento siguiente" title="Momento siguiente"><svg class="ic" aria-hidden="true"><use href="#i-step-fwd"/></svg></button><span id="scRunHint" class="scRunHint" hidden>Añade eventos desde Ampliar</span></div>
+          <button id="scReset" type="button" hidden>■ Detener</button>
         </div>
         <p id="scStatus" role="status"></p>
         <p id="scUnsupported" class="hint" hidden>Esta historia necesita una versión compatible de Fluyo.</p>
@@ -833,14 +856,22 @@ try{
 <div id="pageMenu" class="scPopover pageMenu" role="dialog" aria-label="Página" hidden></div>
 
 <!-- Mando del modo presentación: solo se muestra con body.presenting -->
+<!-- FLUYO-018.18 (D7, D8): dos grupos separados —la Historia y las páginas— y UNA salida. Tocar el lienzo no hace nada:
+     solo los controles navegan. El transporte llama a las mismas funciones que el del editor (present-story.js). -->
 <div id="presentBar">
-  <button id="prPrev" title="Diapositiva anterior (←)" aria-label="Diapositiva anterior">◀</button>
-  <span id="prPos" aria-live="polite"></span>
-  <button id="prNext" title="Diapositiva siguiente (→)" aria-label="Diapositiva siguiente">▶</button>
-  <button id="psPlay" title="Reproducir la historia (Espacio)" hidden>▶ Reproducir</button>
-  <button id="psStop" title="Detener (Esc)" hidden>■ Detener</button>
-  <button id="psEdit" title="Salir de la presentación y volver al editor" hidden>← Volver a editar</button>
-  <button id="prExit" title="Salir de la presentación (Esc)" aria-label="Salir de la presentación">✕ Salir</button>
+  <div id="psGroup" class="prGroup" role="group" aria-label="Historia" hidden>
+    <button id="psPrev" class="iconBtn" type="button" title="Momento anterior" aria-label="Momento anterior" hidden><svg class="ic" aria-hidden="true"><use href="#i-step-back"/></svg></button>
+    <button id="psPlay" type="button" title="Reproducir la historia (Espacio)" hidden>▶ Reproducir</button>
+    <button id="psPause" type="button" title="Pausar o reanudar (Espacio)" hidden>Pausar</button>
+    <button id="psNext" class="iconBtn" type="button" title="Momento siguiente" aria-label="Momento siguiente" hidden><svg class="ic" aria-hidden="true"><use href="#i-step-fwd"/></svg></button>
+    <button id="psStop" type="button" title="Detener (Esc)" hidden>■ Detener</button>
+  </div>
+  <div id="prPages" class="prGroup" role="group" aria-label="Páginas">
+    <button id="prPrev" class="iconBtn" type="button" title="Página anterior (←)" aria-label="Página anterior"><svg class="ic" aria-hidden="true"><use href="#i-prev"/></svg></button>
+    <span id="prPos" aria-live="polite"></span>
+    <button id="prNext" class="iconBtn" type="button" title="Página siguiente (→)" aria-label="Página siguiente"><svg class="ic" aria-hidden="true"><use href="#i-next"/></svg></button>
+  </div>
+  <button id="prExit" type="button" title="Salir de la presentación (Esc)" aria-label="Salir de la presentación"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg><span class="lbl">Salir</span></button>
 </div>
 <!-- Encabezado de la Historia en Present: qué está pasando ahora (secundario al Canvas) -->
 <div id="presentStory" hidden>
@@ -965,6 +996,8 @@ try{
 <script src="js/scenario-engine.js"></script>
 <script src="js/scenario-playback.js"></script>
 <script src="js/story-playback.js"></script>
+<!-- FLUYO-018.18: el reloj de la Historia (pausa, reanudar, saltar entre momentos). Fuera del kernel. -->
+<script src="js/story-clock.js"></script>
 <script src="js/document-integrity.js"></script>
 <script src="js/editor-scenarios.js"></script>
 <script src="js/present-story.js"></script>

@@ -164,7 +164,8 @@ const LARGO = `(() => { ${RESET}
     await waitStory(v1, "completed");
     assert.equal(await v1.locator("#stCaption").innerText(), "Reproducción terminada");
     assert.equal(await v1.locator("#stPlay").innerText(), "↻ Repetir");
-    assert.equal(await v1.locator("#stOpen").isVisible(), true);
+    /* FLUYO-018.18: «Abrir en Fluyo» al terminar es el de la cabecera (siempre a la vista); la banda es solo el transporte */
+    assert.equal(await v1.locator("#stOpen").isVisible(), false); assert.equal(await v1.locator("#btnOpen").isVisible(), true);
     assert.doesNotMatch(await storyText(v1), JARGON);
     assert.equal(await SNAP(v1), snap1, "reproducir no cambia el documento compartido");
     await shot(v1, "04-negocio-fin");
@@ -360,7 +361,7 @@ const LARGO = `(() => { ${RESET}
           return { l: b.x * z + view.x, rt: (b.x + b.w) * z + view.x, t: b.y * z + view.y, bt: (b.y + b.h) * z + view.y, w: r.width, h: r.height }; });
         assert.ok(tok.l >= -1 && tok.rt <= tok.w + 1 && tok.t >= -1 && tok.bt <= tok.h + 1, "diagrama visible en el canvas: " + JSON.stringify(tok));
         await waitStory(p, "completed", 40000);
-        await inView("#stPlay"); await inView("#stOpen"); await noHScroll("final");
+        await inView("#stPlay"); await inView("#btnOpen"); await noHScroll("final");
         await shot(p, `r-${label}-${w}-fin`);
         await c.close();
       }

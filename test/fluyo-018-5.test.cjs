@@ -513,7 +513,8 @@ test("el editor y MCP comparten las MISMAS funciones: ui.js no toca blankPage ni
   assert.equal(/blankPage\(/.test(ui), false, "ui.js no crea páginas por su cuenta");
   assert.equal(/pg\.name\s*=[^=]/.test(ui), false, "ui.js no renombra páginas por su cuenta");
   assert.match(ui, /addPage\(\)/);
-  assert.match(ui, /renamePage\(i,nn\)/);
+  /* FLUYO-018.18 (D11): sin prompt(); el doble clic y el menú renombran por el mismo campo en línea, con renamePage del dominio. */
+  assert.match(ui, /renamePage\(i, input\.value\)/); assert.equal(/\bprompt\("/.test(ui), false, "renombrar no usa prompt()");
   const auth = read("js/story-authoring.js");
   assert.match(auth, /createPageIn\(ctx\.d, op\.name\)/);
   assert.match(auth, /renamePageIn\(ctx\.d, liveIndexOf\(ctx, op\.pageIndex\), op\.name\)/);   // 018.7c: índice del lote → índice del documento

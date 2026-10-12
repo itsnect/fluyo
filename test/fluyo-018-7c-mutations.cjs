@@ -44,7 +44,8 @@ const MUTATIONS = [
   ["E9 Redo del borrado recorta cur en lugar de la regla del dominio", SEL, "    deletePageIn(doc, i);\n    return {kind:\"insertPage\"", "    doc.pages.splice(i,1); doc.cur=Math.min(doc.cur,doc.pages.length-1);\n    return {kind:\"insertPage\""],
   ["E10 la inversa de una edición es la foto de la página ACTIVA (comportamiento previo)", SEL, "  const inverse=pageSnap(s.page);", "  const inverse=snapPage();"],
   ["E11 una entrada que ya no aplica bloquea el Undo", SEL, "    if(!inverse) continue;", "    if(!inverse) return;"],
-  ["E12 la ✕ borra a mano (sin dominio ni Undo)", UI, "x.onclick=ev=>{ ev.stopPropagation(); requestDeletePage(i); };", "x.onclick=ev=>{ ev.stopPropagation(); if(confirm(\"¿Eliminar «\"+pg.name+\"»?\")){ doc.pages.splice(i,1); doc.cur=Math.min(doc.cur,doc.pages.length-1); clearSel(); renderTabs(); } };"],
+  /* 018.18 (D11): la ✕ se retiró; la única puerta es «Eliminar página» del menú de la página. Misma intención: que no borre a mano */
+  ["E12 «Eliminar página» borra a mano (sin dominio ni Undo)", UI, 'if(doc.pages.length>1) item("Eliminar página", ()=>{ closePageMenu(false); requestDeletePage(i); }, "scMenuDanger");', 'if(doc.pages.length>1) item("Eliminar página", ()=>{ closePageMenu(false); if(confirm("¿Eliminar «"+pg.name+"»?")){ doc.pages.splice(i,1); doc.cur=Math.min(doc.cur,doc.pages.length-1); clearSel(); renderTabs(); } }, "scMenuDanger");'],
   // ── autoría: expectedName, índices estables, pageMap
   ["A1 expectedName se ignora", AUTH, "      if(pg.name!==op.expectedName)\n", "      if(false)\n"],
   ["A2 expectedName es opcional", [[AUTH, 'if(op.expectedName===undefined) throw reject("INVALID_FIELD"', 'if(false) throw reject("INVALID_FIELD"'], [AUTH, 'if(typeof op.expectedName!=="string") throw', 'if(op.expectedName!==undefined && typeof op.expectedName!=="string") throw']]],

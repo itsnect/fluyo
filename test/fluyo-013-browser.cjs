@@ -83,7 +83,9 @@ const RESIDUE = () => ({
     assert.equal(await page.locator("aside").isVisible(), false);
     assert.equal(await page.locator("#psPlay").isVisible(), true);
     assert.equal(await page.locator("#psStop").isVisible(), false);
-    assert.equal(await page.locator("#prExit").innerText(), "✕ Salir");
+    /* FLUYO-018.18 (D8): una sola salida; el ✕ es el icono del sprite, el texto es «Salir» */
+    assert.equal(await page.locator("#prExit").innerText(), "Salir");
+    assert.equal(await page.locator("#psEdit").count(), 0, "sin salida duplicada");
     assert.match(await page.locator("#psTitle").innerText(), /Compra/);
     /* sin scroll horizontal y el diagrama cabe en la escena */
     const fit = await page.evaluate(() => {
@@ -116,7 +118,8 @@ const RESIDUE = () => ({
     assert.equal(await page.locator("#psCaption").innerText(), "Reproducción terminada");
     assert.equal(await page.locator("#psSummary").innerText(), "");
     assert.equal(await page.locator("#psPlay").innerText(), "↻ Repetir");
-    assert.equal(await page.locator("#psEdit").isVisible(), true);
+    assert.equal(await page.locator("#psStop").isVisible(), true, "terminada: «Detener» (018.18, D5)");
+    assert.equal(await page.locator("#prExit").isVisible(), true, "y la salida de siempre");
     await shot("04-finished-1366");
 
     /* Repetir */
@@ -137,12 +140,12 @@ const RESIDUE = () => ({
     assert.equal(r.presenting, false); assert.equal(r.body, false); assert.equal(r.status, "idle"); assert.equal(r.raf, null); assert.equal(r.playback, null); assert.equal(r.propTab, false);
     assert.equal(await page.evaluate(SNAP), before, "documento, Steps y undo intactos");
 
-    /* Volver a editar tras terminar */
+    /* Salir tras terminar (018.18, D8: la única salida) */
     await page.locator("#btnPresent").click();
     await page.keyboard.press(" ");
     await waitPhase("playing");
     await waitPhase("finished");
-    await page.locator("#psEdit").click();
+    await page.locator("#prExit").click();
     r = await page.evaluate(RESIDUE);
     assert.equal(r.presenting, false); assert.equal(r.status, "idle"); assert.equal(r.raf, null);
     assert.equal(await page.evaluate(SNAP), before);
@@ -169,7 +172,7 @@ const RESIDUE = () => ({
     assert.equal(await page.locator("#psCaption").innerText(), "Reproducción terminada");
     assert.equal(await page.locator("#psSummary").innerText(), "2 eventos no pudieron realizarse");
     await shot("06-kafka-finished-1366");
-    await page.locator("#psEdit").click();
+    await page.locator("#prExit").click();
     assert.equal(await page.evaluate(SNAP), beforeK);
 
     /* ───────── 4. Viewports ───────── */

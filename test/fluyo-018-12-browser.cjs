@@ -158,8 +158,9 @@ async function journey(browser, base, vp) {
   else check(hdr.h <= 91, `1280: dos filas como en HEAD (${hdr.h} px, HEAD 91)`);
   if (vp.touch) {
     check(hdr.small.length === 0, `táctil: ningún control de la cabecera mide menos de 40 px ${JSON.stringify(hdr.small)}`);
-    const tabs = await page.evaluate(() => [...document.querySelectorAll("#pagesBar .tab, #pagesBar > button")].map((e) => Math.round(e.getBoundingClientRect().height)));
-    check(tabs.every((h) => h >= 38), `táctil: pestañas y «＋» de al menos 38 px de alto ${JSON.stringify(tabs)}`);
+    /* 018.18 (D10): en el teléfono la barra de páginas es un selector; se miden los controles de páginas que se ven */
+    const tabs = await page.evaluate(() => [...document.querySelectorAll("#pagesBar .tab, #pagesBar > button")].filter((e) => e.getBoundingClientRect().height > 0).map((e) => Math.round(e.getBoundingClientRect().height)));
+    check(tabs.length > 0 && tabs.every((h) => h >= 38), `táctil: controles de páginas de al menos 38 px de alto ${JSON.stringify(tabs)}`);
   }
   check(!hdr.playInHeader && hdr.playback.length === 0, "la cabecera no tiene controles de reproducción (Pausa vive en Animación; Reproducir, en Historias)");
   check(!!(await visibleBox(page, "#btnUndo")) && !!(await visibleBox(page, "#btnRedo")), "Deshacer y Rehacer visibles");
@@ -321,18 +322,25 @@ async function journey(browser, base, vp) {
   }
 
   /* 9 · crear página · 8 · cambiar página · 10 · renombrar página */
+  /* FLUYO-018.18 (D10): en el teléfono (≤ 700 px) las páginas son un selector con la lista y «＋ Nueva página» dentro */
+  const phone = vp.width <= 700;
   const p0 = await stateOf(page);
-  await press(t, "#pagesBar > button", vp); await page.waitForTimeout(150);
+  if (phone) { await press(t, "#pgSelect", vp); await press(t, "#pageMenu .pgNew", vp); }
+  else await press(t, "#pagesBar > .pgAdd", vp);
+  await page.waitForTimeout(150);
   s = await stateOf(page);
   check(s.pages.length === p0.pages.length + 1 && s.cur === s.pages.length - 1, `9 · «＋» crea una página y la activa ${JSON.stringify(s.pages)}`);
-  await press(t, "#pagesBar .tab >> nth=0", vp); await page.waitForTimeout(150);
+  if (phone) { await press(t, "#pgSelect", vp); await press(t, "#pageMenu .pgItem >> nth=0", vp); }
+  else await press(t, "#pagesBar .tab >> nth=0", vp);
+  await page.waitForTimeout(150);
   s = await stateOf(page);
-  check(s.cur === 0 && s.nodes.length === 3, "8 · tocar la primera pestaña vuelve a la página 1 con su contenido");
+  check(s.cur === 0 && s.nodes.length === 3, "8 · elegir la primera página vuelve a la página 1 con su contenido");
   const dialogsBefore = t.dialogs.length;
   if (vp.touch) {
-    check(!!(await visibleBox(page, "#pagesBar .tab.active .pgMore")), "10 · la pestaña activa muestra su ▾ con el dedo");
-    await t.page.locator("#pagesBar .tab.active").tap(); await page.waitForTimeout(150);
-    check(!!(await visibleBox(page, "#pageMenu")) && /Renombrar/.test(await page.locator("#pageMenu").textContent()), "10 · tocar la pestaña activa abre el menú de la página");
+    if (phone) check(!!(await visibleBox(page, "#pgSelect")), "10 · el selector de página está a la vista con el dedo");
+    else check(!!(await visibleBox(page, "#pagesBar .tab.active .pgMore")), "10 · la pestaña activa muestra su ▾ con el dedo");
+    await t.page.locator(phone ? "#pgSelect" : "#pagesBar .tab.active").tap(); await page.waitForTimeout(150);
+    check(!!(await visibleBox(page, "#pageMenu")) && /Renombrar/.test(await page.locator("#pageMenu").textContent()), "10 · tocar la página activa abre el menú de la página");
     await shot(t, vp, "10-menu-pagina");
     await t.page.locator("#pageMenu button", { hasText: "Renombrar" }).tap(); await page.waitForTimeout(120);
     await page.locator("#pageNameIn").fill("   ");
@@ -343,15 +351,18 @@ async function journey(browser, base, vp) {
     await t.page.locator("#pageNameSave").tap(); await page.waitForTimeout(150);
     s = await stateOf(page);
     check(s.pages[0] === "Arquitectura" && !(await visibleBox(page, "#pageMenu")) && t.dialogs.length === dialogsBefore, "10 · «Guardar nombre» renombra sin diálogos nativos y cierra el menú");
-    await t.page.locator("#pagesBar .tab.active .pgMore").tap(); await page.waitForTimeout(120);
+    await t.page.locator(phone ? "#pgSelect" : "#pagesBar .tab.active .pgMore").tap(); await page.waitForTimeout(120);
     check(!!(await visibleBox(page, "#pageMenu")), "10 · el ▾ abre el mismo menú");
     await tap(t, empty.x, empty.y);
     check(!(await visibleBox(page, "#pageMenu")), "10 · tocar fuera cierra el menú");
   } else {
-    check(!(await visibleBox(page, "#pagesBar .tab.active .pgMore")), "10 · con ratón no aparece el ▾ (la pestaña es la de siempre)");
+    /* FLUYO-018.18 (D11): con ratón el ▾ también se ve (renombrar y eliminar viven ahí: ya no hay ✕) y el doble clic abre el
+       MISMO renombrado en línea, sin prompt() */
+    check(!!(await visibleBox(page, "#pagesBar .tab.active .pgMore")), "10 · con ratón también aparece el ▾ de la activa");
     await page.locator("#pagesBar .tab >> nth=0").dblclick(); await page.waitForTimeout(150);
+    await page.locator("#pageNameIn").fill("Arquitectura"); await page.locator("#pageNameSave").click(); await page.waitForTimeout(150);
     s = await stateOf(page);
-    check(s.pages[0] === "Arquitectura" && t.dialogs.length === dialogsBefore + 1 && t.dialogs[dialogsBefore].type === "prompt", "10 · doble clic + nombre: renombra como siempre");
+    check(s.pages[0] === "Arquitectura" && t.dialogs.length === dialogsBefore, "10 · doble clic: renombra en línea, sin diálogos nativos");
     await page.locator("#pagesBar .tab.active").click(); await page.waitForTimeout(100);
     check(!(await visibleBox(page, "#pageMenu")), "10 · un clic en la pestaña activa no abre ningún menú con ratón");
   }
@@ -472,8 +483,12 @@ async function desktopScript(browser, base, vp) {
   await page.keyboard.down("Control"); await page.mouse.wheel(0, -100); await page.waitForTimeout(120); await page.keyboard.up("Control");
   out.view = await page.evaluate(() => [viewX, viewY, viewZoom]);
   /* páginas: ＋, volver, doble clic para renombrar */
-  await page.locator("#pagesBar > button").click(); await page.locator("#pagesBar .tab >> nth=0").click();
+  /* `.pgAdd` y no `> button`: desde 018.18 la barra lleva también el selector de página (oculto en escritorio) */
+  await page.locator("#pagesBar > .pgAdd").click(); await page.locator("#pagesBar .tab >> nth=0").click();
   await page.locator("#pagesBar .tab >> nth=0").dblclick();
+  /* 018.18 (D11): en el árbol de trabajo el doble clic abre el renombrado EN LÍNEA (HEAD: prompt, que el manejador contesta
+     «Arquitectura»); se escribe lo mismo para comparar el documento */
+  if (await page.locator("#pageNameIn").isVisible().catch(() => false)) { await page.locator("#pageNameIn").fill("Arquitectura"); await page.locator("#pageNameSave").click(); }
   /* Ctrl+Z / Ctrl+Y */
   await page.mouse.click(cvb.x + cvb.width - 40, cvb.y + 40);
   await page.keyboard.press("Control+z"); out.afterUndo = await page.evaluate(() => JSON.stringify(serializeProject()));
@@ -578,7 +593,8 @@ async function dpr(browser, base) {
          lienzo bajo el cursor variaba unas décimas entre árboles. El zoom debe ser exactamente el mismo. */
       const sameView = W.view[2] === H.view[2] && Math.abs(W.view[0] - H.view[0]) < 0.5 && Math.abs(W.view[1] - H.view[1]) < 0.5;
       check(same(W.selection, H.selection) && sameView, "marco + Shift+clic y rueda/Ctrl+rueda: misma selección y misma vista que HEAD " + JSON.stringify({ W: [W.selection, W.view], H: [H.selection, H.view] }));
-      check(same(W.dialogs, H.dialogs), `mismos diálogos que HEAD (${W.dialogs.join(",")})`);
+      /* 018.18 (D11): el único diálogo que desaparece es el prompt() de renombrar (ahora en línea); los demás, iguales */
+      check(same(W.dialogs, H.dialogs.filter((d) => d !== "prompt")) && !W.dialogs.includes("prompt"), `mismos diálogos que HEAD salvo el prompt de renombrar (${W.dialogs.join(",")} / HEAD ${H.dialogs.join(",")})`);
       check(W.clickUndo === 0 && H.clickUndo === (headHas12 ? 0 : 1), `un clic sin mover no apila Undo (HEAD ${H.clickUndo}, ahora ${W.clickUndo}${headHas12 ? "; HEAD ya incluye 018.12" : "; diferencia intencional"})`);
       check(W.demo.pages.length === W.pagesBeforeDemo + 1 && H.demo.pages.length === H.pagesBeforeDemo + (headHas12 ? 1 : 0), `D9: Ejemplo añade una página (${W.demo.pages.join(",")}); HEAD: ${H.demo.pages.join(",")}`);
       check(W.errors.length === 0 && H.errors.length === 0, "0 errores en HEAD y en el árbol de trabajo");

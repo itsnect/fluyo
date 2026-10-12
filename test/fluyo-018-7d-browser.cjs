@@ -10,6 +10,15 @@ let chromium;
 try { ({ chromium } = require("playwright")); } catch { ({ chromium } = require("playwright-core")); }
 const assert = require("node:assert/strict");
 const fs = require("node:fs"), path = require("node:path"), os = require("node:os"), http = require("node:http");
+/* FLUYO-018.18 (D11): HEAD pulsa la ✕ de la pestaña; el árbol de trabajo (sin ✕: se llamaba «Cerrar página» y eliminaba) usa
+   «Eliminar página» del menú de ESA página, que llama a la misma requestDeletePage (misma confirmación, mismo Undo). */
+async function deleteTab(page, i) {
+  const x = page.locator("#pagesBar .tab").nth(i).locator(".x");
+  if (await x.count()) { await x.click(); return; }
+  await page.evaluate((i) => openPageMenu(i, document.querySelectorAll("#pagesBar .tab")[i]), i);
+  await page.locator("#pageMenu .scMenuDanger").click();
+}
+
 const { execFileSync } = require("node:child_process");
 const root = path.resolve(__dirname, "..");
 const shots = process.env.FLUYO_SHOTS || fs.mkdtempSync(path.join(os.tmpdir(), "fluyo-018-7d-"));
@@ -74,7 +83,7 @@ async function script(browser, base, label) {
     return used;
   };
   const s0 = await docJson();
-  await ed.locator("#pagesBar .tab").nth(0).locator(".x").click(); await ed.waitForTimeout(80);   // borrar A: «Pago» queda sin uso
+  await deleteTab(ed, 0); await ed.waitForTimeout(80);   // borrar A: «Pago» queda sin uso
   const s1 = await docJson();
   R.afterDelete = { pages: await ed.evaluate(() => doc.pages.map((p) => p.name)), lib: await lib() };
   R.avisoBlocked = await deleteFromLibrary("Aviso");                                                // B lo usa: bloqueado

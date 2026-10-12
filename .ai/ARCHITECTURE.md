@@ -24,6 +24,7 @@
 | `js/scenario-engine.js` | Motor determinista puro de Scenarios (v1/v2). |
 | `js/scenario-playback.js` | Proyección de Trace a datos visuales (sin DOM). |
 | `js/story-playback.js` | Receta ÚNICA de reproducción (`FluyoStory`): metadata por Step, ejecución, fin, estado de pintura y texto humano. Compartida por editor, Present y Viewer. |
+| `js/story-clock.js` | `FluyoStoryClock` (FLUYO-018.18): el reloj de una Historia —pausar, reanudar, saltar a un momento— sobre la misma receta. Puro y FUERA del kernel (fluyo-mcp no lo copia). Lo cargan el editor y el Viewer. |
 | `js/document-integrity.js` | `FluyoIntegrity` (FLUYO-017.1): autoridad única de integridad del documento. Pura, sin DOM; la cargan el editor (FLUYO-018.4, para confirmar borrados) y fluyo-mcp. |
 | `js/story-authoring.js` | `FluyoAuthoring` (FLUYO-017.2): lote atómico de operaciones de Historia sobre una copia. Pura; no cargada por el editor (la consume fluyo-mcp). |
 | `js/editor-scenarios.js` | Panel de Historias (Scenarios), selección de la Historia activa, storyboard, autoría, playback UI. |
@@ -446,3 +447,26 @@ zona libre              visibleCanvasRect() = lienzo − hoja − barra táctil 
 - `sw.js`: `CACHE` v76. `model.js`, `config.js`, kernel, `render.js`, `geometry.js`, `export.js`, `interaction.js`, Viewer, Share y Present sin cambios (test de alcance contra HEAD). Decisiones 146–151.
 - Pruebas: `test/fluyo-018-17.test.cjs` (alcance, CACHE, ids, CSS de estados y touch, `ui.js`/`editor-scenarios.js`, docs; vm: paleta/estado/pista con el editor de Historias real), `test/fluyo-018-17-browser.cjs` (Chrome real: 1440/1280/1101 ratón, 768 tableta, 430/390/375 móvil, 844×390 apaisado; interfaz clara con lienzo oscuro y oscura con crema; fixture de 4 nodos y uno de 12 que no cabe a zoom 0,6: lienzo visible y **útil** por estado —zona libre, destino entero y legible, desplazable, tocable—, un solo desplazable, salida visible en los cuatro estados y tras colocar, seguimiento del paso activo, Propiedades, M1–M3, reencaje, páginas, SW v76 sin red) y `test/fluyo-018-17-mutations.cjs`.
 - Revisión manual (misma tarea): `syncRail` devuelve siempre un booleano a `classList.toggle` (decisión 153); el manejador de `#themeSel` escribe `{theme, customBg:""}` y `syncProjectControls` enseña el fondo del tema en `#bgCustom` cuando no hay color propio (decisión 152; `js/state.js` una línea). El selector de sentido de los puntos de una conexión (`#flowSel`, `flowDir` normal/reverse/alternate) sigue existiendo en el grupo «Flujo» del panel, plegado por defecto desde 018.14b (ver la tarea, deuda para 018.18).
+
+## Contar una Historia en cualquier superficie (FLUYO-018.18)
+
+```text
+FluyoStory.start / FluyoScenarioPlayback.tick   (kernel, sin cambios: funciones puras del reloj que reciben)
+        ▲ el tiempo que ven lo decide ─── FluyoStoryClock (js/story-clock.js, NO kernel)
+        │                                  now · pause · resume · momentTimes · momentIndex · prevTarget · nextTarget · seek(i)
+   ┌────┴───────────────────┬──────────────────────────────┐
+ Editor (editor-scenarios)  Present (present-story → las   Viewer (viewer.js: story.clock)
+ scClock · scNow()          mismas scPause/scSeek… del     storyTogglePause · storySeek
+ scPause/scResume/          editor)                        band = transporte de alto fijo;
+ scSeekMoment/scSeekStep                                   #stNow = rótulo sobre el lienzo
+ #scNow sobre el lienzo (scPlaceNow, cada fotograma)
+```
+
+- **Reloj**: «en pausa» no es un `scStatus` nuevo (sigue `running`); es el reloj congelado. Saltar a un momento vuelve a ejecutar la misma receta con el origen desplazado (`FluyoStory.start(page, sc, ahora − at)`) y proyecta hasta ese instante: el estado es el de una reproducción continua (test en vm). La unidad es el **momento** (`storyboardGroups`), nunca el Step. Ni el documento ni Undo se tocan.
+- **Transporte** (mismas palabras en las tres superficies): Reproducir · Pausar/Reanudar · momento anterior/siguiente · Detener · Repetir. «Detener» sustituye a «Terminar» en cualquier estado. Editor: `#scPrev #scRun #scPause #scNext` + `#scReset` (envoltura `.scTransport`; en la hoja móvil, fila A = transporte, fila B = Detener · Volver a editar). Present: `#psGroup` (Historia) y `#prPages` (páginas) separados, una salida `#prExit`; tocar el lienzo no hace nada. Viewer: `#stActions` en la banda y, presentando, dentro de `#prStory`.
+- **Rótulo del momento** (`#scNow` en `#wrap`; `#stNow` en el Viewer): una línea de alto fijo en material inverso; arriba de la zona libre o, si el destino del momento (elementos y los dos extremos de sus conexiones) queda debajo, al pie (`scPlaceNow`/`storyPlace`). Saltar enseña el momento entero (`scRevealMoment`: centra su caja si cabe; si no, su primer elemento).
+- **Viewer**: encaja después de colocar la banda y el rótulo y vuelve a encajar al cambiar el tamaño del lienzo si nadie movió la vista (`ResizeObserver`, `viewMoved`); en apaisado corto sin «Hecho con Fluyo»; en el teléfono, selector de página (`#pgSelect`) y sin −/+ con dedo.
+- **Páginas**: sin ✕ en las pestañas; ▾ de la activa con cualquier puntero (Renombrar en línea, Eliminar página → `requestDeletePage`); el doble clic abre el mismo renombrado (sin `prompt`). ≤ 700 px: `.pgSelect` abre la lista (`openPageMenu(i, anchor, {list:true})`) con «＋ Nueva página». `revealActiveTab` mantiene la activa a la vista.
+- **Dirección**: «Trazo › Dirección» = Puntas (`startArrow`/`endArrow`) + Puntos en movimiento (`animated`) + Sentido (segmentado sobre `#flowSel` → `edge.flowDir`). El grupo de ajuste fino pasa a llamarse «Puntos» (`#grpFlow`, plegado). Mismos datos y valores.
+- `sw.js`: `CACHE` v77 y `js/story-clock.js` en el precache. `model.js`, `config.js`, kernel, `render.js`, `geometry.js`, `export.js` y MCP sin cambios (test de alcance contra HEAD). Decisiones 154–161.
+- Pruebas: `test/fluyo-018-18.test.cjs` (alcance, release, reloj en vm frente a una reproducción continua, editor real en vm, Viewer en vm, páginas, dirección), `test/fluyo-018-18-browser.cjs` (Chrome real: 1440/1280 ratón, 768 dedo, 390/375 móvil, 844×390 y 812×375 apaisado; editor, Present, Viewer, páginas, dirección; SW v77 sin red) y `test/fluyo-018-18-mutations.cjs`.

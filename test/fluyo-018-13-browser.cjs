@@ -228,19 +228,29 @@ async function journey(browser, base, vp) {
   await page.keyboard.press("Escape"); await page.waitForTimeout(120);
   check(!(await box(page, gridMenu)), "Escape cierra el menú");
 
-  /* ── Páginas ── */
+  /* ── Páginas ──
+     FLUYO-018.18 (D10, D11): en el teléfono las páginas son un selector («01 Nombre ▾», índice mono + nombre serif) que abre la
+     lista con «＋ Nueva página»; en tableta y escritorio, pestañas sin ✕ (eliminar vive en el menú ▾ de la activa). */
+  if (mobile) {
+    await press(t, "#pgSelect", vp); await press(t, "#pageMenu .pgNew", vp); await page.waitForTimeout(150);
+    const sel = await page.evaluate(() => { const s = document.getElementById("pgSelect"); return { idxFont: getComputedStyle(s.querySelector(".pgIdx")).fontFamily, name: getComputedStyle(s.querySelector(".pgName")).fontFamily, text: s.textContent, h: s.getBoundingClientRect().height, pages: doc.pages.length, cur: doc.cur }; });
+    check(sel.pages === 2 && sel.cur === 1 && sel.text === "02Página 2" && /IBM Plex Mono/.test(sel.idxFont) && /Playfair Display/.test(sel.name), "«＋ Nueva página» crea y activa; el selector lleva índice mono y nombre serif");
+    check(sel.h >= 44, `selector de página ≥ 44 px (${sel.h})`);
+    await press(t, "#pgSelect", vp);
+    check(!!(await box(page, "#pageMenu")) && await bg(page, "#pageMenu") === raised, "el menú de la página se abre con la superficie de menú");
+    await page.keyboard.press("Escape"); await page.waitForTimeout(100); await page.evaluate(() => closePageMenu(false));
+  } else {
   await press(t, "#pagesBar > .pgAdd", vp); await page.waitForTimeout(150);
   const tabs = await page.evaluate(() => [...document.querySelectorAll("#pagesBar .tab")].map((tb) => ({
     idx: getComputedStyle(tb, "::before").content, idxFont: getComputedStyle(tb, "::before").fontFamily, active: tb.classList.contains("active"), bg: getComputedStyle(tb).backgroundColor,
-    name: getComputedStyle(tb.querySelector("span")).fontFamily, h: tb.getBoundingClientRect().height, x: !!tb.querySelector(".x") && getComputedStyle(tb.querySelector(".x"), "::before").content !== "none" })));
+    name: getComputedStyle(tb.querySelector("span")).fontFamily, h: tb.getBoundingClientRect().height, x: !!tb.querySelector(".x") })));
   check(tabs.length === 2 && tabs[1].active && tabs.every((x) => /counter\(pg, decimal-leading-zero\)/.test(x.idx) && /IBM Plex Mono/.test(x.idxFont)), "«＋» crea y activa la página; las pestañas llevan índice mono (01, 02…)");
   check(tabs[0].bg !== tabs[1].bg && tabs.every((x) => /Playfair Display/.test(x.name)), "la activa se distingue y los nombres van en serif");
-  check(tabs.every((x) => x.x), "la ✕ se dibuja con el trazo del sistema (el glifo queda solo como texto)");
+  check(tabs.every((x) => !x.x), "sin ✕ en las pestañas (018.18, D11: «Cerrar página» eliminaba; eliminar vive en el menú ▾)");
   check(tabs.every((x) => x.h >= (vp.touch ? 38 : 28)), `pestañas ≥ ${vp.touch ? 38 : 28} px`);
-  if (vp.touch) {
-    await page.locator("#pagesBar .tab.active .pgMore").tap(); await page.waitForTimeout(150);
-    check(!!(await box(page, "#pageMenu")) && await bg(page, "#pageMenu") === raised, "el menú de la página se abre con la superficie de menú");
-    await page.keyboard.press("Escape"); await page.waitForTimeout(100);
+  await press(t, "#pagesBar .tab.active .pgMore", vp); await page.waitForTimeout(150);
+  check(!!(await box(page, "#pageMenu")) && await bg(page, "#pageMenu") === raised, "el menú de la página se abre con la superficie de menú (también con ratón)");
+  await page.keyboard.press("Escape"); await page.waitForTimeout(100); await page.evaluate(() => closePageMenu(false));
   }
   await page.evaluate(() => { doc.cur = 0; clearSel(); renderTabs(); });
 
@@ -311,7 +321,7 @@ async function serviceWorker(browser, base) {
     const have = []; for (const w of want) if (await c.match(location.origin + "/" + w)) have.push(w);
     return { keys, have, want: want.length };
   });
-  check(cache.keys.length === 1 && cache.keys[0] === "fluyo-static-v76", "caché instalada: fluyo-static-v76 " + JSON.stringify(cache.keys));
+  check(cache.keys.length === 1 && cache.keys[0] === "fluyo-static-v77", "caché instalada: fluyo-static-v77 " + JSON.stringify(cache.keys));
   check(cache.have.length === cache.want, "system.css y las tres fuentes están precacheadas " + JSON.stringify(cache.have));
   await ctx.setOffline(true);
   await page.reload(); await page.waitForFunction(() => typeof renderTabs === "function"); await page.evaluate(() => document.fonts.ready);

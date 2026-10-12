@@ -11,7 +11,7 @@ const NL = "\n", CRLF = "\r\n";
 const UNIT = ["--test", "test/fluyo-018-12.test.cjs"];
 const BROWSER = ["test/fluyo-018-12-browser.cjs"];
 const MUTATIONS = [
-  ["U1 CACHE no sube (sigue v72)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v76";', 'const CACHE = "fluyo-static-v74";'],
+  ["U1 CACHE no sube (sigue v72)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v77";', 'const CACHE = "fluyo-static-v74";'],
   ["U2 Ejemplo vuelve a vaciar la página activa", UNIT, "js/export.js", "const r=createPageIn(doc, examplePageName()); doc.cur=r.pageIndex; clearSel();", "pushUndo(); const pg=P(); pg.nodes=[]; pg.edges=[]; clearSel();"],
   ["U3 con el dedo, el dblclick sintético abre el prompt", UNIT, "js/ui.js", 'if(t.lastPointer==="touch") return;', ""],
   ["U4 la pestaña activa sin ▾", UNIT, "js/ui.js", "    if(i===doc.cur){\n      /* span con rol de botón", "    if(false){\n      /* span con rol de botón"],

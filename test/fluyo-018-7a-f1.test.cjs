@@ -22,27 +22,28 @@ function renderTabsSource() {
 }
 
 function makeEditor() {
-  const el = () => ({ children: [], style: {}, appendChild(c) { this.children.push(c); return c; }, set innerHTML(v) { this.children = []; }, get innerHTML() { return ""; } });
-  const bar = el();
+  const el = () => ({ children: [], style: {}, appendChild(c) { this.children.push(c); return c; }, set innerHTML(v) { this.children = []; }, get innerHTML() { return ""; }, replaceChildren(...c) { this.children = c; }, focus() {}, querySelector() { return null; }, getBoundingClientRect() { return { left: 0, top: 0, width: 0, height: 0 }; }, setAttribute() {}, classList: { add() {}, remove() {}, toggle() {} }, });
+  const bar = el(), menu = el();
   const ctx = {
     console, JSON, Math, Set, Map, Number, Object, Array, String, Error, Date, navigator: {}, localStorage: {},
-    document: { getElementById: () => ({}), createElement: el },
+    document: { getElementById: () => ({}), createElement: el }, innerWidth: 1280, innerHeight: 800,
     confirm: () => true, alert() {}, prompt: () => null,
   };
   vm.createContext(ctx);
   for (const f of ["js/config.js", "js/safe-svg.js", "js/model.js"]) vm.runInContext(read(f), ctx, { filename: f });
   vm.runInContext(`var selN=new Set(), selE=new Set(), clip=null;
-    function refreshPanel(){} function scheduleAutosave(){} const $=()=>__bar;`, Object.assign(ctx, { __bar: bar }));
+    function refreshPanel(){} function scheduleAutosave(){} const $=(id)=>id==="pageMenu"?__menu:__bar;`, Object.assign(ctx, { __bar: bar, __menu: menu }));
   vm.runInContext(read("js/selection.js"), ctx, { filename: "js/selection.js" });
   vm.runInContext(renderTabsSource(), ctx, { filename: "js/ui.js#renderTabs" });
   const run = (code) => vm.runInContext(code, ctx);
-  // la ✕ de la pestaña i (la misma función que el usuario pulsa)
+  /* «Eliminar página» del menú de la página i (la misma función que el usuario pulsa). FLUYO-018.18 (D11): las pestañas ya no
+     llevan ✕ —se llamaba «Cerrar página» y eliminaba—; eliminar vive en el menú de la página y llama a requestDeletePage. */
   const clickClose = (i) => {
     run("renderTabs()");
-    const tab = bar.children[i];
-    const x = tab.children.find((c) => c.className === "x");
-    assert.ok(x && typeof x.onclick === "function", "la pestaña " + i + " tiene ✕");
-    x.onclick({ stopPropagation() {} });
+    run("openPageMenu(" + i + ", __bar)");
+    const del = menu.children.find((c) => c.textContent === "Eliminar página");
+    assert.ok(del && typeof del.onclick === "function", "el menú de la página " + i + " ofrece «Eliminar página»");
+    del.onclick();
   };
   return { run, clickClose };
 }

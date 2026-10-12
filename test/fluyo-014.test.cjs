@@ -79,7 +79,8 @@ test('Play → finish → Repetir → Detener; el documento nunca cambia',async(
   assert.equal(v.viewer().story,'completed');
   assert.equal(v.el('stCaption').textContent,'Reproducción terminada');
   assert.equal(v.el('stPlay').textContent,'↻ Repetir');
-  assert.equal(v.el('stOpen').hidden,false);
+  /* FLUYO-018.18: «Abrir en Fluyo» al terminar es el de la cabecera (siempre visible); la banda solo lleva el transporte. */
+  assert.equal(v.el('stOpen').hidden,true); assert.equal(v.el('btnOpen').disabled,false);
   assert.equal(v.el('stSummary').textContent,'');
   assert.equal(JSON.stringify(v.run('serializeProject()')),before,'Play no modifica el documento');
   v.el('stPlay').onclick();                       // Repetir
@@ -279,7 +280,7 @@ test('Arquitectura: una sola receta de reproducción compartida; el viewer no ca
 
 test('Service worker: assets nuevos precacheados y versión subida',()=>{
   const sw=read('sw.js');
-  assert.match(sw,/fluyo-static-v76/);
+  assert.match(sw,/fluyo-static-v77/);
   for(const f of ['story-playback','scenario-engine','scenario-playback','viewer'])
     assert.ok(sw.includes('"./js/'+f+'.js"'),f);
   const idx=read('index.html');

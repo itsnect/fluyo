@@ -54,8 +54,9 @@ const MUTATIONS = [
   ["L13 los nodos eliminados dentro del lote se siguen comprobando", AUTH, "      if(!rec) continue;\n", "      if(!rec){ out.push(limitError(\"coordMax\", \"x\", 0, {where:\"x\"})); continue; }\n"],
   ["L14 el conteo de conexiones usa la lista de nodos", AUTH, "[pg.edges, \"maxConnectionsPerPage\", \"connections\"]", "[pg.nodes, \"maxConnectionsPerPage\", \"connections\"]"],
   // ── editor (misma autoridad)
-  ["E1 ui.js vuelve a crear páginas por su cuenta", UI, "    addPage(); clearSel();", "    doc.pages.push(blankPage(\"Página \"+(doc.pages.length+1))); doc.cur=doc.pages.length-1; clearSel();"],
-  ["E2 ui.js vuelve a renombrar por su cuenta", UI, "      try{ renamePage(i,nn); }", "      try{ pg.name=nn; }"],
+  /* 018.18: «＋» y «＋ Nueva página» pasan por newPageFromUi; renombrar, por el campo en línea (sin prompt). Misma intención. */
+  ["E1 ui.js vuelve a crear páginas por su cuenta", UI, "  addPage(); clearSel(); renderTabs(); scheduleAutosave();\n}", "  doc.pages.push(blankPage(\"Página \"+(doc.pages.length+1))); doc.cur=doc.pages.length-1; clearSel(); renderTabs(); scheduleAutosave();\n}"],
+  ["E2 ui.js vuelve a renombrar por su cuenta", UI, "    try{ renamePage(i, input.value); }", "    try{ pg.name=input.value; }"],
   ["E3 addPage no activa la página nueva", STATE, "function addPage(){ const r=createPageIn(doc); doc.cur=r.pageIndex; return r.page; }", "function addPage(){ const r=createPageIn(doc); return r.page; }"],
   ["E4 renamePage renombra otra página", STATE, "return renamePageIn(doc,index,name).page;", "return renamePageIn(doc,0,name).page;"],
 ];

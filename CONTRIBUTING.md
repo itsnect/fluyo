@@ -89,6 +89,7 @@ Los archivos de `js/` se cargan como scripts clásicos en orden de dependencia (
 | Atajos de teclado, zoom/pan, arrastrar/soltar | `js/interaction.js` |
 | Panel derecho, barra de herramientas, pestañas | `js/ui.js` |
 | Modo Editar/Historias, menús «Lienzo» y «Más», hojas móviles (estados de la hoja de Historias, zona libre del lienzo), tema de la interfaz | `js/ui.js` (+ tokens del tema oscuro y objetivos táctiles en `css/system.css`; estados de la hoja en `css/styles.css`) |
+| Reproducir una Historia: pausar, reanudar, saltar entre momentos (editor, Present y Viewer) | `js/story-clock.js` (el reloj, fuera del kernel) + `js/editor-scenarios.js` / `js/present-story.js` / `js/viewer.js` (el mando de cada superficie) |
 | Autoguardado y restauración de sesión | `js/state.js` |
 | Export a GIF/PNG/JPG/SVG | `js/export.js` |
 | Comportamiento offline | `sw.js` |

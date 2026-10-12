@@ -18,8 +18,9 @@ function element() {
     children: [], style: {}, value: "", checked: false, textContent: "", className: "",
     appendChild(c) { this.children.push(c); return c; },
     set innerHTML(v) { this.children = []; }, get innerHTML() { return ""; },
-    getContext: () => ({}), getBoundingClientRect: () => ({ width: 800, height: 600 }),
+    getContext: () => ({}), getBoundingClientRect: () => ({ width: 800, height: 600, left: 0, top: 0 }),
     addEventListener() {}, click() {}, remove() {},
+    replaceChildren(...c) { this.children = c; }, focus() {}, querySelector() { return null; }, setAttribute() {}, classList: { add() {}, remove() {}, toggle() {} },
   };
 }
 
@@ -33,7 +34,7 @@ function fullEditor({ stored } = {}) {
     localStorage: { getItem: (k) => (store.has(k) ? store.get(k) : null), setItem: (k, v) => store.set(k, String(v)), removeItem: (k) => store.delete(k) },
     sessionStorage: { getItem: () => null, setItem() {}, removeItem() {} },
     setTimeout: (fn, ms) => { timers.push({ fn, ms }); return timers.length; }, clearTimeout() {},
-    alert: (m) => alerts.push(m), confirm: () => true, prompt: () => null,
+    alert: (m) => alerts.push(m), confirm: () => true, prompt: () => null, innerWidth: 1280, innerHeight: 800,
   });
   const run = (code) => vm.runInContext(code, ctx);
   for (const f of ["config.js", "safe-svg.js", "model.js", "scenario-engine.js", "scenario-playback.js", "story-playback.js", "document-integrity.js", "geometry.js", "link-codec.js", "share-url.js"])
@@ -49,12 +50,13 @@ function fullEditor({ stored } = {}) {
   const load = (project) => run("applyProjectData(" + JSON.stringify(project) + ")");
   const docOf = () => J(run("doc"));
   const stored_ = () => (store.has("fluyo.autosave.v1") ? JSON.parse(store.get("fluyo.autosave.v1")) : null);
-  /* La ✕ de una pestaña, como en el arnés de 018.7c. */
+  /* «Eliminar página» del menú de la página, como en el arnés de 018.7c (FLUYO-018.18: ya no hay ✕ en las pestañas). */
   const close = (i) => {
     run("renderTabs()");
-    const bar = elements.pagesBar, x = bar.children[i] && bar.children[i].children.find((c) => c.className === "x");
-    assert.ok(x && typeof x.onclick === "function", "la pestaña " + i + " tiene ✕");
-    x.onclick({ stopPropagation() {} });
+    run("openPageMenu(" + i + ", document.getElementById('pagesBar'))");
+    const del = (elements.pageMenu.children || []).find((c) => c.textContent === "Eliminar página");
+    assert.ok(del && typeof del.onclick === "function", "el menú de la página " + i + " ofrece «Eliminar página»");
+    del.onclick();
   };
   return { ctx, run, call, callAsync, load, docOf, close, elements, alerts, stored: stored_ };
 }

@@ -40,7 +40,7 @@ test("alcance: kernel, identity.css y el formato intactos (git HEAD)", () => {
 
 test("sw.js: CACHE v73; los archivos que toca 018.14b ya estaban en el precache", () => {
   const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v76";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v77";/);
   for (const f of ["./index.html", "./css/system.css", "./css/styles.css", "./js/ui.js", "./js/editor-scenarios.js", "./js/editor-share.js", "./js/interaction.js"]) assert.ok(sw.includes('"' + f + '"'), f + " precacheado");
 });
 
@@ -127,7 +127,8 @@ test("panel: grupos plegables con los abiertos de B6 y todas las propiedades den
   const html = read("index.html");
   const sel = element(html, "selBody");
   const groups = [...sel.matchAll(/<details class="pgroup" id="(\w+)" data-group="([^"]+)"( open)?>/g)].map((m) => ({ id: m[1], name: m[2], open: !!m[3] }));
-  assert.deepEqual(groups.map((g) => g.name), ["Texto", "Forma y color", "Código", "Recorrido", "Trazo", "Flujo", "Capas y aparición"]);
+  /* FLUYO-018.18 (D12): el grupo de ajuste fino de los puntos se llama «Puntos»; el sentido vive en Trazo › Dirección. */
+  assert.deepEqual(groups.map((g) => g.name), ["Texto", "Forma y color", "Código", "Recorrido", "Trazo", "Puntos", "Capas y aparición"]);
   assert.deepEqual(groups.filter((g) => g.open).map((g) => g.id), ["grpText", "grpShape", "grpRoute", "grpStroke"], "abiertos: lo que se toca en cada elemento");
   const rows = ["rowFs", "rowFont", "rowBold", "rowTextColor", "rowLblPos", "rowTextBg", "rowShape", "rowColor", "rowTint", "rowFill", "rowBorder", "rowLang", "rowKeywords", "rowKwBg", "rowKwColor",
     "rowRoute", "rowFrom", "rowTo", "rowLineC", "rowDotC", "rowDash", "rowArrS", "rowArrE", "rowAnim", "rowSpeedF", "rowDotsGlobal", "rowDots", "rowFlow", "rowZ", "rowPulse", "rowOrder"];
@@ -155,8 +156,9 @@ test("modo Historia: una sola fuente (uiMode), salida que nunca se bloquea, rail
   assert.match(setMode, /document\.body\.classList\.toggle\("storyMode", story\);/);
   assert.doesNotMatch(es.slice(es.indexOf("function scRun("), es.indexOf("function scReset(")), /tabProp(erties)?.*disabled = true/, "Editar ya no se deshabilita al reproducir");
   assert.match(element(html, "panelScenarios"), /id="btnStoryExit"[\s\S]*Volver a editar/);
-  assert.match(html, /<button id="scReset" type="button" hidden>Terminar<\/button>/);
-  assert.match(read("js/editor-share.js"), /Pulsa «Terminar» antes de compartir\./);
+  /* FLUYO-018.18 (D5): «Detener» en cualquier estado (antes «Terminar» al acabar). */
+  assert.match(html, /<button id="scReset" type="button" hidden>■ Detener<\/button>/);
+  assert.match(read("js/editor-share.js"), /Pulsa «Detener» antes de compartir\./);
   assert.match(styles, /body\.storyMode \.rail\{display:none;\}/);
   assert.match(read("js/interaction.js"), /!document\.body\.classList\.contains\("storyMode"\)\) setMode\("connect"\)/, "C no arma una herramienta invisible");
 });
@@ -199,7 +201,7 @@ function editor() {
   return ctx;
 }
 
-test("vm: glifos como trazo sin cambiar el texto; «Terminar»; «Reproduciendo» con momento y progreso; Editar habilitado", () => {
+test("vm: glifos como trazo sin cambiar el texto; «Detener»; «Reproduciendo» con momento y progreso; Editar habilitado", () => {
   const ctx = editor();
   assert.equal(ctx.run('$("scRun").textContent'), "▶ Reproducir", "el texto (contrato de los tests) no cambia");
   assert.equal(ctx.run('$("scScenarioTitle").textContent'), "Camino feliz ▾");
@@ -214,7 +216,8 @@ test("vm: glifos como trazo sin cambiar el texto; «Terminar»; «Reproduciendo�
   assert.match(ctx.run('$("scNowCaption").textContent'), /Pago/, "el momento en curso (FluyoStory.describe)");
   assert.equal(ctx.run('$("scNowProgress").textContent'), "1 / 2");
   ctx.run('scStatus="completed"; scRenderButtons(); scRenderStatus();');
-  assert.equal(ctx.run('$("scReset").textContent'), "Terminar", "B2: terminar ya no se llama «Volver a editar»");
+  /* FLUYO-018.18 (D5): una sola palabra para volver a la Historia lista, también terminada (antes «Terminar»). */
+  assert.equal(ctx.run('$("scReset").textContent'), "■ Detener", "D5: «Detener» también al terminar; nunca «Volver a editar»");
   assert.equal(ctx.run('$("scRun").textContent'), "↻ Repetir");
   assert.equal(ctx.run('$("scNowLabel").textContent'), "Terminada");
   assert.match(ctx.run('$("scNowCaption").textContent'), /Reproducción terminada/);

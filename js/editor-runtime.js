@@ -60,6 +60,8 @@ function renderEditorFrame(){
   if(typeof syncHistoryButtons==="function") syncHistoryButtons();
   /* Lectura del zoom en la barra inferior (ui.js, FLUYO-018.13): mismo criterio, solo escribe si cambia. */
   if(typeof syncZoomReadout==="function") syncZoomReadout();
+  /* Rótulo del momento sobre el lienzo (editor-scenarios.js, FLUYO-018.18): nunca encima del destino que cuenta. */
+  if(typeof scPlaceNow==="function") scPlaceNow();
 }
 
 /* Se pide el siguiente frame antes de dibujar para que un fallo aislado no

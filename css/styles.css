@@ -218,9 +218,14 @@ footer .tab .x, footer .tab .pgMore{
 }
 footer .tab .x::before, footer .tab .pgMore::before, #pagesBar > .pgAdd::before{content:""; width:12px; height:12px; background:currentColor; -webkit-mask:var(--m) center/contain no-repeat; mask:var(--m) center/contain no-repeat;}
 footer .tab .x{--m:var(--mask-x);}
-footer .tab .pgMore{--m:var(--mask-chevron);}
+footer .tab .pgMore{--m:var(--mask-chevron); width:28px; height:28px;}   /* 018.18: también con ratón; ≥ 28 px (40 con dedo, más abajo) */
 footer .tab .x:hover{opacity:1; color:var(--attention); background:var(--attention-veil);}
-#pagesBar > .pgAdd{--m:var(--mask-plus); width:30px; min-width:30px; padding:0; font-size:0; margin-left:4px; flex-shrink:0;}
+/* FLUYO-018.18 (D11): nombres acotados (el completo en el title) y «＋» fijo a la derecha aunque las pestañas desborden. */
+footer .tab{max-width:220px;}
+footer .tab > span:first-child{min-width:0; overflow:hidden; text-overflow:ellipsis;}
+#pagesBar > .pgAdd{--m:var(--mask-plus); width:30px; min-width:30px; padding:0; font-size:0; margin-left:4px; flex-shrink:0; position:sticky; right:0; background:var(--surface);}
+/* El selector de página es del teléfono (≤ 700 px). */
+#pagesBar > .pgSelect{display:none;}
 #pagesBar > .pgAdd::before{width:14px; height:14px;}
 /* Lectura y control del zoom, a la derecha de las páginas (solo >700 px). */
 .viewCtl{display:flex; align-items:center; gap:1px; padding:0 8px 0 4px; flex-shrink:0;}
@@ -292,10 +297,20 @@ body.presenting #presentBar{display:flex;}
    (es la invitación a empezar); durante ella vuelve a apartarse. */
 #presentBar[hidden], #presentBar button[hidden], #presentStory[hidden]{display:none !important;}
 /* left:50% limita el ancho «shrink-to-fit» a media pantalla: sin max-content la barra se parte en filas en móvil */
-#presentBar{width:max-content; max-width:calc(100vw - 16px); flex-wrap:wrap; justify-content:center;}
+#presentBar{width:max-content; max-width:calc(100vw - 16px); flex-wrap:wrap; justify-content:center; row-gap:6px;}
 #presentBar.psAttention{opacity:1;}
-#presentBar #psPlay{background:var(--accent); color:var(--c-tinta); border-color:transparent; font-weight:500; padding:0 18px;}
-#presentBar #prExit, #presentBar #psEdit, #presentBar #psStop{padding:0 14px;}
+/* FLUYO-018.18 (D7, D8): la Historia y las páginas son dos grupos que nunca se parten (si no caben, cada uno en su fila) y
+   la salida es una. Sin «▶» para la página siguiente: chevrons; ▶ es solo Reproducir. */
+#presentBar .prGroup{display:flex; align-items:center; gap:6px; flex-wrap:nowrap;}
+#presentBar .prGroup[hidden]{display:none;}
+#presentBar{column-gap:16px;}
+#presentBar .iconBtn{width:44px; min-width:44px; padding:0;}
+#presentBar .iconBtn .ic, #presentBar #prExit .ic{width:16px; height:16px;}
+#presentBar #psPlay{background:var(--attention); color:#F2EDE3; border-color:transparent; font-weight:500; padding:0 18px; gap:8px;}
+#presentBar #prExit, #presentBar #psStop, #presentBar #psPause{padding:0 14px; gap:8px;}
+@media (pointer:coarse){ #presentBar button{height:var(--ctl-h-touch); min-width:var(--ctl-h-touch);} }
+/* Con el dedo no hay hover que devuelva el mando: no se aparta (un toque en el lienzo ya no hace nada). */
+@media (hover:none){ #presentBar{opacity:1;} }
 #presentStory{
   display:none; position:fixed; left:50%; top:14px; transform:translateX(-50%);
   width:max-content; max-width:min(92vw, 640px); text-align:center; z-index:59; pointer-events:none;
@@ -740,10 +755,10 @@ aside.scenariosOpen{box-sizing:border-box;width:320px;flex:0 0 320px;overflow:hi
 body.presenting .touchBar, body.presenting .moreMenu, body.presenting .pageMenu{display:none !important;}
 
 /* ---- Pestañas de página: menú de la activa ----
-   La flecha solo aparece con puntero táctil (o en pantallas sin hover): con ratón siguen el doble clic y la ✕. */
+   FLUYO-018.18 (D11): el ▾ de la activa se ve con cualquier puntero: es la puerta a «Renombrar…» y «Eliminar página» (ya no
+   hay ✕ en las pestañas). El doble clic con ratón abre el mismo renombrado en línea. */
 footer .tab .pgMore{display:none;}
-body.touchUI footer .tab.active .pgMore{display:inline-flex;}
-@media (hover:none) and (pointer:coarse){ footer .tab.active .pgMore{display:inline-flex;} }
+footer .tab.active .pgMore{display:inline-flex;}
 footer .tab .pgMore:focus-visible{outline:var(--focus); outline-offset:2px;}
 .pageMenu{min-width:240px; padding:6px;}
 .pageMenu .scMenuHead{font:400 15px/1.3 var(--font-serif); padding:6px 10px 4px;}
@@ -751,6 +766,15 @@ footer .tab .pgMore:focus-visible{outline:var(--focus); outline-offset:2px;}
 .pageMenu input{width:100%;}
 .pageMenu #pageNameSave{margin:4px 4px 2px; width:calc(100% - 8px); justify-content:center; background:var(--surface-raised); border:1px solid var(--rule-2);}
 .pageMenu .pmError{color:var(--attention); font-size:var(--fs-label); margin:4px 10px 0;}
+/* Lista de páginas del selector móvil (FLUYO-018.18, D10): índice mono + nombre serif; la activa en oliva. */
+.pageMenu.pageList{max-height:min(70dvh, 520px); overflow:auto; min-width:260px;}
+.pageMenu .pgItem{display:flex; align-items:center; gap:10px; min-height:var(--row-h-touch, 40px); width:100%; text-align:left;}
+.pageMenu .pgItem .pgIdx{font:500 var(--fs-micro)/1 var(--font-mono); letter-spacing:.04em; color:var(--ink-off); flex:none;}
+.pageMenu .pgItem .pgName{font:400 15px/1.25 var(--font-serif); color:var(--ink-2); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.pageMenu .pgItem.active{background:var(--active-veil);}
+.pageMenu .pgItem.active .pgIdx{color:var(--active);}
+.pageMenu .pgItem.active .pgName{color:var(--ink);}
+.pageMenu .pgNew{color:var(--ink-2);}
 
 /* ---- Barra de modos (Historias, Presentar): solo ≤700 px ---- */
 .modeBar{display:none;}
@@ -783,21 +807,41 @@ body.storyMode #bottomBar > footer{padding-left:8px;}
 .g-replay{--m:var(--mask-replay);}
 .g-chev{--m:var(--mask-chevron); color:var(--ink-3);}
 #scScenarioTitle .glyph{margin-left:6px;}
-.scPlaybackControls{gap:8px;}
-#scRun, #scReset{min-height:var(--ctl-h); display:inline-flex; align-items:center; gap:8px; font-weight:500;}
+.glyphText{white-space:nowrap;}
+/* FLUYO-018.18: el transporte. Reproducir (primaria) · Pausar/Reanudar · momento anterior/siguiente · Detener a la derecha. */
+.scTransport{display:flex; align-items:center; gap:8px; min-width:0; flex-wrap:wrap;}   /* en la columna de tableta (dedo, 44 px) Detener baja a otra fila: nunca se sale */
+.scPlaybackControls{gap:6px; flex-wrap:nowrap;}
+#scRun, #scReset, #scPause{min-height:var(--ctl-h); display:inline-flex; align-items:center; gap:8px; font-weight:500;}
 #scRun{padding:0 16px;}
-#scReset{padding:0 12px;}
-/* B9: qué está pasando ahora. */
-.scNow{display:flex; flex-direction:column; gap:4px; margin:10px 0 0; padding:9px 12px 10px; border-radius:var(--r-md); background:var(--active-veil); border:1px solid var(--active-rule);}
+#scReset{padding:0 12px; margin-left:auto;}
+#scPause{padding:0 12px; min-width:104px; justify-content:center;}
+#scPause .ic, #psPause .ic{width:14px; height:14px;}
+#scPrev, #scNext{width:var(--ctl-h); min-width:var(--ctl-h); min-height:var(--ctl-h); padding:0; display:inline-flex; align-items:center; justify-content:center;}
+#scPrev .ic, #scNext .ic{width:16px; height:16px;}
+#scPrev[hidden], #scNext[hidden], #scPause[hidden], #scReset[hidden]{display:none;}
+/* durante la reproducción la línea de estado («Reproduciendo · 1.5 s») sobra: el momento se lee sobre el lienzo */
+body.scPlaybackOn #scStatus{display:none;}
+/* FLUYO-018.18 (D4): el momento activo, sobre el lienzo y en UNA línea de alto fijo (no crece con el texto). Material
+   inverso, como el encabezado de Present: rótulo de estado en mono, momento en serif, progreso en mono. Lo coloca
+   scPlaceNow (arriba de la zona libre o, si el destino del momento queda debajo, al pie). No recibe el puntero. */
+.scNow{position:absolute; left:50%; top:10px; transform:translateX(-50%); z-index:6; pointer-events:none;
+  display:flex; align-items:center; gap:10px; max-width:min(calc(100% - 24px), 560px); min-height:36px; padding:0 14px;
+  background:rgba(22,21,15,.86); color:#F2EDE3; border:1px solid rgba(242,237,227,.16); border-radius:var(--r-pill); box-shadow:var(--shadow-float);}
 .scNow[hidden]{display:none;}
-.scNowKicker{display:flex; align-items:center; gap:8px; font:500 var(--fs-micro)/1.3 var(--font-mono); letter-spacing:var(--track-micro); text-transform:uppercase; color:var(--active);}
-.scLive{display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--active); animation:scLive 1.4s ease-in-out infinite;}
-.scNow.done .scLive{animation:none; opacity:.55;}
-.scNowProgress{margin-left:auto; color:var(--ink-3); letter-spacing:.04em; font-variant-numeric:tabular-nums;}
-.scNowCaption{font:400 14px/1.4 var(--font-serif); color:var(--ink); overflow-wrap:anywhere;}
+body.presenting .scNow{display:none;}
+.scNowKicker{display:flex; align-items:center; gap:7px; flex:none; font:500 var(--fs-micro)/1 var(--font-mono); letter-spacing:var(--track-micro); text-transform:uppercase; color:#C9D2AE;}
+.scLive{display:inline-block; width:7px; height:7px; border-radius:50%; background:#C9D2AE; animation:scLive 1.4s ease-in-out infinite;}
+.scNow.done .scLive, .scNow.paused .scLive{animation:none; opacity:.55;}
+.scNowCaption{font:400 15px/1.2 var(--font-serif); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 .scNowCaption:empty{display:none;}
-/* con el bloque a la vista, la línea de estado («Reproduciendo · 1.5 s») sobra: la lee el bloque */
-#scNow:not([hidden]) ~ #scStatus{display:none;}
+.scNowProgress{flex:none; font:500 var(--fs-label)/1 var(--font-mono); color:rgba(242,237,227,.62); letter-spacing:.04em; font-variant-numeric:tabular-nums;}
+.scNowProgress:empty{display:none;}
+/* en el teléfono el momento manda: el estado queda como el punto (vivo / quieto en pausa; el botón ya dice Pausar o Reanudar)
+   y su texto, para lectores de pantalla */
+@media (max-width:480px){ #scNowLabel{position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap;} }
+/* Reproduciendo, una fila de la línea de tiempo es un salto a su momento (D6). */
+.scStoryRow.scSeekable{cursor:pointer;}
+.scStoryRow.scSeekable:hover{background:var(--hover-veil);}
 @keyframes scLive{0%,100%{opacity:1;} 50%{opacity:.3;}}
 /* Mientras se reproduce, el marco del lienzo lo dice (filete oliva); los colores de la reproducción no cambian (D3). */
 body.scPlaybackOn #wrap::after{box-shadow:inset 0 0 0 2px var(--active), inset 0 10px 22px -18px rgba(0,0,0,.55);}
@@ -813,6 +857,12 @@ body.scPlaybackOn #wrap::after{box-shadow:inset 0 0 0 2px var(--active), inset 0
 /* Nombres de evento en serif (son conceptos); frases, tiempos y estados siguen en mono. */
 .scEventPlace span:last-child, .scStoryRow .scStepPrimary{font-family:var(--font-serif); font-size:14px;}
 .scStoryRow .scStepPrimary{line-height:1.35;}
+/* FLUYO-018.18 (D12): «Dirección» dentro de Trazo — puntas y sentido de los puntos. Tres opciones a todo el ancho. */
+.pgSub{margin:10px 0 2px; font:500 var(--fs-micro)/1.3 var(--font-mono); letter-spacing:var(--track-micro); text-transform:uppercase; color:var(--ink-3);}
+#rowFlow .lblText{font:400 var(--fs-label)/1.3 var(--font-mono); color:var(--ink-2);}
+.flowSeg{display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); width:100%;}
+.flowSeg > .segBtn{white-space:normal; text-align:center; line-height:1.2; padding:4px 6px; min-height:var(--ctl-h);}
+.seg > .segBtn[aria-checked="true"]{background:var(--surface-raised); border-color:var(--rule-2); color:var(--ink); box-shadow:0 1px 2px rgba(0,0,0,.08);}
 .scMore{font-size:0; display:inline-flex; align-items:center; justify-content:center; color:var(--ink-3); border-radius:var(--r-sm);}
 .scMore::before{content:""; width:14px; height:14px; background:currentColor; -webkit-mask:var(--mask-more) center/contain no-repeat; mask:var(--mask-more) center/contain no-repeat;}
 .scMore:hover{background:var(--hover-veil); color:var(--ink);}
@@ -918,21 +968,25 @@ body.scPlaybackOn #wrap::after{box-shadow:inset 0 0 0 2px var(--active), inset 0
   /* La cabecera de la hoja es una rejilla de dos filas: A = Historia ▾ · ⋯ · Ampliar (reproduciendo: el momento en curso);
      B = Reproducir/Detener/Repetir · «Volver a editar». Las envolturas pasan a display:contents: mismos nodos, mismos ids. */
   body.storyMode .scHeader{display:grid; grid-template-columns:minmax(0,1fr) auto auto; grid-template-areas:"title menu expand" "run exit exit"; gap:8px 6px; align-items:center;}
-  body.storyMode .storyBar, body.storyMode .scHeaderRow, body.storyMode .scPlaybackControls{display:contents;}
+  body.storyMode .storyBar, body.storyMode .scHeaderRow, body.storyMode .scTransport{display:contents;}
+  /* FLUYO-018.18: reproduciendo (o en pausa, o terminada), la fila A es el transporte (anterior · Pausar/Reanudar/Repetir ·
+     siguiente) y la B, Detener · «Volver a editar». Mismo alto que la compacta: el momento se lee sobre el lienzo. */
+  body.storyMode .scPlaybackControls{grid-area:run; display:flex; align-items:center; gap:6px; min-width:0;}
+  body[data-story="playing"] .scHeader{grid-template-areas:"ctl ctl expand" "stop exit exit";}
+  body[data-story="playing"] .scPlaybackControls{grid-area:ctl;}
+  body[data-story="playing"] #scReset{grid-area:stop; justify-self:start; margin:0;}
   body.storyMode .storyKicker, body.storyMode #panelScenarios #scStoryAdd, body.storyMode #scStoriesLabel, body.storyMode #scStatus, body.storyMode #scPaletteToggle{display:none;}
   #scScenarioTitle{grid-area:title; margin:0;}
   #scScenarioMenu{grid-area:menu; justify-self:end;}
   #btnStoryExpand{display:inline-flex; grid-area:expand; justify-self:end;}
   body.storyExpanded #btnStoryExpand .ic{transform:rotate(180deg);}
-  #scRun, #scReset, #scRunHint{grid-area:run; justify-self:start;}
+  #scReset{grid-area:run; justify-self:start;}
   #btnStoryExit{grid-area:exit; justify-self:end;}
-  #scNow{grid-area:title; margin:0; padding:7px 10px 8px;}
   #scErrors, #scUnsupported{grid-column:1 / -1; margin:0;}
   .scRunHint{font:400 var(--fs-body)/1.4 var(--font-mono); color:var(--ink-3); padding:0 2px;}
-  /* Reproduciendo: la fila A es el momento en curso (qué pasa ahora); terminada, en móvil no hay «Terminar»: lo hacen el
-     selector ▾ y Ampliar (que termina y abre el taller). «Volver a editar» sigue en la fila B en los cuatro estados. */
+  /* Reproduciendo, la fila A es el transporte; «Volver a editar» sigue en la fila B en todos los estados. Terminada también
+     hay «Detener» (D5: una sola palabra; «Terminar» ya no existe). */
   body.scPlaybackOn #panelScenarios .scHeaderRow{display:none;}
-  #panelScenarios[data-sc-status="completed"] #scReset{display:none;}
   /* Qué se ve en cada estado. Reproduciendo no se colocan eventos: las fichas no se pintan. */
   body[data-story="compact"] #scLibrarySection, body[data-story="compact"] .scStorySection,
   body[data-story="playing"] #scLibrarySection, body[data-story="playing"]:not(.storyExpanded) .scStorySection{display:none;}
@@ -972,6 +1026,13 @@ body.scPlaybackOn #wrap::after{box-shadow:inset 0 0 0 2px var(--active), inset 0
   footer .tab:not(.active){min-width:40px; justify-content:center; padding:0 6px;}
   @container (max-width:200px){ footer{padding:0 2px; gap:2px;} footer .tab.active > span:first-child{display:none;} footer .tab.active{flex:0 0 auto; min-width:0; padding:0 0 0 6px; gap:2px;} }
   #pagesBar > .pgAdd{position:sticky; right:0; width:var(--ctl-h); min-width:var(--ctl-h); background:var(--surface); margin-left:2px;}
+  /* FLUYO-018.18 (D10): en el teléfono las páginas son UN selector («03 Nombre ▾») que abre la lista con «＋ Nueva página».
+     La tira de pestañas y su «＋» no se pintan: desbordaban y la activa podía quedar oculta (auditoría 018.18, § 3.5). */
+  #pagesBar > .tab, #pagesBar > .pgAdd{display:none;}
+  #pagesBar > .pgSelect{display:inline-flex; align-items:center; gap:8px; min-width:0; max-width:100%; min-height:var(--ctl-h); padding:0 10px; border:1px solid var(--rule-2); border-radius:var(--r-sm); background:var(--surface-raised); color:var(--ink);}
+  #pagesBar > .pgSelect .pgIdx{flex:none; font:500 var(--fs-micro)/1 var(--font-mono); letter-spacing:.04em; color:var(--active);}
+  #pagesBar > .pgSelect .pgName{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font:400 15px/1.2 var(--font-serif);}
+  #pagesBar > .pgSelect::after{content:""; flex:none; width:12px; height:12px; background:currentColor; opacity:.7; -webkit-mask:var(--mask-chevron) center/contain no-repeat; mask:var(--mask-chevron) center/contain no-repeat;}
   /* Colocando un evento: el objetivo está en el lienzo, así que la hoja se aparta mientras dure; la barra de
      colocación (con Cancelar) queda a la vista. */
   body.panelOpen.scPlacing aside{transform:translateY(calc(100% + var(--bb-h) + 12px)); visibility:hidden;}

@@ -18,11 +18,13 @@ function presentHasStory(){
   const s=scActiveScenario();
   return !!s && s.steps.length>0;
 }
-/* ready | playing | finished | none */
+/* ready | playing | paused | finished | none. «paused» es la Historia reproduciéndose con el reloj congelado
+   (FLUYO-018.18, story-clock.js): mismo Playback, mismo scStatus. */
 function presentPhase(){
   if(!presentHasStory()) return "none";
   if(typeof scStatus==="undefined") return "ready";
-  return scStatus==="running" ? "playing" : scStatus==="completed" ? "finished" : "ready";
+  if(scStatus==="running") return (typeof scIsPaused==="function" && scIsPaused()) ? "paused" : "playing";
+  return scStatus==="completed" ? "finished" : "ready";
 }
 
 function presentPlay(){
@@ -36,7 +38,20 @@ function presentStop(){
   if(typeof scReset==="function") scReset();
   presentStoryRefresh();
 }
+/* Pausar/Reanudar y los momentos anterior/siguiente: los MISMOS que el editor (editor-scenarios.js), sin segunda receta. */
+function presentTogglePause(){ if(presenting && typeof scTogglePause==="function") scTogglePause(); presentStoryRefresh(); }
+function presentPrevMoment(){ if(presenting && typeof scPrevMoment==="function") scPrevMoment(); presentStoryRefresh(); }
+function presentNextMoment(){ if(presenting && typeof scNextMoment==="function") scNextMoment(); presentStoryRefresh(); }
 
+/* Glifo (▶ ■ ↻) como texto accesible pintado con el trazo del sistema, y el rótulo, en UN elemento en línea: el texto del
+   botón (y su innerText) sigue siendo «▶ Reproducir» aunque el botón sea flex (FLUYO-018.18). */
+function psGlyph(id, glyph, cls, label){
+  const el=$(id); if(!el) return;
+  if(typeof el.replaceChildren!=="function" || typeof document.createTextNode!=="function"){ el.textContent=glyph+" "+label; return; }
+  const w=document.createElement("span"), g=document.createElement("span");
+  w.className="glyphText"; g.className="glyph "+cls; g.textContent=glyph; g.setAttribute("aria-hidden","true");
+  w.append(g, document.createTextNode(" "+label)); el.replaceChildren(w);
+}
 /* Sólo escribe en el DOM lo que cambió: se invoca en cada fotograma. */
 let psLast={};
 function psSet(id, prop, value){
@@ -55,17 +70,28 @@ function presentStoryRefresh(){
     return;
   }
   const phase=presentPhase(), has=phase!=="none";
+  const dphase=phase==="paused" ? "playing" : phase;
   const sc=has?scActiveScenario():null;
   const pages=doc.pages.length;
 
-  /* controles de la barra */
-  psSet("prPrev","hidden",pages<2);
-  psSet("prPos","hidden",pages<2);
-  psSet("prNext","hidden",pages<2);
-  psSet("psPlay","hidden",!has || phase==="playing");
-  psSet("psPlay","text",phase==="finished"?"↻ Repetir":"▶ Reproducir");
-  psSet("psStop","hidden",phase!=="playing");
-  psSet("psEdit","hidden",phase!=="finished");
+  /* controles de la barra: páginas y Historia son dos grupos separados; la salida es una sola (✕ Salir) */
+  psSet("prPages","hidden",pages<2);
+  psSet("psGroup","hidden",!has);
+  const moving=phase==="playing" || phase==="paused";
+  psSet("psPlay","hidden",!has || moving);
+  if(psLast["psPlay.glyph"]!==phase){
+    psLast["psPlay.glyph"]=phase;
+    psGlyph("psPlay", phase==="finished"?"↻":"▶", phase==="finished"?"g-replay":"g-play", phase==="finished"?"Repetir":"Reproducir");
+  }
+  psSet("psPause","hidden",!moving);
+  if(moving && typeof scSetPauseLabel==="function") scSetPauseLabel($("psPause"), phase==="paused");
+  const nav=typeof scMomentNav==="function" ? scMomentNav() : {prev:null, next:null};
+  psSet("psPrev","hidden",!has || phase==="ready");
+  psSet("psNext","hidden",!has || phase==="ready");
+  psSet("psPrev","disabled",nav.prev===null);
+  psSet("psNext","disabled",nav.next===null);
+  psSet("psStop","hidden",!has || phase==="ready");
+  if(psLast["psStop.glyph"]!==1){ psLast["psStop.glyph"]=1; psGlyph("psStop","■","g-stop","Detener"); }
   psSet("presentBar","className", phase==="playing" ? "" : "psAttention");
 
   /* encabezado de la historia */
@@ -77,7 +103,7 @@ function presentStoryRefresh(){
     psSet("psSummary","text","");
     return;
   }
-  const d=FluyoStory.describe(phase, sc, scPlayback, id=>scNodeFallback(id), id=>edgeById(id));
+  const d=FluyoStory.describe(dphase, sc, scPlayback, id=>scNodeFallback(id), id=>edgeById(id));
   const ms=d.moments, idx=d.idx;
 
   psSet("psTitle","text", d.title);
@@ -86,7 +112,7 @@ function presentStoryRefresh(){
   /* progreso: puntos si caben; si no, «n / total» */
   const dots=$("psDots");
   const useDots=ms.length>1 && ms.length<=FluyoPresentStory.MAX_DOTS;
-  const sig=ms.length+"|"+idx+"|"+useDots+"|"+phase;
+  const sig=ms.length+"|"+idx+"|"+useDots+"|"+dphase;
   if(psLast.dots!==sig){
     psLast.dots=sig;
     dots.textContent="";
@@ -94,7 +120,7 @@ function presentStoryRefresh(){
     if(useDots){
       ms.forEach((m,i)=>{
         const d=document.createElement("span");
-        d.className="psDot"+(i<=idx?" done":"")+(i===idx&&phase==="playing"?" now":"");
+        d.className="psDot"+(i<=idx?" done":"")+(i===idx&&dphase==="playing"?" now":"");
         d.title=m.label||"";
         dots.appendChild(d);
       });
@@ -105,7 +131,8 @@ function presentStoryRefresh(){
 
   /* mensaje: consecuencia vigente o cierre */
   let cap=d.caption, sum=d.summary;
-  if(phase!=="playing" && phase!=="finished" && scErrors.length) cap=scErrors[0];
+  if(dphase!=="playing" && dphase!=="finished" && scErrors.length) cap=scErrors[0];
+  if(phase==="paused") cap=cap ? "En pausa · "+cap : "En pausa";
   psSet("psCaption","text",cap);
   psSet("psSummary","text",sum);
 }
@@ -120,7 +147,9 @@ function fitViewPresent(maxZoom=2.5){
   const b=getBounds();
   if(b.w<=0 || b.h<=0) return;
   const small=r.width<520;
-  const side=small?12:32, top=presentHasStory()?(small?84:84):24, bottom=small?76:88;
+  /* el mando puede ocupar dos filas en vertical (Historia y páginas, FLUYO-018.18): se reserva su alto real */
+  const bar=$("presentBar"), barH=bar && bar.offsetHeight ? bar.offsetHeight+28 : 0;
+  const side=small?12:32, top=presentHasStory()?(small?84:84):24, bottom=Math.max(small?76:88, barH);
   const aw=Math.max(40,r.width-side*2), ah=Math.max(40,r.height-top-bottom);
   viewZoom=clamp(Math.min(aw/b.w, ah/b.h), 0.05, maxZoom);
   viewX=side+(aw-b.w*viewZoom)/2 - b.x*viewZoom;

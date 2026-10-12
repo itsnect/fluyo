@@ -68,24 +68,46 @@ button:disabled{ opacity:.4; cursor:default; }
 }
 #prBar[hidden]{ display:none; }
 #prBar button{ min-height:38px; border-radius:var(--r-pill); display:inline-flex; align-items:center; gap:6px; padding:0 14px; }
+/* FLUYO-018.18 (D8): la Historia y las páginas son dos grupos que no se parten; una sola salida. */
+#prBar{ row-gap:6px; }
+#prBar .prGroup{ display:flex; align-items:center; gap:6px; flex-wrap:nowrap; }
+#prBar .prGroup[hidden]{ display:none; }
+#prBar{ column-gap:16px; }
+@media (max-width:480px){ #prBar #prPrev .lbl, #prBar #prNext .lbl{ display:none; } #prBar #prPrev, #prBar #prNext{ width:var(--ctl-h-touch); padding:0; justify-content:center; } }
+#prBar .stActions{ display:flex; gap:6px; flex-wrap:nowrap; margin:0; }
+@media (pointer:coarse){ #prBar button{ min-height:var(--ctl-h-touch); } }
 #prPos{ color:var(--ink-3); min-width:56px; text-align:center; font:500 var(--fs-label)/1 var(--font-mono); font-variant-numeric:tabular-nums; }
 
-/* ── Historia compartida: tarjeta de lectura ──
-   Rótulo mono, título serif, el paso actual en mono y la acción principal en terracota. */
+/* ── Historia compartida (FLUYO-018.18) ──
+   La banda es SOLO el transporte, en una fila de alto fijo: el lienzo no salta cuando aparece una consecuencia. Qué Historia,
+   qué momento y su consecuencia se leen sobre el lienzo (#stNow), como en el editor y en Present. */
 #story{
-  display:flex; flex-direction:column; align-items:center; gap:6px; text-align:center;
-  padding:12px 16px 14px; background:var(--surface); border-top:1px solid var(--rule-2);
+  display:flex; flex-direction:row; align-items:center; justify-content:center; flex:none;
+  height:calc(var(--ctl-h-touch) + 20px); padding:10px 12px; background:var(--surface); border-top:1px solid var(--rule-2);
 }
-#story[hidden], #story button[hidden]{ display:none; }
-/* sin text-transform: el rótulo es texto de la Historia («Historia · nombre») y se lee tal cual */
-#story .stKicker{ font:500 var(--fs-label)/1.3 var(--font-mono); letter-spacing:.02em; color:var(--ink-3); overflow-wrap:anywhere; }
-#story .stTitle{ font:400 19px/1.25 var(--font-serif); color:var(--ink); overflow-wrap:anywhere; max-width:100%; }
-#story .stCaption{ font:400 var(--fs-body)/1.55 var(--font-mono); color:var(--ink-2); overflow-wrap:anywhere; max-width:min(100%, 640px); }
-#story .stSummary{ font:400 var(--fs-label)/1.4 var(--font-mono); color:var(--ink-3); overflow-wrap:anywhere; }
-#story .stCaption:empty, #story .stSummary:empty{ display:none; }
-#story .stActions{ display:flex; gap:8px; flex-wrap:wrap; justify-content:center; max-width:100%; margin-top:4px; }
-#story .stActions button{ min-height:var(--ctl-h-touch); padding:0 18px; border-radius:var(--r-pill); font-weight:500; }
+#story[hidden], #story button[hidden], #stActions button[hidden]{ display:none; }
+.stActions{ display:flex; gap:8px; flex-wrap:nowrap; justify-content:center; max-width:100%; }
+.stActions button{ min-height:var(--ctl-h-touch); padding:0 18px; border-radius:var(--r-pill); font-weight:500; display:inline-flex; align-items:center; gap:8px; white-space:nowrap; }
+.stActions .iconBtn{ width:var(--ctl-h-touch); min-width:var(--ctl-h-touch); padding:0; justify-content:center; }
+.stActions .ic{ width:16px; height:16px; }
 body.presenting #story{ display:none; }
+/* glifos ▶ ■ ↻ como texto accesible, pintados con el trazo del sistema (como en el editor) */
+.glyph{ display:inline-block; width:12px; height:12px; flex:none; font-size:0; line-height:0; vertical-align:middle; background:currentColor; -webkit-mask:var(--m) center/contain no-repeat; mask:var(--m) center/contain no-repeat; }
+.glyphText{ white-space:nowrap; }
+.g-play{ --m:var(--mask-play); } .g-stop{ --m:var(--mask-stop); } .g-replay{ --m:var(--mask-replay); }
+/* el rótulo sobre el lienzo: material inverso, alto fijo (dos líneas), arriba o al pie si tapa el destino del momento */
+.stNow{
+  position:absolute; left:50%; top:10px; transform:translateX(-50%); z-index:3; pointer-events:none;
+  display:flex; flex-direction:column; gap:3px; max-width:min(calc(100% - 24px), 560px); min-width:min(220px, calc(100% - 24px)); padding:7px 14px 8px;
+  background:rgba(22,21,15,.86); color:#F2EDE3; border:1px solid rgba(242,237,227,.16); border-radius:var(--r-lg); box-shadow:var(--shadow-float);
+}
+.stNow[hidden]{ display:none; }
+.stNow .stKicker{ font:500 var(--fs-micro)/1.3 var(--font-mono); letter-spacing:.02em; color:#C9D2AE; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.stNow .stLine{ display:flex; align-items:baseline; gap:8px; min-width:0; white-space:nowrap; }
+.stNow .stTitle{ font:400 16px/1.25 var(--font-serif); min-width:0; overflow:hidden; text-overflow:ellipsis; flex:0 1 auto; }
+.stNow .stCaption, .stNow .stSummary{ font:400 var(--fs-label)/1.3 var(--font-mono); color:rgba(242,237,227,.78); min-width:0; overflow:hidden; text-overflow:ellipsis; flex:0 1 auto; }
+.stNow .stCaption:empty, .stNow .stSummary:empty, .stNow .stProgress:empty{ display:none; }
+.stNow .stProgress{ margin-left:auto; flex:none; font:500 var(--fs-label)/1 var(--font-mono); color:rgba(242,237,227,.62); font-variant-numeric:tabular-nums; }
 
 /* ── Firma: metadato discreto ── */
 #brand{ padding:6px 12px; text-align:center; background:var(--surface); border-top:1px solid var(--rule); }
@@ -96,16 +118,24 @@ body.presenting #story{ display:none; }
 body.presenting #chrome, body.presenting #brand{ display:none; }
 body.presenting #sv{ cursor:default; }
 
-/* ── Estrecho: la cabecera sigue en una fila (iconos), las páginas bajan a su tira ── */
+/* ── Selector de página (teléfono) ── */
+#pgSelect{ display:none; }
+/* ── Con el dedo, −/+ sobran: el pellizco ya existe (FLUYO-018.18); el enlace de la firma, objetivo de 44 px ── */
+@media (pointer:coarse){ #btnZoomIn, #btnZoomOut{ display:none; } #brand a{ min-height:var(--ctl-h-touch); display:inline-flex; align-items:center; } #brand{ padding:0 12px; } }
+/* ── Apaisado de teléfono: «Hecho con Fluyo» se oculta (el logo ya enlaza a Fluyo) y el lienzo recupera esa franja (D9) ── */
+@media (orientation:landscape) and (max-height:500px){ #brand{ display:none; } }
+
+/* ── Estrecho: la cabecera queda en UNA fila; las páginas son un selector (FLUYO-018.18) ── */
 @media (max-width:700px){
-  #chrome{ flex-wrap:wrap; padding:0 6px 0 12px; column-gap:2px; }
+  #chrome{ flex-wrap:nowrap; padding:0 6px 0 12px; column-gap:2px; }
+  #pgTabs{ display:none !important; }
+  #pgSelect:not([hidden]){ display:block; flex:1 1 auto; min-width:0; max-width:220px; min-height:var(--ctl-h); margin:0 4px; font:400 15px/1.2 var(--font-serif); }
   #chrome .logo{ font-size:19px; margin-right:4px; }
   #chrome .logo .dots{ display:none; }
   #btnPresent{ width:var(--ctl-h); min-width:var(--ctl-h); padding:0; }
   #btnPresent .lbl{ position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
   .tools .vdivider{ margin:0 2px; }
-  #pgTabs{ order:3; flex:1 0 100%; padding:0 0 6px; }
-  #story .stTitle{ font-size:17px; }
+
 }
 /* A 375–420 px «Abrir en Fluyo» se queda en «Abrir» (el nombre completo lo da aria-label): la fila tiene que caber. */
 @media (max-width:420px){

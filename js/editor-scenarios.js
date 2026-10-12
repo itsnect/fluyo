@@ -521,8 +521,10 @@ function scRun(opts) {
   const sc = scActiveScenario();
   if (!sc || !sc.steps.length) return; /* una Historia vacía no se reproduce (el botón ya está deshabilitado) */
   scErrors = [];
-  /* Una sola receta de ejecución, compartida con Present y el Viewer (story-playback.js). */
-  const started = FluyoStory.start(P(), sc, performance.now());
+  /* FLUYO-018.18: el reloj de la Historia (story-clock.js) decide qué tiempo ve la reproducción; pausar y saltar no
+     cambian la receta, que sigue siendo una sola, compartida con Present y el Viewer (story-playback.js). */
+  scClock = typeof FluyoStoryClock !== "undefined" ? FluyoStoryClock.create() : null;
+  const started = FluyoStory.start(P(), sc, scNow());
   if (!started.ok) {
     scErrors = started.errors;
     scRenderErrors();
@@ -551,6 +553,7 @@ function scReset() {
     scRafId = null;
   }
   scPlayback = null;
+  scClock = null;
   scStatus = "idle";
   scErrors = [];
   scFollowedStep = null;
@@ -565,10 +568,12 @@ function scScheduleTick() {
   scRafId = requestAnimationFrame(scTick);
 }
 
-function scTick(now) {
+function scTick() {
   scRafId = null;
   if (!scPlayback || scStatus !== "running") return;
-  FluyoScenarioPlayback.tick(scPlayback, now);
+  /* en pausa no se piden fotogramas propios: la proyección queda quieta en el instante pausado */
+  if (scIsPaused()) return;
+  FluyoScenarioPlayback.tick(scPlayback, scNow());
   scRenderStatus();
   scRenderStoryboard();
   scFollowActive();
@@ -586,7 +591,114 @@ function scTick(now) {
 
 function buildScenarioRenderState() {
   if (!scPlayback) return null;
-  return FluyoStory.renderState(scPlayback, scActiveScenario(), performance.now());
+  return FluyoStory.renderState(scPlayback, scActiveScenario(), scNow());
+}
+
+/* ─────────── FLUYO-018.18: pausar, reanudar y saltar entre momentos ───────────
+   El estado sigue siendo scStatus (idle | running | completed): «en pausa» es running con el reloj congelado, no un
+   estado nuevo. Saltar vuelve a ejecutar la misma receta con el origen desplazado (FluyoStoryClock.seek): el resultado es
+   el de una reproducción continua en ese instante. Nada de esto toca el documento ni crea Undo. */
+let scClock = null;
+function scNow() {
+  const real = performance.now();
+  return scClock ? FluyoStoryClock.now(scClock, real) : real;
+}
+function scIsPaused() {
+  return scStatus === "running" && !!scClock && FluyoStoryClock.isPaused(scClock);
+}
+function scAfterTransport() {
+  scRenderButtons();
+  scRenderStatus();
+  if (typeof presentStoryRefresh === "function") presentStoryRefresh();
+}
+function scPause() {
+  if (scStatus !== "running" || !scClock || scIsPaused()) return;
+  FluyoStoryClock.pause(scClock, performance.now());
+  if (scRafId !== null) { cancelAnimationFrame(scRafId); scRafId = null; }
+  scAfterTransport();
+}
+function scResume() {
+  if (!scIsPaused()) return;
+  FluyoStoryClock.resume(scClock, performance.now());
+  scAfterTransport();
+  scScheduleTick();
+}
+function scTogglePause() {
+  if (scIsPaused()) scResume();
+  else scPause();
+}
+/* Momento en curso y destinos de ⏮ / ⏭ (la unidad es el momento, nunca el Step). Terminada, «anterior» vuelve al último. */
+function scMomentNav() {
+  const sc = scActiveScenario();
+  if (!sc || !scPlayback || !scClock || !isScenarioPlaybackActive()) return { times: [], index: -1, prev: null, next: null };
+  const times = FluyoStoryClock.momentTimes(sc), vt = scPlayback.cursorVirtual || 0;
+  const index = FluyoStoryClock.momentIndex(times, vt);
+  const prev = scStatus === "completed" ? (times.length ? times.length - 1 : null) : FluyoStoryClock.prevTarget(times, vt);
+  const next = scStatus === "completed" ? null : FluyoStoryClock.nextTarget(times, vt);
+  return { times, index, prev, next };
+}
+function scSeekMoment(i) {
+  const sc = scActiveScenario();
+  if (!sc || !scPlayback || !scClock || !isScenarioPlaybackActive()) return false;
+  /* desde «terminada» se vuelve a ese momento en pausa: quien salta quiere mirarlo, no que siga solo */
+  if (scStatus === "completed") FluyoStoryClock.pause(scClock, performance.now());
+  const r = FluyoStoryClock.seek(scClock, performance.now(), P(), sc, i);
+  if (!r.ok) return false;
+  scPlayback = r.playback;
+  scStatus = "running";
+  scFollowedStep = null;
+  scStorySignature = "";
+  scRenderButtons();
+  scRenderStatus();
+  scRenderStoryboard();
+  scFollowActive();
+  scRevealMoment();
+  scRenderTraceLog();
+  if (typeof presentStoryRefresh === "function") presentStoryRefresh();
+  if (!scIsPaused()) scScheduleTick();
+  return true;
+}
+/* Al saltar, el lienzo enseña el momento ENTERO (D6): si sus destinos —los elementos de sus eventos y los dos extremos de
+   sus conexiones— no están todos en la zona libre, se centra su caja sin cambiar el zoom (como scRevealTarget). Un momento
+   con varios eventos simultáneos ya no deja uno fuera de la vista. Presentando, la vista es la de Present: no se toca. */
+function scRevealMoment() {
+  if (typeof cv === "undefined" || typeof visibleCanvasRect !== "function" || (typeof presenting !== "undefined" && presenting)) return;
+  const sc = scActiveScenario(), n = scMomentNav();
+  if (!sc || n.index < 0) return;
+  const at = n.times[n.index];
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  const add = (nd) => { if (!nd) return; x0 = Math.min(x0, nd.x - nd.w / 2); y0 = Math.min(y0, nd.y - nd.h / 2); x1 = Math.max(x1, nd.x + nd.w / 2); y1 = Math.max(y1, nd.y + nd.h / 2); };
+  for (const st of sc.steps) {
+    if (st.at !== at) continue;
+    if (st.edgeId) { const e = edgeById(st.edgeId); if (e) { add(nodeById(e.from)); add(nodeById(e.to)); } }
+    else add(nodeById(st.nodeId));
+  }
+  if (!isFinite(x0)) return;
+  const v = visibleCanvasRect();
+  if (x0 * viewZoom + viewX >= v.left && y0 * viewZoom + viewY >= v.top && x1 * viewZoom + viewX <= v.right && y1 * viewZoom + viewY <= v.bottom) return;
+  let cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+  /* si el momento no cabe a este zoom (no se encoge: suelo de 0,6, decisión 148), se centra su primer elemento o, si solo hay
+     conexiones, el punto medio de la primera: lo mismo que «un destino a la vista» del seguimiento de 018.17 */
+  if ((x1 - x0) * viewZoom > v.width || (y1 - y0) * viewZoom > v.height) {
+    const steps = scOrderedSteps().filter((st) => st.at === at);
+    const p = scTargetPosition(steps.find((st) => !st.edgeId) || steps[0]);
+    if (p) { cx = p.x; cy = p.y; }
+  }
+  viewX = v.left + v.width / 2 - cx * viewZoom;
+  viewY = v.top + v.height / 2 - cy * viewZoom;
+}
+function scSeekStep(step) {
+  const sc = scActiveScenario();
+  if (!sc || !step) return false;
+  return scSeekMoment(FluyoStoryClock.momentTimes(sc).indexOf(step.at));
+}
+function scPrevMoment() {
+  const n = scMomentNav();
+  if (n.prev !== null) scSeekMoment(n.prev);
+}
+function scNextMoment() {
+  const n = scMomentNav();
+  if (n.next !== null) scSeekMoment(n.next);
 }
 
 /* FLUYO-018.17 (D3): el paso activo se ve dos veces. En la línea de tiempo, su fila se trae a la vista (solo desplaza el
@@ -656,6 +768,19 @@ function scGlyphText(el, glyph, cls, label, glyphFirst) {
   const t = document.createTextNode(glyphFirst ? " " + label : label + " ");
   if (glyphFirst) el.replaceChildren(g, t);
   else el.replaceChildren(t, g);
+}
+/* Pausar ↔ Reanudar: el mismo botón, icono del sprite y texto (nunca un glifo nuevo). */
+function scSetPauseLabel(el, paused) {
+  const label = paused ? "Reanudar" : "Pausar";
+  if (el.dataset && el.dataset.state === label) return;
+  if (el.dataset) el.dataset.state = label;
+  if (typeof document.createElementNS !== "function" || typeof el.replaceChildren !== "function") { el.textContent = label; return; }
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg"), use = document.createElementNS("http://www.w3.org/2000/svg", "use");
+  svg.setAttribute("class", "ic");
+  svg.setAttribute("aria-hidden", "true");
+  use.setAttribute("href", paused ? "#i-play" : "#i-pause");
+  svg.appendChild(use);
+  el.replaceChildren(svg, document.createTextNode(label));
 }
 function scBodyFlag(name, on) {
   const b = document.body;
@@ -783,12 +908,21 @@ function scRenderButtons() {
   }
   if (reset) {
     reset.hidden = scStatus === "idle";
-    /* B2: «Volver a editar» es la salida del modo; terminar una reproducción acabada es «Terminar». */
-    if (scStatus === "running") scGlyphText(reset, "■", "g-stop", "Detener", true);
-    else reset.textContent = "Terminar";
+    /* FLUYO-018.18 (D5): una sola palabra para volver a la Historia lista, en cualquier estado (antes «Terminar» al acabar).
+       «Volver a editar» sigue siendo la salida del modo (B2). */
+    scGlyphText(reset, "■", "g-stop", "Detener", true);
   }
+  /* Transporte (D1–D3, D5): Pausar/Reanudar y los momentos anterior/siguiente solo existen mientras hay reproducción. */
+  const pause = $("scPause"), nav = scMomentNav();
+  if (pause) {
+    pause.hidden = scStatus !== "running";
+    scSetPauseLabel(pause, scIsPaused());
+  }
+  if ($("scPrev")) { $("scPrev").hidden = scStatus === "idle"; $("scPrev").disabled = nav.prev === null; }
+  if ($("scNext")) { $("scNext").hidden = scStatus === "idle"; $("scNext").disabled = nav.next === null; }
   const panel = $("panelScenarios");
   if (panel) panel.classList.toggle("scPlaying", isScenarioPlaybackActive());
+  scBodyFlag("scPaused", scIsPaused());
   /* FLUYO-018.12: en móvil la hoja se compacta mientras se reproduce, para que se vea la Historia en el lienzo. */
   scBodyFlag("scPlaybackOn", isScenarioPlaybackActive());
   if ($("scEventNew")) $("scEventNew").disabled = isScenarioPlaybackActive();
@@ -828,7 +962,7 @@ function scRenderNow() {
   let label = "", caption = "", progress = "";
   if (on) {
     const d = FluyoStory.describe(scStatus === "running" ? "playing" : "finished", sc, scPlayback, (id) => scNodeFallback(id), (id) => edgeById(id));
-    label = scStatus === "running" ? "Reproduciendo" : "Terminada";
+    label = scStatus === "running" ? (scIsPaused() ? "En pausa" : "Reproduciendo") : "Terminada";
     caption = scStatus === "running" ? (d.caption ? d.title + " · " + d.caption : d.title) : d.summary ? d.caption + " · " + d.summary : d.caption;
     progress = d.moments.length > 1 ? Math.max(0, d.idx + 1) + " / " + d.moments.length : "";
   }
@@ -836,10 +970,48 @@ function scRenderNow() {
   if (sig === scNowLast) return;
   scNowLast = sig;
   box.hidden = !on;
+  if (box.classList) box.classList.toggle("paused", scIsPaused());
   if (box.classList) box.classList.toggle("done", scStatus === "completed");
   if ($("scNowLabel")) $("scNowLabel").textContent = label;
   if ($("scNowCaption")) $("scNowCaption").textContent = caption;
   if ($("scNowProgress")) $("scNowProgress").textContent = progress;
+}
+/* FLUYO-018.18 (D4): el momento activo se cuenta SOBRE el lienzo (#scNow vive en #wrap), arriba de la zona libre. Si el
+   destino de ese momento queda debajo del rótulo, el rótulo baja al pie de la zona libre; nunca tapa lo que se está contando.
+   Se llama en cada fotograma (editor-runtime.js) y solo escribe cuando cambia. Coordenadas de lienzo (px CSS). */
+let scNowPlace = "";
+function scMomentRects() {
+  const sc = scActiveScenario(), n = scMomentNav();
+  if (!sc || n.index < 0) return [];
+  const at = n.times[n.index], out = [];
+  const box = (x0, y0, x1, y1) => ({ left: x0 * viewZoom + viewX, top: y0 * viewZoom + viewY, right: x1 * viewZoom + viewX, bottom: y1 * viewZoom + viewY });
+  for (const step of sc.steps) {
+    if (step.at !== at) continue;
+    if (step.edgeId) {
+      /* una conexión cuenta con su recorrido y con sus dos extremos (sale de uno y llega al otro) */
+      const e = edgeById(step.edgeId), pts = e && typeof edgePoints === "function" ? edgePoints(e) : null;
+      if (pts && pts.length) out.push(box(Math.min(...pts.map((p) => p.x)), Math.min(...pts.map((p) => p.y)), Math.max(...pts.map((p) => p.x)), Math.max(...pts.map((p) => p.y))));
+      for (const nd of e ? [nodeById(e.from), nodeById(e.to)] : []) if (nd) out.push(box(nd.x - nd.w / 2, nd.y - nd.h / 2, nd.x + nd.w / 2, nd.y + nd.h / 2));
+    } else {
+      const nd = nodeById(step.nodeId);
+      if (nd) out.push(box(nd.x - nd.w / 2, nd.y - nd.h / 2, nd.x + nd.w / 2, nd.y + nd.h / 2));
+    }
+  }
+  return out;
+}
+function scPlaceNow() {
+  const card = $("scNow");
+  if (!card || card.hidden || typeof cv === "undefined" || typeof visibleCanvasRect !== "function") return;
+  const v = visibleCanvasRect(), cr = cv.getBoundingClientRect(), wr = $("wrap").getBoundingClientRect();
+  const w = card.offsetWidth, h = card.offsetHeight, left = (cr.width - w) / 2, M = 10;
+  const hit = (y) => scMomentRects().some((r) => r.right > left - 8 && r.left < left + w + 8 && r.bottom > y - 8 && r.top < y + h + 8);
+  const top = v.top + M, bottom = v.bottom - h - M;
+  const y = hit(top) && bottom > top && !hit(bottom) ? bottom : top;
+  const key = Math.round(y + cr.top - wr.top) + "|" + (y !== top);
+  if (key === scNowPlace) return;
+  scNowPlace = key;
+  card.style.top = Math.round(y + cr.top - wr.top) + "px";
+  if (card.classList) card.classList.toggle("atBottom", y !== top);
 }
 function scScenarioMenu(anchor) {
   const none = !scActiveScenario();
@@ -1166,6 +1338,8 @@ function scStoryRow(step) {
   const main = scButton(
     primaryText,
     () => {
+      /* FLUYO-018.18 (D6): reproduciendo (o en pausa, o terminada), tocar una fila salta a su momento; nada más. */
+      if (isScenarioPlaybackActive()) { scSeekStep(step); return; }
       scSelectedStep = step.id;
       scSelectTarget(d.targetType, d.targetId);
       /* FLUYO-018.17 (D2): el lienzo contextualiza: si el destino no está en la zona libre, se trae (sin cambiar el zoom). */
@@ -1190,6 +1364,12 @@ function scStoryRow(step) {
   if (!d.missing && typeof cv !== "undefined" && scTargetOffscreen(step))
     text.appendChild(scButton("Mostrar en el sistema", () => scRevealTarget(step), "scStoryRepair"));
   row.appendChild(text);
+  if (isScenarioPlaybackActive()) {
+    /* toda la fila es el objetivo táctil del salto, no solo el nombre del evento */
+    row.classList.add("scSeekable");
+    main.title = "Ir a este momento";
+    row.onclick = (ev) => { if (ev && ev.target && ev.target.closest && ev.target.closest("button")) return; scSeekStep(step); };
+  }
   if (!isScenarioPlaybackActive()) {
     const more = scButton("⋯", () => scStoryMenu(step, more), "scMore");
     more.setAttribute("aria-label", "Opciones de " + (d.eventType?.name || sentence));
@@ -2527,6 +2707,9 @@ function scInitUI() {
   bind("scScenarioMenu", () => scScenarioMenu($("scScenarioMenu")));
   bind("scRun", scRun);
   bind("scReset", scReset);
+  bind("scPause", scTogglePause);
+  bind("scPrev", scPrevMoment);
+  bind("scNext", scNextMoment);
   bind("scEventNew", () => scOpenEventDialog(null));
   bind("scEventSave", scSaveEventType);
   bind("scEventCancel", scCloseEventDialog);

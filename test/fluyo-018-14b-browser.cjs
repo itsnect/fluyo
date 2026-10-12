@@ -264,16 +264,20 @@ async function journey(browser, base, vp) {
     check(await page.evaluate(() => isScenarioPlaybackActive() && $("scNowCaption").textContent.length > 0), "reproducir con el dedo: se ve qué está pasando");
     await page.waitForFunction(() => scStatus === "completed", null, { timeout: 20000 });
     await page.waitForTimeout(150);
-    check(await page.evaluate(() => $("scReset").textContent === "Terminar" && $("scNowLabel").textContent === "Terminada"), "al acabar: «Terminar» (B2) y «Terminada»");
-    /* 018.17 (D3): en la hoja móvil no hay «Terminar»: Ampliar termina la reproducción y abre el taller; se vuelve a reducir */
+    /* 018.18 (D5): «Detener» también al acabar (una sola palabra; «Terminar» ya no existe) */
+    check(await page.evaluate(() => $("scReset").textContent === "■ Detener" && $("scNowLabel").textContent === "Terminada"), "al acabar: «Detener» (D5) y «Terminada»");
+    /* 018.18 (D5, D6): Ampliar solo amplía (la línea de tiempo sirve para saltar); «Detener» cierra la reproducción */
     await press(t, "#btnStoryExpand", vp);
-    check(await page.evaluate(() => !isScenarioPlaybackActive() && document.body.classList.contains("storyMode") && document.body.classList.contains("storyExpanded")), "Ampliar cierra la reproducción terminada, sigue en Historias y abre el taller");
+    check(await page.evaluate(() => isScenarioPlaybackActive() && document.body.classList.contains("storyMode") && document.body.classList.contains("storyExpanded")), "Ampliar amplía sin detener la reproducción terminada");
     await press(t, "#btnStoryExpand", vp);
+    await press(t, "#scReset", vp);
+    check(await page.evaluate(() => !isScenarioPlaybackActive() && document.body.classList.contains("storyMode")), "«Detener» cierra la reproducción y sigue en Historias");
     await press(t, "#btnStoryExit", vp);
     check(await page.evaluate(() => !document.body.classList.contains("storyMode") && !document.body.classList.contains("panelOpen")), "«Volver a editar» vuelve al lienzo en modo Editar");
 
     /* ── Regresión 018.12: renombrar con el dedo, conectar, Deshacer/Rehacer ── */
-    await page.locator("#pagesBar .tab.active .pgMore").tap(); await page.waitForTimeout(200);
+    /* 018.18 (D10): en el teléfono las páginas se gestionan desde el selector («03 Nombre ▾») */
+    await page.locator("#pgSelect").tap(); await page.waitForTimeout(200);
     await page.locator("#pageMenu button", { hasText: "Renombrar" }).tap(); await page.waitForTimeout(150);
     await page.locator("#pageNameIn").fill("Pagos"); await page.locator("#pageNameSave").tap(); await page.waitForTimeout(150);
     check(await page.evaluate(() => doc.pages[doc.cur].name === "Pagos"), "renombrar la página con el dedo (menú de la pestaña)");
@@ -336,7 +340,7 @@ async function serviceWorker(browser, base) {
   await page.goto(base + "/"); await page.waitForFunction(() => typeof renderTabs === "function");
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
   const keys = await page.evaluate(() => caches.keys());
-  check(keys.length === 1 && keys[0] === "fluyo-static-v76", "caché instalada: fluyo-static-v76 " + JSON.stringify(keys));
+  check(keys.length === 1 && keys[0] === "fluyo-static-v77", "caché instalada: fluyo-static-v77 " + JSON.stringify(keys));
   await page.evaluate(() => localStorage.setItem("fluyo.ui.theme", "dark"));
   await ctx.setOffline(true);
   await page.reload(); await page.waitForFunction(() => typeof setUiMode === "function");

@@ -54,7 +54,7 @@ function refreshPanel(){
   $("fontSel").value=obj.font||"";
   $("boldChk").checked=!!obj.bold;
   const nodeRows=["rowColor","rowTint","rowFill","rowBorder","rowLblPos","rowTextBg","rowTextColor","rowZ","rowShape","rowPulse","rowOrder","rowLang","rowKeywords","rowKwBg","rowKwColor"];
-  const edgeRows=["rowRoute","rowFrom","rowTo","rowAnim","rowSpeedF","rowDotsGlobal","rowDots","rowDash","rowArrS","rowArrE","rowFlow","rowLineC","rowDotC"];
+  const edgeRows=["rowRoute","rowFrom","rowTo","rowAnim","rowSpeedF","rowDotsGlobal","rowDots","rowDash","dirKicker","rowArrS","rowArrE","rowFlow","rowLineC","rowDotC"];
   nodeRows.forEach(r=>$(r).style.display=isNode?"flex":"none");
   edgeRows.forEach(r=>$(r).style.display=isNode?"none":"flex");
   $("btnWps").style.display=(!isNode&&(obj.waypoints||[]).length)?"block":"none";
@@ -115,7 +115,7 @@ function refreshPanel(){
     $("dashChk").checked=!!obj.dashed;
     $("arrSChk").checked=!!obj.startArrow;
     $("arrEChk").checked=obj.endArrow!==false;
-    $("flowSel").value=obj.flowDir||"normal";
+    syncFlowSeg(obj);
     [...$("lineSw").children].forEach(sw=>sw.classList.toggle("sel", (obj.lineColor||"")===sw.dataset.c));
     [...$("dotSw").children].forEach(sw=>sw.classList.toggle("sel", (obj.dotColor||"")===sw.dataset.c));
   }
@@ -390,7 +390,18 @@ $("orderIn").onchange=()=>{ const n=singleNode(); if(n){ pushUndo(); editNode(n,
 $("routeSel").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); editEdge(e,{route:$("routeSel").value}); scheduleAutosave(); } };
 $("fromSel").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); editEdge(e,{fromSide:$("fromSel").value||null, waypoints:[]}); refreshPanel(); scheduleAutosave(); } };
 $("toSel").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); editEdge(e,{toSide:$("toSel").value||null, waypoints:[]}); refreshPanel(); scheduleAutosave(); } };
-$("animChk").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); editEdge(e,{animated:$("animChk").checked}); scheduleAutosave(); } };
+$("animChk").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); editEdge(e,{animated:$("animChk").checked}); scheduleAutosave(); syncFlowSeg(e); } };
+/* FLUYO-018.18 (D12): «Sentido de los puntos» refleja edge.flowDir con los tres valores de siempre y solo se enseña cuando
+   los puntos se mueven (sin movimiento no significa nada). El control nativo #flowSel manda; el segmentado lo refleja. */
+function syncFlowSeg(e){
+  const v=(e && e.flowDir) || "normal";
+  $("flowSel").value=v;
+  $("rowFlow").style.display=e && e.animated ? "flex" : "none";
+  document.querySelectorAll("#flowSeg [data-flow]").forEach(b=>{ const on=b.dataset.flow===v; b.setAttribute("aria-checked", String(on)); b.classList.toggle("active", on); b.tabIndex=on?0:-1; });
+}
+document.querySelectorAll("#flowSeg [data-flow]").forEach(b=>{
+  b.onclick=()=>{ if($("flowSel").value===b.dataset.flow) return; $("flowSel").value=b.dataset.flow; $("flowSel").onchange(); };
+});
 /* Estos tres controles llevaban en el HTML desde el merge de la rama de estilos,
    pero sin handler: se veían en el panel y no hacían nada. */
 $("speedFacSel").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); editEdge(e,{speedFac:+$("speedFacSel").value||1}); scheduleAutosave(); } };
@@ -410,7 +421,7 @@ $("edgeDotsIn").oninput=()=>{
 $("dashChk").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); editEdge(e,{dashed:$("dashChk").checked}); scheduleAutosave(); } };
 $("arrSChk").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); editEdge(e,{startArrow:$("arrSChk").checked}); scheduleAutosave(); } };
 $("arrEChk").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); editEdge(e,{endArrow:$("arrEChk").checked}); scheduleAutosave(); } };
-$("flowSel").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); editEdge(e,{flowDir:$("flowSel").value}); scheduleAutosave(); } };
+$("flowSel").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); editEdge(e,{flowDir:$("flowSel").value}); scheduleAutosave(); syncFlowSeg(e); } };
 /* Devuelve la flecha seleccionada a su ruta automática. Es la salida cuando una
    ruta hecha a mano deja de servir, y desde que esas rutas se CONSERVAN al mover
    los nodos es un gesto habitual, no un rincón: por eso tiene botón arriba del
@@ -631,55 +642,71 @@ function renderTabs(){
     /* FLUYO-018.12: renombrar era solo doble clic + prompt(), y con el dedo el doble
        toque no llega a la pestaña. La activa lleva un ▾ (visible con puntero táctil,
        CSS) que abre el menú de la página; tocar la pestaña activa también lo abre. */
+    let more=null;
     if(i===doc.cur){
-      /* span con rol de botón, como la ✕ de al lado: dentro de la pestaña, y sin convertirse en un segundo
-         `#pagesBar button` (ese es «＋» para quien lo busca). Teclado: Enter y Espacio. */
-      const more=document.createElement("span");
+      /* span con rol de botón: dentro de la pestaña, y sin convertirse en un segundo `#pagesBar button` (ese es «＋» para quien
+         lo busca). Teclado: Enter y Espacio. Desde 018.18 se ve también con ratón: es la puerta a renombrar y eliminar. */
+      more=document.createElement("span");
       more.className="pgMore"; more.textContent="▾"; more.title="Opciones de la página"; more.tabIndex=0;
       if(more.setAttribute){ more.setAttribute("role","button"); more.setAttribute("aria-haspopup","true"); more.setAttribute("aria-label","Opciones de la página "+pg.name); }
       more.onclick=ev=>{ ev.stopPropagation(); openPageMenu(i, more); };
       more.onkeydown=ev=>{ if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); ev.stopPropagation(); openPageMenu(i, more); } };
       t.appendChild(more);
     }
-    if(doc.pages.length>1){
-      const x=document.createElement("span"); x.className="x"; x.textContent="✕";
-      x.title="Cerrar página";
-      /* FLUYO-018.7c: confirmación con impacto, deletePageIn (regla de cur del dominio) y un Undo que reinserta la misma página
-         (selection.js). Sustituye al hotfix de 018.7a, que vaciaba Undo/Redo porque las entradas identificaban la página por índice. */
-      x.onclick=ev=>{ ev.stopPropagation(); requestDeletePage(i); };
-      t.appendChild(x);
-    }
+    /* FLUYO-018.18 (D11): sin ✕ en las pestañas. Se llamaba «Cerrar página» y ELIMINABA la página; eliminar vive en el menú
+       de la página («Eliminar página», con la confirmación y el Undo de 018.7c: requestDeletePage). */
+    if(pg.name && t.setAttribute) t.setAttribute("title", pg.name);
     t.onpointerdown=ev=>{ t.lastPointer=ev.pointerType; };
     t.onclick=()=>{
       if(i===doc.cur && t.lastPointer==="touch"){ openPageMenu(i, t); return; }
-      if(i!==doc.cur && typeof isScenarioPlaybackActive==="function" && isScenarioPlaybackActive()){
-        if(typeof scReset==="function") scReset();
-      }
-      doc.cur=i; clearSel(); renderTabs(); scheduleAutosave();
+      goToPageFromUi(i);
     };
     t.ondblclick=()=>{
       /* Con el dedo manda el menú: dos toques seguidos (cambiar de pestaña y tocar la activa) llegan como dblclick sintético y
-         abrirían a la vez el menú y el prompt. El doble clic queda para el ratón, como siempre. */
+         abrirían el menú dos veces. Con ratón, el doble clic abre el MISMO renombrado en línea del menú (FLUYO-018.18, D11:
+         sin prompt() ni alert()). */
       if(t.lastPointer==="touch") return;
       if(typeof isScenarioPlaybackActive==="function" && isScenarioPlaybackActive()) return;
-      const nn=prompt("Nombre de la página:",pg.name); if(!nn) return;
-      try{ renamePage(i,nn); }
-      catch(err){
-        if(err && err.code==="invalid_page_name"){ alert(`El nombre de la página debe tener entre 1 y ${PAGE_NAME_MAX} caracteres.`); return; }
-        throw err;
-      }
-      renderTabs(); scheduleAutosave();
+      if(i!==doc.cur) return;
+      openPageMenu(i, more||t); showPageRename(i);
     };
     bar.appendChild(t);
   });
   const add=document.createElement("button");
   /* FLUYO-018.13: el «＋» sigue en el texto (accesible, y es como lo buscan los tests); el trazo lo pinta .pgAdd (styles.css). */
   add.textContent="＋"; add.title="Nueva página"; add.className="pgAdd btnGhost";
-  add.onclick=()=>{
-    if(typeof isScenarioPlaybackActive==="function" && isScenarioPlaybackActive()){ if(typeof scReset==="function") scReset(); }
-    addPage(); clearSel(); renderTabs(); scheduleAutosave();
-  };
+  add.onclick=()=>newPageFromUi();
   bar.appendChild(add);
+  /* FLUYO-018.18 (D10): en el teléfono las páginas son UN selector con la activa por su nombre («03 Conciliación… ▾») que abre
+     la lista (cambiar, «＋ Nueva página», renombrar, eliminar). La tira de pestañas desbordaba y la activa podía quedar fuera de
+     la vista o bajo el «＋». El CSS decide cuál se ve (≤ 700 px el selector; por encima, las pestañas). */
+  const cur=doc.pages[doc.cur]||{name:""};
+  const sel=document.createElement("button");
+  sel.type="button"; sel.className="pgSelect btnGhost"; sel.id="pgSelect";
+  if(sel.setAttribute){ sel.setAttribute("aria-haspopup","true"); sel.setAttribute("aria-label","Página "+(doc.cur+1)+" de "+doc.pages.length+": "+cur.name+". Cambiar de página"); }
+  const idx=document.createElement("span"); idx.className="pgIdx"; idx.textContent=String(doc.cur+1).padStart(2,"0");
+  const nm=document.createElement("span"); nm.className="pgName"; nm.textContent=cur.name;
+  sel.appendChild(idx); sel.appendChild(nm);
+  sel.onclick=()=>openPageMenu(doc.cur, sel, {list:true});
+  bar.appendChild(sel);
+  /* la activa siempre a la vista (sin pisarla con el «＋», que es fijo a la derecha) */
+  if(typeof requestAnimationFrame==="function") requestAnimationFrame(revealActiveTab);
+}
+function revealActiveTab(){
+  const bar=$("pagesBar"), act=bar && bar.querySelector && bar.querySelector(".tab.active"), add=bar && bar.querySelector && bar.querySelector(".pgAdd");
+  if(!act || !act.getBoundingClientRect || !bar.getBoundingClientRect || bar.scrollWidth<=bar.clientWidth) return;
+  const b=bar.getBoundingClientRect(), r=act.getBoundingClientRect(), reserve=add && getComputedStyle(add).position==="sticky" ? add.offsetWidth+4 : 0;
+  if(r.left<b.left) bar.scrollLeft-=b.left-r.left+4;
+  else if(r.right>b.right-reserve) bar.scrollLeft+=r.right-(b.right-reserve)+4;
+}
+function newPageFromUi(){
+  if(typeof isScenarioPlaybackActive==="function" && isScenarioPlaybackActive()){ if(typeof scReset==="function") scReset(); }
+  addPage(); clearSel(); renderTabs(); scheduleAutosave();
+}
+function goToPageFromUi(i){
+  if(i===doc.cur) return;
+  if(typeof isScenarioPlaybackActive==="function" && isScenarioPlaybackActive()){ if(typeof scReset==="function") scReset(); }
+  doc.cur=i; clearSel(); renderTabs(); scheduleAutosave();
 }
 /* ===================== Menú de la página (FLUYO-018.12) =====================
    Renombrar y eliminar sin doble clic. Reutiliza el aspecto de los menús de
@@ -704,14 +731,28 @@ function placePageMenu(anchor){
   m.style.left=Math.max(8, Math.min(r.left, innerWidth-m.offsetWidth-8))+"px";
   m.style.top=Math.max(8, r.top-m.offsetHeight-6)+"px";
 }
-function openPageMenu(i, anchor){
+function openPageMenu(i, anchor, opts){
   const m=$("pageMenu"), pg=doc.pages[i];
   if(!pg) return;
   if(!m.hidden && pageMenuAnchor===anchor){ closePageMenu(true); return; }
   m.replaceChildren(); m.hidden=false; pageMenuAnchor=anchor;
-  const head=document.createElement("div"); head.className="scMenuHead"; head.textContent=pg.name; m.appendChild(head);
   const playing=typeof isScenarioPlaybackActive==="function" && isScenarioPlaybackActive();
   const item=(label, fn, cls)=>{ const b=document.createElement("button"); b.type="button"; b.textContent=label; if(cls) b.className=cls; b.onclick=fn; m.appendChild(b); return b; };
+  /* FLUYO-018.18 (D10): desde el selector del teléfono, la lista de páginas (índice + nombre; la activa marcada) y «＋ Nueva
+     página»; debajo, lo de siempre para la activa. Crear cuesta dos toques; nada más cambia. */
+  if(opts && opts.list){
+    if(m.classList) m.classList.add("pageList");
+    doc.pages.forEach((p,j)=>{
+      const b=item("", ()=>{ closePageMenu(false); goToPageFromUi(j); }, "pgItem"+(j===doc.cur?" active":""));
+      const n=document.createElement("span"); n.className="pgIdx"; n.textContent=String(j+1).padStart(2,"0");
+      const t=document.createElement("span"); t.className="pgName"; t.textContent=p.name;
+      b.replaceChildren(n,t);
+      if(j===doc.cur && b.setAttribute) b.setAttribute("aria-current","page");
+    });
+    item("＋ Nueva página", ()=>{ closePageMenu(false); newPageFromUi(); }, "pgNew");
+    const sep=document.createElement("div"); sep.className="scMenuSep"; m.appendChild(sep);
+  } else if(m.classList) m.classList.remove("pageList");
+  const head=document.createElement("div"); head.className="scMenuHead"; head.textContent=pg.name; m.appendChild(head);
   const ren=item("Renombrar…", ()=>showPageRename(i));
   /* como el doble clic: con una Historia reproduciéndose no se toca la página */
   ren.disabled=playing;
@@ -820,7 +861,9 @@ $("prPrev").onclick=prevSlide;
 $("prExit").onclick=exitPresent;
 $("psPlay").onclick=presentPlay;
 $("psStop").onclick=presentStop;
-$("psEdit").onclick=exitPresent;
+$("psPause").onclick=presentTogglePause;
+$("psPrev").onclick=presentPrevMoment;
+$("psNext").onclick=presentNextMoment;
 /* el diagrama se vuelve a encajar si cambia el viewport mientras se presenta */
 window.addEventListener("resize", ()=>{ if(presenting) scheduleEditorResize(fitViewPresent); });
 /* salir de la pantalla completa por la vía del navegador (Esc, F11) también
@@ -1002,8 +1045,8 @@ $("btnPanelClose").onclick=()=>closeSurface();
 $("btnStoryExit").onclick=()=>exitStoryMode();
 $("btnStoryExpand").onclick=()=>{
   const on=!document.body.classList.contains("storyExpanded");
-  /* FLUYO-018.17 (D3): terminada, en móvil no hay «Terminar»: Ampliar termina la reproducción y abre el taller. */
-  if(on && typeof scStatus!=="undefined" && scStatus==="completed" && typeof scReset==="function") scReset();
+  /* FLUYO-018.18 (D5, D6): Ampliar solo amplía. Terminada ya no la detiene por su cuenta (en 018.17 hacía de «Terminar»
+     porque no cabía): «Detener» está en la hoja, y la línea de tiempo ampliada sirve para volver a un momento. */
   setStoryExpanded(on); revealAboveSheet("page");
 };
 $("tabProperties").onclick=()=>setUiMode("edit");

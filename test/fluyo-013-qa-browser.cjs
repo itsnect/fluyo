@@ -218,8 +218,9 @@ function serve() {
     await p.keyboard.press("End"); assert.equal(await p.evaluate(() => doc.cur), 2); await p.keyboard.press("Home"); assert.equal(await p.evaluate(() => doc.cur), 0);
     await p.locator("#prNext").click(); assert.equal(await p.evaluate(() => doc.cur), 1);
     await p.locator("#prPrev").click(); assert.equal(await p.evaluate(() => doc.cur), 0);
-    /* toque en el lienzo avanza de diapositiva (táctil) */
-    await p.touchscreen.tap(683, 384); await p.waitForTimeout(150); assert.equal(await p.evaluate(() => doc.cur), 1, "tap avanza");
+    /* FLUYO-018.18 (D7): un toque en el lienzo NO navega (un roce cortaba la Historia delante de la sala); se avanza con el mando */
+    await p.touchscreen.tap(683, 384); await p.waitForTimeout(150); assert.equal(await p.evaluate(() => doc.cur), 0, "tap no navega");
+    await p.locator("#prNext").click(); assert.equal(await p.evaluate(() => doc.cur), 1, "el control explícito sí avanza");
     await p.keyboard.press("Space"); assert.equal(await p.evaluate(() => doc.cur), 2, "Space avanza (sin Historia)");
     await p.keyboard.press("Escape"); await p.waitForFunction(() => !presenting);
     await assertClean(p, "hist");
@@ -404,7 +405,7 @@ function serve() {
     const m = await p.evaluate(() => { const b = document.getElementById("presentBar").getBoundingClientRect(), s = document.getElementById("presentStory").getBoundingClientRect(); return { bar: [b.left, b.top, b.right, b.bottom], st: [s.left, s.top, s.right, s.bottom], sw: document.documentElement.scrollWidth }; });
     await p.screenshot({ path: path.join(shots, "m-finished-390.png") });
     assert.ok(m.bar[0] >= 0 && m.bar[2] <= 390 && m.bar[3] <= 844 && m.st[0] >= 0 && m.st[2] <= 390 && m.sw <= 390, JSON.stringify(m));
-    for (const id of ["psPlay", "psEdit", "prExit"]) { const bx = await p.locator("#" + id).boundingBox(); assert.ok(bx.height >= 32 && bx.x >= 0 && bx.x + bx.width <= 390, id + JSON.stringify(bx)); }
+    for (const id of ["psPlay", "psStop", "prExit"]) {   /* 018.18: sin psEdit (una salida); terminada lleva «Detener» */ const bx = await p.locator("#" + id).boundingBox(); assert.ok(bx.height >= 32 && bx.x >= 0 && bx.x + bx.width <= 390, id + JSON.stringify(bx)); }
     await ctx.close();
   });
 
@@ -414,7 +415,10 @@ function serve() {
     await p.keyboard.press("p"); await p.waitForFunction(() => presenting); assert.equal(await phase(p), "ready");
     await p.keyboard.press("Space"); assert.equal(await phase(p), "playing");
     const id1 = await p.evaluate(() => { window.__pb = scPlayback; return scPlayback.startedAtReal; });
-    await p.keyboard.press("Space"); await p.keyboard.press("Enter"); await p.keyboard.press("Space");
+    /* FLUYO-018.18: durante la reproducción Espacio/Enter pausan y reanudan (antes no hacían nada); nunca reinician */
+    await p.keyboard.press("Space"); assert.equal(await phase(p), "paused", "Space pausa");
+    await p.keyboard.press("Enter"); assert.equal(await phase(p), "playing", "Enter reanuda");
+    await p.keyboard.press("Space"); await p.keyboard.press("Space"); assert.equal(await phase(p), "playing");
     assert.equal(await p.evaluate(() => scPlayback === window.__pb && scPlayback.startedAtReal), id1, "Space/Enter durante playing no reinician");
     await p.keyboard.press("p"); assert.equal(await p.evaluate(() => scPlayback === window.__pb), true);
     await waitPhase(p, "finished"); await p.keyboard.press("Enter"); assert.equal(await phase(p), "playing", "Enter repite");

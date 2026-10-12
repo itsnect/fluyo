@@ -58,6 +58,18 @@ async function script(browser, base, label, opts = {}) {
     viewX = 0; viewY = 0; viewZoom = 1; P().nextId = 1; renderTabs();
   });
   const docs = [];
+  /* FLUYO-018.18 (D11): en el árbol de trabajo el doble clic abre el renombrado EN LÍNEA del menú de la página (sin prompt ni
+     alert); HEAD sigue con prompt(). Mismo gesto, mismo dominio (renamePage → renamePageIn), mismo documento. Devuelve si el
+     nombre se rechazó en el propio menú. */
+  const renameTab = async (i, text) => {
+    await ed.locator("#pagesBar .tab").nth(i).dblclick(); await ed.waitForTimeout(150);
+    if (!(await ed.locator("#pageNameIn").isVisible().catch(() => false))) return null;   // HEAD: lo resolvió el prompt
+    await ed.evaluate((v) => { document.getElementById("pageNameIn").value = v; }, text);    // como un pegado: sin el tope del campo
+    await ed.locator("#pageNameSave").click(); await ed.waitForTimeout(120);
+    const rejected = await ed.evaluate(() => { const e = document.querySelector("#pageMenu .pmError"); return !!e && !e.hidden; });
+    await ed.evaluate(() => closePageMenu(false));
+    return rejected;
+  };
   const snap = async (name) => docs.push({ name, json: UNDO15(await ed.evaluate(() => JSON.stringify(serializeProject()))) });
   const client = (x, y) => ed.evaluate(({ x, y }) => { const r = cv.getBoundingClientRect(); return { x: r.left + x * viewZoom + viewX, y: r.top + y * viewZoom + viewY }; }, { x, y });
   const nodePt = (i, dx = 0, dy = 0) => ed.evaluate(({ i, dx, dy }) => { const n = P().nodes[i], r = cv.getBoundingClientRect(); return { x: r.left + (n.x + dx) * viewZoom + viewX, y: r.top + (n.y + dy) * viewZoom + viewY }; }, { i, dx, dy });
@@ -87,7 +99,7 @@ async function script(browser, base, label, opts = {}) {
   await snap("página 2 con diagrama");
   /* 4. renombrar por doble clic (prompt real) */
   promptAnswer = "Pagos";
-  await ed.locator("#pagesBar .tab").nth(1).dblclick();
+  await renameTab(1, "Pagos");
   await snap("renombrar página");
   const renamed = (await tabs())[1].text;
   /* 5. cambiar entre páginas (clic en pestañas) */
@@ -134,10 +146,10 @@ async function script(browser, base, label, opts = {}) {
   /* 9. nombre de página de 81 caracteres: se rechaza con un aviso y la página queda intacta (el árbol de trabajo y HEAD, que ya incluye 018.5) */
   promptAnswer = "x".repeat(81);
   const dialogsBefore = dialogs.length;
-  await ed.locator("#pagesBar .tab").nth(1).dblclick();
-  const longName = { name: await ed.evaluate(() => doc.pages[1].name), dialogs: dialogs.slice(dialogsBefore).map((d) => d.type) };
+  const inlineLong = await renameTab(1, "x".repeat(81));
+  const longName = { name: await ed.evaluate(() => doc.pages[1].name), dialogs: dialogs.slice(dialogsBefore).map((d) => d.type), inline: inlineLong };
   promptAnswer = "";
-  await ed.locator("#pagesBar .tab").nth(1).dblclick();   // cancelar con vacío: no cambia nada
+  const inlineEmpty = await renameTab(1, "");   // vacío: no cambia nada (prompt: cancelar; en línea: se explica y no se guarda)
   const emptyName = await ed.evaluate(() => doc.pages[1].name);
   /* 10. Share + Viewer: nombres de página y reproducción */
   await ed.evaluate(() => { doc.cur = 0; renderTabs(); });
@@ -177,16 +189,16 @@ async function script(browser, base, label, opts = {}) {
     for (let i = 0; i < a.docs.length; i++) ok(a.docs[i].json === b.docs[i].json, `«${a.docs[i].name}»: documento idéntico a HEAD (texto, mismo orden de claves)`);
     const x = a.extra, y = b.extra;
     ok(JSON.stringify(x.afterAdd) === JSON.stringify({ cur: 1, n: 2, name: "Página 2", empty: true }) && JSON.stringify(x.afterAdd) === JSON.stringify(y.afterAdd), "«＋» crea «Página 2», vacía y activa (igual que HEAD) " + JSON.stringify(x.afterAdd));
-    ok(x.renamed === "Pagos" && y.renamed === "Pagos", "doble clic + prompt renombra la pestaña a «Pagos»");
+    ok(x.renamed === "Pagos" && y.renamed === "Pagos", "doble clic renombra la pestaña a «Pagos» (WT: en línea, 018.18; HEAD: prompt)");
     ok(JSON.stringify(x.tabs2) === JSON.stringify(y.tabs2) && x.tabs2[1].active, "pestañas tras «＋» idénticas a HEAD " + JSON.stringify(x.tabs2));
     ok(JSON.stringify(x.onFirst) === JSON.stringify({ cur: 0, nodes: 2 }) && JSON.stringify(x.onSecond) === JSON.stringify({ cur: 1, nodes: 2 }), "cambiar entre páginas: cada una conserva su diagrama");
     ok(JSON.stringify(x.traces) === JSON.stringify(y.traces) && x.traces.every((t) => JSON.parse(t).events.length >= 2), "Trace de la Historia (página existente y página nueva) idéntico a HEAD");
     ok(x.undoOk && y.undoOk, "Undo/Redo restauran la página nueva (WT y HEAD)");
     ok(x.reopenedSame && y.reopenedSame && JSON.stringify(x.reopenedTabs) === JSON.stringify(y.reopenedTabs), "guardar → reabrir: documento y pestañas idénticos");
     ok(x.viewerPlayed && y.viewerPlayed && x.viewerDoc.join("|") === "Página 1|Pagos|Página 3" && JSON.stringify(y.viewerDoc) === JSON.stringify(x.viewerDoc), "Share → Viewer: reproduce y conserva los nombres de página, igual que HEAD " + JSON.stringify(x.viewerDoc));
-    ok(x.longName.name === "Pagos" && x.longName.dialogs.join() === "prompt,alert", "81 caracteres: se rechaza con aviso (alert) y la página queda como estaba " + JSON.stringify(x.longName));
-    ok(JSON.stringify(y.longName) === JSON.stringify(x.longName), "HEAD (con 018.5) también rechaza 81 caracteres con aviso: comportamiento idéntico " + JSON.stringify(y.longName));
-    ok(x.emptyName === "Pagos" && y.emptyName === y.longName.name, "nombre vacío en el prompt = cancelar: no cambia nada (WT y HEAD)");
+    ok(x.longName.name === "Pagos" && x.longName.inline === true && x.longName.dialogs.length === 0, "81 caracteres: se rechaza con aviso EN EL MENÚ (sin alert, 018.18) y la página queda como estaba " + JSON.stringify(x.longName));
+    ok(y.longName.name === x.longName.name && y.longName.dialogs.join() === "prompt,alert", "HEAD (con 018.5) también rechaza 81 caracteres (con prompt + alert): mismo resultado en el documento " + JSON.stringify(y.longName));
+    ok(x.emptyName === "Pagos" && y.emptyName === y.longName.name, "nombre vacío = no cambia nada (WT y HEAD)");
     console.log("Capturas en", shots);
   } finally {
     await browser.close(); wt.server.close(); hd.server.close();

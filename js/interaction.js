@@ -656,9 +656,10 @@ cv.addEventListener("pointerup", ev=>{
     }
     const wasTap = panDrag.tap && !panDrag.moved;
     panDrag=null;
-    /* presentando, un toque sin arrastre pasa a la diapositiva siguiente */
-    if(presenting && wasTap && ev.pointerType==="touch") nextSlide();
-    else if(wasTap && ev.pointerType==="touch") handleTouchTap(ev);
+    /* FLUYO-018.18 (D7): presentando, un toque en el lienzo no hace nada (ni cambia de página ni detiene la Historia): se
+       navega con los controles del mando. Antes avanzaba de diapositiva y un roce cortaba la Historia delante de la sala. */
+    if(presenting) return;
+    if(wasTap && ev.pointerType==="touch") handleTouchTap(ev);
     return;
   }
   if(presenting) return;
@@ -922,12 +923,13 @@ document.addEventListener("keydown", ev=>{
   if(presenting){
     /* con Historia: Esc detiene la reproducción; Espacio/Enter reproduce o repite */
     const phase=typeof presentPhase==="function"?presentPhase():"none";
-    if(ev.key==="Escape"){ ev.preventDefault(); if(phase==="playing") presentStop(); else exitPresent(); return; }
+    if(ev.key==="Escape"){ ev.preventDefault(); if(phase==="playing" || phase==="paused") presentStop(); else exitPresent(); return; }
     if(phase!=="none" && (ev.key===" "||ev.key==="Enter")){
       /* un botón de la barra enfocado gestiona su propia tecla */
       if(ev.target.closest && ev.target.closest("#presentBar")) return;
       ev.preventDefault();
-      if(phase!=="playing") presentPlay();
+      /* reproduciendo o en pausa, Espacio pausa y reanuda (FLUYO-018.18); lista o terminada, reproduce */
+      if(phase==="playing" || phase==="paused") presentTogglePause(); else presentPlay();
       return;
     }
     if(["ArrowRight","ArrowDown","PageDown"," ","Enter"].includes(ev.key)){ ev.preventDefault(); nextSlide(); return; }
@@ -980,7 +982,15 @@ document.addEventListener("keydown", ev=>{
      hay una única flecha seleccionada y tiene tramos movidos a mano, así que no
      pisa nada cuando la selección es otra cosa. Ver rutaAuto() en js/ui.js. */
   if(k==="r" && !ctl && !ev.altKey && rutaAuto()) ev.preventDefault();
-  if(ev.key===" "){ ev.preventDefault(); togglePlay(); }
+  /* Espacio: con una Historia reproduciéndose pausa/reanuda la Historia (los puntos ambientales ya están quietos); si no,
+     la animación ambiental, como siempre. */
+  if(ev.key===" "){
+    if(typeof scStatus!=="undefined" && scStatus==="running" && typeof scTogglePause==="function"){
+      /* un botón enfocado (p. ej. Pausar) ya recibe su propio Espacio: no se alterna dos veces */
+      if(ev.target && ev.target.tagName==="BUTTON") return;
+      ev.preventDefault(); scTogglePause();
+    } else { ev.preventDefault(); togglePlay(); }
+  }
 });
 
 cv.addEventListener("wheel", ev => {

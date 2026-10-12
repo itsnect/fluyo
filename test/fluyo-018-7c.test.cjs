@@ -89,9 +89,11 @@ test("Playback: aceptar detiene el Playback (decisión 64) antes de borrar; sin 
   assert.equal(E.run("__resets"), 0);
 });
 
-test("ui.js: la ✕ pasa por requestDeletePage; ni splice ni vaciado de pilas en ui.js; selection.js usa la autoridad del dominio", () => {
+test("ui.js: «Eliminar página» pasa por requestDeletePage; ni splice ni vaciado de pilas en ui.js; selection.js usa la autoridad del dominio", () => {
   const ui = read("js/ui.js"), sel = read("js/selection.js");
-  assert.match(ui, /x\.onclick=ev=>\{ ev\.stopPropagation\(\); requestDeletePage\(i\); \};/);
+  /* FLUYO-018.18 (D11): la ✕ de la pestaña se retiró; la única puerta de la interfaz es «Eliminar página» del menú de la página. */
+  assert.match(ui, /item\("Eliminar página", \(\)=>\{ closePageMenu\(false\); requestDeletePage\(i\); \}, "scMenuDanger"\)/);
+  assert.equal((ui.match(/requestDeletePage\(/g) || []).length, 1, "no hay otra vía en ui.js");
   assert.equal(/pages\.splice/.test(ui), false); assert.equal(/undoStack\.length=0|redoStack\.length=0/.test(ui), false);
   assert.equal(/pages\.splice/.test(sel), false, "selection.js no borra páginas a mano");
   assert.match(sel, /deletePageIn\(doc, index\)/); assert.match(sel, /restorePageIn\(doc, s\.index, s\.page\)/); assert.match(sel, /pageRemovalImpactIn\(doc, index\)/);

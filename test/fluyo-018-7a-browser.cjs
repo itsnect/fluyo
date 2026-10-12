@@ -9,6 +9,15 @@ let chromium;
 try { ({ chromium } = require("playwright")); } catch { ({ chromium } = require("playwright-core")); }
 const assert = require("node:assert/strict");
 const fs = require("node:fs"), path = require("node:path"), os = require("node:os"), http = require("node:http");
+/* FLUYO-018.18 (D11): HEAD pulsa la ✕ de la pestaña; el árbol de trabajo (sin ✕: se llamaba «Cerrar página» y eliminaba) usa
+   «Eliminar página» del menú de ESA página, que llama a la misma requestDeletePage (misma confirmación, mismo Undo). */
+async function deleteTab(page, i) {
+  const x = page.locator("#pagesBar .tab").nth(i).locator(".x");
+  if (await x.count()) { await x.click(); return; }
+  await page.evaluate((i) => openPageMenu(i, document.querySelectorAll("#pagesBar .tab")[i]), i);
+  await page.locator("#pageMenu .scMenuDanger").click();
+}
+
 const { execFileSync } = require("node:child_process");
 const root = path.resolve(__dirname, "..");
 const shots = process.env.FLUYO_SHOTS || fs.mkdtempSync(path.join(os.tmpdir(), "fluyo-018-7a-"));
@@ -98,7 +107,7 @@ async function script(browser, base, label) {
     const p = await ed.evaluate(() => { const r = cv.getBoundingClientRect(); return { x: r.left + 600 * viewZoom + viewX, y: r.top + 500 * viewZoom + viewY }; });
     await ed.mouse.click(p.x, p.y);                                      // edición real en B: pushUndo con pi=1
     const afterEdit = await labels();
-    await ed.locator("#pagesBar .tab").nth(0).locator(".x").click();    // borrar A (confirm real)
+    await deleteTab(ed, 0);                                              // borrar A (confirm real)
     const afterDelete = await labels();
     const stacksAfterDelete = await stacks();
     await ed.keyboard.press("Control+z"); await ed.waitForTimeout(80);

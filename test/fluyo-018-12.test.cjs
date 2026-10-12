@@ -17,7 +17,7 @@ const ids = (html) => new Set([...html.matchAll(/\sid="([^"]+)"/g)].map((m) => m
 
 test("sw.js: CACHE v72 y todos los assets locales de index.html y s/index.html precacheados", () => {
   const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v76";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v77";/);
   const listed = new Set([...sw.matchAll(/"\.\/([^"]*)"/g)].map((m) => m[1]));
   const local = (html, prefix) => [...html.matchAll(/<(?:script|link)[^>]+(?:src|href)="([^"]+)"/g)].map((m) => m[1])
     .filter((u) => !/^(https?:|data:|#)/.test(u) && !/\.(png|ico|svg)$/.test(u)).map((u) => path.posix.normalize(prefix + u));
@@ -32,7 +32,8 @@ test("index.html: ningún id de HEAD desaparece salvo #ossSection; los nuevos ex
   const now = ids(read("index.html"));
   const lost = [...ids(head)].filter((id) => !now.has(id));
   /* HEAD ya incluye 018.12 (desde 3fa91e8): la sección Open Source puede no estar ni en HEAD; nada más desaparece */
-  assert.ok(lost.every((id) => id === "ossSection"), "solo se retira la sección Open Source del panel (pasa al menú «Más»): " + JSON.stringify(lost));
+  /* FLUYO-018.18 (D8): Present tiene UNA salida; #psEdit («← Volver a editar», que hacía lo mismo que «✕ Salir») se retira. */
+  assert.ok(lost.every((id) => id === "ossSection" || id === "psEdit"), "solo se retira la sección Open Source del panel (pasa al menú «Más») y la salida duplicada de Present: " + JSON.stringify(lost));
   for (const id of ["btnUndo", "btnRedo", "btnMore", "moreMenu", "moreTools", "hdrTools", "touchBar", "tbConnect", "tbMulti", "tbAll", "tbDone", "tbCancel", "btnPanelClose", "modeBar", "btnStories", "pageMenu"])
     assert.ok(now.has(id), "existe #" + id);
 });
@@ -72,16 +73,19 @@ function tabsHarness() {
   vm.runInContext("renderTabs()", ctx);
   return { ctx, tabs: elements.pagesBar.children, prompts };
 }
-test("renderTabs: la pestaña activa lleva ▾; doble clic renombra con ratón y no con el dedo", () => {
+test("renderTabs: la pestaña activa lleva ▾; doble clic renombra con ratón (en línea, sin prompt) y no con el dedo", () => {
   const { ctx, tabs, prompts } = tabsHarness();
   const [t0, t1] = tabs;
   assert.ok(t0.children.some((c) => c.className === "pgMore"), "la activa tiene ▾");
   assert.ok(!t1.children.some((c) => c.className === "pgMore"), "las demás no");
-  assert.ok(t0.children.some((c) => c.className === "x") && t1.children.some((c) => c.className === "x"), "la ✕ sigue en todas");
+  /* FLUYO-018.18 (D11): ninguna pestaña lleva ✕ («Cerrar página» eliminaba la página); eliminar vive en el menú de la página. */
+  assert.ok(!t0.children.some((c) => c.className === "x") && !t1.children.some((c) => c.className === "x"), "sin ✕ en las pestañas");
+  vm.runInContext(`var __opened=[]; openPageMenu=function(i){ __opened.push(["menu",i]); }; showPageRename=function(i){ __opened.push(["rename",i]); };`, ctx);
   t0.lastPointer = "touch"; t0.ondblclick();
-  assert.equal(prompts.length, 0, "con el dedo, el dblclick sintético no abre el prompt");
+  assert.equal(ctx.__opened.length, 0, "con el dedo, el dblclick sintético no abre nada (manda el menú del toque)");
   t0.lastPointer = "mouse"; t0.ondblclick();
-  assert.equal(JSON.stringify(ctx.renamed), JSON.stringify([[0, "Nuevo"]]), "con ratón, doble clic + nombre renombra como siempre");
+  assert.equal(JSON.stringify(ctx.__opened), JSON.stringify([["menu", 0], ["rename", 0]]), "con ratón, doble clic abre el renombrado en línea de la página");
+  assert.equal(prompts.length, 0, "nunca un prompt()");
 });
 
 test("render.js: respaldo a caja × densidad (tope 2) y una sola escala antes de la vista", () => {

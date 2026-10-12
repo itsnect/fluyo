@@ -34,13 +34,13 @@ test("alcance: kernel, identity.css y el formato intactos (git HEAD)", () => {
   const gitRoot = process.env.FLUYO_GIT_ROOT || root;
   for (const f of ["js/model.js", "js/scenario-engine.js", "js/scenario-playback.js", "js/story-playback.js", "js/document-integrity.js", "js/story-authoring.js", "css/identity.css"]) {
     const head = execFileSync("git", ["-C", gitRoot, "show", "HEAD:" + f], { encoding: "utf8" }).replace(/\r\n/g, "\n");
-    assert.equal(undo15(read(f)), head, f + " sin cambios");
+    assert.equal(undo15(read(f)), undo15(head), f + " sin cambios");
   }
 });
 
 test("sw.js: CACHE v73; los archivos que toca 018.14b ya estaban en el precache", () => {
   const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v75";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v76";/);
   for (const f of ["./index.html", "./css/system.css", "./css/styles.css", "./js/ui.js", "./js/editor-scenarios.js", "./js/editor-share.js", "./js/interaction.js"]) assert.ok(sw.includes('"' + f + '"'), f + " precacheado");
 });
 
@@ -59,7 +59,8 @@ test("tema de la interfaz: preferencia del navegador, aplicada antes de pintar y
   assert.doesNotMatch(theme, /doc\.|settings\.|setThemeIn|scheduleAutosave|serializeProject|pushUndo/, "el tema de la interfaz no lee ni escribe el documento");
   for (const f of ["js/model.js", "js/state.js", "js/export.js", "js/share-url.js", "js/deeplink.js", "js/editor-share.js"]) assert.ok(!read(f).includes("fluyo.ui.theme") && !/data-ui-theme/.test(read(f)), f + " no conoce el tema de la interfaz");
   /* y al revés: el selector del tema del lienzo solo escribe el documento */
-  assert.match(ui, /\$\("themeSel"\)\.onchange=\(\)=>\{ setThemeIn\(doc,\{theme:\$\("themeSel"\)\.value\}\); scheduleAutosave\(\); \};/);
+  /* 018.17 (decisión 152): elegir un tema también quita el color propio; sigue siendo una sola escritura por setThemeIn */
+  assert.match(ui, /\$\("themeSel"\)\.onchange=\(\)=>\{ setThemeIn\(doc,\{theme:\$\("themeSel"\)\.value, customBg:""\}\); syncProjectControls\(\); scheduleAutosave\(\); \};/);
   assert.ok(!/data-ui-theme/.test(between(ui, '$("themeSel").onchange', "\n")), "cambiar el lienzo no toca la interfaz");
 });
 
@@ -165,13 +166,17 @@ test("hojas móviles: cierre propio, toque fuera y dos alturas de Historias (CSS
   const mobile = styles.slice(styles.indexOf("/* ---- Móvil (≤700 px) ---- */"));
   assert.match(mobile, /body:not\(\.storyMode\) \.sheetHead\{display:flex;/);
   assert.match(mobile, /\.sheetHead \.sheetClose\{display:inline-flex; min-width:40px;/);
-  assert.match(mobile, /aside\.scenariosOpen\{height:clamp\(200px, 32dvh, 280px\);/);
-  assert.match(mobile, /body\.storyExpanded aside\.scenariosOpen\{height:calc\(100dvh - var\(--bb-h\) - 52px - 20dvh\);\}/, "ampliada deja una franja de lienzo");
-  assert.match(mobile, /#btnStoryExpand\{display:inline-flex;\}/);
+  /* FLUYO-018.17: la hoja mide lo que mide su contenido y el tope lo pone lo que el lienzo necesita (--canvas-useful); el
+     estado va en body[data-story]. Lo fija test/fluyo-018-17.test.cjs. */
+  assert.match(mobile, /aside\.scenariosOpen\{height:auto; max-height:calc\(100dvh - 52px - var\(--bb-h\) - var\(--canvas-useful\)\);/);
+  assert.match(mobile, /body\[data-story="compact"\] #scLibrarySection, body\[data-story="compact"\] \.scStorySection,/, "compacta: solo el mando");
+  assert.match(mobile, /#btnStoryExpand\{display:inline-flex;/);
   const tap = between(ui, "(function sheetTapOutside(){", "})();");
   assert.match(tap, /Math\.hypot\(ev\.clientX-d\.x, ev\.clientY-d\.y\)>8/, "un arrastre no es un toque");
   assert.match(tap, /if\(uiMode==="edit" && selN\.size\+selE\.size===0 && !tm\.multi && tm\.link===null\) closeSurface\(\);/);
-  assert.match(tap, /else if\(uiMode==="story" && document\.body\.classList\.contains\("storyExpanded"\)\) setStoryExpanded\(false\);/);
+  /* FLUYO-018.17 (D2): en la ampliada solo el toque en el VACÍO reduce; un nodo o una conexión se seleccionan y la hoja se queda */
+  assert.match(tap, /else if\(uiMode==="story" && document\.body\.classList\.contains\("storyExpanded"\)\)\{/);
+  assert.match(tap, /if\(hitNode\(w\.x,w\.y\) \|\| hitEdge\(w\.x,w\.y\)\) return;\n\s*setStoryExpanded\(false\);/);
 });
 
 /* ───────── vm: el transporte y el bloque «Reproduciendo» con el editor de Historias real (editor-scenarios.js) ───────── */

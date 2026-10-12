@@ -11,7 +11,7 @@ const NL = "\n", CRLF = "\r\n";
 const UNIT = ["--test", "test/fluyo-018-12.test.cjs"];
 const BROWSER = ["test/fluyo-018-12-browser.cjs"];
 const MUTATIONS = [
-  ["U1 CACHE no sube (sigue v72)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v75";', 'const CACHE = "fluyo-static-v74";'],
+  ["U1 CACHE no sube (sigue v72)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v76";', 'const CACHE = "fluyo-static-v74";'],
   ["U2 Ejemplo vuelve a vaciar la página activa", UNIT, "js/export.js", "const r=createPageIn(doc, examplePageName()); doc.cur=r.pageIndex; clearSel();", "pushUndo(); const pg=P(); pg.nodes=[]; pg.edges=[]; clearSel();"],
   ["U3 con el dedo, el dblclick sintético abre el prompt", UNIT, "js/ui.js", 'if(t.lastPointer==="touch") return;', ""],
   ["U4 la pestaña activa sin ▾", UNIT, "js/ui.js", "    if(i===doc.cur){\n      /* span con rol de botón", "    if(false){\n      /* span con rol de botón"],
@@ -26,7 +26,7 @@ const MUTATIONS = [
   ["B4 «Conectar» invierte la dirección", BROWSER, "js/interaction.js", "const e=newEdge(touchLink,n.id);", "const e=newEdge(n.id,touchLink);"],
   ["B5 en «Seleccionar varios» tocar el vacío vacía la selección", BROWSER, "js/interaction.js", "  if(touchMulti) return;\n  if(isDoubleTap(ev))", "  if(isDoubleTap(ev))"],
   ["B6 Deshacer/Rehacer no se sincronizan", BROWSER, "js/editor-runtime.js", 'if(typeof syncHistoryButtons==="function") syncHistoryButtons();', ""],
-  ["B7 la hoja no se compacta al reproducir", BROWSER, "css/styles.css", "body.panelOpen.scPlaybackOn aside, body.panelOpen.scPlaybackOn aside.scenariosOpen{height:clamp(156px, 26dvh, 220px);}", ""],
+  ["B7 la hoja no se compacta al reproducir (018.17: la línea de tiempo sigue a la vista reproduciendo)", BROWSER, "css/styles.css", "body[data-story=\"playing\"] #scLibrarySection, body[data-story=\"playing\"]:not(.storyExpanded) .scStorySection{display:none;}", "body[data-story=\"playing\"] #scLibrarySection{display:none;}"],
   ["B8 la hoja no se aparta al colocar un evento", BROWSER, "css/styles.css", "body.panelOpen.scPlacing aside{transform:translateY(calc(100% + var(--bb-h) + 12px)); visibility:hidden;}", ""],
   ["B9 abrir la hoja no revela lo tapado", BROWSER, "js/ui.js", '  revealAboveSheet(name==="stories" ? "page" : "selection");\n', ""],
   ["B10 el menú de la página no renombra", BROWSER, "js/ui.js", "    try{ renamePage(i, input.value); }", "    try{ if(0) renamePage(i, input.value); }"],

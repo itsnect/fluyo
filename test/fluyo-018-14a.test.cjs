@@ -35,7 +35,9 @@ function geometry() {
 }
 
 test("FONTS: las dos voces nuevas entre las históricas y «Mono»; primera, última y global por defecto intactas", () => {
-  const now = configOf(read("js/config.js")), old = configOf(head("js/config.js"));
+  const now = configOf(read("js/config.js")), oldAll = configOf(head("js/config.js"));
+  /* HEAD ya incluye 018.14a (desde 3fa91e8): las históricas son las de HEAD sin las dos voces nuevas */
+  const old = Object.assign({}, oldAll, { FONTS: oldAll.FONTS.filter((f) => !["Playfair Display", "IBM Plex Mono"].includes(f.n)) });
   assert.equal(now.FONTS.length, old.FONTS.length + 2);
   assert.deepEqual(now.FONTS.filter((f) => !["Playfair Display", "IBM Plex Mono"].includes(f.n)), old.FONTS, "las 12 históricas, en su orden y con sus pilas");
   assert.deepEqual(now.FONTS.slice(-3).map((f) => f.n), ["Playfair Display", "IBM Plex Mono", "Mono"]);
@@ -65,7 +67,7 @@ test("config.js: fuera de FONTS solo cambian los respaldos code* de THEMES", () 
    histórico; su diff exacto lo fija fluyo-018-15.test.cjs). Se deshace aquí para seguir vigilando todo lo demás. */
 const undo15 = (s) => s.replace("color:DEFAULT_NODE_COLOR, fill:null", "color:PALETTE[0].c, fill:null").replace(/  \/\* Respaldo HISTÓRICO[\s\S]*?MCP\. \*\/\n/, "");
 test("model.js idéntico a HEAD (no hay migración ni cambio de formato)", () => {
-  assert.equal(undo15(read("js/model.js").replace(/\r\n/g, "\n")), head("js/model.js").replace(/\r\n/g, "\n"));
+  assert.equal(undo15(read("js/model.js").replace(/\r\n/g, "\n")), undo15(head("js/model.js").replace(/\r\n/g, "\n")));
 });
 
 test("documentos: la global histórica se conserva, la nueva se acepta y una desconocida cae a Georgia como siempre", () => {
@@ -166,7 +168,7 @@ test("Viewer: system.css y la mono precargada, CSP intacta (sin style inline), i
 
 test("sw.js: CACHE v72; lo que carga el Viewer está precacheado", () => {
   const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v75";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v76";/);
   const html = read("s/index.html");
   for (const m of html.matchAll(/(?:src|href)="\.\.\/((?:css|js|assets)\/[^"#?]+)"/g)) assert.ok(sw.includes('"./' + m[1] + '"'), m[1] + " precacheado");
 });

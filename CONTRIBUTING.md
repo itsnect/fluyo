@@ -88,7 +88,7 @@ Los archivos de `js/` se cargan como scripts clásicos en orden de dependencia (
 | Cómo se dibujan los nodos o la animación | `js/render.js` |
 | Atajos de teclado, zoom/pan, arrastrar/soltar | `js/interaction.js` |
 | Panel derecho, barra de herramientas, pestañas | `js/ui.js` |
-| Modo Editar/Historias, menús «Lienzo» y «Más», hojas móviles, tema de la interfaz | `js/ui.js` (+ tokens del tema oscuro en `css/system.css`) |
+| Modo Editar/Historias, menús «Lienzo» y «Más», hojas móviles (estados de la hoja de Historias, zona libre del lienzo), tema de la interfaz | `js/ui.js` (+ tokens del tema oscuro y objetivos táctiles en `css/system.css`; estados de la hoja en `css/styles.css`) |
 | Autoguardado y restauración de sesión | `js/state.js` |
 | Export a GIF/PNG/JPG/SVG | `js/export.js` |
 | Comportamiento offline | `sw.js` |

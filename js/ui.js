@@ -2,6 +2,27 @@
 /* Panel lateral, rail de herramientas, cajón de iconos y pestañas de páginas */
 
 /* ===================== Panel ===================== */
+/* FLUYO-018.17: el layout (hoja a ≤700 px) y el modo se consultan ya desde refreshPanel (⚙ contextual, M2), así que viven aquí
+   arriba. Una sola fuente para «¿es hoja?» y para el modo (decisión 131). */
+const mqCompact=window.matchMedia ? matchMedia("(max-width: 1100px)") : null;
+const mqSheet=window.matchMedia ? matchMedia("(max-width: 700px)") : null;
+let uiMode="edit";
+function isSheetLayout(){ return !!(mqSheet && mqSheet.matches); }
+/* FLUYO-018.17 (M2): sin selección, ⚙ desaparece y la hoja de Propiedades se cierra, pero solo AL REPOSO: tocar otro elemento
+   vacía y vuelve a llenar la selección dentro del mismo gesto (clearSel en pointerdown, selección en pointerup), y entre
+   medias no hay que cerrar nada. */
+let pointerBusy=false, sheetIdleTimer=null;
+document.addEventListener("pointerdown", ()=>{ pointerBusy=true; }, true);
+for(const ev of ["pointerup","pointercancel"]) document.addEventListener(ev, ()=>{ pointerBusy=false; }, true);
+function scheduleSheetIdleCheck(){
+  clearTimeout(sheetIdleTimer);
+  sheetIdleTimer=setTimeout(()=>{
+    if(pointerBusy){ scheduleSheetIdleCheck(); return; }
+    if(!isSheetLayout() || selN.size+selE.size>0) return;
+    $("btnPanel").hidden=true;
+    if(uiMode==="edit" && document.body.classList.contains("panelOpen")) closeSurface();
+  }, 60);
+}
 function refreshPanel(){
   lblDirty=false; fsDirty=false;
   // limpiar referencias muertas
@@ -9,6 +30,12 @@ function refreshPanel(){
   selE.forEach(id=>{ if(!edgeById(id)) selE.delete(id); });
   const total=selN.size+selE.size;
   syncTouchDelete();
+  /* FLUYO-018.17 (M2): en la hoja móvil ⚙ es contextual —solo con selección en modo Editar—; sin selección no hay nada que
+     editar, así que la hoja, si estaba abierta, se cierra y devuelve el lienzo. Escritorio y tableta: columna como siempre. */
+  if(isSheetLayout()){
+    if(total===0) scheduleSheetIdleCheck();
+    else $("btnPanel").hidden=false;
+  } else if($("btnPanel").hidden) $("btnPanel").hidden=false;
   const s=singleSel();
   $("noSel").style.display = total===0 ? "block":"none";
   $("multiSel").style.display = total>1 ? "block":"none";
@@ -452,7 +479,8 @@ function syncTouchBar(){
   $("tbMsg").textContent = linking ? "Toca el elemento de destino"
     : tm.multi ? (total ? total+(total===1?" seleccionado":" seleccionados") : "Toca elementos para seleccionarlos")
     : "";
-  $("tbConnect").hidden = linking || tm.multi || !(s && s.type==="node" && s.obj);
+  /* FLUYO-018.17 (M3): en modo Historia se narra, no se construye (decisión 131): «Conectar» no se ofrece; «Seleccionar varios» sí. */
+  $("tbConnect").hidden = linking || tm.multi || !(s && s.type==="node" && s.obj) || document.body.classList.contains("storyMode");
   $("tbMulti").hidden = linking || tm.multi;
   $("tbAll").hidden = !tm.multi;
   $("tbDone").hidden = !tm.multi;
@@ -474,10 +502,13 @@ document.addEventListener("pointerdown", ev=>{
 /* ===================== Rail / barra superior ===================== */
 function setMode(m){ mode=m; pendingShape=null; pendingIcon=null; pendingAnim=null; connecting=null; syncRail(); }
 function syncRail(){
+  /* FLUYO-018.17: el estado del rail es una función pura de (mode, pendingShape, pendingIcon, pendingAnim). La expresión
+     devolvía `undefined` para los botones sin data-shape cuando el primer término era falso, y classList.toggle sin
+     booleano INVIERTE la clase: Flecha e Imagen se encendían y apagaban con cada llamada. Con !! es siempre un booleano. */
   document.querySelectorAll(".rail button").forEach(b=>{
-    b.classList.toggle("toggled",
+    b.classList.toggle("toggled", !!(
       (b.dataset.mode && b.dataset.mode===mode && !pendingShape && !pendingIcon && !pendingAnim) ||
-      (b.dataset.shape && b.dataset.shape===pendingShape));
+      (b.dataset.shape && b.dataset.shape===pendingShape)));
   });
   const iconsOpen=$("iconDrawer").style.display==="block";
   const animsOpen=$("animDrawer").style.display==="block";
@@ -506,7 +537,9 @@ $("btnPlay").onclick=togglePlay;
    sin scheduleAutosave(), ganaba y dejaba tema, velocidad, puntos y aparición
    fuera del autoguardado. Queda solo la versión que sí guarda. */
 /* FLUYO-018.7a: tema y fondo pasan por setThemeIn (model.js, la misma que set_theme de MCP). Sin Undo: son del documento, no de la página. */
-$("themeSel").onchange=()=>{ setThemeIn(doc,{theme:$("themeSel").value}); scheduleAutosave(); };
+/* FLUYO-018.17: elegir un fondo predefinido ES elegir el fondo: un color propio anterior dejaba de responder a los temas
+   (customBg manda sobre el tema). Al cambiar de tema se quita el color propio; el ✕ sigue para quitarlo sin cambiar de tema. */
+$("themeSel").onchange=()=>{ setThemeIn(doc,{theme:$("themeSel").value, customBg:""}); syncProjectControls(); scheduleAutosave(); };
 $("speedIn").oninput=()=>{ settings.speed=+$("speedIn").value; scheduleAutosave(); };
 $("dotsIn").oninput=()=>{ settings.dots=+$("dotsIn").value; scheduleAutosave(); };
 $("buildChk").onchange=()=>{ settings.build=$("buildChk").checked; t0=performance.now(); pausedAt=0; scheduleAutosave(); };
@@ -807,13 +840,26 @@ document.addEventListener("fullscreenchange", ()=>{
 
    openSurface/closeSurface/toggleSurface siguen siendo la única puerta (decisión 117): quien quiere Historias llama a
    openSurface("stories") y no sabe si eso es una columna, una hoja o un modo. */
-const mqCompact=window.matchMedia ? matchMedia("(max-width: 1100px)") : null;
-const mqSheet=window.matchMedia ? matchMedia("(max-width: 700px)") : null;
-let uiMode="edit";
-function isSheetLayout(){ return !!(mqSheet && mqSheet.matches); }
+/* mqCompact, mqSheet, uiMode e isSheetLayout están al principio del archivo (FLUYO-018.17). */
 function activeSurface(){ return uiMode==="story" ? "stories" : "properties"; }
 /* La hoja de Historias en su altura compacta: ahí la biblioteca de eventos va como paleta flotante (editor-scenarios.js). */
 function storyCompactSheet(){ return uiMode==="story" && isSheetLayout() && !document.body.classList.contains("storyExpanded"); }
+/* FLUYO-018.17 (D1/D2): el estado de la hoja de Historias, DERIVADO (sin variable nueva) y reflejado en body[data-story] para el
+   CSS: closed | compact | expanded | playing (reproduciendo o terminada; ampliada además lleva body.storyExpanded). */
+function storyState(){
+  if(uiMode!=="story" || (isSheetLayout() && !document.body.classList.contains("panelOpen"))) return "closed";
+  if(typeof isScenarioPlaybackActive==="function" && isScenarioPlaybackActive()) return "playing";
+  return document.body.classList.contains("storyExpanded") ? "expanded" : "compact";
+}
+function syncStoryState(){ const st=storyState(); if(document.body.dataset.story!==st) document.body.dataset.story=st; }
+/* FLUYO-018.17 (D7): al entrar en Historias en columna (tableta, apaisado) el lienzo se estrecha y un diagrama que cabía puede
+   quedar cortado: entonces se reencaja. Solo entonces: una vista que ya estaba cortada (el usuario había acercado) no se toca,
+   y en 1280/1440 el rail que se va compensa la columna, así que no se dispara. */
+function diagramCut(){
+  const r=$("wrap").getBoundingClientRect(); if(!r.width || !P().nodes.length) return false;
+  const b=getBounds(); const x0=viewX+b.x*viewZoom, y0=viewY+b.y*viewZoom;
+  return x0<0 || y0<0 || x0+b.w*viewZoom>r.width || y0+b.h*viewZoom>r.height;
+}
 function syncSurfaceButtons(){
   const open=document.body.classList.contains("panelOpen"), s=activeSurface();
   $("btnPanel").setAttribute("aria-expanded", String(open && s==="properties"));
@@ -825,6 +871,7 @@ function syncSurfaceButtons(){
 function setUiMode(mode){
   const story=mode==="story";
   const playing=typeof isScenarioPlaybackActive==="function" && isScenarioPlaybackActive();
+  const fitAfter = story && uiMode!=="story" && !isSheetLayout() && !diagramCut();
   /* B3: salir del modo nunca se bloquea; si se estaba reproduciendo, se detiene antes (sin restos, decisión 64). */
   if(!story && playing && typeof scReset==="function") scReset();
   if(story && uiMode!=="story"){
@@ -849,6 +896,8 @@ function setUiMode(mode){
   }
   if(typeof scRenderCanvasActions === "function") scRenderCanvasActions();
   syncSurfaceButtons();
+  syncStoryState();
+  if(fitAfter) requestAnimationFrame(()=>{ if(uiMode==="story" && !isSheetLayout() && diagramCut()) fitView(); });
 }
 /* Compatibilidad: scRun y quien pulsaba las antiguas pestañas siguen llamando a switchPanelTab. */
 function switchPanelTab(tab){ setUiMode(tab==="scenarios" ? "story" : "edit"); }
@@ -858,6 +907,9 @@ function setStoryExpanded(on){
   $("btnStoryExpand").setAttribute("aria-expanded", String(!!on));
   $("btnStoryExpand").setAttribute("aria-label", on ? "Reducir la hoja de Historias" : "Ampliar la hoja de Historias");
   if(was!==!!on && typeof scSyncCompact==="function") scSyncCompact();
+  /* al ampliar mientras se reproduce, la línea de tiempo acaba de aparecer: que el siguiente fotograma traiga la fila activa */
+  if(on && typeof scFollowedStep!=="undefined") scFollowedStep=null;
+  syncStoryState();
 }
 function openSurface(name){
   const playing=typeof isScenarioPlaybackActive==="function" && isScenarioPlaybackActive();
@@ -866,20 +918,38 @@ function openSurface(name){
   if(uiMode!==mode) setUiMode(mode);
   document.body.classList.add("panelOpen");
   syncSurfaceButtons();
+  syncStoryState();
   revealAboveSheet(name==="stories" ? "page" : "selection");
 }
-/* La hoja tapa la mitad inferior del lienzo. Si lo que importa queda debajo —la
-   selección al abrir Propiedades, el diagrama al abrir Historias o al reproducir—
-   la vista se desplaza para que se vea en la zona libre de encima. Solo si hace
-   falta: si ya se ve, no se toca la vista del usuario. Con la selección solo se
-   desplaza; con la página entera también reduce el zoom si no cabe. La altura de
-   la hoja se lee de su caja (offsetHeight no depende de la transición). */
+/* ===================== La zona libre del lienzo (FLUYO-018.17) =====================
+   La caja del lienzo menos la hoja (abajo), la barra táctil (arriba) y la barra de colocación (abajo), en px del propio
+   lienzo. Es la ÚNICA definición de «lo que se ve»: la usan revealAboveSheet y, en Historias, scTargetOffscreen /
+   scRevealTarget (editor-scenarios.js), así que «fuera de pantalla» significa lo mismo para todos. En columna (> 700 px)
+   es el lienzo entero. */
+function visibleCanvasRect(){
+  const cr=cv.getBoundingClientRect();
+  let top=cr.top, bottom=cr.bottom;
+  const vis=e=>!!e && !e.hidden && getComputedStyle(e).visibility!=="hidden" && e.getBoundingClientRect().height>0;
+  const aside=document.querySelector("aside");
+  /* la hoja entra con una transición de transform: su posición final sale de su altura (offsetHeight), no de su caja animada */
+  if(isSheetLayout() && document.body.classList.contains("panelOpen") && aside) bottom=Math.min(bottom, $("bottomBar").getBoundingClientRect().top - aside.offsetHeight);
+  const tb=$("touchBar"); if(vis(tb)){ const r=tb.getBoundingClientRect(); if(r.top<(top+bottom)/2) top=Math.max(top, r.bottom); }
+  const pb=$("scPlacementBar"); if(vis(pb)) bottom=Math.min(bottom, pb.getBoundingClientRect().top);
+  bottom=Math.max(top, bottom);
+  return {left:0, top:top-cr.top, right:cr.width, bottom:bottom-cr.top, width:cr.width, height:bottom-top};
+}
+/* Por debajo de este zoom un nodo típico mide < 36 px y su etiqueta < 8 px: ya no es reconocible. Encajar la página en la
+   zona libre nunca baja de aquí (D2: el zoom no se reduce artificialmente para «meterlo todo»). */
+const REVEAL_MIN_ZOOM=0.6;
+/* La hoja tapa la parte baja del lienzo. Si lo que importa queda debajo —la selección al abrir Propiedades, el diagrama al
+   abrir Historias o al reproducir— la vista se mueve para que se vea en la zona libre. Solo si hace falta: si ya se ve, no se
+   toca la vista del usuario. Con la selección solo se desplaza. Con la página: si cabe en la zona libre a un zoom legible
+   (≥ REVEAL_MIN_ZOOM) se encaja sin acercar; si no cabe, no se encoge: se centra el destino del paso seleccionado (o del
+   primero), y el resto se alcanza desplazando el lienzo, que sigue vivo bajo la hoja. */
 function revealAboveSheet(what){
   if(!isSheetLayout() || !document.body.classList.contains("panelOpen")) return;
-  const cr=cv.getBoundingClientRect();
-  const visTop=cr.top, visBot=Math.min(cr.bottom, $("bottomBar").getBoundingClientRect().top - document.querySelector("aside").offsetHeight);
-  const availH=visBot-visTop;
-  if(availH<80) return;
+  const v=visibleCanvasRect();
+  if(v.height<80) return;
   let box=null;
   if(what==="selection"){
     const ns=[...selN].map(nodeById).filter(Boolean);
@@ -888,18 +958,31 @@ function revealAboveSheet(what){
     box={x:x0, y:y0, w:Math.max(...ns.map(n=>n.x+n.w/2))-x0, h:Math.max(...ns.map(n=>n.y+n.h/2))-y0};
   } else if(P().nodes.length) box=getBounds();
   if(!box) return;
-  const top=visTop+viewY+box.y*viewZoom, bot=top+box.h*viewZoom;
-  if(top>=visTop && bot<=visBot) return;
-  if(what==="page"){
-    const z=Math.min(viewZoom, cr.width/box.w, availH/box.h);
-    viewZoom=Math.max(0.05, z);
-    viewX=(cr.width-box.w*viewZoom)/2 - box.x*viewZoom;
+  const M=12, m=what==="selection" ? M : 0;   /* la selección, con aire: pegada al borde de la hoja no se ve bien */
+  const l=viewX+box.x*viewZoom, t=viewY+box.y*viewZoom;
+  if(l>=v.left+m && t>=v.top+m && l+box.w*viewZoom<=v.right-m && t+box.h*viewZoom<=v.bottom-m) return;
+  if(what==="selection"){
+    /* solo se desplaza, y en horizontal solo si hace falta: mover la vista de más saca de pantalla lo que había al lado */
+    if(l<v.left+m || l+box.w*viewZoom>v.right-m) viewX=v.left+(v.width-box.w*viewZoom)/2 - box.x*viewZoom;
+    viewY=v.top+(v.height-box.h*viewZoom)/2 - box.y*viewZoom;
+    return;
   }
-  viewY=(availH-box.h*viewZoom)/2 - box.y*viewZoom;
+  const fit=Math.min((v.width-2*M)/box.w, (v.height-2*M)/box.h);
+  if(fit>=REVEAL_MIN_ZOOM){
+    viewZoom=Math.max(0.05, Math.min(viewZoom, fit));
+    viewX=v.left+(v.width-box.w*viewZoom)/2 - box.x*viewZoom;
+    viewY=v.top+(v.height-box.h*viewZoom)/2 - box.y*viewZoom;
+    return;
+  }
+  if(viewZoom<REVEAL_MIN_ZOOM) viewZoom=REVEAL_MIN_ZOOM;
+  const p=(typeof scStoryFocusPoint==="function" && scStoryFocusPoint()) || {x:box.x+box.w/2, y:box.y+box.h/2};
+  viewX=v.left+v.width/2 - p.x*viewZoom;
+  viewY=v.top+v.height/2 - p.y*viewZoom;
 }
 function closeSurface(){
   document.body.classList.remove("panelOpen");
   syncSurfaceButtons();
+  syncStoryState();
 }
 /* Salir del modo Historia: la salida inequívoca (B1/B2). En la hoja móvil, además, vuelve al lienzo. */
 function exitStoryMode(){
@@ -917,7 +1000,12 @@ $("btnPanel").onclick=()=>toggleSurface("properties");
 $("btnStories").onclick=()=>toggleSurface("stories");
 $("btnPanelClose").onclick=()=>closeSurface();
 $("btnStoryExit").onclick=()=>exitStoryMode();
-$("btnStoryExpand").onclick=()=>{ setStoryExpanded(!document.body.classList.contains("storyExpanded")); revealAboveSheet("page"); };
+$("btnStoryExpand").onclick=()=>{
+  const on=!document.body.classList.contains("storyExpanded");
+  /* FLUYO-018.17 (D3): terminada, en móvil no hay «Terminar»: Ampliar termina la reproducción y abre el taller. */
+  if(on && typeof scStatus!=="undefined" && scStatus==="completed" && typeof scReset==="function") scReset();
+  setStoryExpanded(on); revealAboveSheet("page");
+};
 $("tabProperties").onclick=()=>setUiMode("edit");
 $("tabScenarios").onclick=()=>setUiMode("story");
 
@@ -935,7 +1023,14 @@ $("tabScenarios").onclick=()=>setUiMode("story");
     setTimeout(()=>{
       const tm=typeof touchModes==="function" ? touchModes() : {multi:false, link:null};
       if(uiMode==="edit" && selN.size+selE.size===0 && !tm.multi && tm.link===null) closeSurface();
-      else if(uiMode==="story" && document.body.classList.contains("storyExpanded")) setStoryExpanded(false);
+      else if(uiMode==="story" && document.body.classList.contains("storyExpanded")){
+        /* FLUYO-018.17 (D2): en la hoja ampliada el lienzo contextualiza: tocar un nodo o una conexión lo selecciona y la hoja se
+           queda; solo el toque en el VACÍO reduce. Colocando un evento, el toque es el destino: tampoco reduce. */
+        if(typeof scPlacement!=="undefined" && (scPlacement || scContext)) return;
+        const w=toWorld(ev);
+        if(hitNode(w.x,w.y) || hitEdge(w.x,w.y)) return;
+        setStoryExpanded(false);
+      }
     }, 0);
   }, true);
 })();
@@ -1042,12 +1137,24 @@ function placeChrome(){
     if(canvasTools.parentNode!==$("canvasMenu")) $("canvasMenu").appendChild(canvasTools);
     if(pres.parentNode!==header) header.insertBefore(pres, $("btnPanel"));
   }
+  /* FLUYO-018.17 (M1, M2): en móvil la animación ambiental del lienzo (ajuste del documento) y la ayuda de atajos y gestos viven
+     en «Más»; en escritorio vuelven a su sitio del panel. Mismos nodos, mismos ids. */
+  const anim=$("grpAnim"), help=$("grpHelp"), animSec=$("animSection"), helpSec=$("helpSection");
+  if(mobile){
+    if(anim && animSec && anim.parentNode!==animSec){ animSec.appendChild(anim); animSec.hidden=false; }
+    if(help && helpSec && help.parentNode!==helpSec){ helpSec.appendChild(help); helpSec.hidden=false; }
+  } else {
+    if(anim && animSec && anim.parentNode===animSec){ $("grpAnimHome").after(anim); animSec.hidden=true; }
+    if(help && helpSec && help.parentNode===helpSec){ $("grpHelpHome").after(help); helpSec.hidden=true; }
+  }
   closeMoreMenu(false); closeCanvasMenu(false);
   if(!mobile) document.body.classList.remove("panelOpen");
   else if(uiMode==="story") document.body.classList.add("panelOpen");
   applyGroupDefaults();
   if(typeof scSyncCompact==="function") scSyncCompact();
+  $("btnPanel").hidden = mobile && selN.size+selE.size===0;
   syncSurfaceButtons();
+  syncStoryState();
 }
 for(const mq of [mqCompact, mqSheet]) if(mq && mq.addEventListener) mq.addEventListener("change", placeChrome);
 

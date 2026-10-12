@@ -139,7 +139,7 @@ function syncProjectControls(){
   if($("chkGrid")) $("chkGrid").checked=settings.grid!==false;
   if($("chkSnap")) $("chkSnap").checked=!!settings.snap;
   if($("chkSingle")) $("chkSingle").checked=!!settings.single;
-  if($("bgCustom") && doc.customBg) $("bgCustom").value=doc.customBg;
+  if($("bgCustom")) $("bgCustom").value=doc.customBg || (THEMES[doc.theme]||THEMES.dark).bg;   /* sin color propio, el del tema (018.17) */
   if($("fontGlobalSel")) $("fontGlobalSel").value=settings.font||DEFAULT_FONT;
 }
 function applyProjectData(d){

@@ -30,7 +30,7 @@ const serve = async (dir) => {
 async function oldDocument(browser) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "fluyo-head-"));
   // Sólo lo que sirve el editor (index.html, js/, css/, s/) tal como está en HEAD; no se toca el árbol ni el índice de git.
-  const files = execFileSync("git", ["-C", root, "ls-tree", "-r", "--name-only", "HEAD"], { encoding: "utf8" }).split("\n").filter((f) => /^(index\.html|js\/|css\/|s\/|manifest\.webmanifest)/.test(f));
+  const files = execFileSync("git", ["-C", root, "ls-tree", "-r", "--name-only", "HEAD"], { encoding: "utf8" }).split("\n").filter((f) => /^(index\.html|js\/|css\/|s\/|assets\/|manifest\.webmanifest)/.test(f));   /* assets/: las fuentes de 018.13, ya en HEAD */
   for (const f of files) {
     fs.mkdirSync(path.dirname(path.join(dir, f)), { recursive: true });
     fs.writeFileSync(path.join(dir, f), execFileSync("git", ["-C", root, "show", "HEAD:" + f], { maxBuffer: 64 * 1024 * 1024 }));

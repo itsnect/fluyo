@@ -35,7 +35,7 @@ const MUTATIONS = [
   ["T8 customBg no HEX se acepta en autoría", AUTH, 'if(v!==undefined && v!==null && v!=="" && !(typeof v==="string" && HEX_COLOR.test(v)))', "if(false)"],
   ["T9 set_theme sin campos se acepta (autoría y dominio)", [[AUTH, 'if(!Object.keys(patch).length) throw reject("INVALID_OPERATION", "set_theme necesita', 'if(false) throw reject("INVALID_OPERATION", "set_theme necesita'], [MODEL, 'if(!fields.length) throw projectDataError("empty_patch");', ""]]],
   ["T10 set_theme declara otro alcance", AUTH, 'set_theme:"document"', 'set_theme:"page"'],
-  ["T11 el editor escribe el tema a mano", UI, '$("themeSel").onchange=()=>{ setThemeIn(doc,{theme:$("themeSel").value}); scheduleAutosave(); };', '$("themeSel").onchange=()=>{ doc.theme=$("themeSel").value; scheduleAutosave(); };'],
+  ["T11 el editor escribe el tema a mano", UI, '$("themeSel").onchange=()=>{ setThemeIn(doc,{theme:$("themeSel").value, customBg:""}); syncProjectControls(); scheduleAutosave(); };', '$("themeSel").onchange=()=>{ doc.theme=$("themeSel").value; doc.customBg=""; syncProjectControls(); scheduleAutosave(); };'],
   ["T12 el cambio de tema entra en Undo", UI, '$("themeSel").onchange=()=>{ setThemeIn(', '$("themeSel").onchange=()=>{ pushUndo(); setThemeIn('],
   ["T13 el tema se aplica sin comprobar el valor del <select> (customBg a mano)", UI, '$("btnBgClear").onclick=()=>{ setThemeIn(doc,{customBg:""});', '$("btnBgClear").onclick=()=>{ doc.customBg="";'],
   // ── orden Z

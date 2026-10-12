@@ -235,6 +235,9 @@ try{
         <button id="btnClear" class="btnGhost hdrDanger" type="button" aria-label="Limpiar página"><svg class="ic" aria-hidden="true"><use href="#i-eraser"/></svg><span class="lbl">Limpiar<span class="lblRest"> página</span></span></button>
       </div>
     </div>
+    <!-- FLUYO-018.17 (M1): en móvil, la animación ambiental del lienzo (#grpAnim) es un ajuste del DOCUMENTO y vive aquí, junto a
+         la sección Lienzo, no en la hoja de la selección. El mismo nodo viaja con placeChrome (js/ui.js); en escritorio vuelve al panel. -->
+    <section id="animSection" class="menuSection animSection" aria-label="Animación del lienzo" hidden></section>
     <!-- Interfaz (FLUYO-018.14b, B4): preferencia de ESTE navegador. No cambia el lienzo ni se guarda en el documento. -->
     <section id="uiSection" class="menuSection uiSection" aria-label="Interfaz">
       <span class="menuKicker">Interfaz · este navegador</span>
@@ -242,6 +245,11 @@ try{
         <svg class="ic" aria-hidden="true"><use href="#i-moon"/></svg><span class="lbl">Interfaz oscura</span><input type="checkbox" id="chkUiDark">
       </label>
       <p class="hint moreNote">Solo cambia la aplicación. El tema del lienzo está en «Lienzo».</p>
+    </section>
+    <!-- FLUYO-018.17 (M2): la ayuda de atajos y gestos (#grpHelp) deja de ser el estado vacío de la hoja en móvil: ⚙ es contextual
+         (solo con selección) y la ayuda se lee aquí. El mismo nodo viaja con placeChrome; en escritorio sigue en el panel. -->
+    <section id="helpSection" class="menuSection helpSection" aria-label="Ayuda y gestos" hidden>
+      <span class="menuKicker">Ayuda y gestos</span>
     </section>
     <section class="moreLinks menuSection" aria-label="Proyecto">
       <span class="menuKicker">Fluyo</span>
@@ -342,7 +350,9 @@ try{
        · Editar: las propiedades de la selección, en grupos plegables (B6). Abiertos lo que se toca en cada elemento (Texto,
          Forma y color, Recorrido, Trazo); plegados lo raro (Código, Flujo, Capas y aparición) y lo del documento (Animación).
        · Historias: la superficie del MODO Historia (B1), con su salida «Volver a editar».
-       A ≤700 px es una hoja inferior: Propiedades con su botón de cerrar; Historias compacta, ampliable con un botón. -->
+       A ≤700 px es una hoja inferior: Propiedades con su botón de cerrar; Historias con cuatro estados (FLUYO-018.17, body[data-story]):
+       compacta (mando: Historia, Reproducir, Volver a editar), ampliada (taller: eventos como chips y la línea de tiempo, único
+       desplazable; el lienzo sigue a la vista y útil), reproduciendo (transporte + momento en curso) y cerrada. -->
   <aside id="propPanel">
     <div id="propSheetHead" class="sheetHead">
       <span class="sheetTitle">Propiedades</span>
@@ -357,6 +367,7 @@ try{
       <div id="noSel" class="hint emptySel">
         <p class="emptyTitle">Nada seleccionado.</p>
         <p class="emptyLead">Elige una forma del rail y toca el lienzo, o selecciona un elemento para ver sus propiedades.</p>
+        <span id="grpHelpHome" hidden></span>
         <details class="pgroup pgHelp" id="grpHelp" data-group="Atajos y gestos">
           <summary><span class="pgTitle">Atajos y gestos</span></summary>
           <div class="pgBody">
@@ -590,6 +601,7 @@ try{
     </section>
 
     <section class="animSection">
+      <span id="grpAnimHome" hidden></span>
       <details class="pgroup" id="grpAnim" data-group="Animación del lienzo">
         <summary><span class="pgTitle">Animación del lienzo</span></summary>
         <div class="pgBody">
@@ -622,7 +634,7 @@ try{
         </div>
         <div class="scStoriesLabel" id="scStoriesLabel">Historias</div>
         <div class="scHeaderRow"><button id="scScenarioTitle" type="button" aria-haspopup="true" aria-labelledby="scStoriesLabel scScenarioTitle" title="Elegir historia">Sin historias ▾</button><button id="scStoryAdd" type="button" aria-label="Nueva historia" title="Nueva historia">+</button><button id="scScenarioMenu" type="button" aria-label="Opciones de la historia" title="Opciones de la historia">⋯</button></div>
-        <div class="scPlaybackControls"><button id="scRun" type="button" class="primary">▶ Reproducir</button><button id="scReset" type="button" hidden>Terminar</button></div>
+        <div class="scPlaybackControls"><button id="scRun" type="button" class="primary">▶ Reproducir</button><button id="scReset" type="button" hidden>Terminar</button><span id="scRunHint" class="scRunHint" hidden>Añade eventos desde Ampliar</span></div>
         <!-- B9: qué está pasando ahora, mientras se reproduce (FluyoStory.describe, la misma lectura que Present). -->
         <div id="scNow" class="scNow" hidden>
           <span class="scNowKicker"><i class="scLive" aria-hidden="true"></i><span id="scNowLabel">Reproduciendo</span><span id="scNowProgress" class="scNowProgress"></span></span>

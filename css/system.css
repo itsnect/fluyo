@@ -81,7 +81,8 @@
   /* ---- Proporción ---- */
   --r-xs:3px; --r-sm:5px; --r-md:8px; --r-lg:12px; --r-pill:999px;
   --ctl-h:30px;              /* control de escritorio */
-  --ctl-h-touch:40px;        /* objetivo táctil mínimo */
+  --ctl-h-touch:44px;        /* objetivo táctil mínimo de lo que cambia de estado o lo cierra (FLUYO-018.17, D6) */
+  --row-h-touch:40px;        /* filas de lista con toque a todo el ancho (menús, línea de tiempo, pestañas) */
   --ctl-pad:10px;
   --ic:16px;                 /* tamaño de icono */
   --ic-stroke:1.6;
@@ -322,7 +323,7 @@ input[type=color]::-moz-color-swatch{ border:none; border-radius:2px; }
 .menuItem.danger, .scPopover > button.scMenuDanger{ color:var(--attention); }
 .menuItem.danger .ic{ color:var(--attention); }
 .menuItem.danger:hover, .scPopover > button.scMenuDanger:hover{ background:var(--attention-veil); }
-@media (pointer:coarse){ .menuItem, .scPopover > button{ min-height:var(--ctl-h-touch); } }
+@media (pointer:coarse){ .menuItem, .scPopover > button{ min-height:var(--row-h-touch); } }
 
 /* ===================== Tooltip =====================
    [data-tip] en controles de solo icono: aparece al pasar el ratón o al enfocar
@@ -384,3 +385,7 @@ kbd{ font:500 var(--fs-micro)/1 var(--font-mono); color:var(--ink-2); background
   input[type=checkbox].switch:checked::before, .row input[type=checkbox]:checked::before, .moreMenu input[type=checkbox]:checked::before{ transform:translateX(16px); }
 }
 @media (prefers-reduced-motion: reduce){ .pgroup > summary::after{ transition:none; } }
+
+/* Con el dedo, los campos a 16 px: Safari iOS hace zoom al enfocar un campo más pequeño (FLUYO-018.17). Al final del
+   archivo para ganar a las reglas de componente, que fijan el tamaño con la abreviatura font. */
+@media (pointer:coarse){ input[type=number], input[type=text], input[type=search], input:not([type]), textarea, select{ font-size:16px; } }

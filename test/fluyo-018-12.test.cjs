@@ -17,7 +17,7 @@ const ids = (html) => new Set([...html.matchAll(/\sid="([^"]+)"/g)].map((m) => m
 
 test("sw.js: CACHE v72 y todos los assets locales de index.html y s/index.html precacheados", () => {
   const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v75";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v76";/);
   const listed = new Set([...sw.matchAll(/"\.\/([^"]*)"/g)].map((m) => m[1]));
   const local = (html, prefix) => [...html.matchAll(/<(?:script|link)[^>]+(?:src|href)="([^"]+)"/g)].map((m) => m[1])
     .filter((u) => !/^(https?:|data:|#)/.test(u) && !/\.(png|ico|svg)$/.test(u)).map((u) => path.posix.normalize(prefix + u));
@@ -31,7 +31,8 @@ test("index.html: ningún id de HEAD desaparece salvo #ossSection; los nuevos ex
   try { head = execFileSync("git", ["-C", root, "show", "HEAD:index.html"], { encoding: "utf8" }); } catch { return; }   // sin git (copia de mutaciones): se omite
   const now = ids(read("index.html"));
   const lost = [...ids(head)].filter((id) => !now.has(id));
-  assert.deepEqual(lost, ["ossSection"], "solo se retira la sección Open Source del panel (pasa al menú «Más»)");
+  /* HEAD ya incluye 018.12 (desde 3fa91e8): la sección Open Source puede no estar ni en HEAD; nada más desaparece */
+  assert.ok(lost.every((id) => id === "ossSection"), "solo se retira la sección Open Source del panel (pasa al menú «Más»): " + JSON.stringify(lost));
   for (const id of ["btnUndo", "btnRedo", "btnMore", "moreMenu", "moreTools", "hdrTools", "touchBar", "tbConnect", "tbMulti", "tbAll", "tbDone", "tbCancel", "btnPanelClose", "modeBar", "btnStories", "pageMenu"])
     assert.ok(now.has(id), "existe #" + id);
 });

@@ -444,7 +444,7 @@ aside.scenariosOpen{box-sizing:border-box;width:320px;flex:0 0 320px;overflow:hi
 #scLibrarySection.scFloating{position:fixed;z-index:190;width:300px;max-width:calc(100vw - 32px);max-height:calc(100dvh - 100px);height:350px;min-height:0;background:var(--panel);border:1px solid var(--line);padding:12px;border-radius:12px;box-shadow:var(--shadow-menu);}
 #scPlacementBar{position:fixed;z-index:180;left:50%;bottom:62px;transform:translateX(-50%);display:flex;align-items:center;gap:12px;width:max-content;max-width:calc(100vw - 40px);padding:12px 16px;background:var(--panel);border:1px solid var(--rule-2);border-radius:var(--r-md);box-shadow:var(--shadow-float);box-sizing:border-box;}
 #scPlacementText{font-size:13px;white-space:pre-line;min-width:0;}
-#scPlacementBar button{flex:none;}
+#scPlacementBar button{flex:none; min-height:var(--ctl-h); padding:0 14px;}
 #scNotice{position:fixed;z-index:260;bottom:65px;left:84px;background:var(--panel);padding:12px 16px;border:1px solid var(--line);border-radius:var(--r-md);max-width:calc(100vw - 120px);font-size:13px;box-shadow:var(--shadow-menu);}
 .scDragGhost{position:fixed;z-index:210;pointer-events:none;padding:10px 14px;background:var(--panel);color:var(--text);border:1px solid var(--active);border-radius:var(--r-md);box-shadow:var(--shadow-float);font-size:13px;white-space:pre-line;max-width:300px;}
 .scPopover{position:fixed;z-index:250;box-sizing:border-box;min-width:230px;max-width:calc(100vw - 24px);max-height:calc(100dvh - 24px);overflow:auto;background:var(--surface-raised);border:1px solid var(--line);border-radius:var(--r-md);padding:6px;box-shadow:var(--shadow-menu);}
@@ -828,7 +828,7 @@ body.scPlaybackOn #wrap::after{box-shadow:inset 0 0 0 2px var(--active), inset 0
   footer .tab .x, footer .tab .pgMore{width:40px; height:40px;}
   .swatches{grid-template-columns:repeat(auto-fill, minmax(26px, 1fr)); grid-auto-rows:26px; gap:6px; max-height:64px;}
   footer .tab{min-height:40px;}
-  #pagesBar > .pgAdd{width:40px; min-width:40px;}
+  #pagesBar > .pgAdd{width:var(--ctl-h); min-width:var(--ctl-h);}   /* 018.17: «＋» es acción, 44 con dedo */
   #panelProperties input[type=color]{width:44px; height:40px;}
   #panelProperties input[type=range]{height:40px;}
   #panelProperties .row{min-height:40px;}
@@ -845,6 +845,7 @@ body.scPlaybackOn #wrap::after{box-shadow:inset 0 0 0 2px var(--active), inset 0
   .scHandle{width:40px; min-width:40px; height:40px; margin-top:0; opacity:.7;}
   .scEventPlace{min-height:44px;}
   .scStorySentence{min-height:40px;}
+  .scStoryRepair{min-height:var(--row-h-touch); padding:0 10px;}
   #scEventNew, #scPaletteToggle{min-height:40px;}
   .scStoryRow .scStatusMark{top:13px;}
 }
@@ -880,7 +881,7 @@ body.scPlaybackOn #wrap::after{box-shadow:inset 0 0 0 2px var(--active), inset 0
   footer .tab{min-height:40px; padding:0 0 0 10px;}
   #pagesBar > button{min-width:40px; min-height:40px;}
   .modeBar{display:flex; align-items:center; gap:2px; padding:0 6px 0 0; flex-shrink:0;}
-  .modeBar button{min-height:40px; padding:0 10px;}
+  .modeBar button{min-height:var(--ctl-h); padding:0 10px;}
   .modeBar button .ic{width:14px; height:14px;}
   #btnStories[aria-expanded="true"]{background:var(--active-veil); border-color:var(--active-rule); color:var(--active);}
   /* En modo Historia la barra inferior lleva el modo y Presentar; ⚙ (Propiedades) no tiene sentido mientras se narra. */
@@ -890,7 +891,7 @@ body.scPlaybackOn #wrap::after{box-shadow:inset 0 0 0 2px var(--active), inset 0
      quien la abre (⚙ arriba, Historias abajo); lleva su propio cierre y se cierra tocando el vacío del lienzo (B8). */
   aside, aside.scenariosOpen{
     display:flex; position:fixed; left:0; right:0; top:auto; bottom:var(--bb-h);
-    width:auto; flex-basis:auto; height:clamp(260px, 52dvh, 560px); z-index:45;
+    width:auto; flex-basis:auto; height:clamp(220px, 40dvh, 360px); z-index:45;
     border-top:1px solid var(--rule-2); border-radius:var(--r-lg) var(--r-lg) 0 0;
     padding:10px 16px 16px; box-shadow:var(--shadow-sheet);
     transform:translateY(calc(100% + var(--bb-h) + 12px)); visibility:hidden;
@@ -906,19 +907,71 @@ body.scPlaybackOn #wrap::after{box-shadow:inset 0 0 0 2px var(--active), inset 0
   #panelProperties .selMeta{position:static; display:inline-flex; max-width:100%; margin:6px 0 2px;}
   #panelProperties .selMeta[hidden]{display:none;}
 
-  /* Hoja de Historias: compacta por defecto (el lienzo manda), ampliable con un botón; reproduciendo, aún más baja. */
-  aside.scenariosOpen{height:clamp(200px, 32dvh, 280px); padding-top:12px;}
-  /* ampliada: la Historia entera, pero con una franja de lienzo a la vista (tocarla vuelve a compacta, B8) */
-  body.storyExpanded aside.scenariosOpen{height:calc(100dvh - var(--bb-h) - 52px - 20dvh);}
-  body.panelOpen.scPlaybackOn aside, body.panelOpen.scPlaybackOn aside.scenariosOpen{height:clamp(156px, 26dvh, 220px);}
-  #btnStoryExpand{display:inline-flex;}
+  /* ===== Hoja de Historias (FLUYO-018.17, D2/D3): cuatro estados, body[data-story] = compact | expanded | playing =====
+     La hoja mide lo que mide su contenido (height:auto). El tope no es un porcentaje elegido: es lo que el lienzo necesita
+     para seguir siendo útil (ver entero y legible el destino del paso seleccionado, con margen para el dedo, y poder
+     desplazarlo): --canvas-useful. Compacta = mando (dos filas); ampliada = taller (fichas de eventos y la línea de tiempo,
+     ÚNICO desplazable); reproduciendo = transporte + momento en curso. Nada se encoge para ganar lienzo. */
+  :root{ --canvas-useful:max(300px, 40dvh); }
+  aside.scenariosOpen{height:auto; max-height:calc(100dvh - 52px - var(--bb-h) - var(--canvas-useful)); padding-top:12px; overflow:hidden; gap:10px;}
+  body.panelOpen.scPlaybackOn aside.scenariosOpen{height:auto;}
+  /* La cabecera de la hoja es una rejilla de dos filas: A = Historia ▾ · ⋯ · Ampliar (reproduciendo: el momento en curso);
+     B = Reproducir/Detener/Repetir · «Volver a editar». Las envolturas pasan a display:contents: mismos nodos, mismos ids. */
+  body.storyMode .scHeader{display:grid; grid-template-columns:minmax(0,1fr) auto auto; grid-template-areas:"title menu expand" "run exit exit"; gap:8px 6px; align-items:center;}
+  body.storyMode .storyBar, body.storyMode .scHeaderRow, body.storyMode .scPlaybackControls{display:contents;}
+  body.storyMode .storyKicker, body.storyMode #panelScenarios #scStoryAdd, body.storyMode #scStoriesLabel, body.storyMode #scStatus, body.storyMode #scPaletteToggle{display:none;}
+  #scScenarioTitle{grid-area:title; margin:0;}
+  #scScenarioMenu{grid-area:menu; justify-self:end;}
+  #btnStoryExpand{display:inline-flex; grid-area:expand; justify-self:end;}
   body.storyExpanded #btnStoryExpand .ic{transform:rotate(180deg);}
-  body.scPlaybackOn #btnStoryExpand{display:none;}
-  .storyBar{margin-bottom:6px; padding-bottom:6px;}
-  body.storyMode:not(.storyExpanded) #scStoriesLabel{display:none;}
-  /* Reproduciendo: solo lo que se mira (qué pasa ahora) y lo que se toca (Detener/Terminar). */
-  body.scPlaybackOn #panelScenarios .scHeaderRow, body.scPlaybackOn #scStatus, body.scPlaybackOn #scStoriesLabel{display:none;}
-  body.scPlaybackOn .scNow{margin-top:8px; padding:7px 10px 8px;}
+  #scRun, #scReset, #scRunHint{grid-area:run; justify-self:start;}
+  #btnStoryExit{grid-area:exit; justify-self:end;}
+  #scNow{grid-area:title; margin:0; padding:7px 10px 8px;}
+  #scErrors, #scUnsupported{grid-column:1 / -1; margin:0;}
+  .scRunHint{font:400 var(--fs-body)/1.4 var(--font-mono); color:var(--ink-3); padding:0 2px;}
+  /* Reproduciendo: la fila A es el momento en curso (qué pasa ahora); terminada, en móvil no hay «Terminar»: lo hacen el
+     selector ▾ y Ampliar (que termina y abre el taller). «Volver a editar» sigue en la fila B en los cuatro estados. */
+  body.scPlaybackOn #panelScenarios .scHeaderRow{display:none;}
+  #panelScenarios[data-sc-status="completed"] #scReset{display:none;}
+  /* Qué se ve en cada estado. Reproduciendo no se colocan eventos: las fichas no se pintan. */
+  body[data-story="compact"] #scLibrarySection, body[data-story="compact"] .scStorySection,
+  body[data-story="playing"] #scLibrarySection, body[data-story="playing"]:not(.storyExpanded) .scStorySection{display:none;}
+  #panelScenarios{gap:8px; min-height:0;}
+  /* dentro de la hoja de Historias el rótulo «HISTORIA» sobra (la hoja ES la Historia): esos 19 px van a la línea de tiempo */
+  .scStorySection > h3{display:none;}
+  /* Ampliada: los eventos son fichas en un carril horizontal (los mismos nodos de la biblioteca), con «+ Crear evento» delante
+     y su ⋯ dentro; la paleta flotante no se usa en la hoja. */
+  #scLibrarySection{flex:none; display:flex; flex-direction:row; align-items:center; gap:8px; min-height:0; padding:0 0 6px; border-bottom:1px solid var(--rule); overflow-x:auto; overflow-y:hidden; scrollbar-width:none;}
+  #scLibrarySection::-webkit-scrollbar{display:none;}
+  #scLibrarySection .scSectionHeader{display:contents;}
+  #scLibrarySection h3{flex:none; margin:0 4px 0 0;}
+  #scLibrarySection .scLibraryHint, #scEventSearch{display:none;}
+  #scEventNew{flex:none; min-height:var(--ctl-h); border:1px dashed var(--rule-2); border-radius:var(--r-pill); padding:0 12px; font-size:var(--fs-ui); color:var(--ink-2);}
+  #scEventLibrary{display:flex; flex:none; gap:8px; overflow:visible; min-height:0;}
+  #scEventLibrary .scEmptyState{padding:4px 0; font-size:12px; line-height:1.4; max-width:280px; white-space:normal;}
+  #scEventLibrary .scEmptyState strong{display:inline; margin:0 4px 0 0;}
+  #scEventLibrary > .hint{margin:0; white-space:nowrap;}
+  .scEventRow{flex:none; min-height:var(--ctl-h); border:1px solid var(--rule-2); border-radius:var(--r-pill); background:var(--surface-raised); padding:0 2px 0 0;}
+  .scEventRow:hover, .scEventRow.new{background:var(--active-veil); border-color:var(--active-rule);}
+  .scEventPlace{padding:0 6px 0 12px; min-height:var(--ctl-h); gap:8px;}
+  .scEventPlace span:last-child{max-width:150px;}
+  .scEventRow .scMore{min-width:var(--ctl-h); min-height:var(--ctl-h); border-radius:var(--r-pill);}
+  /* La línea de tiempo recibe el resto de la hoja y es lo único que se desplaza (la hoja tiene overflow:hidden). */
+  .scStorySection{min-height:0; gap:6px;}
+  .scStoryboardSection{min-height:0; flex:1; overflow:auto;}
+  /* Propiedades con el dedo: una fila de muestras (la paleta con nombre) + «Más colores». */
+  #panelProperties .swatches:not(.expanded){max-height:32px;}
+  /* Barra de páginas: la activa con nombre (recortado) y ▾; las demás solo con su índice; «＋» fijo a la derecha aunque las
+     pestañas se desplacen. Eliminar vive en el menú de la página. */
+  footer .tab:not(.active) > span:first-child, footer .tab .x{display:none;}
+  footer .tab.active{flex:1 1 auto; min-width:64px; max-width:200px; gap:6px;}
+  footer .tab.active > span:first-child{min-width:0; overflow:hidden; text-overflow:ellipsis;}
+  /* Con menos de 200 px para las páginas (390/375 con Historias y Presentar al lado) el nombre no cabe con dignidad: la
+     activa queda como «01 ▾» (su nombre se lee en el menú de la página) y las demás como índice. */
+  #pagesBar{container-type:inline-size;}
+  footer .tab:not(.active){min-width:40px; justify-content:center; padding:0 6px;}
+  @container (max-width:200px){ footer{padding:0 2px; gap:2px;} footer .tab.active > span:first-child{display:none;} footer .tab.active{flex:0 0 auto; min-width:0; padding:0 0 0 6px; gap:2px;} }
+  #pagesBar > .pgAdd{position:sticky; right:0; width:var(--ctl-h); min-width:var(--ctl-h); background:var(--surface); margin-left:2px;}
   /* Colocando un evento: el objetivo está en el lienzo, así que la hoja se aparta mientras dure; la barra de
      colocación (con Cancelar) queda a la vista. */
   body.panelOpen.scPlacing aside{transform:translateY(calc(100% + var(--bb-h) + 12px)); visibility:hidden;}
@@ -941,3 +994,6 @@ body.scPlaybackOn #wrap::after{box-shadow:inset 0 0 0 2px var(--active), inset 0
 /* Tableta (701–1024 px): Historias en 300 px, el mínimo con la biblioteca de eventos dentro (por debajo de 300 pasa a
    paleta flotante, editor-scenarios.js). Va al final para ganar a la regla general de 320. */
 @media (min-width:701px) and (max-width:1024px){ aside.scenariosOpen{width:300px; flex-basis:300px;} }
+/* FLUYO-018.17: con el dedo, los campos a 16 px también donde una regla con id fija el tamaño (Safari iOS hace zoom al enfocar
+   un campo más pequeño). La regla general está al final de css/system.css. */
+@media (pointer:coarse){ textarea#lblEdit, #panelProperties .row select, #panelProperties .row input:not([type=range]):not([type=checkbox]):not([type=color]), .scPopover input, .pageMenu input, .moreMenu select, .scDialog input:not([type=radio]):not([type=checkbox]):not([type=color]), .scDialog select{font-size:16px;} }

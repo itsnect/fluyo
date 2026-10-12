@@ -127,6 +127,16 @@ const aboveSheet = (page, what) => page.evaluate((what) => {
   return { ok: top >= cr.top - 1 && bot <= sheetTop + 1, top: Math.round(top), bot: Math.round(bot), sheetTop: Math.round(sheetTop) };
 }, what);
 
+/* FLUYO-018.17 (D2): la vista nunca baja de zoom 0,6 para «meterlo todo»: o la página cabe entera en la zona libre, o el
+   destino del paso seleccionado (o del primero) está en ella, a tamaño legible. */
+const usefulAbove = (page) => page.evaluate(() => {
+  const v = visibleCanvasRect(), b = getBounds();
+  const inside = (x0, y0, x1, y1) => x0 >= v.left - 1 && y0 >= v.top - 1 && x1 <= v.right + 1 && y1 <= v.bottom + 1;
+  const page_ = inside(viewX + b.x * viewZoom, viewY + b.y * viewZoom, viewX + (b.x + b.w) * viewZoom, viewY + (b.y + b.h) * viewZoom);
+  const p = typeof scStoryFocusPoint === "function" ? scStoryFocusPoint() : null;
+  const target = p ? inside(viewX + p.x * viewZoom - 1, viewY + p.y * viewZoom - 1, viewX + p.x * viewZoom + 1, viewY + p.y * viewZoom + 1) : false;
+  return { ok: page_ || (viewZoom >= 0.6 - 1e-6 && target), page: page_, target, zoom: +viewZoom.toFixed(2), free: Math.round(v.height) };
+});
 /* ═════════ Recorrido completo de un viewport (árbol de trabajo) ═════════ */
 async function journey(browser, base, vp) {
   console.log(`\n${vp.key} (${vp.width}×${vp.height}${vp.touch ? ", táctil" : ", ratón"})`);
@@ -141,7 +151,7 @@ async function journey(browser, base, vp) {
     return { h: Math.round(h.height), sw: document.documentElement.scrollWidth, iw: innerWidth,
       cut: ctrls.filter((e) => { const r = e.getBoundingClientRect(); return r.left < -1 || r.right > innerWidth + 1; }).map((e) => e.id),
       small: ctrls.map((e) => [e.id, Math.round(e.getBoundingClientRect().height), Math.round(e.getBoundingClientRect().width)]).filter(([, h, w]) => Math.min(h, w) < 40).map(([id]) => id),
-      playInHeader: !!document.querySelector("header #btnPlay"), playback: [...document.querySelectorAll("header button")].filter((b) => b.offsetParent && /Reproducir|Pausa|Play/.test(b.textContent)).map((b) => b.id) };
+      playInHeader: !!document.querySelector("header #btnPlay") && !document.querySelector("#moreMenu #btnPlay"),   /* 018.17 (M1): en móvil Pausa vive en «Más» */ playback: [...document.querySelectorAll("header button")].filter((b) => b.offsetParent && /Reproducir|Pausa|Play/.test(b.textContent)).map((b) => b.id) };
   });
   check(hdr.sw <= hdr.iw && hdr.cut.length === 0, `cabecera sin scroll horizontal ni controles cortados ${JSON.stringify({ sw: hdr.sw, cut: hdr.cut })}`);
   if (vp.width !== 1280) check(hdr.h < 70, `cabecera en una sola fila (${hdr.h} px; dos filas pasan de 85)`);
@@ -379,12 +389,12 @@ async function journey(browser, base, vp) {
     check((await stateOf(page)).panelOpen && (await page.evaluate(() => $("panelScenarios").style.display !== "none" && $("btnStories").getAttribute("aria-expanded") === "true")), "13 · «Historias» abre su superficie en la hoja");
     /* 018.14b: en modo Historia la salida de la hoja es «Volver a editar» */
     check(await onTop(page, "#btnStories") && await onTop(page, "#btnStoryExit"), "13 · Historias y «Volver a editar» siguen accesibles con la hoja abierta");
-    const pv = await aboveSheet(page, "page");
-    check(pv.ok, "13 · el diagrama se ve entero por encima de la hoja (si quedaba debajo, la vista se desplaza) " + JSON.stringify(pv));
+    const pv = await usefulAbove(page);
+    check(pv.ok, "13 · el diagrama se ve por encima de la hoja: entero si cabe a zoom legible, o el destino del primer paso (018.17) " + JSON.stringify(pv));
     /* Colocar un evento: el destino está en el lienzo, así que la hoja se aparta mientras dura; «Cancelar» queda a la vista. */
     const placing = () => page.evaluate(() => document.body.classList.contains("scPlacing"));
     /* 018.14b: en la hoja compacta la biblioteca es una paleta («Eventos · N») */
-    if (await page.evaluate(() => $("panelScenarios").classList.contains("scCompact") && !$("scLibrarySection").classList.contains("scFloating"))) { await t.page.locator("#scPaletteToggle").tap(); await page.waitForTimeout(250); }
+    if (await page.evaluate(() => isSheetLayout() && !document.body.classList.contains("storyExpanded"))) { await t.page.locator("#btnStoryExpand").tap(); await page.waitForTimeout(350); }   /* 018.17: los eventos viven en la hoja ampliada */
     await t.page.locator(".scEventPlace", { hasText: "Pago" }).tap(); await page.waitForTimeout(350);
     check(await placing() && !(await visibleBox(page, "aside")) && !!(await visibleBox(page, "#scPlacementCancel")), "13 · elegir un evento aparta la hoja; la barra de colocación (con «Cancelar») queda a la vista");
     await shot(t, vp, "13-colocando");
@@ -392,7 +402,7 @@ async function journey(browser, base, vp) {
     check(!(await placing()) && !!(await visibleBox(page, "aside")), "13 · «Cancelar» devuelve la hoja");
     const steps0 = await page.evaluate(() => scActiveScenario().steps.length);
     /* 018.14b: en la hoja compacta la biblioteca es una paleta («Eventos · N») */
-    if (await page.evaluate(() => $("panelScenarios").classList.contains("scCompact") && !$("scLibrarySection").classList.contains("scFloating"))) { await t.page.locator("#scPaletteToggle").tap(); await page.waitForTimeout(250); }
+    if (await page.evaluate(() => isSheetLayout() && !document.body.classList.contains("storyExpanded"))) { await t.page.locator("#btnStoryExpand").tap(); await page.waitForTimeout(350); }   /* 018.17: los eventos viven en la hoja ampliada */
     await t.page.locator(".scEventPlace", { hasText: "Pago" }).tap(); await page.waitForTimeout(350);
     const mid = await page.evaluate(() => { const m = pointAt(edgePoints(P().edges[0]), 0.5), r = cv.getBoundingClientRect(); return { x: r.left + viewX + m.x * viewZoom, y: r.top + viewY + m.y * viewZoom }; });
     await tap(t, mid.x, mid.y);
@@ -412,8 +422,9 @@ async function journey(browser, base, vp) {
   if (vp.mobile) {
     const playH = (await visibleBox(page, "aside")).h;
     /* 018.14b: la hoja de Historias ya es compacta al abrirse; reproduciendo baja aún más (≤ 28 % del alto) */
-    check(playH < openH && playH <= vp.height * 0.28 && !!(await visibleBox(page, "#scReset")), `14 · reproduciendo, la hoja se compacta para que se vea la Historia (${Math.round(openH)} → ${Math.round(playH)} px) y «Detener» sigue a mano`);
-    const pp = await aboveSheet(page, "page");
+    /* 018.17: la hoja compacta ya es un mando de dos filas; reproduciendo es el transporte, igual de baja (≤ 28 % del alto) */
+    check(playH <= vp.height * 0.28 && !!(await visibleBox(page, "#scReset")), `14 · reproduciendo, la hoja es el transporte (${Math.round(openH)} → ${Math.round(playH)} px) y «Detener» sigue a mano`);
+    const pp = await usefulAbove(page);
     check(pp.ok, "14 · el diagrama que se reproduce queda a la vista " + JSON.stringify(pp));
   }
   await shot(t, vp, "14-reproduciendo");
@@ -546,6 +557,10 @@ async function dpr(browser, base) {
   const wt = await serve(root);
   /* HEAD solo hace falta para las comparaciones (ONLY vacío o "cmp"); las copias de mutaciones no tienen .git. */
   const hd = !process.env.ONLY || process.env.ONLY === "cmp" ? await serve(headTree()) : null;
+  /* HEAD ya incluye 018.12 (Deshacer en la cabecera) y 018.15 (DEFAULT_NODE_COLOR) desde 3fa91e8: las diferencias intencionales
+     documentadas frente al HEAD de entonces quedan en el historial; aquí solo se exige que la secuencia dé el mismo documento. */
+  const headHas12 = hd ? execFileSync("git", ["-C", root, "show", "HEAD:index.html"], { encoding: "utf8" }).includes('id="btnUndo"') : false;
+  const headHas15 = hd ? execFileSync("git", ["-C", root, "show", "HEAD:js/config.js"], { encoding: "utf8" }).includes("DEFAULT_NODE_COLOR") : false;
   const browser = await chromium.launch({ channel: process.env.FLUYO_BROWSER || "chrome", headless: !process.env.HEADED });
   try {
     for (const vp of VIEWPORTS) if (!process.env.ONLY || process.env.ONLY === vp.key) await journey(browser, wt.base, vp);
@@ -555,7 +570,7 @@ async function dpr(browser, base) {
       const W = await desktopScript(browser, wt.base, vp), H = await desktopScript(browser, hd.base, vp);
       /* FLUYO-018.15: en HEAD un nodo nuevo nacía #6a9fb5; ahora nace DEFAULT_NODE_COLOR. Se deshace solo ese cambio deliberado:
          todo lo demás del documento tiene que seguir siendo idéntico. */
-      for (const k of ["doc", "afterUndo", "afterRedo"]) if (typeof W[k] === "string") W[k] = W[k].replaceAll('"color":"#857F6C"', '"color":"#6a9fb5"');
+      if (!headHas15) for (const k of ["doc", "afterUndo", "afterRedo"]) if (typeof W[k] === "string") W[k] = W[k].replaceAll('"color":"#857F6C"', '"color":"#6a9fb5"');
       check(W.doc === H.doc, "documento idéntico a HEAD tras mover, conectar (flecha y modo Flecha), páginas, renombrar, Ctrl+Z y Ctrl+Y");
       check(W.afterUndo === H.afterUndo && W.afterRedo === H.afterRedo, "Ctrl+Z y Ctrl+Y dejan el mismo documento que en HEAD");
       /* FLUYO-018.13: la vista se compara con tolerancia de medio píxel. En HEAD la cabecera de 1280 medía 89,x px (dos filas) y
@@ -564,12 +579,16 @@ async function dpr(browser, base) {
       const sameView = W.view[2] === H.view[2] && Math.abs(W.view[0] - H.view[0]) < 0.5 && Math.abs(W.view[1] - H.view[1]) < 0.5;
       check(same(W.selection, H.selection) && sameView, "marco + Shift+clic y rueda/Ctrl+rueda: misma selección y misma vista que HEAD " + JSON.stringify({ W: [W.selection, W.view], H: [H.selection, H.view] }));
       check(same(W.dialogs, H.dialogs), `mismos diálogos que HEAD (${W.dialogs.join(",")})`);
-      check(W.clickUndo === 0 && H.clickUndo === 1, `diferencia intencional: un clic sin mover ya no apila Undo (HEAD ${H.clickUndo}, ahora ${W.clickUndo})`);
-      check(W.demo.pages.length === W.pagesBeforeDemo + 1 && H.demo.pages.length === H.pagesBeforeDemo, `diferencia intencional (D9): Ejemplo añade una página (${W.demo.pages.join(",")}); HEAD reemplazaba la activa (${H.demo.pages.join(",")})`);
+      check(W.clickUndo === 0 && H.clickUndo === (headHas12 ? 0 : 1), `un clic sin mover no apila Undo (HEAD ${H.clickUndo}, ahora ${W.clickUndo}${headHas12 ? "; HEAD ya incluye 018.12" : "; diferencia intencional"})`);
+      check(W.demo.pages.length === W.pagesBeforeDemo + 1 && H.demo.pages.length === H.pagesBeforeDemo + (headHas12 ? 1 : 0), `D9: Ejemplo añade una página (${W.demo.pages.join(",")}); HEAD: ${H.demo.pages.join(",")}`);
       check(W.errors.length === 0 && H.errors.length === 0, "0 errores en HEAD y en el árbol de trabajo");
     }
 
-    if (!process.env.ONLY) {
+    if (!process.env.ONLY && headHas12) {
+    console.log("\nMóvil 390: HEAD ya incluye 018.12; las diferencias intencionales frente al HEAD anterior quedan documentadas en la tarea");
+    check(true, "HEAD incluye 018.12 (Deshacer en la cabecera): no hay HEAD anterior que recorrer");
+    }
+    if (!process.env.ONLY && !headHas12) {
     console.log("\nMóvil 390: diferencias intencionales frente a HEAD");
     const MH = await mobileHead(browser, hd.base);
     check(MH.panelCoversToggle, "HEAD: el cajón abierto tapaba a ⚙ (sin salida) — ahora ⚙, «Cerrar» e Historias quedan a la vista (ver 1)");

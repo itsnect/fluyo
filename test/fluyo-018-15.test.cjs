@@ -58,7 +58,9 @@ test("model.js: idéntico a HEAD salvo el color con el que nace un nodo y el com
   assert.ok(now.includes("color:DEFAULT_NODE_COLOR, fill:null"), "createNodeIn usa DEFAULT_NODE_COLOR");
   assert.ok(now.includes("  if(n.color==null) n.color=PALETTE[0].c;\n"), "normalizeProjectNode conserva el respaldo histórico");
   const undo = now.replace("color:DEFAULT_NODE_COLOR, fill:null", "color:PALETTE[0].c, fill:null").replace(/  \/\* Respaldo HISTÓRICO[\s\S]*?MCP\. \*\/\n/, "");
-  assert.equal(undo, old);
+  /* HEAD ya incluye 018.15 (desde 3fa91e8): se deshace el mismo cambio en HEAD antes de comparar */
+  const oldUndo = old.replace("color:DEFAULT_NODE_COLOR, fill:null", "color:PALETTE[0].c, fill:null").replace(/  \/\* Respaldo HISTÓRICO[\s\S]*?MCP\. \*\/\n/, "");
+  assert.equal(undo, oldUndo);
   assert.equal((now.match(/DEFAULT_NODE_COLOR/g) || []).length, 2, "una vez en el código y otra en el comentario");
 });
 
@@ -162,6 +164,6 @@ test("fixture compartido con fluyo-mcp: idéntico si el repo hermano está al la
 
 test("sw.js: CACHE v74 (cambian config, model, render, ui, interaction y styles, todos ya precacheados)", () => {
   const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v75";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v76";/);
   for (const f of ["./js/config.js", "./js/model.js", "./js/render.js", "./js/ui.js", "./js/interaction.js", "./css/styles.css"]) assert.ok(sw.includes('"' + f + '"'), f + " precacheado");
 });

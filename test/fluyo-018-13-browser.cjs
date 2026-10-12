@@ -136,7 +136,8 @@ async function journey(browser, base, vp) {
   check(!(await box(page, "body > header #btnPlay")), "la cabecera sigue sin reproducción (018.12)");
   const hctl = await controls(page, "body > header button, body > header select, body > header .hdrOpt", "#moreMenu");
   const minH = vp.touch ? 40 : 28;
-  check(hctl.length >= (mobile ? 5 : 6) && hctl.every((c) => c.h >= minH && c.w >= minH), `controles de cabecera ≥ ${minH} px ` + JSON.stringify(hctl.filter((c) => c.h < minH || c.w < minH)));
+  /* FLUYO-018.17 (M2): en móvil ⚙ solo aparece con selección: sin ella la cabecera tiene 4 controles */
+  check(hctl.length >= (mobile ? 4 : 6) && hctl.every((c) => c.h >= minH && c.w >= minH), `controles de cabecera ≥ ${minH} px ` + JSON.stringify(hctl.filter((c) => c.h < minH || c.w < minH)));
 
   /* ── Iconos ── */
   const icons = await page.evaluate((re) => {
@@ -310,7 +311,7 @@ async function serviceWorker(browser, base) {
     const have = []; for (const w of want) if (await c.match(location.origin + "/" + w)) have.push(w);
     return { keys, have, want: want.length };
   });
-  check(cache.keys.length === 1 && cache.keys[0] === "fluyo-static-v75", "caché instalada: fluyo-static-v75 " + JSON.stringify(cache.keys));
+  check(cache.keys.length === 1 && cache.keys[0] === "fluyo-static-v76", "caché instalada: fluyo-static-v76 " + JSON.stringify(cache.keys));
   check(cache.have.length === cache.want, "system.css y las tres fuentes están precacheadas " + JSON.stringify(cache.have));
   await ctx.setOffline(true);
   await page.reload(); await page.waitForFunction(() => typeof renderTabs === "function"); await page.evaluate(() => document.fonts.ready);

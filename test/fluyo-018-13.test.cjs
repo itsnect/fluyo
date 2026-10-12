@@ -35,7 +35,7 @@ test("tipografías: woff2 locales, licencia OFL incluida y @font-face sin tercer
 
 test("sw.js: CACHE v72, system.css y las tres fuentes precacheadas; nada de index.html queda fuera", () => {
   const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v75";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v76";/);
   const core = sw.slice(sw.indexOf("const ASSETS"), sw.indexOf("const PAGE_ASSETS"));
   for (const a of ["./css/system.css", ...FONTS.map((f) => "./assets/fonts/" + f)]) assert.ok(core.includes('"' + a + '"'), a + " en ASSETS (núcleo)");
   const html = read("index.html");
@@ -111,7 +111,8 @@ test("alcance: model.js e identity.css idénticos a HEAD", () => {
   const gitRoot = process.env.FLUYO_GIT_ROOT || root;
   for (const f of ["js/model.js", "css/identity.css"]) {
     const head = execFileSync("git", ["-C", gitRoot, "show", "HEAD:" + f], { encoding: "utf8" }).replace(/\r\n/g, "\n");
-    assert.equal(undo15(read(f).replace(/\r\n/g, "\n")), head, f + " sin cambios");
+    /* HEAD ya incluye 018.15 (desde 3fa91e8): el mismo deshacer en los dos lados */
+    assert.equal(undo15(read(f).replace(/\r\n/g, "\n")), undo15(head), f + " sin cambios");
   }
 });
 

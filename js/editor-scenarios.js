@@ -531,8 +531,11 @@ function scRun(opts) {
   }
   scPlayback = started.playback;
   scStatus = "running";
+  scFollowedStep = null;
   /* FLUYO-018.14b: reproducir es del modo Historia (B1); la salida «Editar»/«Volver a editar» nunca se bloquea (B3). */
   if (!inPresent && typeof switchPanelTab === "function") switchPanelTab("scenarios");
+  /* FLUYO-018.17 (D3): reproducir recupera el lienzo: la hoja ampliada vuelve a su altura de transporte (Ampliar sigue disponible). */
+  if (!inPresent && typeof setStoryExpanded === "function" && typeof isSheetLayout === "function" && isSheetLayout()) setStoryExpanded(false);
   scRenderButtons();
   scRenderPanel();
   /* FLUYO-018.12: en móvil la hoja se compacta al reproducir; si el diagrama quedaba debajo, se trae a la vista. */
@@ -550,6 +553,7 @@ function scReset() {
   scPlayback = null;
   scStatus = "idle";
   scErrors = [];
+  scFollowedStep = null;
   const tabProp = $("tabProperties");
   if (tabProp) tabProp.disabled = false;
   scRenderPanel();
@@ -567,6 +571,7 @@ function scTick(now) {
   FluyoScenarioPlayback.tick(scPlayback, now);
   scRenderStatus();
   scRenderStoryboard();
+  scFollowActive();
   scRenderTraceLog();
   if (typeof presentStoryRefresh === "function") presentStoryRefresh();
   if (FluyoStory.isFinished(scPlayback)) {
@@ -584,6 +589,45 @@ function buildScenarioRenderState() {
   return FluyoStory.renderState(scPlayback, scActiveScenario(), performance.now());
 }
 
+/* FLUYO-018.17 (D3): el paso activo se ve dos veces. En la línea de tiempo, su fila se trae a la vista (solo desplaza el
+   contenedor .scStoryboardSection; si el usuario desplazó a mano hace menos de 2 s, se respeta). En el lienzo, su destino se
+   trae a la zona libre solo cuando sale de ella y solo al cambiar de paso: nunca a cada fotograma. */
+let scFollowedStep = null, scUserScrollAt = 0, scAutoScrolling = false;
+function scFollowActive() {
+  if (!scPlayback || !isScenarioPlaybackActive()) return;
+  const sc = scActiveScenario();
+  if (!sc) return;
+  /* el paso en curso: la fila activa (un evento en tránsito) o, si el momento es instantáneo (una ocurrencia, que pasa a
+     completada en el acto), el último paso cuyo instante ya llegó */
+  const activeRow = $("scStoryboard")?.querySelector?.(".scStoryRow.scStatus_active");
+  let step = activeRow && activeRow.dataset ? sc.steps.find((x) => String(x.id) === String(activeRow.dataset.stepId)) : null;
+  if (!step) { const cur = scPlayback.cursorVirtual || 0; const past = sc.steps.filter((s) => s.at <= cur); step = past.length ? past[past.length - 1] : null; }
+  if (!step || String(step.id) === String(scFollowedStep)) return;
+  scFollowedStep = step.id;
+  const row = $("scStoryboard")?.querySelector?.('[data-step-id="' + step.id + '"]');
+  if (row && typeof performance !== "undefined" && performance.now() - scUserScrollAt > 2000) scScrollIntoView(row);
+  if (typeof cv !== "undefined" && scTargetOffscreen(step)) scRevealTarget(step, false);
+}
+/* Desplaza SOLO el contenedor desplazable más cercano (línea de tiempo, biblioteca), nunca la hoja ni la página: scrollIntoView
+   desplazaba también el aside y «Volver a editar» se iba fuera de la hoja (auditoría de 018.17). */
+function scScrollIntoView(el) {
+  if (!el || !el.getBoundingClientRect || typeof getComputedStyle !== "function") return;
+  let c = el.parentElement;
+  while (c && c !== document.body) {
+    const cs = getComputedStyle(c);
+    if (/(auto|scroll)/.test(cs.overflowY) && c.scrollHeight > c.clientHeight + 1) break;
+    if (/(auto|scroll)/.test(cs.overflowX) && c.scrollWidth > c.clientWidth + 1) break;
+    c = c.parentElement;
+  }
+  if (!c || c === document.body) return;
+  const r = el.getBoundingClientRect(), cr = c.getBoundingClientRect();
+  scAutoScrolling = true;
+  if (r.top < cr.top) c.scrollTop += r.top - cr.top - 4;
+  else if (r.bottom > cr.bottom) c.scrollTop += r.bottom - cr.bottom + 4;
+  if (r.left < cr.left) c.scrollLeft += r.left - cr.left - 4;
+  else if (r.right > cr.right) c.scrollLeft += r.right - cr.right + 4;
+  requestAnimationFrame(() => { scAutoScrolling = false; });
+}
 function scIsScenariosTabActive() {
   const panel = $("panelScenarios");
   return panel && panel.style.display !== "none";
@@ -622,6 +666,16 @@ function scNotice(message) {
   if (!el) return;
   el.textContent = message;
   el.hidden = false;
+  /* FLUYO-018.17: en la hoja móvil el aviso se coloca encima de lo que haya debajo (hoja o barra de colocación), nunca sobre
+     «Cancelar». En escritorio lo coloca el CSS. */
+  if (typeof isSheetLayout === "function" && isSheetLayout() && el.style) {
+    let b = ($("bottomBar") ? $("bottomBar").getBoundingClientRect().height : 52) + 12;
+    const aside = document.querySelector("aside");
+    if (aside && document.body.classList.contains("panelOpen") && !document.body.classList.contains("scPlacing")) b += aside.offsetHeight;
+    const pb = $("scPlacementBar");
+    if (pb && !pb.hidden) b = Math.max(b, innerHeight - pb.getBoundingClientRect().top + 12);
+    el.style.bottom = b + "px";
+  } else if (el.style) el.style.bottom = "";
   clearTimeout(scNoticeTimer);
   scNoticeTimer = setTimeout(() => {
     el.hidden = true;
@@ -739,6 +793,18 @@ function scRenderButtons() {
   scBodyFlag("scPlaybackOn", isScenarioPlaybackActive());
   if ($("scEventNew")) $("scEventNew").disabled = isScenarioPlaybackActive();
   if ($("scPaletteToggle")) $("scPaletteToggle").disabled = isScenarioPlaybackActive();
+  /* FLUYO-018.17 (D3): nada inerte mientras se reproduce (la paleta no se puede usar); el estado va al CSS de la hoja. */
+  if ($("scPaletteToggle")) $("scPaletteToggle").hidden = isScenarioPlaybackActive();
+  if (panel && panel.setAttribute) panel.setAttribute("data-sc-status", scStatus);
+  /* Hoja compacta sin pasos: en vez de un botón deshabilitado sin explicación, la pista «Añade eventos desde Ampliar». */
+  const hint = $("scRunHint");
+  if (hint && run) {
+    const sheet = typeof isSheetLayout === "function" && isSheetLayout();
+    const show = sheet && scStatus === "idle" && !!s && !s.steps.length && s.engineVersion === FluyoScenarios.ENGINE_VERSION;
+    hint.hidden = !show;
+    if (show) run.hidden = true;
+  }
+  if (typeof syncStoryState === "function") syncStoryState();
 }
 function scRenderStatus() {
   scRenderNow();
@@ -1102,6 +1168,8 @@ function scStoryRow(step) {
     () => {
       scSelectedStep = step.id;
       scSelectTarget(d.targetType, d.targetId);
+      /* FLUYO-018.17 (D2): el lienzo contextualiza: si el destino no está en la zona libre, se trae (sin cambiar el zoom). */
+      if (!d.missing && typeof cv !== "undefined" && scTargetOffscreen(step)) scRevealTarget(step, false);
       scStorySignature = "";
       scRenderStoryboard();
       // Una aparición es un objeto: al pulsarla se ofrecen sus acciones.
@@ -1141,22 +1209,38 @@ function scTargetPosition(step) {
   }
   return nodeById(step.nodeId);
 }
+/* FLUYO-018.17: «pantalla» es la zona libre del lienzo (visibleCanvasRect, ui.js: lienzo menos hoja, barra táctil y barra de
+   colocación); sin ella, el lienzo entero. Un nodo cuenta entero (su caja), una conexión por su punto medio. */
+function scVisibleRect() {
+  if (typeof visibleCanvasRect === "function") return visibleCanvasRect();
+  const r = cv.getBoundingClientRect();
+  return { left: 0, top: 0, right: r.width, bottom: r.height, width: r.width, height: r.height };
+}
 function scTargetOffscreen(step) {
   const p = scTargetPosition(step);
   if (!p) return false;
-  const r = cv.getBoundingClientRect(),
-    x = p.x * viewZoom + viewX,
-    y = p.y * viewZoom + viewY;
-  return x < 0 || y < 0 || x > r.width || y > r.height;
+  const v = scVisibleRect(), n = step.nodeId ? nodeById(step.nodeId) : null;
+  const hw = n ? (n.w / 2) * viewZoom : 0, hh = n ? (n.h / 2) * viewZoom : 0;
+  const x = p.x * viewZoom + viewX, y = p.y * viewZoom + viewY;
+  return x - hw < v.left || y - hh < v.top || x + hw > v.right || y + hh > v.bottom;
 }
-function scRevealTarget(step) {
+function scRevealTarget(step, rerender = true) {
   const p = scTargetPosition(step);
   if (!p) return;
-  const r = cv.getBoundingClientRect();
-  viewX = r.width / 2 - p.x * viewZoom;
-  viewY = r.height / 2 - p.y * viewZoom;
+  const v = scVisibleRect();
+  viewX = v.left + v.width / 2 - p.x * viewZoom;
+  viewY = v.top + v.height / 2 - p.y * viewZoom;
+  if (!rerender) return;
   scStorySignature = "";
   scRenderStoryboard();
+}
+/* El punto que la hoja de Historias quiere ver cuando la página no cabe a tamaño legible: el destino del paso seleccionado
+   o, si no hay, el del primero (revealAboveSheet, ui.js). */
+function scStoryFocusPoint() {
+  const sc = scActiveScenario();
+  if (!sc || !sc.steps.length) return null;
+  const step = sc.steps.find((x) => x.id === scSelectedStep) || sc.steps[0];
+  return scTargetPosition(step);
 }
 /* Menú de una aparición. Es un objeto narrativo («💵 Pago · Cliente paga a Comercio»), no una
    lista de botones: cabecera con el evento y dónde ocurre, cuatro grupos y submenús.
@@ -1991,7 +2075,7 @@ function scSaveEventType() {
   scCommit();
   if ($("panelScenarios").classList.contains("scCompact")) scTogglePalette(true);
   const row = $("scEventLibrary").querySelector('[data-event-type-id="' + id + '"]');
-  row?.scrollIntoView({ block: "nearest" });
+  scScrollIntoView(row);
   row?.querySelector("button")?.focus();
   setTimeout(() => {
     if (scNewEventId === id) scNewEventId = null;
@@ -2345,9 +2429,7 @@ function scApplyTargets(id, targets) {
     until: performance.now() + 750,
   };
   scCommit();
-  $("scStoryboard")
-    ?.querySelector('[data-step-id="' + scSelectedStep + '"]')
-    ?.scrollIntoView({ block: "nearest" });
+  scScrollIntoView($("scStoryboard")?.querySelector?.('[data-step-id="' + scSelectedStep + '"]'));
   scNotice(
     created
       ? sc.name + " creada"
@@ -2598,6 +2680,10 @@ function scInitUI() {
     },
     true,
   );
+  /* FLUYO-018.17: un desplazamiento A MANO de la línea de tiempo (rueda o dedo; no el scroll programado que restaura
+     scRenderStoryboard) pausa el autoscroll del paso activo durante 2 s. */
+  const board = document.querySelector?.(".scStoryboardSection");
+  if (board && board.addEventListener) for (const ev of ["wheel", "touchmove"]) board.addEventListener(ev, () => { scUserScrollAt = performance.now(); }, { passive: true });
   if (typeof ResizeObserver !== "undefined" && $("panelScenarios")) {
     scResizeObserver = new ResizeObserver(() => {
       const p = $("panelScenarios"),
@@ -2610,13 +2696,13 @@ function scInitUI() {
   scSelectStory(P().scenarios?.[0]?.id ?? null);
   scRenderPanel();
 }
-/* La biblioteca pasa a paleta flotante cuando no cabe: panel estrecho (< 300 px) o, desde FLUYO-018.14b, la hoja
-   móvil de Historias en su altura compacta (storyCompactSheet, ui.js). */
+/* La biblioteca pasa a paleta flotante cuando la columna es estrecha (< 300 px). En la hoja móvil (FLUYO-018.17) los eventos
+   son fichas en un carril horizontal y la paleta no se usa. */
 function scSyncCompact() {
   const p = $("panelScenarios"),
     aside = p && p.closest && p.closest("aside");
   if (!aside || !p.classList) return;
-  const narrow = aside.getBoundingClientRect().width < 300 || (typeof storyCompactSheet === "function" && storyCompactSheet());
+  const narrow = aside.getBoundingClientRect().width < 300 && !(typeof isSheetLayout === "function" && isSheetLayout());
   p.classList.toggle("scCompact", narrow);
   if (!narrow) scHidePalette();
 }

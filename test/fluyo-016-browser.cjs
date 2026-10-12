@@ -498,8 +498,9 @@ const VACIO = `(() => { ${RESET}
           aside: box("propPanel") };
       });
       assert.ok(m.sw <= m.iw + 1, `${w}: sin scroll horizontal (${m.sw} > ${m.iw})`);
-      for (const k of ["title", "add", "menu", "run"]) { assert.ok(m[k].w > 0 && m[k].h > 0, `${w}: ${k} visible`); assert.ok(m[k].l >= -1 && m[k].r <= m.iw + 1, `${w}: ${k} dentro de la pantalla`); }
-      assert.ok(m.add.h >= 24, `${w}: «+» tocable`);
+      /* FLUYO-018.17: en la hoja móvil «+» no está en la cabecera (crear vive en el selector ▾, «+ Nueva historia») */
+      for (const k of (w <= 700 ? ["title", "menu", "run"] : ["title", "add", "menu", "run"])) { assert.ok(m[k].w > 0 && m[k].h > 0, `${w}: ${k} visible`); assert.ok(m[k].l >= -1 && m[k].r <= m.iw + 1, `${w}: ${k} dentro de la pantalla`); }
+      if (w > 700) assert.ok(m.add.h >= 24, `${w}: «+» tocable`);
       await shot(ed, `05-panel-${w}x${h}`);
     }
     await ed.setViewportSize({ width: 1366, height: 768 });

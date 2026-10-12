@@ -135,7 +135,9 @@ async function noImpactScript(browser, base, label) {
          pidió. Se afirma el resultado correcto y se deja constancia de la diferencia, en vez de exigir la entrada vacía de HEAD. */
       if (name === "undo ×2") {
         ok(norm(json) === norm(a.initial), "«undo ×2»: dos Ctrl+Z deshacen los dos borrados (vuelve el documento de partida)");
-        ok(norm(b.docs[i][1]) === norm(b.docs[0][1]), "HEAD: «undo ×2» solo deshacía uno (el clic de selección apilaba una entrada vacía) — diferencia intencional de 018.12");
+        /* HEAD ya incluye 018.12 desde 3fa91e8: también deshace los dos; contra un HEAD anterior solo deshacía uno */
+        const headHas12 = execFileSync("git", ["-C", root, "show", "HEAD:index.html"], { encoding: "utf8" }).includes('id="btnUndo"');
+        ok(headHas12 ? norm(b.docs[i][1]) === norm(a.initial) : norm(b.docs[i][1]) === norm(b.docs[0][1]), headHas12 ? "HEAD (ya con 018.12): «undo ×2» también vuelve al documento de partida" : "HEAD: «undo ×2» solo deshacía uno (el clic de selección apilaba una entrada vacía) — diferencia intencional de 018.12");
         return;
       }
       ok(norm(json) === norm(b.docs[i][1]), `«${name}»: documento idéntico a HEAD`);

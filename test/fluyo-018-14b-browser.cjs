@@ -109,7 +109,8 @@ const MEASURE = ([touch, crit]) => {
     storyMode: storyModeActive(), railVisible: vis(document.querySelector(".rail")),
   };
 };
-const CRIT_EDIT = (vp) => ["btnUndo", "btnRedo", "btnShare", "btnPresent", "btnMore", ...(vp.mobile ? ["btnPanel", "btnStories"] : ["tabProperties", "tabScenarios", "btnCanvas"])];
+/* FLUYO-018.17 (M2): en móvil ⚙ es contextual: solo cuenta como crítico con selección (E2) */
+const CRIT_EDIT = (vp, sel) => ["btnUndo", "btnRedo", "btnShare", "btnPresent", "btnMore", ...(vp.mobile ? [...(sel ? ["btnPanel"] : []), "btnStories"] : ["tabProperties", "tabScenarios", "btnCanvas"])];
 const CRIT_STORY = (vp) => ["btnUndo", "btnShare", "btnPresent", "btnMore", "btnStoryExit", ...(vp.mobile ? ["btnStories"] : ["tabProperties", "tabScenarios"])];
 
 /* Píxel del lienzo en un hueco vacío: su color es del DOCUMENTO (tema del lienzo), nunca de la interfaz. */
@@ -142,7 +143,7 @@ async function states(t, vp, ui, theme) {
   /* E2 · panel abierto con un nodo */
   await page.evaluate(() => { const n = P().nodes.find((x) => x.shape === "rect"); clearSel(); selN.add(n.id); refreshPanel(); });
   if (vp.mobile) await press(t, "#btnPanel", vp);
-  r = await m(CRIT_EDIT(vp));
+  r = await m(CRIT_EDIT(vp, true));
   if (vp.mobile) check(r.panelH > 0 && r.panelH <= vp.height * 0.53 && r.panelScreens <= vp.scroll, `${tag} E2: hoja de Propiedades ${r.panelH} px (≤ 52 % del alto), ${r.panelScreens} pantallas (≤ ${vp.scroll})`);
   else check(Math.abs(r.panelW - vp.panel) <= 1 && r.panelScreens <= vp.scroll, `${tag} E2: panel de ${r.panelW} px (${vp.panel}), ${r.panelScreens} pantallas (≤ ${vp.scroll})`);
   check(r.critical.length === 0 && r.small.length === 0 && r.overflowX <= 0, `${tag} E2: críticos a la vista, objetivos ≥ ${target} px, sin overflow ${JSON.stringify([r.critical, r.small])}`);
@@ -243,7 +244,8 @@ async function journey(browser, base, vp) {
     await page.touchscreen.tap(empty.x, empty.y); await page.waitForTimeout(350);
     check(await page.evaluate(() => !document.body.classList.contains("panelOpen") && selN.size === 0), "salida 3: tocar el vacío del lienzo deselecciona y cierra la hoja");
     /* tocar OTRO elemento con la hoja abierta: la hoja se queda y muestra el nuevo */
-    await page.evaluate(() => { selN.add(P().nodes[0].id); refreshPanel(); }); await press(t, "#btnPanel", vp);
+    /* 018.17: la vista no baja de zoom 0,6 para «meterlo todo»; se encaja la página antes para que el otro elemento esté en pantalla */
+    await page.evaluate(() => { fitView(); selN.add(P().nodes[0].id); refreshPanel(); }); await press(t, "#btnPanel", vp);
     const other = await page.evaluate(() => { const n = P().nodes[2], r = cv.getBoundingClientRect(); return { x: r.left + viewX + n.x * viewZoom, y: r.top + viewY + n.y * viewZoom, id: n.id, label: n.label }; });
     await page.touchscreen.tap(other.x, other.y); await page.waitForTimeout(350);
     check(await page.evaluate((o) => document.body.classList.contains("panelOpen") && selN.has(o.id) && $("lblEdit").value === o.label, other), "tocar otro elemento cambia la selección y la hoja se queda");
@@ -263,8 +265,10 @@ async function journey(browser, base, vp) {
     await page.waitForFunction(() => scStatus === "completed", null, { timeout: 20000 });
     await page.waitForTimeout(150);
     check(await page.evaluate(() => $("scReset").textContent === "Terminar" && $("scNowLabel").textContent === "Terminada"), "al acabar: «Terminar» (B2) y «Terminada»");
-    await press(t, "#scReset", vp);
-    check(await page.evaluate(() => !isScenarioPlaybackActive() && document.body.classList.contains("storyMode")), "«Terminar» cierra la reproducción y sigue en Historias");
+    /* 018.17 (D3): en la hoja móvil no hay «Terminar»: Ampliar termina la reproducción y abre el taller; se vuelve a reducir */
+    await press(t, "#btnStoryExpand", vp);
+    check(await page.evaluate(() => !isScenarioPlaybackActive() && document.body.classList.contains("storyMode") && document.body.classList.contains("storyExpanded")), "Ampliar cierra la reproducción terminada, sigue en Historias y abre el taller");
+    await press(t, "#btnStoryExpand", vp);
     await press(t, "#btnStoryExit", vp);
     check(await page.evaluate(() => !document.body.classList.contains("storyMode") && !document.body.classList.contains("panelOpen")), "«Volver a editar» vuelve al lienzo en modo Editar");
 
@@ -273,6 +277,7 @@ async function journey(browser, base, vp) {
     await page.locator("#pageMenu button", { hasText: "Renombrar" }).tap(); await page.waitForTimeout(150);
     await page.locator("#pageNameIn").fill("Pagos"); await page.locator("#pageNameSave").tap(); await page.waitForTimeout(150);
     check(await page.evaluate(() => doc.pages[doc.cur].name === "Pagos"), "renombrar la página con el dedo (menú de la pestaña)");
+    await page.evaluate(() => fitView());   /* 018.17: tras la Historia la vista queda a zoom ≥ 0,6 centrada en el paso; se encaja para tocar los dos nodos */
     const a = await page.evaluate(() => { const n = P().nodes[0], r = cv.getBoundingClientRect(); return { x: r.left + viewX + n.x * viewZoom, y: r.top + viewY + n.y * viewZoom }; });
     const b = await page.evaluate(() => { const n = P().nodes[2], r = cv.getBoundingClientRect(); return { x: r.left + viewX + n.x * viewZoom, y: r.top + viewY + n.y * viewZoom }; });
     const e0 = await page.evaluate(() => P().edges.length);
@@ -331,7 +336,7 @@ async function serviceWorker(browser, base) {
   await page.goto(base + "/"); await page.waitForFunction(() => typeof renderTabs === "function");
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
   const keys = await page.evaluate(() => caches.keys());
-  check(keys.length === 1 && keys[0] === "fluyo-static-v75", "caché instalada: fluyo-static-v75 " + JSON.stringify(keys));
+  check(keys.length === 1 && keys[0] === "fluyo-static-v76", "caché instalada: fluyo-static-v76 " + JSON.stringify(keys));
   await page.evaluate(() => localStorage.setItem("fluyo.ui.theme", "dark"));
   await ctx.setOffline(true);
   await page.reload(); await page.waitForFunction(() => typeof setUiMode === "function");

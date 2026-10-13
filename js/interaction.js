@@ -361,6 +361,13 @@ cv.addEventListener("pointerdown", ev=>{
     if(activeTouches.size===2){ startPinch(); return; }
     if(activeTouches.size>2) return;
   }
+  /* FLUYO-018.19 (D13): colocando un evento con el dedo, el lienzo solo se desplaza (y se pellizca, arriba); el destino se
+     decide al soltar, y solo si fue un toque (pointerup → scCanvasPlacementTap). Nada se selecciona ni se arrastra. */
+  if(typeof scPlacementTouchPan==="function" && scPlacementTouchPan(ev)){
+    ev.preventDefault();
+    panDrag={ x:ev.clientX, y:ev.clientY, startX:viewX, startY:viewY, isRight:false, moved:false, tap:true, placing:true };
+    return;
+  }
   /* presentando no se edita nada: el lienzo solo se mueve y se amplía */
   if(presenting){
     ev.preventDefault();
@@ -655,7 +662,11 @@ cv.addEventListener("pointerup", ev=>{
       setTimeout(() => wasRightDrag = false, 50);
     }
     const wasTap = panDrag.tap && !panDrag.moved;
+    /* colocando con el dedo: un toque (≤ 8 px, un solo dedo; un pellizco ya anuló este gesto) elige el destino */
+    const placingTap = panDrag.placing && Math.hypot(ev.clientX-panDrag.x, ev.clientY-panDrag.y)<=8;
+    const placing = panDrag.placing;
     panDrag=null;
+    if(placing){ if(placingTap && typeof scCanvasPlacementTap==="function") scCanvasPlacementTap(ev); return; }
     /* FLUYO-018.18 (D7): presentando, un toque en el lienzo no hace nada (ni cambia de página ni detiene la Historia): se
        navega con los controles del mando. Antes avanzaba de diapositiva y un roce cortaba la Historia delante de la sala. */
     if(presenting) return;

@@ -136,6 +136,8 @@ const spyGet = (p) => p.evaluate(() => JSON.parse(JSON.stringify(__spy)));
     await dlg.locator("#scEventName").fill("Vuelo");
     await dlg.locator("#scVisualPicker button", { hasText: "+" }).click();
     await dlg.locator("#scEventVisual").fill("✈️");
+    /* 018.19: cómo viaja vive en «Cómo se ve», plegado al crear */
+    await dlg.locator("#scFlowLook > summary").click();
     await dlg.locator("label:has(input[name=scFlowTrail][value=subtle]) span").click();
     await dlg.locator("label:has(input[name=scFlowStyle][value=smooth]) span").click();
     await dlg.locator("label:has(input[name=scFlowSize][value=large]) span").click();
@@ -144,6 +146,9 @@ const spyGet = (p) => p.evaluate(() => JSON.parse(JSON.stringify(__spy)));
     assert.ok(prev.preview.round > 0 && prev.preview.text > 0, "el preview dibuja rastro con el pintor compartido");
     await shot(ed, "02-modal-nuevo-avion");
     await dlg.locator("#scEventSave").click();
+    /* 018.19: crear entra en colocación con el evento nuevo; aquí se sale con Escape (el evento queda en la biblioteca) */
+    assert.equal(await ed.evaluate(() => scPlacement && eventTypeById(scPlacement.eventTypeId).name), "Vuelo");
+    await ed.keyboard.press("Escape");
     const av = await ed.evaluate(() => doc.eventTypes.find((e) => e.name === "Vuelo"));
     assert.equal(av.visual.value, "✈️");
     assert.deepEqual(av.presentation.connectionEffects, { size: "large", style: "smooth", trail: "subtle", arrival: "none", during: "none" });

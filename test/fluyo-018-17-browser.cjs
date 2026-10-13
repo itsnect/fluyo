@@ -6,7 +6,7 @@
    el lienzo oscuro e interfaz oscura con el lienzo crema. Dos fixtures: el de 4 nodos (cabe en la zona libre a zoom ≥ 0,6) y
    uno de 12 nodos (no cabe: se centra el destino del paso sin bajar de 0,6).
    Uso: node test/fluyo-018-17-browser.cjs   (Playwright vía NODE_PATH; FLUYO_BROWSER=chrome; FLUYO_SHOTS=<dir>)
-        ONLY=d1440|d1280|d1101|t768|m430|m390|m375|l844|sw  recorre solo esa parte (lo usan las mutaciones). */
+        ONLY=d1440|d1280|d1101|t768|m430|m390|m375|sw  recorre solo esa parte (lo usan las mutaciones). */
 let chromium;
 try { ({ chromium } = require("playwright")); } catch { ({ chromium } = require("playwright-core")); }
 const assert = require("node:assert/strict");
@@ -51,7 +51,8 @@ const VIEWPORTS = [
   { key: "m430", width: 430, height: 932, touch: true, mobile: true, closed: 82, compact: 72, playing: 72, props: 39 },
   { key: "m390", width: 390, height: 844, touch: true, mobile: true, closed: 80, compact: 70, playing: 70, props: 36 },
   { key: "m375", width: 375, height: 812, touch: true, mobile: true, closed: 80, compact: 68, playing: 68, props: 34 },
-  { key: "l844", width: 844, height: 390, touch: true, mobile: true, closed: 40, compact: 30, playing: 30, props: 30, panel: 216, story: 300, landscape: true },
+  /* 018.19: el teléfono en apaisado ya no es una columna de tableta (hojas laterales, franja de reproducción, sin barra inferior);
+     su recorrido —reencaje al entrar en Historias, fila activa a la vista, objetivos— lo mide test/fluyo-018-19-browser.cjs. */
 ];
 const ONLY = process.env.ONLY || "";
 
@@ -389,7 +390,7 @@ async function serviceWorker(browser, base) {
   await page.goto(base + "/"); await page.waitForFunction(() => typeof renderTabs === "function");
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
   const keys = await page.evaluate(() => caches.keys());
-  check(keys.length === 1 && keys[0] === "fluyo-static-v77", "caché instalada: fluyo-static-v77 " + JSON.stringify(keys));
+  check(keys.length === 1 && keys[0] === "fluyo-static-v78", "caché instalada: fluyo-static-v78 " + JSON.stringify(keys));
   await ctx.setOffline(true);
   await page.reload(); await page.waitForFunction(() => typeof storyState === "function");
   const off = await page.evaluate(() => ({ css: getComputedStyle(document.documentElement).getPropertyValue("--ctl-h-touch").trim(), hint: !!document.getElementById("scRunHint") }));

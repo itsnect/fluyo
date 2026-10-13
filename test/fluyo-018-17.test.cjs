@@ -43,7 +43,7 @@ test("alcance: kernel, render, geometría, exportación y Share idénticos a HEA
 
 test("sw.js: CACHE subido (v77 desde 018.18); lo que toca 018.17 sigue en el precache y nada de index.html queda fuera", () => {
   const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v77";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v78";/);
   for (const f of ["./index.html", "./css/system.css", "./css/styles.css", "./js/ui.js", "./js/editor-scenarios.js", "./docs/"]) assert.ok(sw.includes('"' + f + '"'), f + " precacheado");
   const html = read("index.html");
   const local = [...html.matchAll(/(?:src|href)="((?!https?:|#|data:)[^"]+\.(?:js|css|woff2|webmanifest|svg|png))"/g)].map((m) => m[1]).filter((u) => !u.startsWith("//"));
@@ -118,7 +118,9 @@ test("ui.js: estado derivado, zona libre, suelo de zoom, toque en el vacío, ree
   for (const fn of ["function setUiMode(mode){", "function setStoryExpanded(on){", "function openSurface(name){", "function closeSurface(){", "function placeChrome(){"]) assert.ok(between(ui, fn, "\n}\n").includes("syncStoryState();"), fn + " sincroniza el estado");
   assert.ok(!/let storyState|var storyState|storyState=/.test(ui), "sin variable espejo: el estado se deriva");
   const vcr = between(ui, "function visibleCanvasRect(){", "\n}\n");
-  assert.ok(vcr.includes('$("bottomBar").getBoundingClientRect().top - aside.offsetHeight') && vcr.includes('$("touchBar")') && vcr.includes('$("scPlacementBar")'), "resta hoja (por su altura, no por su caja en transición), barra táctil y barra de colocación");
+  /* 018.19: la misma resta por la altura de la hoja (sobre la barra inferior, o el borde si en apaisado no la hay) y, en apaisado,
+     por la DERECHA con su anchura; colocando, la hoja apartada no cuenta. Lo detalla test/fluyo-018-19.test.cjs. */
+  assert.ok(vcr.includes('floor=bb.height>0 ? bb.top : innerHeight') && vcr.includes("bottom=Math.min(bottom, floor - aside.offsetHeight)") && vcr.includes('$("touchBar")') && vcr.includes('$("scPlacementBar")'), "resta hoja (por su altura, no por su caja en transición), barra táctil y barra de colocación");
   assert.match(ui, /const REVEAL_MIN_ZOOM=0\.6;/);
   const reveal = between(ui, "function revealAboveSheet(what){", "\n}\n");
   assert.ok(reveal.includes("const v=visibleCanvasRect();") && reveal.includes("if(fit>=REVEAL_MIN_ZOOM){") && reveal.includes("if(viewZoom<REVEAL_MIN_ZOOM) viewZoom=REVEAL_MIN_ZOOM;") && reveal.includes("scStoryFocusPoint"), "encaja si cabe legible; si no, centra el paso sin bajar de 0,6");

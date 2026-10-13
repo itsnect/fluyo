@@ -8,6 +8,7 @@ let scActiveId = null,
   scStatus = "idle",
   scErrors = [];
 let scEditingEventTypeId = null,
+  scEventDialogMode = "create",
   scDrag = null,
   scPlacement = null;
 let scPointerStart = null,
@@ -794,13 +795,23 @@ function scNotice(message) {
   /* FLUYO-018.17: en la hoja móvil el aviso se coloca encima de lo que haya debajo (hoja o barra de colocación), nunca sobre
      «Cancelar». En escritorio lo coloca el CSS. */
   if (typeof isSheetLayout === "function" && isSheetLayout() && el.style) {
-    let b = ($("bottomBar") ? $("bottomBar").getBoundingClientRect().height : 52) + 12;
+    let b = ($("bottomBar") ? $("bottomBar").getBoundingClientRect().height : 52) + 12,
+      r = "";
     const aside = document.querySelector("aside");
-    if (aside && document.body.classList.contains("panelOpen") && !document.body.classList.contains("scPlacing")) b += aside.offsetHeight;
+    /* FLUYO-018.19: en apaisado la hoja está a la derecha (o es la franja de reproducción): el aviso se queda a su izquierda */
+    const side = typeof isSideSheet === "function" && isSideSheet() && !(typeof sideStrip === "function" && sideStrip());
+    if (aside && document.body.classList.contains("panelOpen") && !document.body.classList.contains("scPlacing")) {
+      if (side) r = aside.offsetWidth + 12 + "px";
+      else b += aside.offsetHeight;
+    }
     const pb = $("scPlacementBar");
     if (pb && !pb.hidden) b = Math.max(b, innerHeight - pb.getBoundingClientRect().top + 12);
     el.style.bottom = b + "px";
-  } else if (el.style) el.style.bottom = "";
+    el.style.right = r;
+  } else if (el.style) {
+    el.style.bottom = "";
+    el.style.right = "";
+  }
   clearTimeout(scNoticeTimer);
   scNoticeTimer = setTimeout(() => {
     el.hidden = true;
@@ -1003,14 +1014,21 @@ function scPlaceNow() {
   const card = $("scNow");
   if (!card || card.hidden || typeof cv === "undefined" || typeof visibleCanvasRect !== "function") return;
   const v = visibleCanvasRect(), cr = cv.getBoundingClientRect(), wr = $("wrap").getBoundingClientRect();
-  const w = card.offsetWidth, h = card.offsetHeight, left = (cr.width - w) / 2, M = 10;
-  const hit = (y) => scMomentRects().some((r) => r.right > left - 8 && r.left < left + w + 8 && r.bottom > y - 8 && r.top < y + h + 8);
+  /* FLUYO-018.19: centrado en la zona libre (con la hoja lateral abierta, a su izquierda). Si arriba y abajo tapa el destino
+     —en apaisado el lienzo es bajo y ancho—, se prueba a los lados, arriba y abajo: el rótulo no cubre nunca el momento. */
+  const w = card.offsetWidth, h = card.offsetHeight, M = 10, rects = scMomentRects();
+  const center = v.left + (v.width - w) / 2, toLeft = v.left + M, toRight = v.right - w - M;
+  const hit = (x, y) => rects.some((r) => r.right > x - 8 && r.left < x + w + 8 && r.bottom > y - 8 && r.top < y + h + 8);
   const top = v.top + M, bottom = v.bottom - h - M;
-  const y = hit(top) && bottom > top && !hit(bottom) ? bottom : top;
-  const key = Math.round(y + cr.top - wr.top) + "|" + (y !== top);
+  const spots = [[center, top], [center, bottom]];
+  if (toRight - toLeft > 16) spots.push([toLeft, top], [toRight, top], [toLeft, bottom], [toRight, bottom]);
+  const [left, y] = spots.find(([x, yy], i) => (i === 0 || yy > top || bottom > top) && !hit(x, yy)) || spots[0];
+  const cx = Math.round(left + w / 2 + cr.left - wr.left);
+  const key = Math.round(y + cr.top - wr.top) + "|" + (y !== top) + "|" + cx;
   if (key === scNowPlace) return;
   scNowPlace = key;
   card.style.top = Math.round(y + cr.top - wr.top) + "px";
+  card.style.left = cx + "px";
   if (card.classList) card.classList.toggle("atBottom", y !== top);
 }
 function scScenarioMenu(anchor) {
@@ -1911,6 +1929,8 @@ function scOpenEventDialog(id, duplicate = false) {
   scFocusReturn = document.activeElement;
   const et = id ? eventTypeById(id) : null;
   scEditingEventTypeId = duplicate ? null : id;
+  /* FLUYO-018.19: crear (no editar ni duplicar) termina colocando el evento nuevo (scSaveEventType). */
+  scEventDialogMode = !et ? "create" : duplicate ? "duplicate" : "edit";
   const used = !!et && !duplicate && eventTypeIsUsed(id);
   $("scEventDialogTitle").textContent = et && !duplicate ? "Editar evento" : "Crear evento";
   $("scEventSave").textContent = et && !duplicate ? "Guardar cambios" : "Crear evento";
@@ -1959,6 +1979,9 @@ function scOpenEventDialog(id, duplicate = false) {
     e.checked = e.value === motion;
   });
   scSetAccordionOpen("scFlowMore", !!et && (flow.during !== "none" || (et.motion || DEFAULT_EVENT_MOTION) !== DEFAULT_EVENT_MOTION));
+  /* FLUYO-018.19: «Cómo se ve» empieza plegado al crear; al editar se abre si el evento ya no viaja como por defecto */
+  const flowDefault = normalizeConnectionEffects(undefined);
+  scSetAccordionOpen("scFlowLook", !!et && (Object.keys(flowDefault).some((k) => flow[k] !== flowDefault[k]) || (et.motion || DEFAULT_EVENT_MOTION) !== DEFAULT_EVENT_MOTION));
   scPhraseParts = scParsePhrase(et?.sentenceTemplate ?? "{source} envía a {target}");
   const hasAppearance = effects.showSymbol || effects.message || effects.highlight || effects.blink || effects.dim || effects.fillColor;
   scSetAccordionOpen("scAppearance", !!et && hasAppearance);
@@ -1998,6 +2021,10 @@ function scEditorLayout() {
   if (fillConfig) fillConfig.hidden = !$("scUseFill").checked;
   const durationCustom = $("scDurationCustom");
   if (durationCustom) durationCustom.hidden = scRadioValue("scVisDur", NODE_VISUAL_DURATIONS, NODE_VISUAL_DURATION_DEFAULT) !== "custom";
+  /* FLUYO-018.19: la vista previa vive dentro del «Cómo se ve» del tipo elegido (conexión o elemento): se ve donde se ajusta */
+  const slot = (connection ? flowLook : appearance)?.querySelector?.(".scPreviewSlot"),
+    preview = document.querySelector?.(".scEventPreview");
+  if (slot && preview && preview.parentElement !== slot) slot.appendChild(preview);
   scUpdateAccordionSummaries();
 }
 function scSetAccordionOpen(id, open) {
@@ -2006,7 +2033,18 @@ function scSetAccordionOpen(id, open) {
   if (open) el.setAttribute("open", "");
   else el.removeAttribute("open");
 }
+const SC_FLOW_SUMMARY = {
+  size: { small: "Pequeño", medium: "Mediano", large: "Grande" },
+  style: { direct: "Directo", smooth: "Suave", impulse: "Impulso" },
+  trail: { none: "Sin rastro", subtle: "Rastro sutil", marked: "Rastro marcado" },
+  arrival: { pulse: "Pulso al llegar", glow: "Brillo al llegar", bounce: "Rebote al llegar" },
+};
 function scUpdateAccordionSummaries() {
+  const flowLook = $("scFlowLook");
+  if (flowLook && !flowLook.hidden && $("scFlowLookSummary")) {
+    const fx = scConnectionEffectsFromUI();
+    $("scFlowLookSummary").textContent = ["size", "style", "trail", "arrival"].map((k) => SC_FLOW_SUMMARY[k][fx[k]]).filter(Boolean).join(" · ");
+  }
   const appearance = $("scAppearance");
   if (appearance) {
     const summary = appearance.querySelector("summary");
@@ -2246,28 +2284,48 @@ function scSaveEventType() {
     return;
   }
   pushUndo();
-  const editing = !!scEditingEventTypeId;
+  const editing = !!scEditingEventTypeId,
+    created = !editing && scEventDialogMode === "create";
   const et = editing ? updateEventType(scEditingEventTypeId, def) : createEventType(def);
   const id = editing ? scEditingEventTypeId : et.id;
   scNewEventId = id;
   scCloseEventDialog();
   if ($("scEventSearch")) $("scEventSearch").value = "";
   scCommit();
-  if ($("panelScenarios").classList.contains("scCompact")) scTogglePalette(true);
   const row = $("scEventLibrary").querySelector('[data-event-type-id="' + id + '"]');
-  scScrollIntoView(row);
-  row?.querySelector("button")?.focus();
   setTimeout(() => {
     if (scNewEventId === id) scNewEventId = null;
     row?.classList.remove("new");
   }, 2400);
+  /* FLUYO-018.19 (D12): crear un evento es empezar a colocarlo. El EventType ya está completo y en la biblioteca (su Undo es
+     el de arriba); la colocación es la misma de tocar su ficha, y el Step solo nace al elegir un destino (su propio Undo). Si se
+     cancela, el evento se queda en la biblioteca para colocarlo después (D10). Editar o duplicar no colocan. */
+  if (created && scCanPlaceEvents() && (!scActiveScenario() || scEditable())) {
+    scBeginPlacement(id);
+    if (scPlacement) {
+      scPlacement.origin = "created";
+      scUpdatePlacementBar();
+      row?.querySelector("button")?.focus();
+      return;
+    }
+  }
+  if ($("panelScenarios").classList.contains("scCompact")) scTogglePalette(true);
+  scScrollIntoView(row);
+  row?.querySelector("button")?.focus();
+  const where = def.primitive === "FLOW" ? "una conexión" : "un elemento";
   scNotice(
     editing
       ? "Evento actualizado en todos sus usos."
-      : def.name +
-          " ya está en Eventos. " +
-          (def.primitive === "FLOW" ? "Arrástralo a una conexión." : "Arrástralo a un elemento."),
+      : def.name + " ya está en Eventos. " + (scCoarsePointer() ? "Tócalo y luego toca " + where + "." : "Arrástralo a " + where + "."),
   );
+}
+/* Con el dedo no se arrastra una ficha: se toca y luego se toca el destino. Los textos lo dicen según el puntero. */
+function scCoarsePointer() {
+  try {
+    return typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches;
+  } catch {
+    return false;
+  }
 }
 /* Colocación espacial. Selección previa sólo como atajo sobre un objetivo real. */
 function scPlacementType() {
@@ -2372,6 +2430,15 @@ function scUpdatePlacementBar() {
       " también a estas conexiones\n" +
       (p.existing.size + p.targets.size) +
       " conexiones en total · Al mismo tiempo";
+  else if (p?.origin === "created")
+    /* FLUYO-018.19: recién creado, la barra dice qué ha pasado y qué falta, sin descubrir que hay que tocar la ficha */
+    text =
+      (et?.name || "Evento") +
+      " creado. " +
+      (scCoarsePointer() ? "Toca " : "Elige ") +
+      (scPlacementType() === "edge" ? "la conexión" : "el elemento") +
+      " donde ocurre.\n" +
+      scTemporalHint();
   else if (p)
     text =
       (p.kind === "retarget" ? "Elige otro lugar para " : "") +
@@ -2515,7 +2582,7 @@ function scEndDrag(x, y) {
   const w = toWorldFromClient(x, y);
   scResolveDrop(id, w.x, w.y, x, y);
 }
-function scResolveDrop(id, x, y, cx, cy) {
+function scResolveDrop(id, x, y, cx, cy, touch = false) {
   const kind = scPlacement ? scPlacementType() : eventTypeById(id)?.primitive === "FLOW" ? "edge" : "node";
   if (kind === "edge" && !hitNode(x, y)) {
     const candidates = scEdgeCandidates(x, y);
@@ -2536,6 +2603,12 @@ function scResolveDrop(id, x, y, cx, cy) {
         : []
       : scEdgeCandidates(x, y).map((e) => e.id);
   if (!targets.length) {
+    /* FLUYO-018.19 (D13): con el dedo, tocar donde no hay destino no cancela: se sigue colocando (y explorando el lienzo).
+       Cancelar es explícito (Cancelar, Escape). Con ratón, como siempre. */
+    if (touch && scPlacement) {
+      scNotice("Toca " + (kind === "edge" ? "una conexión" : "un elemento") + " compatible para colocarlo, o «Cancelar».");
+      return;
+    }
     if (scPlacement?.kind !== "multi") scCancelPlacement();
     scNotice(
       "No se añadió nada. Elige " + (kind === "edge" ? "una conexión" : "un elemento") + " compatible.",
@@ -2689,8 +2762,21 @@ function scGlobalPointerUp(ev) {
   }
   scPointerStart = null;
 }
+/* FLUYO-018.19 (D11, D13): con el dedo, colocar no se decide al apoyar. El lienzo hace su gesto (un dedo desplaza, dos
+   pellizcan; interaction.js lo arma como un desplazamiento) y, al soltar, SOLO un toque sin desplazamiento resuelve el destino
+   (scCanvasPlacementTap). Así un destino fuera de la vista se alcanza desplazando sin perder la colocación, y desplazar nunca
+   coloca. Con ratón no cambia nada: el clic resuelve al apoyar. */
+function scPlacementTouchPan(ev) {
+  return !!scPlacement && !scDrag && ev.pointerType === "touch";
+}
+function scCanvasPlacementTap(ev) {
+  if (!scPlacement || scDrag) return;
+  const w = toWorldFromClient(ev.clientX, ev.clientY);
+  scResolveDrop(scPlacement.eventTypeId, w.x, w.y, ev.clientX, ev.clientY, true);
+}
 function scCanvasPlacementPointer(ev) {
   if (!scPlacement || scDrag) return false;
+  if (ev.pointerType === "touch") return false;
   if (ev.button !== 0) return true;
   ev.preventDefault();
   const w = toWorldFromClient(ev.clientX, ev.clientY);
@@ -2722,6 +2808,14 @@ function scInitUI() {
   bind("scDetailsDone", () => $("scDetailsDialog").close());
   if ($("scEventSearch")) $("scEventSearch").oninput = scRenderEventLibrary;
   if ($("scEventName")) $("scEventName").oninput = scUpdateEventPreview;
+  /* FLUYO-018.19: Intro en el nombre crea (o guarda): con el teclado virtual abierto el pie del diálogo queda debajo */
+  if ($("scEventName"))
+    $("scEventName").onkeydown = (ev) => {
+      if (ev.key === "Enter" && !ev.isComposing) {
+        ev.preventDefault();
+        scSaveEventType();
+      }
+    };
   if ($("scEventVisual"))
     $("scEventVisual").oninput = () => {
       scVisual = $("scEventVisual").value;
@@ -2742,7 +2836,13 @@ function scInitUI() {
     .querySelectorAll('input[name="scConsequence"]')
     .forEach((input) => (input.onchange = scUpdateEventPreview));
   for (const name of ["scMotion", "scFlowSize", "scFlowStyle", "scFlowTrail", "scFlowArrival", "scFlowDuring", "scSymbolSize"])
-    document.querySelectorAll('input[name="' + name + '"]').forEach((input) => (input.onchange = scUpdateEventPreview));
+    document.querySelectorAll('input[name="' + name + '"]').forEach(
+      (input) =>
+        (input.onchange = () => {
+          scUpdateAccordionSummaries();
+          scUpdateEventPreview();
+        }),
+    );
   for (const id of ["scShowSymbol", "scHighlight", "scBlink", "scDim", "scUseMessage", "scUseFill"]) {
     const el = $(id);
     if (el)

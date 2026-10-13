@@ -140,7 +140,9 @@ async function editorStory(browser, base, vp) {
   }
   check(JSON.stringify(ats) === "[0,500,2500,7000]", `${tag}: «siguiente» recorre los momentos ${JSON.stringify(ats)}`);
   check(!sheet || heights.every((h) => h === heights[0]), `${tag}: la hoja mide lo mismo en los 4 momentos ${JSON.stringify(heights)}`);
-  check(!sheet || Math.abs(heights[0] - compactH) <= 8, `${tag}: reproduciendo mide lo que la compacta (${heights[0]} / ${compactH} px)`);
+  /* 018.19 (D6): en el teléfono apaisado, reproducir recoge la hoja lateral en una franja inferior de una fila */
+  if (vp.landscape) check(heights[0] <= 72, `${tag}: reproduciendo, la hoja es una franja de una fila (${heights[0]} px)`);
+  else check(!sheet || Math.abs(heights[0] - compactH) <= 8, `${tag}: reproduciendo mide lo que la compacta (${heights[0]} / ${compactH} px)`);
   check(canvas.every((c) => c >= vp.playing), `${tag}: lienzo ≥ ${vp.playing}% en todos los momentos ${JSON.stringify(canvas)}`);
   check(overlaps.every((o) => !o), `${tag}: el rótulo nunca tapa el destino del momento ${JSON.stringify(overlaps)}`);
   check(ins.every(Boolean), `${tag}: el destino del momento está en la zona libre ${JSON.stringify(ins)}`);
@@ -287,7 +289,8 @@ async function pages(browser, base, vp) {
   await load(page, MANY);
   const g = await page.evaluate(() => { const vis = (e) => e && e.getBoundingClientRect().width > 0 && getComputedStyle(e).display !== "none"; const bar = $("pagesBar"), br = bar.getBoundingClientRect(); const free = (e) => { const r = e.getBoundingClientRect(), top = document.elementFromPoint(r.left + Math.min(20, r.width / 2), r.top + r.height / 2); return r.left >= br.left - 1 && r.right <= br.right + 1 && (e === top || e.contains(top)); }; const act = bar.querySelector(".tab.active"), sel = bar.querySelector(".pgSelect"), add = bar.querySelector(".pgAdd"); return { x: bar.querySelectorAll(".x").length, sel: vis(sel) ? [sel.textContent, Math.round(sel.getBoundingClientRect().height), free(sel)] : null, act: vis(act) ? free(act) : null, actName: vis(act) ? act.querySelector("span").textContent : null, add: vis(add) ? free(add) : null, more: vis(act && act.querySelector(".pgMore")), ox: document.documentElement.scrollWidth - innerWidth }; });
   check(g.x === 0, `${tag}: ninguna pestaña lleva ✕`);
-  const mobile = vp.mobile && !vp.landscape;
+  /* 018.19: el teléfono en apaisado usa la gramática del teléfono: también el selector de página (ahora en la cabecera) */
+  const mobile = vp.mobile;
   if (mobile) check(g.sel && /^03Conciliación nocturna$/.test(g.sel[0]) && g.sel[1] >= 44 && g.sel[2], `${tag}: el selector dice qué página es («03 Conciliación nocturna») y es tocable ${JSON.stringify(g.sel)}`);
   else check(g.act === true && g.actName === "Conciliación nocturna" && g.add === true && g.more, `${tag}: la activa a la vista (no tapada), «＋» a la vista y ▾ ${JSON.stringify(g)}`);
   check(g.ox <= 0, `${tag}: sin desbordar la página`);
@@ -376,8 +379,8 @@ async function serviceWorker(browser, base) {
   await page.goto(base + "/"); await page.waitForFunction(() => typeof renderTabs === "function");
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
   const keys = await page.evaluate(() => caches.keys());
-  check(keys.length === 1 && keys[0] === "fluyo-static-v77", "caché instalada: fluyo-static-v77 " + JSON.stringify(keys));
-  const clock = await page.evaluate(async (b) => !!(await (await caches.open("fluyo-static-v77")).match(b + "/js/story-clock.js")), base);
+  check(keys.length === 1 && keys[0] === "fluyo-static-v78", "caché instalada: fluyo-static-v78 " + JSON.stringify(keys));
+  const clock = await page.evaluate(async (b) => !!(await (await caches.open("fluyo-static-v78")).match(b + "/js/story-clock.js")), base);
   check(clock, "story-clock.js en la caché");
   await ctx.setOffline(true);
   await page.reload(); await page.waitForFunction(() => typeof scTogglePause === "function" && typeof FluyoStoryClock === "object");

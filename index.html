@@ -687,14 +687,14 @@ try{
 <div id="scNotice" role="status" hidden></div>
 <div id="scPopover" class="scPopover" hidden></div>
 <dialog id="scEventDialog" class="scDialog scEventDialog" aria-labelledby="scEventDialogTitle">
-  <header><div><h2 id="scEventDialogTitle">Crear evento</h2><p id="scEventDialogSubtitle">Disponible en todo este proyecto.</p></div><button id="scEventClose" type="button" aria-label="Cerrar editor de evento">×</button></header>
+  <header><div><h2 id="scEventDialogTitle">Crear evento</h2><p id="scEventDialogSubtitle" hidden>Disponible en todo este proyecto.</p></div><button id="scEventClose" class="iconBtn btnGhost" type="button" aria-label="Cerrar editor de evento"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></header>
   <div class="scDialogBody">
     <p id="scEventScope" class="scScope" hidden>Los cambios de nombre, frase y apariencia se verán en todas las historias que usan este evento.</p>
     <p id="scEventLocked" class="scScope" hidden>Este evento ya está en uso. Puedes cambiar cómo se ve y cómo se cuenta. Para cambiar dónde ocurre o su comportamiento, duplica el evento.</p>
     <div class="scEventColumns"><div class="scEventFields">
       <div class="scFieldGroup">
         <label for="scEventName">Nombre</label>
-        <input id="scEventName" maxlength="60" placeholder="Por ejemplo, Pago" autocomplete="off">
+        <input id="scEventName" maxlength="60" placeholder="Por ejemplo, Pago" autocomplete="off" enterkeyhint="done">
       </div>
       <fieldset id="scWhere" class="scFieldGroup scWhereGroup"><legend>¿Dónde ocurre?</legend>
         <div class="scSegmented" role="group" aria-label="¿Dónde ocurre?">
@@ -717,8 +717,12 @@ try{
           <small id="scVisualHelp">Un símbolo, emoji o texto corto. Sin imágenes ni archivos.</small>
         </div>
       </div>
-      <div id="scFlowLook" class="scFieldGroup scFlowLook" hidden>
-        <p class="scFlowLead">¿Cómo viaja este evento?</p>
+      <!-- FLUYO-018.19: lo que define el evento (nombre, dónde, frase, símbolo) va primero; cómo se ve, plegado y con la vista
+           previa dentro (scEditorLayout la mueve al plegable del tipo elegido). Mismos ids y mismos campos. -->
+      <details id="scFlowLook" class="scAccordion scFlowLook" hidden>
+        <summary><span class="scAccordionTitle">Cómo se ve</span><span class="scAccordionSummary" id="scFlowLookSummary"></span></summary>
+        <div class="scAccordionBody">
+        <div class="scPreviewSlot"><div class="scEventPreview"><h3>Así se verá</h3><div id="scPreviewDiagram"></div><p id="scEventPreview"></p><button id="scPreviewPlay" type="button">▶ Ver ejemplo</button><p class="hint">Ejemplo ilustrativo. No modifica la historia.</p></div></div>
         <fieldset class="scFlowField"><legend>¿De qué tamaño?</legend>
           <div class="scSegmented scVisualSeg" role="radiogroup" aria-label="¿De qué tamaño?"><label><input type="radio" name="scFlowSize" value="small" checked><span><i class="scSizeDot s1">●</i>Pequeño</span></label><label><input type="radio" name="scFlowSize" value="medium"><span><i class="scSizeDot s2">●</i>Mediano</span></label><label><input type="radio" name="scFlowSize" value="large"><span><i class="scSizeDot s3">●</i>Grande</span></label></div>
         </fieldset>
@@ -746,19 +750,21 @@ try{
           <div class="scSegmented scVisualSeg" role="radiogroup" aria-label="¿Y mientras viaja?"><label><input type="radio" name="scFlowDuring" value="none" checked><span>Nada</span></label><label><input type="radio" name="scFlowDuring" value="halo"><span>Halo</span></label><label><input type="radio" name="scFlowDuring" value="breathe"><span>Respirar</span></label></div>
         </fieldset>
         </details>
-      </div>
+        </div>
+      </details>
 
       <details id="scAppearance" class="scAccordion" hidden>
-        <summary><span class="scAccordionTitle">Personalizar apariencia</span><span class="scAccordionSummary" id="scAppearanceSummary"></span></summary>
+        <summary><span class="scAccordionTitle">Cómo se ve</span><span class="scAccordionSummary" id="scAppearanceSummary"></span></summary>
         <div class="scAccordionBody">
+          <div class="scPreviewSlot"></div>
           <p class="scSectionLead">¿Cómo quieres que se vea?</p>
           <div class="scEffectGrid" role="group" aria-label="Efectos visuales">
-            <label class="scEffectChip"><input type="checkbox" id="scShowSymbol"><span class="scEffectIcon">◎</span><span class="scEffectLabel">Símbolo</span></label>
-            <label class="scEffectChip"><input type="checkbox" id="scUseMessage"><span class="scEffectIcon">T</span><span class="scEffectLabel">Mensaje</span></label>
-            <label class="scEffectChip"><input type="checkbox" id="scHighlight"><span class="scEffectIcon">✦</span><span class="scEffectLabel">Resaltar</span></label>
-            <label class="scEffectChip"><input type="checkbox" id="scDim"><span class="scEffectIcon">◐</span><span class="scEffectLabel">Oscurecer</span></label>
-            <label class="scEffectChip"><input type="checkbox" id="scBlink"><span class="scEffectIcon">✺</span><span class="scEffectLabel">Parpadear</span></label>
-            <label class="scEffectChip"><input type="checkbox" id="scUseFill"><span class="scEffectIcon">●</span><span class="scEffectLabel">Color</span></label>
+            <label class="scEffectChip"><input type="checkbox" id="scShowSymbol"><span class="scEffectLabel">Símbolo</span></label>
+            <label class="scEffectChip"><input type="checkbox" id="scUseMessage"><span class="scEffectLabel">Mensaje</span></label>
+            <label class="scEffectChip"><input type="checkbox" id="scHighlight"><span class="scEffectLabel">Resaltar</span></label>
+            <label class="scEffectChip"><input type="checkbox" id="scDim"><span class="scEffectLabel">Oscurecer</span></label>
+            <label class="scEffectChip"><input type="checkbox" id="scBlink"><span class="scEffectLabel">Parpadear</span></label>
+            <label class="scEffectChip"><input type="checkbox" id="scUseFill"><span class="scEffectLabel">Color</span></label>
           </div>
           <div id="scShowSymbolConfig" class="scEffectConfig" hidden>
             <p class="scSymbolUse">Usa: <span id="scSymbolUse" class="scSymbolUseValue">●</span> <button id="scChangeSymbol" type="button" class="scLinkBtn">Cambiar símbolo</button></p>
@@ -828,7 +834,7 @@ try{
           <p class="hint">Esto afecta a los eventos que intentan entrar o salir del elemento durante la reproducción.</p>
         </div>
       </details>
-    </div><div class="scEventPreview"><h3>Así se verá</h3><div id="scPreviewDiagram"></div><p id="scEventPreview"></p><button id="scPreviewPlay" type="button">▶ Ver ejemplo</button><p class="hint">Ejemplo ilustrativo. No modifica la historia.</p></div></div>
+    </div></div>
     <p id="scEventError" role="alert" hidden></p>
   </div>
   <footer><button id="scEventCancel" type="button">Cancelar</button><button id="scEventSave" type="button" class="primary">Crear evento</button></footer>

@@ -168,7 +168,7 @@ test("Viewer: system.css y la mono precargada, CSP intacta (sin style inline), i
 
 test("sw.js: CACHE v72; lo que carga el Viewer está precacheado", () => {
   const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v77";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v78";/);
   const html = read("s/index.html");
   for (const m of html.matchAll(/(?:src|href)="\.\.\/((?:css|js|assets)\/[^"#?]+)"/g)) assert.ok(sw.includes('"./' + m[1] + '"'), m[1] + " precacheado");
 });

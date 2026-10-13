@@ -76,7 +76,8 @@ const spyGet = (p) => p.evaluate(() => JSON.parse(JSON.stringify(__spy)));
     const runAll = async () => { await ed.evaluate(() => scRun()); await until(ed, () => scStatus === "completed"); return spyGet(ed); };
     const traceOf = () => ed.evaluate(() => JSON.stringify(FluyoScenarios.runScenario({ nodes: P().nodes, edges: P().edges }, P().behaviors || [], scActiveScenario()).trace));
     const dlg = ed.locator("#scEventDialog");
-    const setFx = async (fx) => { for (const [k, name] of [["size", "scFlowSize"], ["style", "scFlowStyle"], ["trail", "scFlowTrail"], ["arrival", "scFlowArrival"], ["during", "scFlowDuring"]]) if (fx[k]) { if (k === "during") await dlg.locator("#scFlowMore > summary").click().catch(() => {}); await dlg.locator(`label:has(input[name=${name}][value=${fx[k]}]) span`).click({ force: true }); } };
+    /* 018.19: cómo viaja vive en «Cómo se ve» (plegado si el evento viaja como por defecto): se abre antes de elegir */
+    const setFx = async (fx) => { if (!(await ed.evaluate(() => document.getElementById("scFlowLook").open))) await dlg.locator("#scFlowLook > summary").click(); for (const [k, name] of [["size", "scFlowSize"], ["style", "scFlowStyle"], ["trail", "scFlowTrail"], ["arrival", "scFlowArrival"], ["during", "scFlowDuring"]]) if (fx[k]) { if (k === "during") await dlg.locator("#scFlowMore > summary").click().catch(() => {}); await dlg.locator(`label:has(input[name=${name}][value=${fx[k]}]) span`).click({ force: true }); } };
 
     /* ── 4 — negocio completo: preview, Editor, Present, Viewer con la MISMA semántica ── */
     await load(two("💵", null, "normal", "Pago"));

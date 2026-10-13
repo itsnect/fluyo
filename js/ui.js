@@ -6,8 +6,13 @@
    arriba. Una sola fuente para «¿es hoja?» y para el modo (decisión 131). */
 const mqCompact=window.matchMedia ? matchMedia("(max-width: 1100px)") : null;
 const mqSheet=window.matchMedia ? matchMedia("(max-width: 700px)") : null;
+/* FLUYO-018.19 (D2–D6): el teléfono en apaisado (y solo con puntero táctil: el escritorio nunca entra aquí) usa la gramática del
+   teléfono —hojas que se piden y se cierran, ⚙ contextual, estados de Historias— pero las hojas salen por la DERECHA y la barra
+   inferior desaparece (páginas y modos suben a la cabecera). Antes caía en el layout de tableta por anchura. */
+const mqSide=window.matchMedia ? matchMedia("(orientation: landscape) and (max-height: 500px) and (pointer: coarse)") : null;
 let uiMode="edit";
-function isSheetLayout(){ return !!(mqSheet && mqSheet.matches); }
+function isSideSheet(){ return !!(mqSide && mqSide.matches); }
+function isSheetLayout(){ return !!((mqSheet && mqSheet.matches) || isSideSheet()); }
 /* FLUYO-018.17 (M2): sin selección, ⚙ desaparece y la hoja de Propiedades se cierra, pero solo AL REPOSO: tocar otro elemento
    vacía y vuelve a llenar la selección dentro del mismo gesto (clearSel en pointerdown, selección en pointerup), y entre
    medias no hay que cerrar nada. */
@@ -729,7 +734,9 @@ function placePageMenu(anchor){
   const m=$("pageMenu");
   const r=anchor && anchor.isConnected ? anchor.getBoundingClientRect() : {left:12, top:innerHeight-60};
   m.style.left=Math.max(8, Math.min(r.left, innerWidth-m.offsetWidth-8))+"px";
-  m.style.top=Math.max(8, r.top-m.offsetHeight-6)+"px";
+  /* encima del ancla (barra inferior); si no cabe encima —el selector vive en la cabecera en apaisado, FLUYO-018.19—, debajo */
+  const above=r.top-m.offsetHeight-6;
+  m.style.top=(above>=8 ? above : Math.max(8, Math.min((r.bottom||r.top)+6, innerHeight-m.offsetHeight-8)))+"px";
 }
 function openPageMenu(i, anchor, opts){
   const m=$("pageMenu"), pg=doc.pages[i];
@@ -952,6 +959,8 @@ function setStoryExpanded(on){
   if(was!==!!on && typeof scSyncCompact==="function") scSyncCompact();
   /* al ampliar mientras se reproduce, la línea de tiempo acaba de aparecer: que el siguiente fotograma traiga la fila activa */
   if(on && typeof scFollowedStep!=="undefined") scFollowedStep=null;
+  /* FLUYO-018.19: en pausa no hay fotogramas que la sigan: se trae ya, en cuanto la línea de tiempo está pintada */
+  if(on && typeof scFollowActive==="function" && typeof requestAnimationFrame==="function") requestAnimationFrame(()=>scFollowActive());
   syncStoryState();
 }
 function openSurface(name){
@@ -969,17 +978,24 @@ function openSurface(name){
    lienzo. Es la ÚNICA definición de «lo que se ve»: la usan revealAboveSheet y, en Historias, scTargetOffscreen /
    scRevealTarget (editor-scenarios.js), así que «fuera de pantalla» significa lo mismo para todos. En columna (> 700 px)
    es el lienzo entero. */
+/* FLUYO-018.19: en apaisado la hoja ocupa la DERECHA (Propiedades, Historias) o, reproduciendo, una franja inferior; colocando
+   un evento la hoja está apartada y no cuenta. Sigue siendo la única definición: quien la usa no sabe dónde está la hoja. */
+function sideStrip(){ return isSideSheet() && document.body.dataset.story==="playing" && !document.body.classList.contains("storyExpanded"); }
 function visibleCanvasRect(){
   const cr=cv.getBoundingClientRect();
-  let top=cr.top, bottom=cr.bottom;
+  let top=cr.top, bottom=cr.bottom, left=cr.left, right=cr.right;
   const vis=e=>!!e && !e.hidden && getComputedStyle(e).visibility!=="hidden" && e.getBoundingClientRect().height>0;
   const aside=document.querySelector("aside");
-  /* la hoja entra con una transición de transform: su posición final sale de su altura (offsetHeight), no de su caja animada */
-  if(isSheetLayout() && document.body.classList.contains("panelOpen") && aside) bottom=Math.min(bottom, $("bottomBar").getBoundingClientRect().top - aside.offsetHeight);
+  /* la hoja entra con una transición de transform: su posición final sale de su tamaño (offsetWidth/Height), no de su caja animada */
+  if(isSheetLayout() && document.body.classList.contains("panelOpen") && aside && !document.body.classList.contains("scPlacing")){
+    const bb=$("bottomBar").getBoundingClientRect(), floor=bb.height>0 ? bb.top : innerHeight;
+    if(isSideSheet() && !sideStrip()) right=Math.min(right, innerWidth - aside.offsetWidth);
+    else bottom=Math.min(bottom, floor - aside.offsetHeight);
+  }
   const tb=$("touchBar"); if(vis(tb)){ const r=tb.getBoundingClientRect(); if(r.top<(top+bottom)/2) top=Math.max(top, r.bottom); }
   const pb=$("scPlacementBar"); if(vis(pb)) bottom=Math.min(bottom, pb.getBoundingClientRect().top);
-  bottom=Math.max(top, bottom);
-  return {left:0, top:top-cr.top, right:cr.width, bottom:bottom-cr.top, width:cr.width, height:bottom-top};
+  bottom=Math.max(top, bottom); right=Math.max(left, right);
+  return {left:left-cr.left, top:top-cr.top, right:right-cr.left, bottom:bottom-cr.top, width:right-left, height:bottom-top};
 }
 /* Por debajo de este zoom un nodo típico mide < 36 px y su etiqueta < 8 px: ya no es reconocible. Encajar la página en la
    zona libre nunca baja de aquí (D2: el zoom no se reduce artificialmente para «meterlo todo»). */
@@ -1171,6 +1187,17 @@ function placeChrome(){
   const mobile=isSheetLayout();
   const header=document.querySelector("header"), more=$("moreTools"), tools=$("hdrTools");
   const exp=$("btnExport"), pres=$("btnPresent"), canvasTools=$("canvasTools");
+  /* FLUYO-018.19: en apaisado no hay barra inferior; el selector de página y los modos (Historias · Presentar) suben a la
+     cabecera. Mismos nodos y mismos ids; vuelven a la barra inferior al girar. */
+  const side=isSideSheet(), pages=$("pagesBar"), modes=$("modeBar"), bb=$("bottomBar");
+  document.body.classList.toggle("sideSheet", side);
+  if(side){
+    if(pages.parentNode!==header) header.insertBefore(pages, $("hdrHistory").nextSibling);
+    if(modes.parentNode!==header) header.insertBefore(modes, $("btnShare"));
+  } else {
+    if(pages.parentNode!==bb) bb.insertBefore(pages, bb.firstChild);
+    if(modes.parentNode!==bb) bb.appendChild(modes);
+  }
   if(mobile){
     if(exp.parentNode!==tools) tools.insertBefore(exp, $("btnClear"));
     if(canvasTools.parentNode!==more) more.appendChild(canvasTools);
@@ -1199,7 +1226,36 @@ function placeChrome(){
   syncSurfaceButtons();
   syncStoryState();
 }
-for(const mq of [mqCompact, mqSheet]) if(mq && mq.addEventListener) mq.addEventListener("change", placeChrome);
+for(const mq of [mqCompact, mqSheet, mqSide]) if(mq && mq.addEventListener) mq.addEventListener("change", placeChrome);
+
+/* ===================== Reencaje al girar (FLUYO-018.19, D14) =====================
+   La regla de 018.17/018.18 (decisión 151 y el Viewer de la 159), aplicada al giro del teléfono o la tableta: si el diagrama se
+   veía ENTERO antes de girar, se vuelve a encajar en el lienzo nuevo; si el usuario lo tenía acercado, se conserva el zoom y el
+   punto que miraba sigue en el centro. Con una hoja abierta, después se revela lo que importa (la página en Historias, la
+   selección en Propiedades) como al abrirla. Solo la vista: ni el documento, ni la selección, ni Undo. Con ratón no se aplica
+   (una ventana de escritorio que cambia de proporción no es un giro). */
+let lastWrapBox=null;
+function wrapBox(){ const r=$("wrap").getBoundingClientRect(); return {w:r.width, h:r.height, landscape:innerWidth>innerHeight}; }
+function diagramInsideBox(w, h){
+  if(!P().nodes.length) return false;
+  const b=getBounds(), x0=viewX+b.x*viewZoom, y0=viewY+b.y*viewZoom;
+  return x0>=-1 && y0>=-1 && x0+b.w*viewZoom<=w+1 && y0+b.h*viewZoom<=h+1;
+}
+function refitOnRotate(){
+  const prev=lastWrapBox, now=wrapBox();
+  if(!now.w || !now.h) return;
+  lastWrapBox=now;
+  if(!prev || prev.landscape===now.landscape || presenting) return;
+  if(!(window.matchMedia && matchMedia("(pointer: coarse)").matches)) return;
+  if(diagramInsideBox(prev.w, prev.h)) fitView();
+  else {
+    const wx=(prev.w/2-viewX)/viewZoom, wy=(prev.h/2-viewY)/viewZoom;
+    viewX=now.w/2-wx*viewZoom; viewY=now.h/2-wy*viewZoom;
+  }
+  if(isSheetLayout() && document.body.classList.contains("panelOpen")) revealAboveSheet(uiMode==="story" ? "page" : "selection");
+}
+window.addEventListener("resize", ()=>requestAnimationFrame(refitOnRotate));
+if(typeof requestAnimationFrame==="function") requestAnimationFrame(()=>{ lastWrapBox=wrapBox(); });
 
 /* ===================== Deshacer / Rehacer visibles (FLUYO-018.12) =====================
    Hasta ahora solo existían como atajo: con el dedo, cualquier error era

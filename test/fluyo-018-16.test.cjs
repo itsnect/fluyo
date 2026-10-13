@@ -202,7 +202,7 @@ test("fixtures compartidos con fluyo-mcp (si está al lado)", () => {
 
 test("sw.js: CACHE v75 (cambian geometry, render, interaction, selection, export, editor-runtime, index y docs; ya precacheados)", () => {
   const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v77";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v78";/);
   for (const f of ["./js/geometry.js", "./js/render.js", "./js/interaction.js", "./js/selection.js", "./js/export.js", "./js/editor-runtime.js", "./docs/"]) assert.ok(sw.includes(f), f);
   assert.match(LF(head("sw.js")), /fluyo-static-v\d+/);
 });

@@ -914,7 +914,9 @@ body.scPlaybackOn #wrap::after{box-shadow:inset 0 0 0 2px var(--active), inset 0
 }
 
 /* ---- Móvil (≤700 px) ---- */
-@media (max-width:700px){
+/* FLUYO-018.19: también el teléfono en apaisado (táctil y ≤ 500 px de alto): la misma gramática del teléfono. Lo que cambia en
+   apaisado (hojas a la derecha, sin barra inferior, rail vertical) está al final del archivo. */
+@media (max-width:700px), (orientation:landscape) and (max-height:500px) and (pointer:coarse){
   body > header{gap:4px; padding:0 6px 0 12px; min-height:52px;}
   body > header .logo .dots{display:none;}
   body > header > .hdrDiv, .modeSwitch, body > header > #btnCanvas{display:none;}
@@ -1048,7 +1050,7 @@ body.scPlaybackOn #wrap::after{box-shadow:inset 0 0 0 2px var(--active), inset 0
   body > header > #btnShare{width:var(--ctl-h); min-width:var(--ctl-h); padding:0;}
   body > header > #btnShare .lbl{position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap;}
 }
-@media (max-width:700px) and (prefers-reduced-motion:reduce){ aside, body.panelOpen aside{transition:none;} }
+@media (max-width:700px) and (prefers-reduced-motion:reduce), (orientation:landscape) and (max-height:500px) and (pointer:coarse) and (prefers-reduced-motion:reduce){ aside, body.panelOpen aside{transition:none;} }
 @media (prefers-reduced-motion:reduce){ .scLive{animation:none;} }
 /* El rótulo «Historias» queda para el nombre accesible del selector (aria-labelledby); a la vista lo dice la barra del modo. */
 .scStoriesLabel{position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap;}
@@ -1058,3 +1060,95 @@ body.scPlaybackOn #wrap::after{box-shadow:inset 0 0 0 2px var(--active), inset 0
 /* FLUYO-018.17: con el dedo, los campos a 16 px también donde una regla con id fija el tamaño (Safari iOS hace zoom al enfocar
    un campo más pequeño). La regla general está al final de css/system.css. */
 @media (pointer:coarse){ textarea#lblEdit, #panelProperties .row select, #panelProperties .row input:not([type=range]):not([type=checkbox]):not([type=color]), .scPopover input, .pageMenu input, .moreMenu select, .scDialog input:not([type=radio]):not([type=checkbox]):not([type=color]), .scDialog select{font-size:16px;} }
+
+/* ===================== FLUYO-018.19 — Diálogo de evento: lo esencial primero =====================
+   Nombre · dónde ocurre · frase · símbolo arriba; «Cómo se ve» plegado con la vista previa dentro (index.html). Una columna,
+   44 px con el dedo para lo que cierra, confirma o elige (segmentados, plegables, «Ver ejemplo»), 40 para chips e inserción,
+   y nada por debajo de 28 con ratón. Lo seleccionado usa el oliva de activo del sistema, no el cian del editor antiguo. */
+@media (min-width:561px) and (min-height:501px){ .scDialog.scEventDialog{width:min(600px, calc(100vw - 32px));} }
+.scEventColumns{display:block;}
+.scEventPreview{position:static; top:auto; padding:12px; box-shadow:none;}
+.scPreviewSlot:empty{display:none;}
+#scEventClose{width:var(--ctl-h); min-width:var(--ctl-h); min-height:var(--ctl-h); padding:0; justify-content:center;}
+.scDialog .scPhrase input.scPhraseText{border:0; background:transparent; box-shadow:none; padding:5px 2px; min-height:28px; min-width:28px;}
+.scDialog .scPhrase input.scPhraseText:focus{box-shadow:inset 0 -1px 0 var(--active);}
+.scPhraseChip{display:inline-flex; align-items:center; min-height:28px; background:var(--active-veil); border-color:var(--active-rule);}
+.scPhraseInsert button, .scFlowMore>summary, #scPreviewPlay{min-height:28px;}
+.scFlowMore>summary{display:flex; align-items:center;}
+.scSegmented input:checked+span, #scVisualPicker button[aria-pressed=true]{border-color:var(--active-rule); background:var(--active-veil);}
+.scChoice:has(input:checked), .scEffectChip:has(input:checked){border-color:var(--active-rule); background:var(--active-veil);}
+#scVisualPicker button:last-child{min-width:40px;}
+.scEffectChip{flex-direction:row; min-height:40px; padding:0 8px;}
+.scEffectLabel{font-size:12px;}
+@media (pointer:coarse){
+  #scEventClose{min-width:var(--ctl-h-touch); min-height:var(--ctl-h-touch);}
+  .scDialog>footer button{min-height:var(--ctl-h-touch); padding:0 18px;}
+  .scSegmented span{min-height:var(--ctl-h-touch); display:flex; align-items:center;}
+  .scAccordion summary{min-height:var(--ctl-h-touch); justify-content:center; box-sizing:border-box;}
+  .scFlowMore>summary, #scPreviewPlay, .scEffectChip, .scChoice{min-height:var(--ctl-h-touch);}
+  .scPhraseChip, .scPhraseInsert button, #scChangeSymbol, .scDialog .scPhrase input.scPhraseText{min-height:var(--row-h-touch);}
+  .scDialog .scPhrase input.scPhraseText{min-width:var(--row-h-touch);}
+  .scPhraseInsert button{padding:0 12px; font-size:12px;}
+  #scVisualPicker button{min-width:var(--row-h-touch);}
+}
+/* Teléfono (pantalla completa): cabecera de una línea, pie con el área segura. */
+@media (max-width:560px), (max-height:500px){
+  .scEventDialog > header{padding:4px 8px 4px 16px; min-height:52px;}
+  .scEventDialog > footer{padding:8px 16px calc(8px + env(safe-area-inset-bottom));}
+  .scEventDialog .scDialogBody{padding:16px;}
+}
+/* Apaisado corto: el nombre y «¿Dónde ocurre?» comparten fila; lo demás, a lo ancho. */
+@media (orientation:landscape) and (max-height:500px){
+  .scEventFields{display:grid; grid-template-columns:minmax(0,1fr) auto; column-gap:16px; row-gap:14px;}
+  .scEventFields>*{grid-column:1 / -1;}
+  .scEventFields>.scFieldGroup:first-child{grid-column:1;}
+  .scEventFields>#scWhere{grid-column:2;}
+}
+
+/* ===================== FLUYO-018.19 — Teléfono en apaisado: lienzo + hoja lateral =====================
+   Solo con puntero táctil y ≤ 500 px de alto (el escritorio nunca entra). Rige la gramática del teléfono (bloque «Móvil»), con
+   estas diferencias: una sola barra superior de 48 px que recibe el selector de página y los modos (placeChrome), sin barra
+   inferior, rail vertical que se desplaza (nunca desborda el documento), Propiedades e Historias como hojas a la DERECHA que solo
+   aparecen cuando se piden, y reproducir como una franja inferior de una fila (como Present y el Viewer en apaisado). */
+@media (orientation:landscape) and (max-height:500px) and (pointer:coarse){
+  :root{ --bb-h:0px; --side-w:320px; --props-w:min(320px, 44vw); --hdr-h:48px; }
+  #bottomBar{display:none;}
+  body > header{min-height:var(--hdr-h); height:var(--hdr-h); padding:0 8px 0 12px; gap:4px;}
+  body > header > #pagesBar{flex:0 1 240px; min-width:0; display:flex; align-items:center; padding:0 0 0 4px; border:0; background:transparent; overflow:hidden;}
+  body > header > #pagesBar > .pgSelect{max-width:100%;}
+  body > header > #modeBar{padding:0; gap:4px;}
+  body > header > #btnShare{width:var(--ctl-h); min-width:var(--ctl-h); padding:0;}
+  body > header > #btnShare .lbl{position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap;}
+  #btnPanel{display:inline-flex; align-items:center; justify-content:center;}
+  .moreMenu{top:calc(var(--hdr-h) + 6px);}
+  /* lienzo a sangre, a lo ancho; el rail a la izquierda, vertical y desplazable */
+  main{flex-direction:row;}
+  .stage, body.storyMode .stage{padding:0;}
+  #wrap{width:100%; height:100%; border-radius:0; box-shadow:none;}
+  .rail{width:52px; height:auto; flex-direction:column; flex-wrap:nowrap; overflow-x:hidden; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; padding:6px 0; gap:2px; border-bottom:0; border-right:1px solid var(--rule-2);}
+  .rail button{flex:none;}
+  .rail button.toggled{box-shadow:inset -2px 0 0 var(--active);}
+  .rail hr{width:24px; height:auto; border-left:0; border-top:1px solid var(--rule); margin:5px 0;}
+  /* las hojas salen por la derecha, entre la cabecera y el borde inferior */
+  aside, aside.scenariosOpen{top:var(--hdr-h); bottom:0; left:auto; right:0; width:var(--side-w); flex-basis:auto; height:auto; max-height:none;
+    border-top:0; border-left:1px solid var(--rule-2); border-radius:0; padding:10px 16px 12px; transform:translateX(calc(100% + 12px));}
+  aside::before{display:none;}
+  body.panelOpen.scPlacing aside{transform:translateX(calc(100% + 12px)); visibility:hidden;}
+  /* Propiedades, más estrecha en los teléfonos de 667 px (Historias necesita los 320 para su fila de transporte) */
+  body:not(.storyMode) aside{width:var(--props-w);}
+  body.panelOpen:not(.storyMode) .touchBar{left:calc((100% - var(--props-w)) / 2); max-width:calc(100% - var(--props-w) - 16px);}
+  body.panelOpen:not(.storyMode) #btnDelTouch{right:calc(var(--props-w) + 14px);}
+  /* Historias en la hoja lateral: con la altura entera, compacta ya es el taller (fichas + línea de tiempo); «Ampliar» solo
+     tiene sentido reproduciendo (abre la línea de tiempo desde la franja). */
+  body[data-story="compact"] #scLibrarySection{display:flex;}
+  body[data-story="compact"] .scStorySection{display:flex;}
+  body[data-story="compact"] #btnStoryExpand, body[data-story="expanded"] #btnStoryExpand{display:none;}
+  /* Reproduciendo: la hoja se recoge en una franja inferior de una fila (D6); el momento se lee sobre el lienzo (#scNow). */
+  body[data-story="playing"]:not(.storyExpanded) aside.scenariosOpen{top:auto; left:0; right:0; width:auto; bottom:0;
+    border-left:0; border-top:1px solid var(--rule-2); padding:6px 16px calc(6px + env(safe-area-inset-bottom));}
+  body[data-story="playing"]:not(.storyExpanded) .scHeader{grid-template-columns:auto minmax(0,1fr) auto auto auto; grid-template-areas:"ctl . stop expand exit"; gap:6px;}
+  body[data-story="playing"]:not(.storyExpanded) #scReset{grid-area:stop;}
+  /* el lienzo es bajo y ancho: el rótulo del momento, más corto, cabe a un lado del destino (scPlaceNow prueba los lados) */
+  .scNow{max-width:min(calc(60% - 24px), 480px);}
+  #scNowLabel{position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap;}
+}

@@ -470,3 +470,21 @@ FluyoStory.start / FluyoScenarioPlayback.tick   (kernel, sin cambios: funciones 
 - **Dirección**: «Trazo › Dirección» = Puntas (`startArrow`/`endArrow`) + Puntos en movimiento (`animated`) + Sentido (segmentado sobre `#flowSel` → `edge.flowDir`). El grupo de ajuste fino pasa a llamarse «Puntos» (`#grpFlow`, plegado). Mismos datos y valores.
 - `sw.js`: `CACHE` v77 y `js/story-clock.js` en el precache. `model.js`, `config.js`, kernel, `render.js`, `geometry.js`, `export.js` y MCP sin cambios (test de alcance contra HEAD). Decisiones 154–161.
 - Pruebas: `test/fluyo-018-18.test.cjs` (alcance, release, reloj en vm frente a una reproducción continua, editor real en vm, Viewer en vm, páginas, dirección), `test/fluyo-018-18-browser.cjs` (Chrome real: 1440/1280 ratón, 768 dedo, 390/375 móvil, 844×390 y 812×375 apaisado; editor, Present, Viewer, páginas, dirección; SW v77 sin red) y `test/fluyo-018-18-mutations.cjs`.
+
+## Teléfono en apaisado, diálogo de evento y crear → colocar (FLUYO-018.19)
+
+```text
+layout                     condición                                                 hojas
+escritorio / tableta       por anchura (> 700 px) o ratón                           columna (sin cambios)
+teléfono vertical          max-width: 700px                                          inferiores (018.17)
+teléfono apaisado          landscape · max-height 500px · pointer coarse (mqSide)    LATERALES (derecha); reproducir = franja inferior
+                           isSheetLayout() = mqSheet || isSideSheet()  ·  isSideSheet() = mqSide
+```
+
+- `ui.js`: `mqSide`/`isSideSheet()` al principio; `placeChrome` sube `#pagesBar` (tras `#hdrHistory`) y `#modeBar` (antes de `#btnShare`) a la cabecera en apaisado y los devuelve a `#bottomBar`; `body.sideSheet`; `sideStrip()` y `visibleCanvasRect()` con `left/right` (hoja lateral por la derecha, franja por abajo, hoja apartada colocando); `placePageMenu` abre debajo si no cabe encima; `refitOnRotate` (resize + `pointer: coarse`).
+- `editor-scenarios.js`: `scEventDialogMode` (create/edit/duplicate); `scSaveEventType` → `scBeginPlacement` con `origin:"created"` al crear; `scCoarsePointer()` para los textos; `scPlacementTouchPan`/`scCanvasPlacementTap` (colocar con el dedo); `scResolveDrop(…, touch)` no cancela en el vacío con el dedo; `scNotice` a la izquierda de la hoja lateral; `scPlaceNow` centrado en la zona libre y con posiciones laterales; «Cómo se ve» (`scFlowLookSummary`, vista previa movida al plegable activo); Intro en `#scEventName`.
+- `interaction.js`: un gancho en `pointerdown` (colocando con el dedo → `panDrag.placing`) y otro en `pointerup` (toque ≤ 8 px → `scCanvasPlacementTap`).
+- `css/styles.css`: el bloque «Móvil» rige también en apaisado táctil; al final, el bloque del diálogo (018.19) y el del apaisado (cabecera de 48 px, sin `#bottomBar`, rail desplazable, hojas a la derecha, franja de reproducción, rótulo ≤ 60 %).
+- `index.html`: el diálogo con «Cómo se ve» (`#scFlowLook` como `<details>`, la vista previa dentro), sin subtítulo visible, ✕ del sprite y efectos sin glifos; ids conservados.
+- `sw.js`: `CACHE` v78 (sin archivos servidos nuevos). `model.js`, formato, kernel, `story-clock.js`, render, Viewer, Share, Present y MCP sin cambios (test de alcance contra HEAD). Decisiones 162–167.
+- Pruebas: `test/fluyo-018-19.test.cjs` (alcance, release, crear → colocar con el editor real en vm, colocar con el dedo, diálogo, apaisado, zona libre y reencaje en vm), `test/fluyo-018-19-browser.cjs` (Chrome real: 390×844, 375×812, 844×390, 812×375, 667×375 y 768×1024 con dedo, 1440×900 con ratón; giro; SW v78) y `test/fluyo-018-19-mutations.cjs`.

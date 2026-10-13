@@ -43,7 +43,8 @@ const lib = (E) => J(E.run("doc.eventTypes.map(e=>e.id+':'+e.name)"));
 test("editor-scenarios.js: crear, editar y eliminar EventTypes registran Undo ANTES de mutar (la secuencia que reproduce este archivo)", () => {
   const sc = read("js/editor-scenarios.js");
   assert.match(sc, /pushUndo\(\);\n\s*deleteEventType\(id\);/);
-  assert.match(sc, /pushUndo\(\);\n\s*const editing = !!scEditingEventTypeId;\n\s*const et = editing \? updateEventType\(scEditingEventTypeId, def\) : createEventType\(def\);/);
+  /* 018.19: entre medias solo se calcula si se crea (para entrar en colocación); el Undo sigue ANTES de mutar */
+  assert.match(sc, /pushUndo\(\);\n\s*const editing = !!scEditingEventTypeId,\n\s*created = [^;]*;\n\s*const et = editing \? updateEventType\(scEditingEventTypeId, def\) : createEventType\(def\);/);
   assert.match(sc, /if \(eventTypeIsUsed\(id\)\) \{/, "un EventType usado no se elimina desde la biblioteca");
 });
 

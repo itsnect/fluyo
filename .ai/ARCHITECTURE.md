@@ -24,7 +24,7 @@
 | `js/scenario-engine.js` | Motor determinista puro de Scenarios (v1/v2). |
 | `js/scenario-playback.js` | Proyección de Trace a datos visuales (sin DOM). |
 | `js/story-playback.js` | Receta ÚNICA de reproducción (`FluyoStory`): metadata por Step, ejecución, fin, estado de pintura y texto humano. Compartida por editor, Present y Viewer. |
-| `js/story-clock.js` | `FluyoStoryClock` (FLUYO-018.18): el reloj de una Historia —pausar, reanudar, saltar a un momento— sobre la misma receta. Puro y FUERA del kernel (fluyo-mcp no lo copia). Lo cargan el editor y el Viewer. |
+| `js/story-clock.js` | `FluyoStoryClock` (FLUYO-018.18): el reloj de una Historia —pausar, reanudar, saltar a un momento— sobre la misma receta. FLUYO-018.21: también el instante VISIBLE de cada momento (dependencias de llegada, `scenario.arrivalDependencies`). Puro y FUERA del kernel (fluyo-mcp no lo copia). Lo cargan el editor y el Viewer. |
 | `js/document-integrity.js` | `FluyoIntegrity` (FLUYO-017.1): autoridad única de integridad del documento. Pura, sin DOM; la cargan el editor (FLUYO-018.4, para confirmar borrados) y fluyo-mcp. |
 | `js/story-authoring.js` | `FluyoAuthoring` (FLUYO-017.2): lote atómico de operaciones de Historia sobre una copia. Pura; no cargada por el editor (la consume fluyo-mcp). |
 | `js/editor-scenarios.js` | Panel de Historias (Scenarios), selección de la Historia activa, storyboard, autoría, playback UI. |
@@ -488,3 +488,20 @@ teléfono apaisado          landscape · max-height 500px · pointer coarse (mqS
 - `index.html`: el diálogo con «Cómo se ve» (`#scFlowLook` como `<details>`, la vista previa dentro), sin subtítulo visible, ✕ del sprite y efectos sin glifos; ids conservados.
 - `sw.js`: `CACHE` v78 (sin archivos servidos nuevos). `model.js`, formato, kernel, `story-clock.js`, render, Viewer, Share, Present y MCP sin cambios (test de alcance contra HEAD). Decisiones 162–167.
 - Pruebas: `test/fluyo-018-19.test.cjs` (alcance, release, crear → colocar con el editor real en vm, colocar con el dedo, diálogo, apaisado, zona libre y reencaje en vm), `test/fluyo-018-19-browser.cjs` (Chrome real: 390×844, 375×812, 844×390, 812×375, 667×375 y 768×1024 con dedo, 1440×900 con ratón; giro; SW v78) y `test/fluyo-018-19-mutations.cjs`.
+
+## Dependencias de llegada (FLUYO-018.21)
+
+```text
+documento:  scenario.arrivalDependencies = [{ stepId, waitsForArrivalOf: [sendStepId…] }]   (opcional, aditivo; ausente = ninguna)
+motor/Trace: no lo ven (FluyoStory.run igual)        model.js: lo conserva tal cual (normalizeScenarios no lo toca)
+story-clock.js: arrivalDependencies (validar) → schedule (instante visible por momento) → start = FluyoStory.start + copia del Trace
+editor · Present · Viewer: FluyoStoryClock.start / momentTimes(sc, playback) / describe / visibleAt
+```
+
+- **Semántica**: «este momento no empieza hasta que llegue este envío». El dato es de la HISTORIA, no del Step (el esquema del Step y el motor rechazan campos extra: `validatePersistedStep`, `invalid_scenario/extra_fields`). Se declara desde un Step; su efecto es el MOMENTO entero (atómico: espera la unión de las dependencias de sus Steps).
+- **Validez** (se comprueba al reproducir; lo inválido se ignora, nunca bloquea ni invalida): el Step existe y cada id es un `SEND` de la misma Historia en un momento ANTERIOR (`at` estrictamente menor). Razones: `malformed`, `step_missing`, `send_missing`, `not_send`, `not_earlier`. Sin ciclos posibles: una sola pasada.
+- **Instante visible (E2)**: `visible(k) = max(at(k) + pausa(k−1), llegada de cada envío del que dependa k)`, `pausa(k) = visible(k) − at(k)`, `llegada(e) = visible(momento de e) + MOTION_MS[motion]` (la misma duración del Playback). Lo anterior nunca se mueve; lo posterior conserva su ritmo. Sin dependencias, visible = `at` y no se copia el Trace (reproducción idéntica a la anterior).
+- **Reproducción**: `FluyoStoryClock.start` = `FluyoStory.start` (receta única) + `playback.schedule` + `playback.trace` = copia con `at` visible y `narrativeAt` (solo si algo se desplaza). `momentTimes(sc, playback)` da los visibles (navegación, progreso, salto); sin playback, los narrativos (identifican el momento de un Step). `describe` recalcula el momento en curso con los visibles. `seek` usa los visibles.
+- **Editor** (`editor-scenarios.js`): menú de la aparición › «Esperar a que llegue…» (solo envíos válidos anteriores, primero los que llegan a donde ocurre el evento; «No esperar»); la línea de tiempo pone en el momento «No empieza hasta que llegue «…» (origen → destino)» (`.scWaits`); eliminar un Step limpia las dependencias que lo nombran; duplicar copia la espera; todo con `pushUndo` (el snapshot de página ya incluye las Historias). Estado de las filas, seguimiento, rótulo y ⏮/⏭ por instantes visibles (`scVisibleAt`).
+- **Compatibilidad**: el editor actual, el motor, `FluyoIntegrity`, `FluyoAuthoring` (MCP), duplicar Historia, Undo y «Compartir historia» conservan el campo; el MCP aún no lo crea (018.22). Kernel, `model.js`, render, formato (`version` 5, `engineVersion` 2) sin cambios. `CACHE` v79.
+- Pruebas: `test/fluyo-018-21.test.cjs` (vm: casos 1–7, varios envíos, Trace, salto, formato/MCP/Share, autoría, editor con Undo real, Viewer, Present, alcance), `test/fluyo-018-21-browser.cjs` (Chrome dirigido, ≤ 1 min) y `test/fluyo-018-21-mutations.cjs`.

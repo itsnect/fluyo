@@ -440,6 +440,8 @@ aside.scenariosOpen{box-sizing:border-box;width:320px;flex:0 0 320px;overflow:hi
 .scDelay{border:0;background:transparent;color:var(--muted);padding:6px 4px;font-size:12px;min-height:28px;text-align:left;}
 .scDelay:hover{color:var(--text);text-decoration:underline;}
 .scTogether{font-size:11px;color:var(--muted);padding:4px 0 6px;}
+/* FLUYO-018.21: el momento espera una llegada («No empieza hasta que llegue …»): una línea, en el oliva del estado activo */
+.scWaits{font-size:11px;line-height:1.4;color:var(--active);padding:2px 0 6px;overflow-wrap:anywhere;}
 .scStoryRow{position:relative;display:flex;align-items:flex-start;gap:6px;min-height:36px;border-radius:6px;padding:3px 0;}
 .scStoryRow .scStatusMark{position:absolute;left:-20px;top:11px;background:var(--panel);font-size:11px;width:14px;text-align:center;}
 .scStoryText{flex:1;min-width:0;}

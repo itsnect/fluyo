@@ -154,7 +154,8 @@ function storyPlay(){
   if(!sc || (story && story.status==="running")) return;
   storyReset();
   const clock=FluyoStoryClock.create();
-  const started=FluyoStory.start(P(), sc, FluyoStoryClock.now(clock, performance.now()));
+  /* FLUYO-018.21: la misma receta + el instante visible de cada momento (dependencias de llegada) */
+  const started=FluyoStoryClock.start(P(), sc, FluyoStoryClock.now(clock, performance.now()));
   if(!started.ok){ storyError=started.errors[0]||null; storyRefresh(); return; }
   story={scenario:sc, playback:started.playback, status:"running", clock};
   storyRefresh();
@@ -168,7 +169,7 @@ function storyTogglePause(){
 }
 function storyNav(){
   if(!story) return {times:[], index:-1, prev:null, next:null};
-  const times=FluyoStoryClock.momentTimes(story.scenario), vt=story.playback.cursorVirtual||0, index=FluyoStoryClock.momentIndex(times, vt);
+  const times=FluyoStoryClock.momentTimes(story.scenario, story.playback), vt=story.playback.cursorVirtual||0, index=FluyoStoryClock.momentIndex(times, vt);
   const done=story.status==="completed";
   return {times, index, prev:done ? (times.length ? times.length-1 : null) : FluyoStoryClock.prevTarget(times, vt), next:done ? null : FluyoStoryClock.nextTarget(times, vt)};
 }
@@ -221,7 +222,7 @@ function storyRefresh(){
   if(!sc) return;
   const paused=storyPaused();
   const phase=!story ? "ready" : story.status==="running" ? "playing" : "finished";
-  const d=FluyoStory.describe(phase, sc, story && story.playback, storyNodeName, id=>edgeById(id));
+  const d=FluyoStoryClock.describe(phase, sc, story && story.playback, storyNodeName, id=>edgeById(id));
   storySet("stKicker","text",phase==="ready" ? "Historia" : "Historia · "+sc.name);
   storySet("stTitle","text",d.title);
   storySet("stCaption","text",storyError || (paused ? (d.caption ? "En pausa · "+d.caption : "En pausa") : d.caption));
@@ -251,7 +252,7 @@ function storyPlace(){
   const bottomInset=presenting ? ($("prBar").offsetHeight||0)+28 : 0;
   const rects=[];
   if(story){
-    const n=storyNav(), at=n.index>=0 ? n.times[n.index] : null;
+    const n=storyNav(), at=n.index>=0 ? FluyoStoryClock.momentTimes(story.scenario)[n.index] : null;
     const box=(x0,y0,x1,y1)=>({left:x0*view.zoom+view.x, top:y0*view.zoom+view.y, right:x1*view.zoom+view.x, bottom:y1*view.zoom+view.y});
     for(const step of story.scenario.steps){
       if(step.at!==at) continue;

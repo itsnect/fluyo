@@ -39,7 +39,7 @@ test("alcance: kernel (model, config, motor, playback, story-playback, integrida
 
 test("story-clock.js: fuera del kernel, cargado por el editor y el Viewer tras story-playback.js, precacheado; CACHE v77", () => {
   const sw = read("sw.js"), html = read("index.html"), viewer = read("s/index.html");
-  assert.match(sw, /const CACHE = "fluyo-static-v78";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v79";/);
   assert.ok(sw.includes('"./js/story-clock.js"'), "precacheado");
   assert.ok(html.indexOf('src="js/story-playback.js"') < html.indexOf('src="js/story-clock.js"') && html.indexOf('src="js/story-clock.js"') < html.indexOf('src="js/editor-scenarios.js"'), "editor: tras story-playback y antes de editor-scenarios");
   assert.ok(viewer.indexOf('src="../js/story-playback.js"') < viewer.indexOf('src="../js/story-clock.js"') && viewer.indexOf('src="../js/story-clock.js"') < viewer.indexOf('src="../js/viewer.js"'), "Viewer: tras story-playback y antes de viewer.js");
@@ -206,7 +206,7 @@ test("editor: tocar una fila de la línea de tiempo durante la reproducción sal
 
 test("editor-scenarios.js / interaction.js: el reloj solo decide el tiempo; Espacio pausa la Historia; un toque en Present no navega", () => {
   const es = read("js/editor-scenarios.js"), it = read("js/interaction.js"), rt = read("js/editor-runtime.js");
-  assert.ok(between(es, "function scRun(opts) {", "\n}\n").includes("const started = FluyoStory.start(P(), sc, scNow());"), "misma receta, reloj de la Historia");
+  assert.ok(between(es, "function scRun(opts) {", "\n}\n").includes("FluyoStoryClock.start(P(), sc, scNow())"), "misma receta (FluyoStory.start dentro de FluyoStoryClock.start, 018.21), reloj de la Historia");
   assert.ok(between(es, "function scTick() {", "\n}\n").includes("if (scIsPaused()) return;"), "en pausa no hay fotogramas propios");
   assert.ok(es.includes("return FluyoStory.renderState(scPlayback, scActiveScenario(), scNow());"));
   assert.ok(between(es, "function scSeekMoment(i) {", "\n}\n").includes("FluyoStoryClock.seek(scClock, performance.now(), P(), sc, i)"), "saltar = la misma receta con el origen desplazado");

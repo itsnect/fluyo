@@ -103,7 +103,8 @@ function presentStoryRefresh(){
     psSet("psSummary","text","");
     return;
   }
-  const d=FluyoStory.describe(dphase, sc, scPlayback, id=>scNodeFallback(id), id=>edgeById(id));
+  /* FLUYO-018.21: el momento en curso según su instante VISIBLE (dependencias de llegada, story-clock.js) */
+  const d=(typeof FluyoStoryClock!=="undefined" ? FluyoStoryClock : FluyoStory).describe(dphase, sc, scPlayback, id=>scNodeFallback(id), id=>edgeById(id));
   const ms=d.moments, idx=d.idx;
 
   psSet("psTitle","text", d.title);

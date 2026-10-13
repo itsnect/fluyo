@@ -237,7 +237,7 @@ function scRuntimeStateForStep(step) {
   }
   if (!last) {
     // Aún no llegamos al timestamp
-    if (scPlayback.cursorVirtual < step.at) return { status: "pending", detail: null };
+    if (scPlayback.cursorVirtual < scVisibleAt(step)) return { status: "pending", detail: null };
     return { status: step.action === "SET_STATE" ? "completed" : "active", detail: null };
   }
   if (last.type === "state_changed" || last.type === "event_occurred")
@@ -508,6 +508,7 @@ function scDeleteStep(id) {
   if (!r) return;
   pushUndo();
   sc.steps = r.steps;
+  scSetArrivalDependencies(sc, FluyoStoryClock.pruneArrivalDependencies(sc));
   scheduleAutosave();
   scRenderStoryboard();
   scRenderButtons();
@@ -525,7 +526,8 @@ function scRun(opts) {
   /* FLUYO-018.18: el reloj de la Historia (story-clock.js) decide qué tiempo ve la reproducción; pausar y saltar no
      cambian la receta, que sigue siendo una sola, compartida con Present y el Viewer (story-playback.js). */
   scClock = typeof FluyoStoryClock !== "undefined" ? FluyoStoryClock.create() : null;
-  const started = FluyoStory.start(P(), sc, scNow());
+  /* FLUYO-018.21: la misma receta + el instante visible de cada momento (dependencias de llegada, story-clock.js) */
+  const started = typeof FluyoStoryClock !== "undefined" ? FluyoStoryClock.start(P(), sc, scNow()) : FluyoStory.start(P(), sc, scNow());
   if (!started.ok) {
     scErrors = started.errors;
     scRenderErrors();
@@ -604,6 +606,10 @@ function scNow() {
   const real = performance.now();
   return scClock ? FluyoStoryClock.now(scClock, real) : real;
 }
+/* FLUYO-018.21: instante en que un Step se hace visible en esta reproducción (su `at` si su momento no espera nada). */
+function scVisibleAt(step) {
+  return typeof FluyoStoryClock !== "undefined" ? FluyoStoryClock.visibleAt(scPlayback, step) : step.at;
+}
 function scIsPaused() {
   return scStatus === "running" && !!scClock && FluyoStoryClock.isPaused(scClock);
 }
@@ -632,7 +638,7 @@ function scTogglePause() {
 function scMomentNav() {
   const sc = scActiveScenario();
   if (!sc || !scPlayback || !scClock || !isScenarioPlaybackActive()) return { times: [], index: -1, prev: null, next: null };
-  const times = FluyoStoryClock.momentTimes(sc), vt = scPlayback.cursorVirtual || 0;
+  const times = FluyoStoryClock.momentTimes(sc, scPlayback), vt = scPlayback.cursorVirtual || 0;
   const index = FluyoStoryClock.momentIndex(times, vt);
   const prev = scStatus === "completed" ? (times.length ? times.length - 1 : null) : FluyoStoryClock.prevTarget(times, vt);
   const next = scStatus === "completed" ? null : FluyoStoryClock.nextTarget(times, vt);
@@ -666,7 +672,7 @@ function scRevealMoment() {
   if (typeof cv === "undefined" || typeof visibleCanvasRect !== "function" || (typeof presenting !== "undefined" && presenting)) return;
   const sc = scActiveScenario(), n = scMomentNav();
   if (!sc || n.index < 0) return;
-  const at = n.times[n.index];
+  const at = FluyoStoryClock.momentTimes(sc)[n.index];
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
   const add = (nd) => { if (!nd) return; x0 = Math.min(x0, nd.x - nd.w / 2); y0 = Math.min(y0, nd.y - nd.h / 2); x1 = Math.max(x1, nd.x + nd.w / 2); y1 = Math.max(y1, nd.y + nd.h / 2); };
   for (const st of sc.steps) {
@@ -714,7 +720,7 @@ function scFollowActive() {
      completada en el acto), el último paso cuyo instante ya llegó */
   const activeRow = $("scStoryboard")?.querySelector?.(".scStoryRow.scStatus_active");
   let step = activeRow && activeRow.dataset ? sc.steps.find((x) => String(x.id) === String(activeRow.dataset.stepId)) : null;
-  if (!step) { const cur = scPlayback.cursorVirtual || 0; const past = sc.steps.filter((s) => s.at <= cur); step = past.length ? past[past.length - 1] : null; }
+  if (!step) { const cur = scPlayback.cursorVirtual || 0; const past = sc.steps.filter((s) => scVisibleAt(s) <= cur); step = past.length ? past[past.length - 1] : null; }
   if (!step || String(step.id) === String(scFollowedStep)) return;
   scFollowedStep = step.id;
   const row = $("scStoryboard")?.querySelector?.('[data-step-id="' + step.id + '"]');
@@ -972,7 +978,7 @@ function scRenderNow() {
   const on = scStatus !== "idle" && !!scPlayback && !!sc;
   let label = "", caption = "", progress = "";
   if (on) {
-    const d = FluyoStory.describe(scStatus === "running" ? "playing" : "finished", sc, scPlayback, (id) => scNodeFallback(id), (id) => edgeById(id));
+    const d = (typeof FluyoStoryClock !== "undefined" ? FluyoStoryClock : FluyoStory).describe(scStatus === "running" ? "playing" : "finished", sc, scPlayback, (id) => scNodeFallback(id), (id) => edgeById(id));
     label = scStatus === "running" ? (scIsPaused() ? "En pausa" : "Reproduciendo") : "Terminada";
     caption = scStatus === "running" ? (d.caption ? d.title + " · " + d.caption : d.title) : d.summary ? d.caption + " · " + d.summary : d.caption;
     progress = d.moments.length > 1 ? Math.max(0, d.idx + 1) + " / " + d.moments.length : "";
@@ -994,7 +1000,7 @@ let scNowPlace = "";
 function scMomentRects() {
   const sc = scActiveScenario(), n = scMomentNav();
   if (!sc || n.index < 0) return [];
-  const at = n.times[n.index], out = [];
+  const at = FluyoStoryClock.momentTimes(sc)[n.index], out = [];
   const box = (x0, y0, x1, y1) => ({ left: x0 * viewZoom + viewX, top: y0 * viewZoom + viewY, right: x1 * viewZoom + viewX, bottom: y1 * viewZoom + viewY });
   for (const step of sc.steps) {
     if (step.at !== at) continue;
@@ -1249,6 +1255,7 @@ function scRenderStoryboard() {
   const signature = JSON.stringify([
     s?.id,
     s?.steps,
+    s?.arrivalDependencies,
     doc.eventTypes,
     groups.flatMap((g) => g.steps.map((x) => [describeScenarioStep(x), scRuntimeStateForStep(x)])),
     scSelectedStep,
@@ -1283,6 +1290,8 @@ function scRenderStoryboard() {
     delay.disabled = isScenarioPlaybackActive();
     section.appendChild(delay);
     if (g.steps.length > 1) section.appendChild(scEl("div", "scTogether", "Al mismo tiempo"));
+    const waits = s ? FluyoStoryClock.momentWaits(s, g.at) : [];
+    if (waits.length) section.appendChild(scEl("div", "scWaits", "No empieza hasta que llegue " + scArrivalNames(waits)));
     for (const [index, step] of g.steps.entries()) {
       const row = scStoryRow(step);
       if (g.steps.length > 1 && !isScenarioPlaybackActive()) {
@@ -1484,6 +1493,7 @@ function scStoryMenu(step, anchor) {
     },
   ];
   const addItems = [{ label: "Otro evento…", fn: sameTime }];
+  const waitItem = scArrivalMenuItem(step);
   if (et?.primitive === "FLOW") addItems.push({ label: "Esta misma acción en otras conexiones…", fn: () => scBeginMulti(step.id) });
   const sections = [
     [
@@ -1495,6 +1505,7 @@ function scStoryMenu(step, anchor) {
       { label: "Duplicar", hint: "Al mismo tiempo, justo debajo", fn: () => scDuplicateStep(step.id) },
       { label: "Mover", sub: { title: "Mover", items: moveItems } },
       { label: "Añadir al mismo tiempo", sub: { title: "Añadir al mismo tiempo", items: addItems } },
+      waitItem,
     ],
     [
       {
@@ -1557,9 +1568,70 @@ function scDuplicateStep(id) {
   }
   pushUndo();
   const copy = duplicateStep(sc, id);
+  scSetArrivalDependencies(sc, FluyoStoryClock.copyArrivalWaits(sc, id, copy.id));
   scSelectedStep = copy.id;
   scCommit();
   scNotice("Duplicado al mismo tiempo, justo debajo.");
+}
+/* ─────────── FLUYO-018.21: «Esperar a que llegue…» ───────────
+   Una dependencia de llegada es de la HISTORIA (scenario.arrivalDependencies, story-clock.js): «este momento no empieza
+   hasta que llegue este envío». Se declara desde un evento, pero espera su MOMENTO entero (es atómico), y solo admite
+   envíos de momentos anteriores. Sin dependencias el campo no existe: las Historias antiguas no cambian. */
+function scSetArrivalDependencies(sc, list) {
+  if (list) sc.arrivalDependencies = list;
+  else delete sc.arrivalDependencies;
+}
+function scArrivalNames(ids) {
+  const sc = scActiveScenario();
+  return ids
+    .map((id) => sc && sc.steps.find((x) => x.id === id))
+    .filter(Boolean)
+    .map((x) => "«" + scStepTitle(x) + "»" + (scWhereLabel(x) ? " (" + scWhereLabel(x) + ")" : ""))
+    .join(" y ");
+}
+function scArrivalMenuItem(step) {
+  const sc = scActiveScenario(),
+    cands = FluyoStoryClock.arrivalCandidates(sc, step.id),
+    mine = FluyoStoryClock.stepWaits(sc, step.id),
+    together = sc.steps.filter((x) => x.at === step.at).length;
+  /* primero los envíos que llegan a donde ocurre este evento (o, si es un envío, a donde sale) */
+  const here = step.edgeId ? edgeById(step.edgeId)?.from : step.nodeId;
+  const ordered = [...cands.filter((x) => edgeById(x.edgeId)?.to === here), ...cands.filter((x) => edgeById(x.edgeId)?.to !== here)];
+  const items = ordered.map((x) => {
+    const on = mine.includes(x.id);
+    return { label: (on ? "✓ " : "") + scStepTitle(x), hint: scWhereLabel(x), fn: () => scToggleArrivalWait(step.id, x.id, !on) };
+  });
+  if (mine.length) items.push({ label: "No esperar", hint: "Empieza a su hora", fn: () => scClearArrivalWaits(step.id) });
+  return {
+    label: "Esperar a que llegue…",
+    hint: mine.length ? "Ahora: " + scArrivalNames(mine) : cands.length ? "Este momento no empieza hasta que llegue un envío" : "Antes tiene que haber un envío",
+    disabled: !cands.length && !mine.length,
+    sub: {
+      title: together > 1 ? "Este momento (" + together + " eventos) no empieza hasta que llegue…" : "Este momento no empieza hasta que llegue…",
+      items,
+    },
+  };
+}
+function scToggleArrivalWait(stepId, sendId, on) {
+  if (!scEditable()) return;
+  const sc = scActiveScenario(),
+    send = sc.steps.find((x) => x.id === sendId),
+    next = FluyoStoryClock.withArrivalWait(sc, stepId, sendId, on);
+  if (JSON.stringify(next) === JSON.stringify(sc.arrivalDependencies || null)) return;
+  pushUndo();
+  scSetArrivalDependencies(sc, next);
+  scCommit();
+  if (send) scNotice(on ? "Este momento no empezará hasta que llegue «" + scStepTitle(send) + "»." : "Ya no espera a «" + scStepTitle(send) + "».");
+}
+function scClearArrivalWaits(stepId) {
+  if (!scEditable()) return;
+  const sc = scActiveScenario(),
+    next = FluyoStoryClock.withoutArrivalWaits(sc, stepId);
+  if (JSON.stringify(next) === JSON.stringify(sc.arrivalDependencies || null)) return;
+  pushUndo();
+  scSetArrivalDependencies(sc, next);
+  scCommit();
+  scNotice("Empieza a su hora: ya no espera ninguna llegada.");
 }
 function scEditTime(id, anchor) {
   if (!scEditable()) return;

@@ -269,8 +269,12 @@ test('Arquitectura: una sola receta de reproducción compartida; el viewer no ca
     assert.ok(!html.includes('js/'+f+'.js'),f);
   const src=f=>read('js/'+f+'.js');
   assert.match(src('editor-scenarios'),/FluyoStory\.start/);
-  assert.match(src('viewer'),/FluyoStory\.start/);
-  assert.match(src('present-story'),/FluyoStory\.describe/);
+  /* FLUYO-018.21: el Viewer empieza con FluyoStoryClock.start, que es la MISMA receta (FluyoStory.start) + el horario visible */
+  assert.match(src('viewer'),/FluyoStoryClock\.start/);
+  assert.match(src('story-clock'),/const started = FluyoStory\.start\(page, scenario, nowReal\);/);
+  assert.doesNotMatch(src('story-clock'),/runScenario|makePlayback/,'story-clock no ejecuta ni construye playback por su cuenta');
+  assert.match(src('present-story'),/FluyoStoryClock : FluyoStory\)\.describe\(/,'Present describe con el momento visible (018.21)');
+  assert.match(src('story-clock'),/const d = FluyoStory\.describe\(phase, scenario, playback, nodeName, edgeEnds\);/,'que es FluyoStory.describe');
   for(const f of ['editor-scenarios','present-story','viewer'])
     assert.doesNotMatch(src(f),/runScenario|makePlayback/,f+' no ejecuta ni construye playback por su cuenta');
   assert.doesNotMatch(src('viewer'),/setInterval|setTimeout/,'sin timers propios');
@@ -280,7 +284,7 @@ test('Arquitectura: una sola receta de reproducción compartida; el viewer no ca
 
 test('Service worker: assets nuevos precacheados y versión subida',()=>{
   const sw=read('sw.js');
-  assert.match(sw,/fluyo-static-v78/);
+  assert.match(sw,/fluyo-static-v79/);
   for(const f of ['story-playback','scenario-engine','scenario-playback','viewer'])
     assert.ok(sw.includes('"./js/'+f+'.js"'),f);
   const idx=read('index.html');

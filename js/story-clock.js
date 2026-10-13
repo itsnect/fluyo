@@ -17,7 +17,8 @@
    Cargar tras model.js, scenario-playback.js y story-playback.js.
 
    FLUYO-018.21. Dependencias de llegada: «este momento no empieza hasta que llegue este envío».
-   Dato de la HISTORIA (no del Step: el esquema del Step y el motor rechazan campos extra), opcional y aditivo:
+   Dato de la HISTORIA (no del Step: el esquema del Step y el motor rechazan campos extra), opcional y aditivo (regla y forma en
+   model.js desde 018.22, compartidas con fluyo-mcp):
 
      scenario.arrivalDependencies = [ { stepId: 4, waitsForArrivalOf: [3] }, … ]
 
@@ -43,79 +44,10 @@ var FluyoStoryClock = (function(){
   function pause(c, real){ if(c.pausedAt===null) c.pausedAt = real - c.base; }
   function resume(c, real){ if(c.pausedAt!==null){ c.base = real - c.pausedAt; c.pausedAt = null; } }
 
-  /* ─────────── Dependencias de llegada (dato de la Historia) ─────────── */
-  const isId = v => Number.isSafeInteger(v) && v>=1;
-  /* Lectura tolerante: {waits: Map(stepId → [ids de SEND válidos]), ignored: [{stepId, sendId, reason}]}. */
-  function arrivalDependencies(scenario){
-    const steps = (scenario && Array.isArray(scenario.steps)) ? scenario.steps : [];
-    const byId = new Map(steps.map(s=>[s.id, s])), waits = new Map(), ignored = [];
-    const list = scenario && scenario.arrivalDependencies;
-    if(list===undefined) return {waits, ignored};
-    if(!Array.isArray(list)){ ignored.push({stepId:null, sendId:null, reason:"malformed"}); return {waits, ignored}; }
-    for(const d of list){
-      if(!d || typeof d!=="object" || !isId(d.stepId) || !Array.isArray(d.waitsForArrivalOf)){ ignored.push({stepId:d && d.stepId, sendId:null, reason:"malformed"}); continue; }
-      const step = byId.get(d.stepId);
-      for(const id of d.waitsForArrivalOf){
-        const send = isId(id) ? byId.get(id) : null;
-        const reason = !step ? "step_missing" : !isId(id) ? "malformed" : !send ? "send_missing" : send.action!=="SEND" ? "not_send" : !(send.at<step.at) ? "not_earlier" : null;
-        if(reason){ ignored.push({stepId:d.stepId, sendId:id, reason}); continue; }
-        if(!waits.has(step.id)) waits.set(step.id, []);
-        if(!waits.get(step.id).includes(id)) waits.get(step.id).push(id);
-      }
-    }
-    return {waits, ignored};
-  }
-  /* Envíos que `stepId` puede esperar: SEND de momentos anteriores, en el orden de la Historia. */
-  function arrivalCandidates(scenario, stepId){
-    const steps = (scenario && scenario.steps) || [], step = steps.find(s=>s.id===stepId);
-    return step ? storyboardOrderedSteps(steps).filter(s=>s.action==="SEND" && s.at<step.at) : [];
-  }
-  /* Envíos (válidos) que espera un Step, y los que espera su momento entero (la unión: el momento es atómico). */
-  function stepWaits(scenario, stepId){ return (arrivalDependencies(scenario).waits.get(stepId) || []).slice(); }
-  function momentWaits(scenario, at){
-    const waits = arrivalDependencies(scenario).waits, out = [];
-    for(const s of (scenario && scenario.steps) || []) if(s.at===at) for(const id of waits.get(s.id) || []) if(!out.includes(id)) out.push(id);
-    return out;
-  }
-  /* Forma canónica: entradas ordenadas por stepId, ids únicos y ordenados, sin listas vacías. null = sin dependencias. */
-  function canonical(map){
-    const out = [...map.entries()].filter(([,ids])=>ids.length).sort((a,b)=>a[0]-b[0])
-      .map(([stepId, ids])=>({stepId, waitsForArrivalOf:[...new Set(ids)].sort((a,b)=>a-b)}));
-    return out.length ? out : null;
-  }
-  function rawMap(scenario){
-    const map = new Map(), list = scenario && scenario.arrivalDependencies;
-    if(Array.isArray(list)) for(const d of list)
-      if(d && typeof d==="object" && isId(d.stepId) && Array.isArray(d.waitsForArrivalOf))
-        map.set(d.stepId, [...(map.get(d.stepId) || []), ...d.waitsForArrivalOf.filter(isId)]);
-    return map;
-  }
-  /* Quita lo que apunta a Steps que ya no existen (los ids de Step no se reutilizan: nunca volverán a ser válidos).
-     Conserva lo que hoy no aplica pero puede volver a aplicar (p. ej. tras reordenar). */
-  function pruneArrivalDependencies(scenario){
-    const ids = new Set(((scenario && scenario.steps) || []).map(s=>s.id)), map = new Map();
-    for(const [stepId, sends] of rawMap(scenario)) if(ids.has(stepId)) map.set(stepId, sends.filter(id=>ids.has(id)));
-    return canonical(map);
-  }
-  /* Activa o quita la espera de `stepId` por `sendId`. Solo acepta envíos válidos (arrivalCandidates). */
-  function withArrivalWait(scenario, stepId, sendId, on){
-    const map = rawMap(scenario), cur = map.get(stepId) || [];
-    if(on){
-      if(!arrivalCandidates(scenario, stepId).some(s=>s.id===sendId)) return pruneArrivalDependencies(scenario);
-      map.set(stepId, [...cur, sendId]);
-    } else map.set(stepId, cur.filter(id=>id!==sendId));
-    return pruneArrivalDependencies(Object.assign({}, scenario, {arrivalDependencies: canonical(map) || []}));
-  }
-  function withoutArrivalWaits(scenario, stepId){
-    const map = rawMap(scenario); map.delete(stepId);
-    return pruneArrivalDependencies(Object.assign({}, scenario, {arrivalDependencies: canonical(map) || []}));
-  }
-  /* Duplicar un Step: la copia espera lo mismo que el original. */
-  function copyArrivalWaits(scenario, fromId, toId){
-    const map = rawMap(scenario);
-    if(map.has(fromId)) map.set(toId, map.get(fromId).slice());
-    return pruneArrivalDependencies(Object.assign({}, scenario, {arrivalDependencies: canonical(map) || []}));
-  }
+  /* ─────────── Dependencias de llegada (dato de la Historia) ───────────
+     FLUYO-018.22: la regla de validez y la forma canónica viven en model.js (kernel), las mismas que usa fluyo-mcp para
+     crearlas y modificarlas. Aquí solo se reexportan con los nombres de siempre; este archivo sigue fuera del kernel. */
+  const stepWaits = arrivalStepWaits, momentWaits = arrivalMomentWaits;
 
   /* ─────────── Instante visible de cada momento ─────────── */
   /* Duración del viaje de un SEND: exactamente la de FluyoScenarioPlayback.sendDuration (presentación). */

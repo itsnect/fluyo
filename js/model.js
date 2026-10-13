@@ -1381,6 +1381,93 @@ function storyboardDropTarget(rows, sourceId, y, groupsCount, sourceGroupSize){
   return {target:{kind:"join",anchorId:row.stepId,after},line:{y:after?lineBottom:lineTop,kind:"join",row:row.stepId}};
 }
 
+/* ===================== Dependencias de llegada (FLUYO-018.21 · 018.22) =====================
+   Dato de la HISTORIA, no del Step: scenario.arrivalDependencies = [{stepId, waitsForArrivalOf:[ids de SEND]}].
+   «Este momento no empieza hasta que llegue el envío». Aquí vive la REGLA DE VALIDEZ y la forma canónica, que comparten el
+   editor (vía FluyoStoryClock, story-clock.js: reloj y horario visible, fuera del kernel) y fluyo-mcp (story-authoring.js).
+   Válida = el Step existe y cada id es un Step SEND de la misma Historia en un momento ANTERIOR (`at` estrictamente menor);
+   por eso no puede haber ciclos. Lectura TOLERANTE: lo inválido se ignora con su razón, nunca invalida el documento. */
+function arrivalIsId(v){ return Number.isSafeInteger(v) && v>=1; }
+/* {waits: Map(stepId → [ids de SEND válidos]), ignored: [{stepId, sendId, reason}]}. */
+function arrivalDependencies(scenario){
+  const steps=(scenario && Array.isArray(scenario.steps)) ? scenario.steps : [];
+  const byId=new Map(steps.map(s=>[s.id, s])), waits=new Map(), ignored=[];
+  const list=scenario && scenario.arrivalDependencies;
+  if(list===undefined) return {waits, ignored};
+  if(!Array.isArray(list)){ ignored.push({stepId:null, sendId:null, reason:"malformed"}); return {waits, ignored}; }
+  for(const d of list){
+    if(!d || typeof d!=="object" || !arrivalIsId(d.stepId) || !Array.isArray(d.waitsForArrivalOf)){ ignored.push({stepId:d && d.stepId, sendId:null, reason:"malformed"}); continue; }
+    const step=byId.get(d.stepId);
+    for(const id of d.waitsForArrivalOf){
+      const send=arrivalIsId(id) ? byId.get(id) : null;
+      const reason=!step ? "step_missing" : !arrivalIsId(id) ? "malformed" : !send ? "send_missing" : send.action!=="SEND" ? "not_send" : !(send.at<step.at) ? "not_earlier" : null;
+      if(reason){ ignored.push({stepId:d.stepId, sendId:id, reason}); continue; }
+      if(!waits.has(step.id)) waits.set(step.id, []);
+      if(!waits.get(step.id).includes(id)) waits.get(step.id).push(id);
+    }
+  }
+  return {waits, ignored};
+}
+/* Envíos que `stepId` puede esperar: SEND de momentos anteriores, en el orden de la Historia. */
+function arrivalCandidates(scenario, stepId){
+  const steps=(scenario && scenario.steps) || [], step=steps.find(s=>s.id===stepId);
+  return step ? storyboardOrderedSteps(steps).filter(s=>s.action==="SEND" && s.at<step.at) : [];
+}
+/* Envíos (válidos) que espera un Step, y los que espera su momento entero (la unión: el momento es atómico). */
+function arrivalStepWaits(scenario, stepId){ return (arrivalDependencies(scenario).waits.get(stepId) || []).slice(); }
+function arrivalMomentWaits(scenario, at){
+  const waits=arrivalDependencies(scenario).waits, out=[];
+  for(const s of (scenario && scenario.steps) || []) if(s.at===at) for(const id of waits.get(s.id) || []) if(!out.includes(id)) out.push(id);
+  return out;
+}
+/* Forma canónica: entradas ordenadas por stepId, ids únicos y ordenados, sin listas vacías. null = sin dependencias. */
+function arrivalCanonical(map){
+  const out=[...map.entries()].filter(([,ids])=>ids.length).sort((a,b)=>a[0]-b[0])
+    .map(([stepId, ids])=>({stepId, waitsForArrivalOf:[...new Set(ids)].sort((a,b)=>a-b)}));
+  return out.length ? out : null;
+}
+/* Lo ALMACENADO (válido o no), por Step; ignora solo lo mal formado. */
+function arrivalRawMap(scenario){
+  const map=new Map(), list=scenario && scenario.arrivalDependencies;
+  if(Array.isArray(list)) for(const d of list)
+    if(d && typeof d==="object" && arrivalIsId(d.stepId) && Array.isArray(d.waitsForArrivalOf))
+      map.set(d.stepId, [...(map.get(d.stepId) || []), ...d.waitsForArrivalOf.filter(arrivalIsId)]);
+  return map;
+}
+/* Quita lo que apunta a Steps que ya no existen (los ids de Step no se reutilizan: nunca volverán a ser válidos).
+   Conserva lo que hoy no aplica pero puede volver a aplicar (p. ej. tras reordenar). */
+function pruneArrivalDependencies(scenario){
+  const ids=new Set(((scenario && scenario.steps) || []).map(s=>s.id)), map=new Map();
+  for(const [stepId, sends] of arrivalRawMap(scenario)) if(ids.has(stepId)) map.set(stepId, sends.filter(id=>ids.has(id)));
+  return arrivalCanonical(map);
+}
+function arrivalWithMap(scenario, map){
+  return pruneArrivalDependencies(Object.assign({}, scenario, {arrivalDependencies:arrivalCanonical(map) || []}));
+}
+/* Activa o quita la espera de `stepId` por `sendId`. Solo acepta envíos válidos (arrivalCandidates). */
+function withArrivalWait(scenario, stepId, sendId, on){
+  const map=arrivalRawMap(scenario), cur=map.get(stepId) || [];
+  if(on){
+    if(!arrivalCandidates(scenario, stepId).some(s=>s.id===sendId)) return pruneArrivalDependencies(scenario);
+    map.set(stepId, [...cur, sendId]);
+  } else map.set(stepId, cur.filter(id=>id!==sendId));
+  return arrivalWithMap(scenario, map);
+}
+/* REEMPLAZA lo que espera `stepId` ([] = no espera nada). Quien llama ya validó `sendIds` (arrivalCandidates). */
+function withArrivalWaits(scenario, stepId, sendIds){
+  const map=arrivalRawMap(scenario);
+  map.set(stepId, sendIds.slice());
+  return arrivalWithMap(scenario, map);
+}
+function withoutArrivalWaits(scenario, stepId){ return withArrivalWaits(scenario, stepId, []); }
+/* Duplicar un Step: la copia (mismo momento) espera lo que el original espera DE VERDAD (las válidas). Las demás dependencias
+   no cambian: las que esperan al original siguen esperando al original, nunca a la copia. */
+function copyArrivalWaits(scenario, fromId, toId){
+  const map=arrivalRawMap(scenario), valid=arrivalStepWaits(scenario, fromId);
+  if(valid.length) map.set(toId, valid);
+  return arrivalWithMap(scenario, map);
+}
+
 /* Exposición mínima para el editor de Scenarios. */
 if(typeof window!=="undefined"){
   window.eventTypeById=eventTypeById;

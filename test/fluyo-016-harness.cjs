@@ -170,6 +170,7 @@ function makeScenarioUIContext() {
   vm.runInContext(read("js/scenario-engine.js"), ctx);
   vm.runInContext(read("js/scenario-playback.js"), ctx);
   vm.runInContext(read("js/story-playback.js"), ctx);
+  vm.runInContext(read("js/story-clock.js"), ctx);   // FLUYO-018.22: el editor lo usa desde 018.18/018.21 (como en index.html)
   vm.runInContext(read("js/editor-scenarios.js"), ctx);
   vm.runInContext(read("js/selection.js"), ctx);
   return { ctx, doc, register };

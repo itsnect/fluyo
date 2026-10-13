@@ -6,7 +6,8 @@
        storyboard*, stepDefinitionForEvent, storyboardSetWait, duplicateStep, retargetStep, setInitialAvailability,
        createEventTypeIn, updateEventTypeIn, deleteEventTypeIn, eventTypeDefinition, createNodeIn, createConnectionIn,
        updateNodeIn, updateConnectionIn, deleteNodeIn, deleteConnectionIn, createPageIn, renamePageIn,
-       setThemeIn, reorderNodesIn, duplicateNodesIn (FLUYO-018.7a), deletePageIn (FLUYO-018.7c): las mismas que ejecuta el editor);
+       setThemeIn, reorderNodesIn, duplicateNodesIn (FLUYO-018.7a), deletePageIn (FLUYO-018.7c), y las dependencias de llegada
+       arrivalCandidates, withArrivalWaits, pruneArrivalDependencies, copyArrivalWaits (FLUYO-018.22): las mismas que ejecuta el editor);
      · FluyoIntegrity (la autoridad de integridad) sobre el ESTADO FINAL del lote y para explicar qué rompería
        borrar o cambiar un EventType usado.
    Aquí sólo viven la forma de las operaciones, la resolución de referencias del lote (`ref`) y la explicación
@@ -23,6 +24,7 @@ var FluyoAuthoring = (function(){
   const OPERATION_SCOPE = {
     create_story:"story", rename_story:"story", duplicate_story:"story", delete_story:"story",
     add_step:"story", remove_step:"story", move_step:"story", duplicate_step:"story", retarget_step:"story", set_wait:"story",
+    set_arrival_dependencies:"story",
     set_initial_availability:"page", create_node:"page", create_connection:"page",
     update_node:"page", update_connection:"page", delete_node:"page", delete_connection:"page",
     create_page:"document", rename_page:"document", delete_page:"document", set_theme:"document",
@@ -39,9 +41,10 @@ var FluyoAuthoring = (function(){
      p. ej. nadie puede escribir `action`, `state` ni `at` en un paso; el EventType y las esperas lo deciden. */
   const OPERATION_FIELDS = {
     create_story:["name","ref"], rename_story:["storyId","name"], duplicate_story:["storyId","name","ref"], delete_story:["storyId"],
-    add_step:["storyId","eventTypeId","target","waitMs","placement","ref"], remove_step:["storyId","stepId"],
+    add_step:["storyId","eventTypeId","target","waitMs","placement","waitsForArrivalOf","ref"], remove_step:["storyId","stepId"],
     move_step:["storyId","stepId","direction","to"], duplicate_step:["storyId","stepId","ref"],
     retarget_step:["storyId","stepId","target"], set_wait:["storyId","stepId","waitMs"],
+    set_arrival_dependencies:["storyId","stepId","waitsForArrivalOf"],
     set_initial_availability:["nodeId","state"],
     create_node:["spec","ref"], create_connection:["source","target","spec","ref"],
     update_node:["node","spec"], update_connection:["connection","source","target","spec"],
@@ -515,6 +518,60 @@ var FluyoAuthoring = (function(){
     return op.nodes;
   }
 
+  /* ───────── Dependencias de llegada (FLUYO-018.22) ─────────
+     Dato de la Historia (scenario.arrivalDependencies), nunca del Step. La regla de validez es la de model.js (arrivalCandidates:
+     SEND de la misma Historia en un momento ANTERIOR), la misma con la que el editor ofrece «Esperar a que llegue…» y con la
+     que se reproduce. Lo que ESCRIBE el lote se valida y, si no vale, se RECHAZA (INVALID_ARRIVAL_DEPENDENCY con su razón);
+     lo que el documento ya traía no se revalida (lectura tolerante de 018.21). */
+  function setArrivalDependencies(sc, list){
+    if(list) sc.arrivalDependencies = list; else delete sc.arrivalDependencies;
+  }
+  const ARRIVAL_REASON = {
+    self:"un paso no puede esperar su propia llegada",
+    other_story:"ese paso es de otra Historia: solo se espera a envíos de la misma Historia",
+    send_missing:"no existe ese paso en la Historia",
+    not_send:"ese paso no es un envío (SEND): solo un envío llega a algún sitio",
+    not_earlier:"ese envío no ocurre en un momento ANTERIOR (mismo momento o posterior): el momento es atómico y solo puede esperar a envíos que ya salieron",
+    cycle:"ese envío ya espera, directa o indirectamente, a este paso: sería un ciclo"
+  };
+  /* ¿`fromId` espera (directa o indirectamente, por dependencias VÁLIDAS) a `toId`? Solo explica el rechazo: un ciclo es
+     siempre también «no anterior». */
+  function arrivalReaches(sc, fromId, toId){
+    const waits = arrivalDependencies(sc).waits, seen = new Set(), stack = [fromId];
+    while(stack.length){
+      const id = stack.pop();
+      if(id===toId) return true;
+      if(seen.has(id)) continue;
+      seen.add(id);
+      for(const w of waits.get(id) || []) stack.push(w);
+    }
+    return false;
+  }
+  /* Ids de SEND que `step` va a esperar. Cada elemento: id o {ref} de un paso creado antes en el lote. Sin duplicados, ordenados. */
+  function arrivalIdsOf(ctx, op, sc, step){
+    const raw = op.waitsForArrivalOf, field = "waitsForArrivalOf";
+    if(!Array.isArray(raw)) throw reject("INVALID_OPERATION", `${field} debe ser una lista de ids de pasos SEND ([] = no esperar nada).`, {field});
+    const candidates = arrivalCandidates(sc, step.id).map(s=>s.id), ids = [];
+    raw.forEach((v, i)=>{
+      const r = ctxRef(ctx, "steps", v, `${field}[${i}]`);
+      const sendId = r.id;
+      let reason = null;
+      if(r.storyId!==undefined && (r.storyId!==sc.id || r.pageIndex!==op.pageIndex)) reason = "other_story";
+      else if(sendId===step.id) reason = "self";
+      else if(!candidates.includes(sendId)){
+        const send = sc.steps.find(s=>s.id===sendId);
+        reason = !send ? "send_missing" : send.action!=="SEND" ? "not_send" : arrivalReaches(sc, sendId, step.id) ? "cycle" : "not_earlier";
+      }
+      if(reason) throw reject("INVALID_ARRIVAL_DEPENDENCY", `El paso ${step.id} no puede esperar la llegada del paso ${sendId}: ${ARRIVAL_REASON[reason]}. Envíos que puede esperar: ${candidates.join(", ") || "ninguno"}.`,
+        {field:`${field}[${i}]`, pageIndex:op.pageIndex, storyId:sc.id, stepId:step.id, sendId, reason, candidates});
+      if(!ids.includes(sendId)) ids.push(sendId);
+    });
+    return ids.sort((a, b)=>a-b);
+  }
+  const arrivalPairs = sc => [...arrivalRawMap(sc)].flatMap(([stepId, ids])=>ids.map(sendId=>({stepId, sendId})));
+  /* Dependencias ALMACENADAS que no aplican al reproducir (se ignoran: 018.21), con su razón. Clave estable para comparar. */
+  const inactiveArrivals = sc => arrivalDependencies(sc).ignored.map(x=>({key:`${x.stepId}:${x.sendId}:${x.reason}`, stepId:x.stepId, sendId:x.sendId, reason:x.reason}));
+
   const HANDLERS = {
     create_node(ctx, op, pg){
       const spec = withRef(op, diagramSpec(op));
@@ -765,19 +822,28 @@ var FluyoAuthoring = (function(){
           sc.steps = r.steps;
         }
       }
+      // La dependencia es de la Historia: se registra en scenario.arrivalDependencies, nunca en el Step. [] o ausente = nada.
+      const waits = op.waitsForArrivalOf===undefined ? [] : arrivalIdsOf(ctx, op, sc, step);
+      if(waits.length) setArrivalDependencies(sc, withArrivalWaits(sc, step.id, waits));
       if(op.ref!==undefined) ctx.refs.steps.set(String(op.ref), {id:step.id, pageIndex:op.pageIndex, storyId:sc.id});
       touch(ctx, op.pageIndex, sc);
       const d = stepDelta(before, sc.steps);
-      return {entityKind:"step", entityId:step.id, storyId:sc.id, created:true, at:step.at, action:step.action, affects:storyAffect(op.pageIndex, sc, d)};
+      return Object.assign({entityKind:"step", entityId:step.id, storyId:sc.id, created:true, at:step.at, action:step.action}, waits.length ? {waitsForArrivalOf:waits} : {},
+        {affects:storyAffect(op.pageIndex, sc, d)});
     },
     remove_step(ctx, op, pg){
       const sc = storyOf(ctx, op, pg, true);
       const st = stepOf(ctx, sc, op.stepId, "stepId", op.pageIndex);
       const before = clone(sc.steps);
       const r = storyboardRemoveStep(sc.steps, st.id);       // misma política que el editor: la espera del momento que desaparece se colapsa
+      const pairs = arrivalPairs(sc);
       sc.steps = r.steps;
+      // Como el editor: se van las dependencias del paso eliminado y las que lo esperaban (no quedan referencias huérfanas).
+      setArrivalDependencies(sc, pruneArrivalDependencies(sc));
+      const kept = new Set(arrivalPairs(sc).map(p=>`${p.stepId}:${p.sendId}`)), gone = pairs.filter(p=>!kept.has(`${p.stepId}:${p.sendId}`));
       touch(ctx, op.pageIndex, sc);
-      return {entityKind:"step", entityId:st.id, storyId:sc.id, deleted:true, affects:storyAffect(op.pageIndex, sc, stepDelta(before, sc.steps))};
+      return Object.assign({entityKind:"step", entityId:st.id, storyId:sc.id, deleted:true}, gone.length ? {cascade:{arrivalDependencies:gone}} : {},
+        {affects:storyAffect(op.pageIndex, sc, stepDelta(before, sc.steps))});
     },
     move_step(ctx, op, pg){
       const sc = storyOf(ctx, op, pg, true);
@@ -810,9 +876,13 @@ var FluyoAuthoring = (function(){
       if(sc.steps.length>=FluyoScenarios.MAX_SCENARIO_STEPS) throw reject("MAX_STEPS", `La Historia ya tiene el máximo de ${FluyoScenarios.MAX_SCENARIO_STEPS} pasos.`, {storyId:sc.id});
       const before = clone(sc.steps);
       const copy = duplicateStep(sc, st.id);                 // mismo momento, justo debajo; no desplaza nada
+      // Como el editor: la copia espera lo mismo que el original (solo lo válido); lo que esperaba AL original sigue en el original.
+      setArrivalDependencies(sc, copyArrivalWaits(sc, st.id, copy.id));
+      const waits = arrivalStepWaits(sc, copy.id);
       if(op.ref!==undefined) ctx.refs.steps.set(String(op.ref), {id:copy.id, pageIndex:op.pageIndex, storyId:sc.id});
       touch(ctx, op.pageIndex, sc);
-      return {entityKind:"step", entityId:copy.id, storyId:sc.id, created:true, duplicatedFrom:st.id, affects:storyAffect(op.pageIndex, sc, stepDelta(before, sc.steps))};
+      return Object.assign({entityKind:"step", entityId:copy.id, storyId:sc.id, created:true, duplicatedFrom:st.id}, waits.length ? {waitsForArrivalOf:waits} : {},
+        {affects:storyAffect(op.pageIndex, sc, stepDelta(before, sc.steps))});
     },
     retarget_step(ctx, op, pg){
       const sc = storyOf(ctx, op, pg, true);
@@ -835,6 +905,18 @@ var FluyoAuthoring = (function(){
       sc.steps = r.steps;
       touch(ctx, op.pageIndex, sc);
       return {entityKind:"step", entityId:st.id, storyId:sc.id, waitMs:wait, affects:storyAffect(op.pageIndex, sc, stepDelta(before, sc.steps))};
+    },
+    /* REEMPLAZA lo que espera un paso; [] lo borra. from = lo almacenado antes para ese paso; to = lo que queda. */
+    set_arrival_dependencies(ctx, op, pg){
+      const sc = storyOf(ctx, op, pg, true);
+      const st = stepOf(ctx, sc, op.stepId, "stepId", op.pageIndex);
+      if(op.waitsForArrivalOf===undefined) throw reject("INVALID_OPERATION", "set_arrival_dependencies necesita «waitsForArrivalOf»: la lista completa de envíos que espera el paso ([] = ninguno).", {field:"waitsForArrivalOf"});
+      const ids = arrivalIdsOf(ctx, op, sc, st);
+      const from = (arrivalRawMap(sc).get(st.id) || []).slice().sort((a, b)=>a-b);
+      setArrivalDependencies(sc, withArrivalWaits(sc, st.id, ids));
+      touch(ctx, op.pageIndex, sc);
+      return {entityKind:"step", entityId:st.id, storyId:sc.id, from, to:ids, changed:JSON.stringify(from)!==JSON.stringify(ids),
+              affects:storyAffect(op.pageIndex, sc, {stepIds:[st.id]})};
     },
     set_initial_availability(ctx, op, pg){
       const nodeId = stepEntityId(ctx, op, op.nodeId, "nodeId", "nodes");
@@ -988,6 +1070,9 @@ var FluyoAuthoring = (function(){
                 diagramRefs:{nodes:new Map(), edges:new Map()}, created:[], deleted:[], touched:new Map(), opIndex:0,
                 pages:d.pages.slice(), deletedPages:new Map()};
     const changes = [];
+    // Dependencias de llegada que ya no aplicaban al empezar (por página del lote e Historia): no se avisan otra vez.
+    const inactiveBefore = new Map();
+    d.pages.forEach((pg, pi)=>pg.scenarios.forEach(sc=>inactiveBefore.set(`${pi}:${sc.id}`, new Set(inactiveArrivals(sc).map(x=>x.key)))));
 
     for(let i=0; i<operations.length; i++){
       const op = operations[i];
@@ -1036,7 +1121,19 @@ var FluyoAuthoring = (function(){
     const refs = ctx.created.filter(c=>ctx.pages[c.pageIndex] && !ctx.deleted.some(x=>x.pageIndex===c.pageIndex && x.id===c.id && x.kind===(c.type==="node" ? "node" : "connection")))
       .map(c=>Object.assign({}, c, {pageIndex:liveIndexOf(ctx, c.pageIndex)}));
     const touched = [...ctx.touched.values()].map(t=>Object.assign({}, t, {pageIndex:liveIndexOf(ctx, t.pageIndex)}));
+    /* Aviso, no rechazo: una dependencia ALMACENADA que el lote dejó sin efecto (p. ej. move_step o set_wait pusieron el envío en el
+       mismo momento o después). Se conserva como dato y se ignora al reproducir (018.21); vuelve a aplicar si el orden se restablece. */
+    const warnings = [];
+    for(const t of ctx.touched.values()){
+      const pg = ctx.pages[t.pageIndex], sc = pg && pg.scenarios.find(x=>x.id===t.storyId);
+      if(!sc) continue;
+      const known = inactiveBefore.get(`${t.pageIndex}:${t.storyId}`) || new Set();
+      for(const x of inactiveArrivals(sc)) if(!known.has(x.key))
+        warnings.push({code:"ARRIVAL_DEPENDENCY_INACTIVE", pageIndex:liveIndexOf(ctx, t.pageIndex), storyId:sc.id, stepId:x.stepId, sendId:x.sendId, reason:x.reason,
+          message:`El paso ${x.stepId} de la Historia ${sc.id} espera la llegada del paso ${x.sendId}, pero ya no aplica (${x.reason}): se conserva y se ignora al reproducir.`});
+    }
     return Object.assign({ok:true, project:finalProject, changes, refs, touched, validation:{valid:after.valid, preexistingErrors:after.errors.length}},
+      warnings.length ? {warnings} : {},
       ctx.deletedPages.size ? {pageMap:ctx.pages.map((pg, from)=>({from, to:pg ? ctx.d.pages.indexOf(pg) : null}))} : {});
   }
 

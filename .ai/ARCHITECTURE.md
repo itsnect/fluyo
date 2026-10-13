@@ -24,7 +24,7 @@
 | `js/scenario-engine.js` | Motor determinista puro de Scenarios (v1/v2). |
 | `js/scenario-playback.js` | Proyección de Trace a datos visuales (sin DOM). |
 | `js/story-playback.js` | Receta ÚNICA de reproducción (`FluyoStory`): metadata por Step, ejecución, fin, estado de pintura y texto humano. Compartida por editor, Present y Viewer. |
-| `js/story-clock.js` | `FluyoStoryClock` (FLUYO-018.18): el reloj de una Historia —pausar, reanudar, saltar a un momento— sobre la misma receta. FLUYO-018.21: también el instante VISIBLE de cada momento (dependencias de llegada, `scenario.arrivalDependencies`). Puro y FUERA del kernel (fluyo-mcp no lo copia). Lo cargan el editor y el Viewer. |
+| `js/story-clock.js` | `FluyoStoryClock` (FLUYO-018.18): el reloj de una Historia —pausar, reanudar, saltar a un momento— sobre la misma receta. FLUYO-018.21: también el instante VISIBLE de cada momento (dependencias de llegada, `scenario.arrivalDependencies`; desde 018.22 la regla de validez está en `model.js` y aquí se reexporta). Puro y FUERA del kernel (fluyo-mcp no lo copia). Lo cargan el editor y el Viewer. |
 | `js/document-integrity.js` | `FluyoIntegrity` (FLUYO-017.1): autoridad única de integridad del documento. Pura, sin DOM; la cargan el editor (FLUYO-018.4, para confirmar borrados) y fluyo-mcp. |
 | `js/story-authoring.js` | `FluyoAuthoring` (FLUYO-017.2): lote atómico de operaciones de Historia sobre una copia. Pura; no cargada por el editor (la consume fluyo-mcp). |
 | `js/editor-scenarios.js` | Panel de Historias (Scenarios), selección de la Historia activa, storyboard, autoría, playback UI. |
@@ -494,7 +494,8 @@ teléfono apaisado          landscape · max-height 500px · pointer coarse (mqS
 ```text
 documento:  scenario.arrivalDependencies = [{ stepId, waitsForArrivalOf: [sendStepId…] }]   (opcional, aditivo; ausente = ninguna)
 motor/Trace: no lo ven (FluyoStory.run igual)        model.js: lo conserva tal cual (normalizeScenarios no lo toca)
-story-clock.js: arrivalDependencies (validar) → schedule (instante visible por momento) → start = FluyoStory.start + copia del Trace
+model.js (018.22, kernel): arrivalDependencies (validar) · arrivalCandidates · prune/with/copy (forma canónica)
+story-clock.js: reexporta la regla → schedule (instante visible por momento) → start = FluyoStory.start + copia del Trace
 editor · Present · Viewer: FluyoStoryClock.start / momentTimes(sc, playback) / describe / visibleAt
 ```
 
@@ -503,5 +504,18 @@ editor · Present · Viewer: FluyoStoryClock.start / momentTimes(sc, playback) /
 - **Instante visible (E2)**: `visible(k) = max(at(k) + pausa(k−1), llegada de cada envío del que dependa k)`, `pausa(k) = visible(k) − at(k)`, `llegada(e) = visible(momento de e) + MOTION_MS[motion]` (la misma duración del Playback). Lo anterior nunca se mueve; lo posterior conserva su ritmo. Sin dependencias, visible = `at` y no se copia el Trace (reproducción idéntica a la anterior).
 - **Reproducción**: `FluyoStoryClock.start` = `FluyoStory.start` (receta única) + `playback.schedule` + `playback.trace` = copia con `at` visible y `narrativeAt` (solo si algo se desplaza). `momentTimes(sc, playback)` da los visibles (navegación, progreso, salto); sin playback, los narrativos (identifican el momento de un Step). `describe` recalcula el momento en curso con los visibles. `seek` usa los visibles.
 - **Editor** (`editor-scenarios.js`): menú de la aparición › «Esperar a que llegue…» (solo envíos válidos anteriores, primero los que llegan a donde ocurre el evento; «No esperar»); la línea de tiempo pone en el momento «No empieza hasta que llegue «…» (origen → destino)» (`.scWaits`); eliminar un Step limpia las dependencias que lo nombran; duplicar copia la espera; todo con `pushUndo` (el snapshot de página ya incluye las Historias). Estado de las filas, seguimiento, rótulo y ⏮/⏭ por instantes visibles (`scVisibleAt`).
-- **Compatibilidad**: el editor actual, el motor, `FluyoIntegrity`, `FluyoAuthoring` (MCP), duplicar Historia, Undo y «Compartir historia» conservan el campo; el MCP aún no lo crea (018.22). Kernel, `model.js`, render, formato (`version` 5, `engineVersion` 2) sin cambios. `CACHE` v79.
+- **Compatibilidad**: el editor actual, el motor, `FluyoIntegrity`, `FluyoAuthoring` (MCP), duplicar Historia, Undo y «Compartir historia» conservan el campo; el MCP lo crea y modifica desde 018.22 (sección siguiente). Kernel, `model.js`, render, formato (`version` 5, `engineVersion` 2) sin cambios. `CACHE` v79.
 - Pruebas: `test/fluyo-018-21.test.cjs` (vm: casos 1–7, varios envíos, Trace, salto, formato/MCP/Share, autoría, editor con Undo real, Viewer, Present, alcance), `test/fluyo-018-21-browser.cjs` (Chrome dirigido, ≤ 1 min) y `test/fluyo-018-21-mutations.cjs`.
+
+## Dependencias de llegada en el MCP (FLUYO-018.22)
+
+```text
+fluyo-mcp author_document ── FluyoAuthoring (story-authoring.js, kernel) ── arrivalCandidates / withArrivalWaits / prune / copy (model.js, kernel)
+editor · Present · Viewer ── FluyoStoryClock (story-clock.js, NO kernel) ── reexporta las mismas funciones de model.js + reloj/horario visible
+```
+
+- **Operaciones**: `add_step {waitsForArrivalOf}` y `set_arrival_dependencies {stepId, waitsForArrivalOf}` (reemplaza; `[]` borra). Lo escrito se valida con `arrivalCandidates` y lo inválido se rechaza (`INVALID_ARRIVAL_DEPENDENCY`: `send_missing`, `not_send`, `not_earlier`, `self`, `cycle`, `other_story`). Lo ya almacenado no se revalida.
+- **Integridad**: `remove_step` → `pruneArrivalDependencies` (+ `cascade.arrivalDependencies`); `duplicate_step` → `copyArrivalWaits` (solo válidas; no redirige); `duplicate_story` copia literal (ids de Step por Historia); `move_step`/`set_wait` conservan el dato y avisan (`warnings: ARRIVAL_DEPENDENCY_INACTIVE`).
+- **Lectura**: `describe_document` expone lo almacenado (`arrivalDependencies`), lo inactivo (`inactiveArrivalDependencies`) y lo que aplica (`waitsForArrivalOf` por paso, `waitsFor` por momento). `run_story`/Trace sin cambios.
+- **Kernel**: `story-clock.js` NO entra (`KERNEL_FILES` igual; cambia el contenido de `model.js` y `story-authoring.js`, nuevo `KERNEL_ID`). `CACHE` v80 (`model.js` y `story-clock.js` son servidos).
+- Pruebas: `fluyo-mcp/test/fluyo-018-22.test.ts` (33: API, validación, remove/duplicate, describe, paridad con el editor, reproducción, Share), `fluyo-mcp/scripts/mutate-018-22.ts` (23 mutaciones) y `test/fluyo-018-22.test.cjs` (regla en `model.js`, reexport, integración, release).

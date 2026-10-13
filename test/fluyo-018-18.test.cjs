@@ -39,7 +39,7 @@ test("alcance: kernel (model, config, motor, playback, story-playback, integrida
 
 test("story-clock.js: fuera del kernel, cargado por el editor y el Viewer tras story-playback.js, precacheado; CACHE v77", () => {
   const sw = read("sw.js"), html = read("index.html"), viewer = read("s/index.html");
-  assert.match(sw, /const CACHE = "fluyo-static-v80";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v81";/);
   assert.ok(sw.includes('"./js/story-clock.js"'), "precacheado");
   assert.ok(html.indexOf('src="js/story-playback.js"') < html.indexOf('src="js/story-clock.js"') && html.indexOf('src="js/story-clock.js"') < html.indexOf('src="js/editor-scenarios.js"'), "editor: tras story-playback y antes de editor-scenarios");
   assert.ok(viewer.indexOf('src="../js/story-playback.js"') < viewer.indexOf('src="../js/story-clock.js"') && viewer.indexOf('src="../js/story-clock.js"') < viewer.indexOf('src="../js/viewer.js"'), "Viewer: tras story-playback y antes de viewer.js");
@@ -344,9 +344,10 @@ test("páginas: sin ✕; selector con la activa («03 Nombre»); la lista cambia
 /* ───────── D12: Trazo › Dirección ───────── */
 test("dirección: «Sentido de los puntos» en Trazo junto a las puntas; tres opciones = los tres valores de flowDir; grupo plegado «Puntos»", () => {
   const html = read("index.html"), ui = read("js/ui.js");
-  const stroke = element(html, "grpStroke");
-  assert.ok(stroke.includes('id="dirKicker"') && /Dirección/.test(stroke), "bloque «Dirección»");
-  assert.ok(stroke.indexOf('id="rowArrE"') < stroke.indexOf('id="rowAnim"') && stroke.indexOf('id="rowAnim"') < stroke.indexOf('id="rowFlow"'), "puntas · puntos en movimiento · sentido");
+  /* FLUYO-018.23 (D5): la Dirección pasa de bloque de Trazo a grupo propio y abierto (#grpRoute, data-group="Dirección") */
+  const stroke = element(html, "grpRoute");
+  assert.ok(stroke.includes('id="dirKicker"') && /data-group="Dirección"/.test(stroke), "bloque «Dirección»");
+  assert.ok(stroke.indexOf('id="rowArrows"') < stroke.indexOf('id="rowAnim"') && stroke.indexOf('id="rowArrE"') < stroke.indexOf('id="rowAnim"') && stroke.indexOf('id="rowAnim"') < stroke.indexOf('id="rowFlow"'), "puntas · puntos en movimiento · sentido");
   const seg = element(stroke, "flowSeg");
   assert.deepEqual([...seg.matchAll(/data-flow="(\w+)"[^>]*>([^<]+)</g)].map((m) => [m[1], m[2]]), [["normal", "Hacia el destino"], ["reverse", "Hacia el origen"], ["alternate", "Ida y vuelta"]]);
   assert.deepEqual([...element(stroke, "flowSel").matchAll(/value="(\w+)"/g)].map((m) => m[1]), ["normal", "reverse", "alternate"], "los valores de siempre");
@@ -354,6 +355,6 @@ test("dirección: «Sentido de los puntos» en Trazo junto a las puntas; tres op
   assert.match(flow, /data-group="Puntos"/); assert.doesNotMatch(flow.slice(0, flow.indexOf(">")), / open/, "plegado");
   assert.ok(flow.includes('id="rowDotC"') && flow.includes('id="rowSpeedF"') && !flow.includes('id="flowSel"'));
   assert.match(ui, /\$\("flowSel"\)\.onchange=\(\)=>\{ const e=singleEdge\(\); if\(e\)\{ pushUndo\(\); editEdge\(e,\{flowDir:\$\("flowSel"\)\.value\}\); scheduleAutosave\(\); syncFlowSeg\(e\); \} \};/, "escribe flowDir con un Undo, como antes");
-  assert.ok(between(ui, "function syncFlowSeg(e){", "\n}\n").includes('$("rowFlow").style.display=e && e.animated ? "flex" : "none";'), "sin puntos en movimiento no se ofrece");
-  assert.ok(ui.includes('b.onclick=()=>{ if($("flowSel").value===b.dataset.flow) return; $("flowSel").value=b.dataset.flow; $("flowSel").onchange(); };'), "el segmentado manda a través del control nativo");
+  assert.ok(between(ui, "function syncFlowSeg(e){", "\n}\n").includes('$("rowFlow").style.display=moving ? "flex" : "none";'), "sin puntos en movimiento no se ofrece");
+  assert.ok(ui.includes('segOnSelect("flowSeg","flowSel");') && ui.includes("sel.value=v; if(typeof sel.onchange===\"function\") sel.onchange();"), "el segmentado manda a través del control nativo (018.23: componente común)");
 });

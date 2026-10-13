@@ -43,7 +43,7 @@ test("alcance: kernel, render, geometría, exportación y Share idénticos a HEA
 
 test("sw.js: CACHE subido (v77 desde 018.18); lo que toca 018.17 sigue en el precache y nada de index.html queda fuera", () => {
   const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v80";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v81";/);
   for (const f of ["./index.html", "./css/system.css", "./css/styles.css", "./js/ui.js", "./js/editor-scenarios.js", "./docs/"]) assert.ok(sw.includes('"' + f + '"'), f + " precacheado");
   const html = read("index.html");
   const local = [...html.matchAll(/(?:src|href)="((?!https?:|#|data:)[^"]+\.(?:js|css|woff2|webmanifest|svg|png))"/g)].map((m) => m[1]).filter((u) => !u.startsWith("//"));
@@ -100,7 +100,9 @@ test("styles.css: hoja de Historias por contenido con tope --canvas-useful, cuat
   assert.match(mobile, /\.scEventRow\{flex:none; min-height:var\(--ctl-h\); border:1px solid var\(--rule-2\); border-radius:var\(--r-pill\);/, "cada evento es una ficha de 44 px");
   assert.match(mobile, /\.scEventRow \.scMore\{min-width:var\(--ctl-h\); min-height:var\(--ctl-h\);/, "el ⋯ de la ficha, a tamaño de control");
   assert.match(mobile, /\.scStoryboardSection\{min-height:0; flex:1; overflow:auto;\}/, "la línea de tiempo es el único desplazable");
-  assert.match(mobile, /#panelProperties \.swatches:not\(\.expanded\)\{max-height:32px;\}/, "una fila de muestras con el dedo");
+  /* FLUYO-018.23 (D4, D9): una fila de muestras en todos los layouts; con el dedo, de 32 px (--sw-size) */
+  assert.match(read("css/styles.css"), /\.swatches\{[^}]*max-height:calc\(var\(--sw-size\) \+ 6px\);/, "una fila de muestras con el dedo");
+  assert.match(read("css/system.css"), /@media \(pointer:coarse\)\{ :root\{ --sw-size:32px; \} \}/);
   assert.match(mobile, /#pagesBar > \.pgAdd\{position:sticky; right:0; width:var\(--ctl-h\); min-width:var\(--ctl-h\);/, "«＋» fijo a la derecha");
   assert.match(mobile, /footer \.tab:not\(\.active\)\{min-width:40px;/, "las demás pestañas, índice con objetivo de 40 px");
   assert.match(mobile, /\.modeBar button\{min-height:var\(--ctl-h\);/, "Historias y Presentar a tamaño de control (44 con dedo)");
@@ -130,7 +132,10 @@ test("ui.js: estado derivado, zona libre, suelo de zoom, toque en el vacío, ree
   const setMode = between(ui, "function setUiMode(mode){", "\n}\n");
   assert.ok(setMode.includes("const fitAfter = story && uiMode!==\"story\" && !isSheetLayout() && !diagramCut();") && setMode.includes("if(fitAfter) requestAnimationFrame(()=>{ if(uiMode===\"story\" && !isSheetLayout() && diagramCut()) fitView(); });"), "reencaje solo si un diagrama que cabía queda cortado");
   const chrome = between(ui, "function placeChrome(){", "\n}\n");
-  assert.ok(chrome.includes("animSec.appendChild(anim)") && chrome.includes("helpSec.appendChild(help)") && chrome.includes('$("grpAnimHome").after(anim)') && chrome.includes('$("grpHelpHome").after(help)'), "M1/M2: mismos nodos, ida y vuelta");
+  /* FLUYO-018.23 (D3): la ayuda vive siempre en «Más» (index.html); la animación sigue viajando (Lienzo ↔ Más) */
+  assert.ok(chrome.includes("animSec.appendChild(anim)") && chrome.includes('$("grpAnimHome").after(anim)'), "M1: mismos nodos, ida y vuelta");
+  const html17 = read("index.html");
+  assert.ok(html17.slice(html17.indexOf('id="helpSection"')).indexOf('id="grpHelp"') > 0 && !html17.slice(html17.indexOf('<aside'), html17.indexOf('</aside>')).includes('id="grpHelp"'), "M2: la ayuda en «Más», fuera del panel");
   assert.ok(chrome.includes('$("btnPanel").hidden = mobile && selN.size+selE.size===0;'), "M2: ⚙ contextual al cambiar de layout");
   const rp = between(ui, "function refreshPanel(){", "\n}\n");
   assert.ok(rp.includes('if(total===0) scheduleSheetIdleCheck();'), "M2: sin selección se programa la comprobación al reposo");

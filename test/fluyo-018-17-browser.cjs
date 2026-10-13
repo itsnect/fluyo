@@ -90,7 +90,7 @@ const MEASURE = ([touch, crit]) => {
   const v = visibleCanvasRect(), cr = cvEl.getBoundingClientRect();
   /* objetivos: críticos (lo que cambia de estado o lo cierra) ≥ 44 con dedo; el resto ≥ 40 con dedo / ≥ 28 con ratón */
   const CRIT = new Set(["btnStoryExit", "btnPanelClose", "scRun", "scReset", "btnStoryExpand", "scPlacementCancel", "scPlacementConfirm", "btnStories", "btnPresent", "btnMore", "btnUndo", "btnRedo", "btnPanel", "btnShare"]);
-  const exclude = "#presentBar,#presentStory,#shareDialog,.overlay,#iconDrawer,#animDrawer,#editBox,.swatches,.scDialog";
+  const exclude = "#presentBar,#presentStory,#shareDialog,.overlay,#iconDrawer,#animDrawer,#editBox,.swatches,.swRow,.scDialog";   /* 018.23: «⋯» de color, con sus muestras */
   const ctl = [...document.querySelectorAll("button, select, input:not([type=hidden]):not([type=file]), [role=button], a.menuItem, summary, .scStorySentence, .scDelay, .scHandle")].filter((e) => vis(e) && !e.closest(exclude));
   const dims = (e) => { const r = e.getBoundingClientRect(), lab = e.id && document.querySelector('label[for="' + e.id + '"]'), row = lab && e.closest(".row,.hdrOpt,.fieldRow"); const tab = e.classList.contains("pgMore") && e.closest(".tab"); const eff = row ? row.getBoundingClientRect() : tab ? tab.getBoundingClientRect() : r; return [Math.max(r.width, eff.width), Math.max(r.height, eff.height)]; };
   const tag = (e) => (e.id || e.className.toString().split(" ")[0] || e.tagName) + ":" + dims(e).map(Math.round).join("x");
@@ -164,7 +164,8 @@ async function journey(browser, base, vp) {
     if (sheet) check(!r.btnPanelVisible, `${tag} cerrada: sin selección no hay ⚙ (M2)`);
     const placed = await page.evaluate(() => ({ anim: $("grpAnim").parentNode.id, help: $("grpHelp").parentNode.id }));
     if (sheet) check(placed.anim === "animSection" && placed.help === "helpSection", `${tag} M1/M2: Animación del lienzo y Ayuda viven en «Más» ${JSON.stringify(placed)}`);
-    else check(placed.anim !== "animSection" && placed.help !== "animSection" && placed.help !== "helpSection", `${tag} M1/M2: en columna, Animación y Ayuda siguen en el panel ${JSON.stringify(placed)}`);
+    /* FLUYO-018.23 (D3): en columna, la animación vive en «Lienzo» y la ayuda en «Más»: nada de eso en Propiedades */
+    else check(placed.anim === "canvasMenu" && placed.help === "helpSection", `${tag} M1/M2: en columna, Animación en «Lienzo» y Ayuda en «Más» ${JSON.stringify(placed)}`);
     await shot(t, vp, `${ui}-closed`);
     /* ── compacta ── */
     const cutBefore = await page.evaluate(() => diagramCut());
@@ -390,7 +391,7 @@ async function serviceWorker(browser, base) {
   await page.goto(base + "/"); await page.waitForFunction(() => typeof renderTabs === "function");
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
   const keys = await page.evaluate(() => caches.keys());
-  check(keys.length === 1 && keys[0] === "fluyo-static-v80", "caché instalada: fluyo-static-v80 " + JSON.stringify(keys));
+  check(keys.length === 1 && keys[0] === "fluyo-static-v81", "caché instalada: fluyo-static-v81 " + JSON.stringify(keys));
   await ctx.setOffline(true);
   await page.reload(); await page.waitForFunction(() => typeof storyState === "function");
   const off = await page.evaluate(() => ({ css: getComputedStyle(document.documentElement).getPropertyValue("--ctl-h-touch").trim(), hint: !!document.getElementById("scRunHint") }));

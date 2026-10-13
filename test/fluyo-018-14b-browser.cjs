@@ -80,7 +80,7 @@ const MEASURE = ([touch, crit]) => {
   const rows = new Set(kids.map((e) => { const b = e.getBoundingClientRect(); return Math.round((b.top + b.height / 2) / 10); }));
   const aside = document.querySelector("aside"), ar = vis(aside) ? aside.getBoundingClientRect() : null;
   const min = touch ? 40 : 28;
-  const ctl = [...document.querySelectorAll("button, select, input:not([type=hidden]):not([type=file]), [role=button], a.menuItem, summary")].filter((e) => vis(e) && !e.closest("#presentBar,#presentStory,.scDialog,#shareDialog,.overlay,#iconDrawer,#animDrawer,#editBox,.swatches"));
+  const ctl = [...document.querySelectorAll("button, select, input:not([type=hidden]):not([type=file]), [role=button], a.menuItem, summary")].filter((e) => vis(e) && !e.closest("#presentBar,#presentStory,.scDialog,#shareDialog,.overlay,#iconDrawer,#animDrawer,#editBox,.swatches,.swRow"));   /* 018.23: «⋯» de una fila de color se mide con sus muestras (fluyo-018-23-browser) */
   const small = ctl.filter((e) => {
     if (e.id === "editBox") return false;
     const r = e.getBoundingClientRect(), lab = e.id && document.querySelector('label[for="' + e.id + '"]'), row = lab && e.closest(".row,.hdrOpt,.fieldRow");
@@ -200,6 +200,9 @@ async function journey(browser, base, vp) {
     const out = {};
     const bg = (sel) => { const e = document.querySelector(sel); return e ? +lum(getComputedStyle(e).backgroundColor).toFixed(3) : null; };
     for (const [k, sel] of [["cabecera", "body > header"], ["rail", ".rail"], ["panel", "aside"], ["páginas", "#bottomBar"], ["conmutador", ".modeSwitch .segBtn.active"]]) out[k] = bg(sel);
+    /* FLUYO-018.23 (D8): la opción activa es un velo oliva sobre el lecho: lo que se ve es su composición, no el color sin alfa */
+    { const a = document.querySelector(".modeSwitch .segBtn.active"), num = (c) => c.match(/[\d.]+/g).map(Number), m = num(getComputedStyle(a).backgroundColor), p = num(getComputedStyle(a.parentElement).backgroundColor), al = m[3] === undefined ? 1 : m[3];
+      out["conmutador"] = +lum("rgb(" + [0, 1, 2].map((i) => m[i] * al + p[i] * (1 - al)).join(",") + ")").toFixed(3); }
     $("btnMore").click(); await new Promise((r) => setTimeout(r, 60)); out["menú Más"] = bg("#moreMenu"); closeMoreMenu(false);
     if (!isSheetLayout()) { $("btnCanvas").click(); await new Promise((r) => setTimeout(r, 60)); out["menú Lienzo"] = bg("#canvasMenu"); closeCanvasMenu(false); }
     showShareDialog(); out["diálogo Compartir"] = bg("#shareDialog"); $("shareDialog").close();
@@ -340,7 +343,7 @@ async function serviceWorker(browser, base) {
   await page.goto(base + "/"); await page.waitForFunction(() => typeof renderTabs === "function");
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
   const keys = await page.evaluate(() => caches.keys());
-  check(keys.length === 1 && keys[0] === "fluyo-static-v80", "caché instalada: fluyo-static-v80 " + JSON.stringify(keys));
+  check(keys.length === 1 && keys[0] === "fluyo-static-v81", "caché instalada: fluyo-static-v81 " + JSON.stringify(keys));
   await page.evaluate(() => localStorage.setItem("fluyo.ui.theme", "dark"));
   await ctx.setOffline(true);
   await page.reload(); await page.waitForFunction(() => typeof setUiMode === "function");

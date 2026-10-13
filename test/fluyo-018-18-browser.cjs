@@ -344,9 +344,9 @@ async function direction(browser, base, vp) {
   const keys0 = await page.evaluate(() => JSON.stringify(Object.keys(serializeProject().doc.pages[0].edges[0]).sort()));
   await page.evaluate(() => { selE = new Set([P().edges[0].id]); refreshPanel(); if (isSheetLayout()) openSurface("properties"); }); await page.waitForTimeout(400);
   const sheet = await page.evaluate(() => isSheetLayout());
-  if (sheet) await press(t, "#grpStroke > summary", vp, 300);   /* en la hoja todos los grupos empiezan plegados (decisión 136): un nivel */
+  if (sheet) await press(t, "#grpRoute > summary", vp, 300);   /* en la hoja todos los grupos empiezan plegados (decisión 136): un nivel; 018.23: el grupo Dirección */
   const r = await page.evaluate(() => { const seg = $("flowSeg"), panel = $("propPanel"), vis = (e) => e.checkVisibility({ contentVisibilityAuto: true }) && e.getBoundingClientRect().height > 0; const s = seg.getBoundingClientRect(), p = panel.getBoundingClientRect(); return { vis: vis(seg), group: seg.closest("details").dataset.group, firstScreen: s.bottom <= p.bottom, flowOpen: $("grpFlow").open, opts: [...seg.querySelectorAll("[data-flow]")].map((b) => b.textContent.trim() + "=" + b.dataset.flow), checked: seg.querySelector('[aria-checked="true"]').dataset.flow }; });
-  check(r.vis && r.group === "Trazo" && !r.flowOpen, `${tag}: «Sentido de los puntos» en Trazo sin abrir otros grupos ${JSON.stringify(r)}`);
+  check(r.vis && r.group === "Dirección" && !r.flowOpen, `${tag}: «Sentido de los puntos» en Dirección (018.23) sin abrir otros grupos ${JSON.stringify(r)}`);
   if (vp.key === "d1440") check(r.firstScreen, `${tag}: a 1440, en la primera pantalla del panel`);
   check(JSON.stringify(r.opts) === JSON.stringify(["Hacia el destino=normal", "Hacia el origen=reverse", "Ida y vuelta=alternate"]) && r.checked === "normal", `${tag}: tres opciones = los tres valores ${JSON.stringify(r.opts)}`);
   const u0 = await page.evaluate(() => undoStack.length);
@@ -362,7 +362,7 @@ async function direction(browser, base, vp) {
   await load(page, saved);
   check((await page.evaluate(() => P().edges[0].flowDir)) === "reverse" && keys0 === keys1, `${tag}: persiste al guardar y abrir; mismas claves en la conexión (formato igual)`);
   await page.evaluate(() => { selE = new Set([P().edges[0].id]); refreshPanel(); if (isSheetLayout()) openSurface("properties"); }); await page.waitForTimeout(300);
-  if (sheet) { const open = await page.evaluate(() => $("grpStroke").open); if (!open) await press(t, "#grpStroke > summary", vp, 300); }
+  if (sheet) { const open = await page.evaluate(() => $("grpRoute").open); if (!open) await press(t, "#grpRoute > summary", vp, 300); }
   await page.locator("#animChk").evaluate((e) => { e.checked = false; e.dispatchEvent(new Event("change")); }); await page.waitForTimeout(150);
   check(!(await page.evaluate(() => $("rowFlow").getBoundingClientRect().height > 0)) && (await page.evaluate(() => P().edges[0].flowDir)) === "reverse", `${tag}: sin puntos en movimiento «Sentido» no se ofrece (el dato se conserva)`);
   await shot(t, vp, "direccion");
@@ -379,8 +379,8 @@ async function serviceWorker(browser, base) {
   await page.goto(base + "/"); await page.waitForFunction(() => typeof renderTabs === "function");
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
   const keys = await page.evaluate(() => caches.keys());
-  check(keys.length === 1 && keys[0] === "fluyo-static-v80", "caché instalada: fluyo-static-v80 " + JSON.stringify(keys));
-  const clock = await page.evaluate(async (b) => !!(await (await caches.open("fluyo-static-v80")).match(b + "/js/story-clock.js")), base);
+  check(keys.length === 1 && keys[0] === "fluyo-static-v81", "caché instalada: fluyo-static-v81 " + JSON.stringify(keys));
+  const clock = await page.evaluate(async (b) => !!(await (await caches.open("fluyo-static-v81")).match(b + "/js/story-clock.js")), base);
   check(clock, "story-clock.js en la caché");
   await ctx.setOffline(true);
   await page.reload(); await page.waitForFunction(() => typeof scTogglePause === "function" && typeof FluyoStoryClock === "object");

@@ -519,3 +519,21 @@ editor · Present · Viewer ── FluyoStoryClock (story-clock.js, NO kernel) �
 - **Lectura**: `describe_document` expone lo almacenado (`arrivalDependencies`), lo inactivo (`inactiveArrivalDependencies`) y lo que aplica (`waitsForArrivalOf` por paso, `waitsFor` por momento). `run_story`/Trace sin cambios.
 - **Kernel**: `story-clock.js` NO entra (`KERNEL_FILES` igual; cambia el contenido de `model.js` y `story-authoring.js`, nuevo `KERNEL_ID`). `CACHE` v80 (`model.js` y `story-clock.js` son servidos).
 - Pruebas: `fluyo-mcp/test/fluyo-018-22.test.ts` (33: API, validación, remove/duplicate, describe, paridad con el editor, reproducción, Share), `fluyo-mcp/scripts/mutate-018-22.ts` (23 mutaciones) y `test/fluyo-018-22.test.cjs` (regla en `model.js`, reexport, integración, release).
+
+## Panel de Propiedades: solo la selección (FLUYO-018.23)
+
+```text
+cabecera de la selección (#propSheetHead)  nombre · TIPO · ID | Orden ▾ (#rowZ: #btnFront/#btnForward/#btnBackward/#btnBack) · Eliminar (#btnDel) · plegar/cerrar (#btnPanelClose)
+contenido (#rowLabel)                      Texto · en un code «Código» (5 líneas, mono)
+nodo / code                                ▾ Apariencia (#grpShape) · ▾ Texto (#grpText) · ▸ Código (#grpCode, solo code) · ▸ Movimiento (#grpLayers)
+conexión                                   ▾ Trazo (#grpStroke) · ▾ Dirección (#grpRoute) · ▸ Puntos (#grpFlow) · ▸ Texto (#grpText, movido al final)
+fuera del panel                            Animación del lienzo → «Lienzo» (#grpAnimHome en #canvasMenu; «Más» en móvil) · Atajos → «Más › Ayuda y gestos»
+```
+
+- **Un solo panel** (`#panelProperties`) para columna (288/216), hoja inferior y hoja lateral: mismo DOM, mismos grupos, mismo orden, mismos ids. Cambian el contenedor, los objetivos (`--ctl-h`, `--sw-size` 24/32) y qué grupos empiezan abiertos (`applyGroupDefaults(kind)`: primarios del tipo en columna, todo plegado en la hoja). `refreshPanel` sigue siendo la única lectura de la selección; `placePanelRows(kind)` mueve los mismos nodos (Texto al final en una conexión; `#rowTextColor`/`#rowTextBg` a Código en un code) y `applyGroupDefaults` solo actúa al cambiar de tipo. Ruta, Puntas y Línea del borde van en línea con su etiqueta (`.inlineSeg`) y se apilan con `@container` (< 240 px).
+- **Segmentados** (`segBind`/`segSync`/`segOnSelect`, `ui.js`): radiogroup con tabindex móvil y flechas/Inicio/Fin/Espacio; el valor vive en el control nativo oculto (`#shapeSel`, `#borderSel`, `#langSel`, `#routeSel`, `#flowSel`, `#speedFacSel`), que dispara su manejador de siempre. Puntas: `#arrowSeg` (Ninguna · Inicio · Fin · Ambas) escribe solo el booleano que cambia (`startArrow`/`endArrow`) con un Undo; `#arrSChk`/`#arrEChk` siguen reflejándolo.
+- **Color de una fila** (`.colorRow`): rejilla de siempre recortada a una fila (`--sw-size`), «⋯» (`.swMore`, `toggleSwatches`) la despliega en el sitio con «Personalizado» y «Cuentagotas» (`.swOpen`); `markSw` antepone una muestra «actual» (`.swCurrent`) si el valor es un color propio y `syncSwatchMore` adelanta la elegida (`.pinned`) si no cabe. `setWell` escribe el pozo con el valor real o `data-auto` (marca de automático), nunca el valor anterior.
+- **Plegado** (columna): `<html data-props="folded">` desde `localStorage["fluyo.ui.props"]` (script del `<head>`), `setPropsFolded`, ⚙ (`#btnPanel`, visible también en columna) y `#btnPanelClose`. No lo leen el modo Historia, las hojas ni el documento.
+- **Activo = oliva** (`system.css`): `.seg` activo (`aria-checked`/`aria-pressed`/`.active`) con velo y borde `--active`; muestra elegida, «N», «⋯» abierto y pestañas con `--active`.
+- `CACHE` v81 (`index.html`, `css/styles.css`, `css/system.css`, `js/ui.js`, `docs/index.html`). Sin cambios en el kernel, `model.js`, el formato, el render, el Viewer, Share ni el MCP.
+- Pruebas: `test/fluyo-018-23.test.cjs` (alcance, inventario de ids, jerarquía, separación, segmentados, puntas en vm, color y pozo en vm, oliva, plegado, táctil), `test/fluyo-018-23-browser.cjs` (Chrome real: 1440/1280/1024 ratón, 768 tableta, 390 móvil; nodo, code, BD, conexión, flowDir, puntas, colores, teclado, Undo, plegado, oscuro, Historia/Present) y `test/fluyo-018-23-mutations.cjs` (21).

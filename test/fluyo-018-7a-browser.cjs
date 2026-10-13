@@ -131,7 +131,11 @@ async function script(browser, base, label) {
 
   /* ═══ Orden Z ═══ */
   const z = {};
-  const btn = (id) => ed.locator("#" + id);
+  /* FLUYO-018.23: las acciones de capas viven en el menú «Orden» de la cabecera de la selección (mismos botones e ids): si el botón
+     está dentro del menú cerrado, se abre como haría quien lo usa. En HEAD no hay menú y se pulsa directamente. */
+  const btn = (id) => { const l = ed.locator("#" + id); return { isVisible: () => l.isVisible(), click: async () => {
+    if (await ed.evaluate((id) => { const m = document.getElementById("orderMenu"); return !!(m && m.hidden && m.contains(document.getElementById(id))); }, id)) await ed.locator("#btnOrder").click();
+    return l.click(); } }; };
   /* FLUYO-018.14b: el panel va por grupos plegables; se despliegan como haría quien los usa (en HEAD no hay grupos: no hace nada) */ await ed.evaluate(() => document.querySelectorAll("#selBody details").forEach((d) => { d.open = true; }));
   z.initial = await order();
   await clickNode(2); if (process.env.DBG) console.log("DBG", JSON.stringify(await sel()), await ed.evaluate(() => [getComputedStyle(document.getElementById("rowZ")).display, document.body.className, document.getElementById("tabProperties").className, doc.pages.length, doc.cur, JSON.stringify(P().nodes.map((n) => [n.id, n.label, n.x, n.y]))]), await pt(2));

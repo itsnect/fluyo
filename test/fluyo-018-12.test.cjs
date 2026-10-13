@@ -17,7 +17,7 @@ const ids = (html) => new Set([...html.matchAll(/\sid="([^"]+)"/g)].map((m) => m
 
 test("sw.js: CACHE v72 y todos los assets locales de index.html y s/index.html precacheados", () => {
   const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v80";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v81";/);
   const listed = new Set([...sw.matchAll(/"\.\/([^"]*)"/g)].map((m) => m[1]));
   const local = (html, prefix) => [...html.matchAll(/<(?:script|link)[^>]+(?:src|href)="([^"]+)"/g)].map((m) => m[1])
     .filter((u) => !/^(https?:|data:|#)/.test(u) && !/\.(png|ico|svg)$/.test(u)).map((u) => path.posix.normalize(prefix + u));
@@ -42,16 +42,19 @@ test("index.html: cabecera sin reproducción, enlaces en «Más», Pausa en Anim
   const html = read("index.html");
   const header = html.slice(html.indexOf("<header>"), html.indexOf("</header>"));
   const menu = header.slice(header.indexOf('id="moreMenu"'));
-  const headerOutsideMenu = header.slice(0, header.indexOf('id="moreMenu"'));
-  assert.ok(!/id="btnPlay"/.test(header), "Pausa/Play ya no está en la cabecera");
+  /* FLUYO-018.23 (D3): la animación del lienzo vive en el popover «Lienzo» (#canvasMenu, dentro de <header>): la BARRA de la
+     cabecera (sin sus dos popovers) sigue sin reproducir ni pausar nada. */
+  const headerOutsideMenu = header.slice(0, header.indexOf('id="canvasMenu"'));
+  assert.ok(!/id="btnPlay"/.test(headerOutsideMenu), "Pausa/Play ya no está en la barra de la cabecera");
   assert.ok(!/Reproducir|Pausa|Play\b/.test(headerOutsideMenu), "la cabecera no reproduce ni pausa nada");
-  const aside = html.slice(html.indexOf('<aside id="propPanel">'), html.indexOf("</aside>"));
-  /* FLUYO-018.14b: la sección Animación es el grupo plegable «Animación del lienzo» */
-  assert.match(aside.slice(aside.indexOf('id="grpAnim"')), /id="btnPlay"/, "Pausa vive en la sección Animación");
+  /* FLUYO-018.14b: la sección Animación es el grupo plegable «Animación del lienzo»; desde 018.23 en «Lienzo», no en el panel */
+  const canvasMenu = html.slice(html.indexOf('id="canvasMenu"'), html.indexOf('id="moreMenu"'));
+  assert.match(canvasMenu.slice(canvasMenu.indexOf('id="grpAnim"')), /id="btnPlay"/, "Pausa vive en la sección Animación");
   for (const href of ["docs/", "ejemplos/", "privacidad/", "soporte/", "https://github.com/itsnect/fluyo", "https://github.com/itsnect/fluyo-mcp"])
     assert.ok(menu.includes(`href="${href}"`), "«Más» enlaza " + href);
   const bottom = html.slice(html.indexOf('<div id="bottomBar">'), html.indexOf("</div>", html.indexOf('id="modeBar"')));
   assert.ok(!/<a\s/.test(bottom), "la barra inferior no lleva enlaces");
+  const aside = html.slice(html.indexOf('<aside id="propPanel">'), html.indexOf("</aside>"));
   assert.ok(!/<a\s/.test(aside) && !/ossLink/.test(aside), "el panel no lleva enlaces ni Open Source");
 });
 

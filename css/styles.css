@@ -134,14 +134,12 @@ aside{
 }
 aside section{position:relative;}
 aside h3{font:400 var(--fs-title)/1.2 var(--font-serif); color:var(--ink); margin:0 0 12px; letter-spacing:0; text-transform:none;}
-.selMeta{position:absolute; right:0; top:1px; max-width:58%; overflow:hidden; text-overflow:ellipsis;}
-.selMeta[hidden]{display:none;}
 .row{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:6px; min-height:28px;}
-.row[data-stack]{flex-direction:column; align-items:stretch; gap:5px; margin-bottom:8px;}
+.row[data-stack]{flex-direction:column; align-items:stretch; gap:5px; margin-bottom:6px;}
 .row label{color:var(--ink-2); font:400 var(--fs-field)/1.35 var(--font-mono);}
 /* Grupos del panel (FLUYO-018.14b): <details class="pgroup"> (css/system.css). Un grupo sin filas visibles se oculta (ui.js). */
 #panelProperties .pgroup[hidden]{display:none;}
-.rowLabel{margin-bottom:12px;}
+.rowLabel{margin-bottom:6px;}
 /* Campos del panel a tamaño de objetivo: color 32×28 con ratón (40×36 con dedo, más abajo), deslizadores de 28. */
 #panelProperties input[type=color]{width:32px; height:28px;}
 #panelProperties input[type=range]{height:28px;}
@@ -152,18 +150,29 @@ aside h3{font:400 var(--fs-title)/1.2 var(--font-serif); color:var(--ink); margi
 #panelProperties .row select{width:132px; min-width:0;}
 textarea#lblEdit{width:100%; resize:vertical; min-height:40px; font-size:var(--fs-body);}
 textarea#kwEdit{width:100%; resize:vertical;}
-/* Muestras compactas (B6): dos filas a la vista; «Más colores» despliega la paleta entera. */
-.swatches{display:grid; grid-template-columns:repeat(auto-fill, minmax(18px, 1fr)); grid-auto-rows:18px; align-content:start; gap:4px; max-height:46px; overflow:hidden; padding:3px; margin:0 -3px;}
-.swatches.expanded{max-height:168px; overflow-y:auto;}
-.swatch{min-width:18px; height:100%; border-radius:var(--r-xs); border:0; cursor:pointer; box-shadow:inset 0 0 0 1px var(--swatch-edge);}
+/* Color de una fila (FLUYO-018.23, D4): una fila de muestras de --sw-size (24 con ratón, 32 con dedo) y «⋯», que despliega en el
+   sitio la rejilla entera con «Personalizado» y «Cuentagotas». La muestra del valor actual se adelanta si no cabe (.pinned). */
+.swatches{display:grid; grid-template-columns:repeat(auto-fill, minmax(var(--sw-size), 1fr)); grid-auto-rows:var(--sw-size); align-content:start; gap:4px; max-height:calc(var(--sw-size) + 6px); overflow:hidden; padding:3px; margin:-3px 0 -3px -3px;}
+.swatches.expanded{max-height:calc((var(--sw-size) + 4px) * 6 + 6px); overflow-y:auto;}
+.swatch.pinned{order:-1;}
+.swatch{min-width:var(--sw-size); height:100%; border-radius:var(--r-xs); border:0; cursor:pointer; box-shadow:inset 0 0 0 1px var(--swatch-edge);}
 .swatch:hover{box-shadow:inset 0 0 0 1px var(--swatch-edge), 0 0 0 1px var(--rule-2);}
-#panelProperties button.swMore{min-height:28px; padding:0 6px; margin-left:auto; font-size:var(--fs-label); color:var(--ink-3);}
+.colorRow .swRow{display:flex; align-items:flex-start; gap:4px; min-width:0;}
+.colorRow .swatches{flex:1 1 auto; min-width:0;}
+#panelProperties button.swMore{flex:none; width:var(--sw-size); height:var(--sw-size); min-height:0; padding:0; border:1px solid var(--rule-2); background:transparent; color:var(--ink-2); font:500 15px/1 var(--font-mono); letter-spacing:0;}
+#panelProperties button.swMore[aria-expanded="true"]{background:var(--active-veil); border-color:var(--active); color:var(--ink);}
+.colorRow .colorTools{display:none;}
+.colorRow.swOpen .colorTools{display:flex;}
+/* Pozo «Personalizado» sin color propio (FLUYO-018.23, P3): la marca de automático del sistema, nunca un color rancio ni negro. */
+#panelProperties input[type=color][data-auto]::-webkit-color-swatch{background:repeating-linear-gradient(45deg,var(--sw-a) 0 4px,var(--sw-b) 4px 8px) !important;}
+#panelProperties input[type=color][data-auto]::-moz-color-swatch{background:repeating-linear-gradient(45deg,var(--sw-a) 0 4px,var(--sw-b) 4px 8px) !important;}
 /* los swatches son <div>, así que la regla de :focus-visible de los controles no
    los alcanza: sin esto la navegación con flechas sería invisible e inservible */
 .swatch:focus-visible{outline:var(--focus); outline-offset:2px;}
-.swatch.sel{box-shadow:0 0 0 2px var(--surface), 0 0 0 3.5px var(--ink);}
+/* FLUYO-018.23 (D8): la muestra elegida es un estado del control: anillo oliva, separado del color por un aire del panel. */
+.swatch.sel{box-shadow:0 0 0 2px var(--surface), 0 0 0 3.5px var(--active);}
 .swatch.special{box-shadow:inset 0 0 0 1px var(--rule-2);}
-.swatch.special.sel{box-shadow:0 0 0 2px var(--surface), 0 0 0 3.5px var(--ink);}
+.swatch.special.sel{box-shadow:0 0 0 2px var(--surface), 0 0 0 3.5px var(--active);}
 .colorTools{display:flex; align-items:center; gap:8px; margin-top:4px; flex-wrap:wrap;}
 .pickLbl{display:flex; align-items:center; gap:7px; font:400 var(--fs-label)/1 var(--font-mono); color:var(--ink-3); cursor:pointer;}
 #panelProperties button.mini{padding:0 8px; font-size:var(--fs-label); gap:5px;}
@@ -174,8 +183,6 @@ textarea#kwEdit{width:100%; resize:vertical;}
 .btnGrid button{justify-content:flex-start; padding:0 9px;}
 .btnGrid button .ic{width:14px; height:14px; color:var(--ink-3);}
 .multiCount{font-size:var(--fs-ui); color:var(--ink);}
-#btnDel{margin-top:18px; justify-content:center;}
-#btnDel kbd{margin-left:2px; color:inherit; border-color:var(--attention-rule); background:transparent;}
 #btnPlay{white-space:nowrap; flex-shrink:0; gap:6px;}
 #btnPlay .ic{width:14px; height:14px;}
 #btnPlay .icPlay{display:none;}
@@ -184,7 +191,57 @@ textarea#kwEdit{width:100%; resize:vertical;}
 /* Vacío: una frase de título y la ayuda como lista corta, no un muro de texto. */
 .emptySel .emptyTitle{font:400 15px/1.3 var(--font-serif); color:var(--ink); margin:0 0 6px;}
 .emptySel .emptyLead{font-size:var(--fs-field); line-height:1.55; color:var(--ink-3); margin:0 0 10px;}
-.selSection > h3{margin-bottom:8px;}
+/* ---- Cabecera de la selección (FLUYO-018.23): la misma en columna y en hoja. Nombre en serif, tipo e id en mono; Orden,
+   Eliminar y plegar (columna) o cerrar (hoja). Pegada arriba mientras el panel se desplaza. ---- */
+.sheetHead.selHead{display:flex; align-items:center; gap:2px; position:sticky; top:-6px; z-index:3; margin:0 -4px 0; padding:4px 0 6px 4px; background:var(--surface); border-bottom:1px solid var(--rule);}
+body.storyMode .sheetHead.selHead{display:none;}
+.selHeadText{flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:3px;}
+.selHead .sheetTitle{white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.selHead .selMeta{font:500 var(--fs-micro)/1.3 var(--font-mono); letter-spacing:var(--track-micro); text-transform:uppercase; color:var(--ink-3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.selHead .selMeta[hidden]{display:none;}
+.selHead .iconBtn{color:var(--ink-3);}
+.selHead .iconBtn:hover{color:var(--ink);}
+.selHead #btnDel:hover{color:var(--attention); background:var(--attention-veil);}
+.selHead .icClose{display:none;}
+.orderWrap{position:relative; display:inline-flex;}
+.orderWrap[hidden]{display:none;}
+.orderMenu{position:absolute; z-index:80; top:calc(100% + 4px); right:0; width:200px; padding:4px; display:flex; flex-direction:column; gap:1px;}
+.orderMenu[hidden]{display:none;}
+#panelProperties .row .lblText, .selBody .lblText{color:var(--ink-2); font:400 var(--fs-field)/1.35 var(--font-mono);}
+.row .lblText{color:var(--ink-2); font:400 var(--fs-field)/1.35 var(--font-mono);}
+.segValue{color:var(--ink-3); margin-left:6px;}
+.rowNote{margin:-2px 0 8px; font-size:var(--fs-label); line-height:1.45;}
+/* Segmentados del panel (FLUYO-018.23): a todo el ancho, opciones iguales; el texto parte en dos líneas antes que superponerse
+   (P1: la regla de los botones del panel ponía nowrap y ganaba a la de .flowSeg). */
+#panelProperties .pseg{display:grid; grid-auto-flow:column; grid-auto-columns:minmax(0,1fr); width:100%;}
+#panelProperties .seg > .segBtn{white-space:normal; overflow-wrap:anywhere; text-align:center; line-height:1.2; min-width:0; padding:3px 4px; min-height:calc(var(--ctl-h) - 2px); font-size:var(--fs-label);}
+#panelProperties .seg > .segBtn .ic{width:16px; height:16px;}
+/* Segmentados cortos en línea con su etiqueta (Ruta, Puntas, Línea del borde); en la columna estrecha se apilan (@container). */
+#panelProperties .row.inlineSeg > .pseg{width:auto; flex:0 1 176px;}
+#panelProperties .row.inlineSeg > .lblText{flex:1 1 auto; min-width:0;}
+.lineSample{display:block; width:22px; height:0; border-top:2px solid currentColor;}
+.lineSample.dashed{border-top-style:dashed;}
+.lineSample.dotted{border-top-style:dotted;}
+/* Tipografía, tamaño y negrita en una fila; «N» es la casilla #boldChk con aspecto de botón conmutado. */
+.typoRow{justify-content:flex-start; gap:6px;}
+#panelProperties .typoRow select{flex:1 1 auto; width:auto; min-width:0;}
+.typoRow .typoFs{flex:none; display:inline-flex;}
+#panelProperties .typoRow input[type=number]{width:64px;}
+.boldTog{position:relative; flex:none; display:inline-flex; align-items:center; justify-content:center; width:var(--ctl-h); height:var(--ctl-h); border:1px solid var(--rule-2); border-radius:var(--r-sm); background:var(--surface-raised); color:var(--ink-2); font:500 13px/1 var(--font-mono); cursor:pointer;}
+.boldTog:hover{border-color:var(--rule-hover); background:var(--surface-hover);}
+.row .boldTog input[type=checkbox]{position:absolute; inset:0; width:100%; height:100%; margin:0; opacity:0; border:0; border-radius:var(--r-sm); background:none; cursor:pointer;}
+.row .boldTog input[type=checkbox]::before{display:none;}
+.boldTog:has(input:checked){background:var(--active-veil); border-color:var(--active); color:var(--ink);}
+.boldTog:has(input:focus-visible){outline:var(--focus); outline-offset:2px;}
+/* Sale por · Entra por en una fila. */
+.endsRow{align-items:stretch; gap:8px;}
+.endsRow .endsCol{flex:1 1 0; min-width:0; flex-direction:column; align-items:stretch; gap:4px;}
+#panelProperties .endsRow .endsCol select{width:100%; min-width:0;}
+/* En la columna estrecha (216 px) la tipografía ocupa su fila y tamaño + «N» bajan: el nombre de la fuente no se corta. */
+#panelProperties{container-type:inline-size;}
+@container (max-width:240px){ #panelProperties .typoRow, #panelProperties .row.inlineSeg{flex-wrap:wrap;} #panelProperties .typoRow select, #panelProperties .row.inlineSeg > .pseg{flex:1 1 100%;} #panelProperties .row.inlineSeg{gap:5px;} }
+textarea#lblEdit.codeEdit{font:400 var(--fs-ui)/1.5 var(--font-mono); min-height:96px; white-space:pre; overflow-wrap:normal; overflow-x:auto;}
+.emptyHelp{margin-top:-4px;}
 .helpList{list-style:none; display:flex; flex-direction:column; gap:7px; padding:0; margin:0;}
 .helpList li{position:relative; padding-left:12px; font-size:var(--fs-label); line-height:1.55; color:var(--ink-3);}
 .helpList li::before{content:""; position:absolute; left:0; top:.72em; width:5px; height:1px; background:var(--ink-off);}
@@ -269,7 +326,13 @@ footer .tab > span:first-child{min-width:0; overflow:hidden; text-overflow:ellip
    El mando (material inverso, .inverse) se aparta visualmente (opacidad baja)
    para no salir en la foto, pero sigue ahí y se recupera al acercar el puntero o
    al enfocarlo con el teclado. */
-#btnPanel{display:none;}
+/* ⚙ Propiedades: en la hoja abre/cierra (solo con selección, M2); en columna pliega/despliega el panel (FLUYO-018.23, D2). En
+   modo Historia no hay Propiedades. */
+#btnPanel{display:inline-flex; align-items:center; justify-content:center;}
+body.storyMode > header > #btnPanel{display:none;}
+@media (min-width:701px){
+  :root[data-props="folded"] body:not(.storyMode):not(.sideSheet) > main > aside{display:none;}
+}
 #presentBar{
   display:none; position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
   align-items:center; gap:6px; z-index:60;
@@ -864,7 +927,6 @@ body.scPlaybackOn #wrap::after{box-shadow:inset 0 0 0 2px var(--active), inset 0
 #rowFlow .lblText{font:400 var(--fs-label)/1.3 var(--font-mono); color:var(--ink-2);}
 .flowSeg{display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); width:100%;}
 .flowSeg > .segBtn{white-space:normal; text-align:center; line-height:1.2; padding:4px 6px; min-height:var(--ctl-h);}
-.seg > .segBtn[aria-checked="true"]{background:var(--surface-raised); border-color:var(--rule-2); color:var(--ink); box-shadow:0 1px 2px rgba(0,0,0,.08);}
 .scMore{font-size:0; display:inline-flex; align-items:center; justify-content:center; color:var(--ink-3); border-radius:var(--r-sm);}
 .scMore::before{content:""; width:14px; height:14px; background:currentColor; -webkit-mask:var(--mask-more) center/contain no-repeat; mask:var(--mask-more) center/contain no-repeat;}
 .scMore:hover{background:var(--hover-veil); color:var(--ink);}
@@ -878,15 +940,20 @@ body.scPlaybackOn #wrap::after{box-shadow:inset 0 0 0 2px var(--active), inset 0
   .moreMenu .hdrTools > button, .moreMenu .moreTools > button, .moreMenu .hdrOpt, .fieldRow{min-height:var(--ctl-h-touch);}
   .moreMenu select{min-height:var(--ctl-h-touch);}
   footer .tab .x, footer .tab .pgMore{width:40px; height:40px;}
-  .swatches{grid-template-columns:repeat(auto-fill, minmax(26px, 1fr)); grid-auto-rows:26px; gap:6px; max-height:64px;}
   footer .tab{min-height:40px;}
   #pagesBar > .pgAdd{width:var(--ctl-h); min-width:var(--ctl-h);}   /* 018.17: «＋» es acción, 44 con dedo */
-  #panelProperties input[type=color]{width:44px; height:40px;}
+  #panelProperties input[type=color]{width:44px; height:var(--ctl-h-touch);}
   #panelProperties input[type=range]{height:40px;}
-  #panelProperties .row{min-height:40px;}
+  #panelProperties .row{min-height:var(--ctl-h-touch);}
+  #panelProperties .row:not([data-stack]) > label[for]{min-height:var(--ctl-h-touch);}
+  #panelProperties button.swMore{width:var(--ctl-h-touch); height:var(--ctl-h-touch); min-height:var(--ctl-h-touch);}
+  #panelProperties .pseg{grid-auto-flow:row; grid-template-columns:repeat(auto-fit, minmax(var(--ctl-h-touch), 1fr));}
+  #panelProperties .seg > .segBtn{min-height:var(--ctl-h-touch);}
+  #panelProperties .row.inlineSeg > .pseg{flex:0 0 auto; grid-auto-flow:column; grid-template-columns:none; grid-auto-columns:minmax(var(--ctl-h-touch), auto);}
+  .boldTog{width:var(--ctl-h-touch); height:var(--ctl-h-touch);}
+  #panelProperties .typoRow input[type=number]{width:76px;}
+  .orderMenu .menuItem{min-height:var(--ctl-h-touch);}
   .seg > .segBtn{min-height:var(--ctl-h);}
-  .swatches.expanded{max-height:196px;}
-  #panelProperties button.swMore{min-height:var(--ctl-h-touch);}
   input[type=color]{width:40px; height:34px;}
   .moreMenu #lblBg input[type=color]{width:40px; height:32px;}
   #btnBgClear{width:var(--ctl-h-touch); height:var(--ctl-h-touch);}
@@ -955,11 +1022,10 @@ body.scPlaybackOn #wrap::after{box-shadow:inset 0 0 0 2px var(--active), inset 0
   aside::before{content:""; position:absolute; top:5px; left:50%; width:36px; height:3px; margin-left:-18px; border-radius:2px; background:var(--rule-2);}
   body.panelOpen aside{transform:none; visibility:visible; transition:transform .2s ease, height .2s ease;}
   /* Cabecera de la hoja de Propiedades: título y cerrar, pegada arriba mientras se desplaza. */
-  body:not(.storyMode) .sheetHead{display:flex; align-items:center; justify-content:space-between; gap:8px; position:sticky; top:-10px; z-index:2; margin:-2px 0 0; padding:4px 0 6px; background:var(--surface); border-bottom:1px solid var(--rule);}
-  .sheetHead .sheetClose{display:inline-flex; min-width:40px; color:var(--ink);}
-  #panelProperties .selSection > h3{display:none;}
-  #panelProperties .selMeta{position:static; display:inline-flex; max-width:100%; margin:6px 0 2px;}
-  #panelProperties .selMeta[hidden]{display:none;}
+  body:not(.storyMode) .sheetHead{display:flex; top:-10px; margin:-2px -4px 2px; padding:4px 0 6px 4px;}
+  .sheetHead .sheetClose{display:inline-flex; min-width:var(--ctl-h-touch); color:var(--ink);}
+  .selHead .icClose{display:inline;}
+  .selHead .icFold{display:none;}
 
   /* ===== Hoja de Historias (FLUYO-018.17, D2/D3): cuatro estados, body[data-story] = compact | expanded | playing =====
      La hoja mide lo que mide su contenido (height:auto). El tope no es un porcentaje elegido: es lo que el lienzo necesita
@@ -1017,8 +1083,6 @@ body.scPlaybackOn #wrap::after{box-shadow:inset 0 0 0 2px var(--active), inset 0
   /* La línea de tiempo recibe el resto de la hoja y es lo único que se desplaza (la hoja tiene overflow:hidden). */
   .scStorySection{min-height:0; gap:6px;}
   .scStoryboardSection{min-height:0; flex:1; overflow:auto;}
-  /* Propiedades con el dedo: una fila de muestras (la paleta con nombre) + «Más colores». */
-  #panelProperties .swatches:not(.expanded){max-height:32px;}
   /* Barra de páginas: la activa con nombre (recortado) y ▾; las demás solo con su índice; «＋» fijo a la derecha aunque las
      pestañas se desplacen. Eliminar vive en el menú de la página. */
   footer .tab:not(.active) > span:first-child, footer .tab .x{display:none;}

@@ -28,6 +28,14 @@ function scheduleSheetIdleCheck(){
     if(uiMode==="edit" && document.body.classList.contains("panelOpen")) closeSurface();
   }, 60);
 }
+/* FLUYO-018.23 — el panel habla SOLO de la selección. refreshPanel sigue siendo la única que lee la selección y decide qué FILAS
+   se ven (nodeRows/edgeRows, como siempre); además coloca los mismos nodos según el tipo (placePanelRows), abre los grupos
+   primarios cuando cambia el tipo (applyGroupDefaults), sincroniza los segmentados con su control nativo y pinta la cabecera. */
+let panelKind=null, panelSelKey=null;
+/* FLUYO-018.23: «Lista propia» elegida con la lista aún vacía. Es estado de la UI (no del documento): sin él, elegirla devolvía el
+   selector a SQL y la caja para escribir la lista no aparecía nunca (la capacidad era inalcanzable desde el panel). */
+let kwPendingId=null;
+const HEX6=v=>(typeof v==="string"&&/^#[0-9a-f]{6}$/i.test(v))?v:null;
 function refreshPanel(){
   lblDirty=false; fsDirty=false;
   // limpiar referencias muertas
@@ -45,58 +53,77 @@ function refreshPanel(){
   $("noSel").style.display = total===0 ? "block":"none";
   $("multiSel").style.display = total>1 ? "block":"none";
   $("selBody").style.display = s ? "block":"none";
-  syncSelMeta(total, s);
   if(total>1){
     const parts=[];
     if(selN.size) parts.push(selN.size+(selN.size===1?" nodo":" nodos"));
     if(selE.size) parts.push(selE.size+(selE.size===1?" flecha":" flechas"));
     $("multiCount").textContent=parts.join(" y ")+" seleccionados";
   }
+  syncSelHead(total, s);
+  /* otra selección: las paletas desplegadas vuelven a su fila y el menú de orden se cierra */
+  const key = s&&s.obj ? s.type+":"+s.obj.id : (total>1 ? "multi" : "");
+  if(key!==panelSelKey){ panelSelKey=key; kwPendingId=null; collapseSwatches(); closeOrderMenu(false); }
   if(!s || !s.obj){ syncPanelGroups(); return; }
   const obj=s.obj, isNode=s.type==="node";
+  const kind = !isNode ? "edge" : obj.shape==="code" ? "code" : "node";
+  if(kind!==panelKind){ panelKind=kind; placePanelRows(kind); applyGroupDefaults(kind); }
   $("lblEdit").value=obj.label||"";
   $("fsIn").value=obj.fs||"";
   $("fontSel").value=obj.font||"";
   $("boldChk").checked=!!obj.bold;
-  const nodeRows=["rowColor","rowTint","rowFill","rowBorder","rowLblPos","rowTextBg","rowTextColor","rowZ","rowShape","rowPulse","rowOrder","rowLang","rowKeywords","rowKwBg","rowKwColor"];
-  const edgeRows=["rowRoute","rowFrom","rowTo","rowAnim","rowSpeedF","rowDotsGlobal","rowDots","rowDash","dirKicker","rowArrS","rowArrE","rowFlow","rowLineC","rowDotC"];
+  const nodeRows=["rowColor","rowTint","rowFill","rowBorder","rowLblPos","rowTextBg","rowTextColor","rowShape","rowPulse","rowOrder","rowLang","rowKeywords","rowKwBg","rowKwColor"];
+  const edgeRows=["rowRoute","rowEnds","rowFrom","rowTo","rowAnim","rowSpeedF","rowDotsGlobal","rowDots","rowDash","rowArrows","rowArrS","rowArrE","rowFlow","rowLineC","rowDotC"];
   nodeRows.forEach(r=>$(r).style.display=isNode?"flex":"none");
   edgeRows.forEach(r=>$(r).style.display=isNode?"none":"flex");
   $("btnWps").style.display=(!isNode&&(obj.waypoints||[]).length)?"block":"none";
+  $("flowNote").style.display="none";
+  $("orderNote").hidden = !isNode || !!settings.build;
+  const esCode=isNode && obj.shape==="code";
+  $("lblEditLbl").textContent = esCode ? "Código" : "Texto";
+  $("lblEdit").classList.toggle("codeEdit", esCode);
+  $("lblEdit").rows = esCode ? 5 : 2;
   if(isNode){
     const hasBox=["rect","cylinder","diamond","circle","hex"].includes(obj.shape);
     if(obj.shape==="image"||obj.shape==="icon"||obj.shape==="anim") $("rowShape").style.display="none";
     if(obj.shape==="image") $("rowColor").style.display="none";
-    const esCode=obj.shape==="code";
-    /* En `code` los campos genéricos cambian de significado, así que la etiqueta
-       del control lo dice: `fill` pinta el panel y `textBg` el papel del bloque. */
+    /* En `code` los campos genéricos cambian de significado, así que la etiqueta del control lo dice: `fill` pinta el panel,
+       `textColor` el código y `textBg` el papel del bloque (estos dos viven en el grupo Código, placePanelRows). En un texto suelto,
+       un icono o un GIF, `color` no es un borde: es su color. */
+    $("colorLbl").textContent = hasBox||esCode ? "Borde" : "Color";
     $("rowTint").style.display=obj.shape==="icon"?"flex":"none";
     $("tintChk").checked=!!obj.tint;
     $("rowFill").style.display=(hasBox||esCode)?"flex":"none";
     $("rowBorder").style.display=(hasBox||esCode)?"flex":"none";
     $("rowLblPos").style.display=(hasBox||obj.shape==="text")?"flex":"none";
     $("rowTextBg").style.display=(obj.shape==="text"||esCode)?"flex":"none";
-    $("rowFill").querySelector("label").textContent=esCode?"Fondo del panel":"Relleno de la forma";
-    $("rowTextBg").querySelector("label").textContent=esCode?"Fondo del bloque de código":"Fondo del texto";
+    $("fillLbl").textContent=esCode?"Panel":"Relleno";
+    $("textColorLbl").textContent=esCode?"Texto del código":"Color";
+    $("textBgLbl").textContent=esCode?"Fondo del bloque":"Fondo";
     ["rowLang","rowKwBg","rowKwColor"].forEach(r=>$(r).style.display=esCode?"flex":"none");
     if(esCode){
-      const propia=Array.isArray(obj.keywords)&&obj.keywords.length;
+      const propia=(Array.isArray(obj.keywords)&&obj.keywords.length) || kwPendingId===obj.id;
       $("langSel").value=propia?"custom":(obj.lang||DEFAULT_LANG);
       $("rowKeywords").style.display=propia?"flex":"none";
-      $("kwEdit").value=propia?obj.keywords.join(" "):"";
+      $("kwEdit").value=propia?(obj.keywords||[]).join(" "):"";
+      segSync("langSeg", $("langSel").value);
     } else $("rowKeywords").style.display="none";
     $("shapeSel").value=["image","icon","anim"].includes(obj.shape)?"rect":obj.shape;
+    segSync("shapeSeg", $("shapeSel").value);
+    $("shapeValue").textContent=SHAPE_NAMES[$("shapeSel").value]||"";
     $("pulseChk").checked=!!obj.pulse;
     $("orderIn").value=obj.order;
     $("borderSel").value=obj.border||"solid";
+    segSync("borderSeg", $("borderSel").value);
     $("lblPosSel").value=obj.lblPos||"center";
-    const hx=v=>(typeof v==="string"&&/^#[0-9a-f]{6}$/i.test(v))?v:null;
-    if(hx(obj.color)) $("strokeCustom").value=hx(obj.color);
-    if(hx(obj.fill)) $("fillCustom").value=hx(obj.fill);
-    if(hx(obj.textBg)) $("textBgCustom").value=hx(obj.textBg);
-    if(hx(obj.textColor)) $("textColorCustom").value=hx(obj.textColor);
-    if(hx(obj.kwBg)) $("kwBgCustom").value=hx(obj.kwBg);
-    if(hx(obj.kwColor)) $("kwColorCustom").value=hx(obj.kwColor);
+    /* FLUYO-018.23 (P3): el pozo «Personalizado» enseña SIEMPRE el valor del elemento seleccionado; sin color propio (automático,
+       del tema, sin relleno) lleva la marca de automático y nunca el color del elemento anterior ni negro. */
+    const base=HEX6(obj.color)||DEFAULT_NODE_COLOR;
+    setWell("strokeCustom", obj.color, base);
+    setWell("fillCustom", obj.fill, base);
+    setWell("textBgCustom", obj.textBg, base);
+    setWell("textColorCustom", obj.textColor, base);
+    setWell("kwBgCustom", obj.kwBg, base);
+    setWell("kwColorCustom", obj.kwColor, base);
     markSw("swatches",obj.color);
     markSw("fillSw",obj.fill===undefined?null:obj.fill);
     markSw("textBgSw",obj.textBg??null);
@@ -104,14 +131,15 @@ function refreshPanel(){
     markSw("kwBgSw",obj.kwBg??null);
     markSw("kwColorSw",obj.kwColor??null);
   } else {
-    const hx=v=>(typeof v==="string"&&/^#[0-9a-f]{6}$/i.test(v))?v:null;
-    if(hx(obj.lineColor)) $("lineCustom").value=hx(obj.lineColor);
-    if(hx(obj.dotColor)) $("dotCustom").value=hx(obj.dotColor);
+    setWell("lineCustom", obj.lineColor, "#8a8275");
+    setWell("dotCustom", obj.dotColor, HEX6(obj.lineColor)||"#8a8275");
     $("routeSel").value=obj.route||"straight";
+    segSync("routeSeg", $("routeSel").value);
     $("fromSel").value=obj.fromSide||"";
     $("toSel").value=obj.toSide||"";
     $("animChk").checked=!!obj.animated;
     $("speedFacSel").value=String(edgeSpeedFac(obj));
+    segSync("speedSeg", $("speedFacSel").value);
     $("dotsGlobalChk").checked=obj.dotsGlobal!==false;
     $("edgeDotsIn").value=obj.dots||"";
     /* el número propio de puntos solo tiene sentido si esta flecha no sigue al
@@ -120,23 +148,49 @@ function refreshPanel(){
     $("dashChk").checked=!!obj.dashed;
     $("arrSChk").checked=!!obj.startArrow;
     $("arrEChk").checked=obj.endArrow!==false;
+    syncArrowSeg(obj);
     syncFlowSeg(obj);
-    [...$("lineSw").children].forEach(sw=>sw.classList.toggle("sel", (obj.lineColor||"")===sw.dataset.c));
-    [...$("dotSw").children].forEach(sw=>sw.classList.toggle("sel", (obj.dotColor||"")===sw.dataset.c));
+    markSw("lineSw", obj.lineColor||null);
+    markSw("dotSw", obj.dotColor||null);
   }
   syncPanelGroups();
   if(typeof scRenderCanvasActions === "function") scRenderCanvasActions();
 }
-/* Metadatos de la selección (FLUYO-018.13): qué es y cómo se llama para el
-   documento y para el MCP (el id). Es solo lectura y vive junto al título del
-   panel; typeof/null-check porque los arneses de vm montan un DOM mínimo. */
+/* Cabecera de la selección (FLUYO-018.23; el metadato es de FLUYO-018.13): qué es y cómo se llama. El título es la primera línea
+   del texto del elemento (en una conexión sin texto, sus extremos por nombre); el metadato, el tipo y el id para el documento y
+   para el MCP. Orden (solo un nodo) y Eliminar son las acciones de la selección. typeof/null-check: los arneses de vm montan un
+   DOM mínimo. */
 const SHAPE_NAMES={rect:"Caja", cylinder:"BD", diamond:"Rombo", circle:"Círculo", hex:"Hexágono", text:"Texto", code:"Código", icon:"Icono", image:"Imagen", anim:"GIF"};
+const firstLine=t=>String(t||"").split("\n").map(x=>x.trim()).find(Boolean)||"";
 function syncSelMeta(total, s){
   const m=$("selMeta"); if(!m) return;
   let txt="";
-  if(total>1) txt=total+" elementos";
+  if(total>1){
+    const parts=[];
+    if(selN.size) parts.push(selN.size+(selN.size===1?" nodo":" nodos"));
+    if(selE.size) parts.push(selE.size+(selE.size===1?" flecha":" flechas"));
+    txt=parts.join(" · ");
+  }
   else if(s && s.obj) txt = s.type==="node" ? (SHAPE_NAMES[s.obj.shape]||s.obj.shape)+" · id "+s.obj.id : "Conexión · "+s.obj.from+" → "+s.obj.to;
   m.textContent=txt; m.hidden=!txt;
+}
+function selTitleText(total, s){
+  if(total>1) return total+" elementos";
+  if(!s || !s.obj) return "Propiedades";
+  const o=s.obj, own=firstLine(o.label);
+  if(own) return own;
+  if(s.type==="node") return (SHAPE_NAMES[o.shape]||"Elemento")+" sin texto";
+  const name=id=>{ const n=nodeById(id); return (n && firstLine(n.label)) || ("id "+id); };
+  return name(o.from)+" → "+name(o.to);
+}
+function syncSelHead(total, s){
+  syncSelMeta(total, s);
+  const t=$("selTitle"); if(!t) return;
+  const title=selTitleText(total, s);
+  t.textContent=title; t.title=title;
+  const single=!!(s && s.obj);
+  if($("btnDel")) $("btnDel").hidden=!single;
+  if($("rowZ")) $("rowZ").hidden=!(single && s.type==="node");
 }
 /* ===================== Teclado en las rejillas de swatches =====================
    Los swatches son <div> a propósito (son muestras de color, no texto), pero eso
@@ -201,9 +255,31 @@ function buildNodeSwatches(containerId, field, extras){
   PALETTE.forEach(p=>{ if(!seen.has(p.c)){ seen.add(p.c); mk(p.c,p.n,p.c); } });
   SWATCH_COLORS.forEach(c=>{ if(!seen.has(c)){ seen.add(c); mk(c,c,c); } });
 }
+/* FLUYO-018.23 (D4): marca la muestra del valor actual. Un color propio que no está en la rejilla aparece como primera muestra
+   («actual», con su anillo), de modo que la fila compacta enseña siempre el valor del elemento. La elegida es la parada de
+   tabulador de la rejilla (tabindex móvil). */
 function markSw(id,val){
+  const grid=$(id); if(!grid) return;
   const key=(val===null||val===undefined)?"__null__":String(val);
-  [...$(id).children].forEach(sw=>sw.classList.toggle("sel", sw.dataset.v===key));
+  grid.querySelectorAll(":scope > .swCurrent").forEach(e=>e.remove());
+  let hit=null;
+  [...grid.children].forEach(sw=>{ const on=sw.dataset.v===key; sw.classList.toggle("sel", on); sw.classList.remove("pinned"); if(on && !hit) hit=sw; });
+  if(!hit && HEX6(key)){
+    const d=document.createElement("div");
+    d.className="swatch swCurrent sel"; d.style.background=key; d.dataset.v=key;
+    d.title="Personalizado "+key; d.setAttribute("role","button"); d.setAttribute("aria-label","Personalizado "+key);
+    d.onclick=()=>toggleSwatches(grid, true);
+    grid.prepend(d); hit=d;
+  }
+  [...grid.children].forEach((sw,i)=>{ sw.tabIndex = (hit ? sw===hit : i===0) ? 0 : -1; });
+}
+/* El pozo «Personalizado» (input color) enseña el valor real; sin color propio, la marca de automático (CSS [data-auto]) y,
+   como punto de partida del selector, un color razonable (el del nodo) en vez del valor del elemento anterior. */
+function setWell(id, val, fallback){
+  const w=$(id); if(!w) return;
+  const hx=HEX6(val);
+  w.value = hx || HEX6(fallback) || DEFAULT_NODE_COLOR;
+  if(hx) w.removeAttribute("data-auto"); else w.setAttribute("data-auto", val==="none" ? "none" : "auto");
 }
 buildNodeSwatches("swatches","color");
 buildNodeSwatches("fillSw","fill",[
@@ -234,6 +310,7 @@ function parseKeywords(txt){
 $("langSel").onchange=()=>{
   const v=$("langSel").value, sel=singleSel();
   if(!sel||!sel.obj) return;
+  kwPendingId = v==="custom" ? sel.obj.id : null;
   pushUndo();
   if(v==="custom"){
     if(!Array.isArray(sel.obj.keywords)||!sel.obj.keywords.length) editNode(sel.obj,{keywords:parseKeywords($("kwEdit").value)});
@@ -263,6 +340,7 @@ $("btnFront").onclick=bringToFront;
 $("btnBack").onclick=sendToBack;
 $("btnForward").onclick=bringForward;
 $("btnBackward").onclick=sendBackward;
+$("orderMenu").addEventListener("click", ev=>{ if(ev.target.closest && ev.target.closest("button")) closeOrderMenu(true); });
 $("btnEyedrop").onclick=async()=>{
   if(!window.EyeDropper){ alert("Tu navegador no soporta el cuentagotas (usa Chrome o Edge)."); return; }
   try{
@@ -278,7 +356,7 @@ function buildEdgeSwatches(containerId, field){
     const d=document.createElement("div");
     d.className="swatch";
     d.style.background = color || DASH_PAT;
-    d.title=title; d.dataset.c=color||"";
+    d.title=title; d.dataset.c=color||""; d.dataset.v=color||"__null__";
     d.setAttribute("role","button");
     d.setAttribute("aria-label",title);
     d.onclick=()=>{ const e=singleEdge(); if(e){ pushUndo(); editEdge(e,{[field]:color}); refreshPanel(); } };
@@ -291,20 +369,27 @@ buildEdgeSwatches("lineSw","lineColor");
 buildEdgeSwatches("dotSw","dotColor");
 enableSwatchKeyboard("lineSw","Color de línea de la flecha");
 enableSwatchKeyboard("dotSw","Color de los puntos animados");
-/* ===================== Grupos del panel y muestras compactas (FLUYO-018.14b, B6) =====================
-   El panel deja de ser un formulario de 30 filas: las filas viven en grupos <details> (index.html). El estado
-   abierto/plegado ES el <details> —no hay variable espejo—. Por defecto, en escritorio, abiertos los grupos que se tocan
-   en cada elemento (Texto, Forma y color, Recorrido, Trazo) y plegados los raros (Código, Flujo, Capas y aparición) y lo
-   del documento (Animación del lienzo, Atajos). En la hoja móvil todos empiezan plegados y son un acordeón (uno
-   abierto a la vez): el texto, siempre a la vista arriba, y un toque lleva a cualquier grupo; la hoja cabe en pantalla.
-
-   refreshPanel decide qué FILAS se ven (como siempre); aquí solo se oculta el grupo que se queda sin filas y el botón
-   «Más colores» de la rejilla que ya cabe entera. */
-function applyGroupDefaults(){
-  const sheet=isSheetLayout();
-  document.querySelectorAll("#selBody > details.pgroup").forEach(d=>{
-    d.open = !sheet && ["grpText","grpShape","grpRoute","grpStroke"].includes(d.id);
-  });
+/* ===================== Grupos del panel (FLUYO-018.14b, B6; FLUYO-018.23) =====================
+   Las filas viven en grupos <details> (index.html); el estado abierto/plegado ES el <details>, sin variable espejo.
+   FLUYO-018.23 (D1, D5): los grupos que se abren por defecto dependen del TIPO de la selección: nodo y code = Apariencia y
+   Texto; conexión = Trazo y Dirección. Lo demás (Código, Movimiento, Puntos, el Texto de una conexión) empieza plegado y con su
+   rótulo a la vista. Se aplican al cambiar de tipo (refreshPanel) o de layout (placeChrome); entre dos selecciones del mismo
+   tipo, lo que el usuario abrió se queda. En la hoja móvil todos empiezan plegados y son un acordeón (decisión 136, D9).
+   refreshPanel decide qué FILAS se ven; aquí se oculta el grupo sin filas. */
+function primaryGroups(kind){ return kind==="edge" ? ["grpStroke","grpRoute"] : ["grpShape","grpText"]; }
+function applyGroupDefaults(kind){
+  const sheet=isSheetLayout(), open=primaryGroups(kind || (typeof panelKind!=="undefined" && panelKind) || "node");
+  document.querySelectorAll("#selBody > details.pgroup").forEach(d=>{ d.open = !sheet && open.includes(d.id); });
+}
+/* Los MISMOS nodos cambian de sitio según el tipo (como placeChrome con la cabecera): el Texto de una conexión es lo último;
+   el color y el fondo del texto de un code son del bloque y viven en el grupo Código. El orden del DOM es el del tabulador. */
+function placePanelRows(kind){
+  const body=$("selBody"), text=$("grpText");
+  if(kind==="edge"){ if(body.lastElementChild!==text) body.appendChild(text); }
+  else if($("grpShape").nextElementSibling!==text) $("grpShape").after(text);
+  const tc=$("rowTextColor"), tb=$("rowTextBg");
+  if(kind==="code"){ if($("codeTextHome").nextElementSibling!==tc) $("codeTextHome").after(tc, tb); }
+  else if($("rowFont").nextElementSibling!==tc) $("rowFont").after(tc, tb);
 }
 function syncPanelGroups(){
   document.querySelectorAll("#selBody > details.pgroup").forEach(d=>{
@@ -321,29 +406,42 @@ document.querySelectorAll("#selBody > details.pgroup").forEach(d=>{
     if(d.scrollIntoView) d.scrollIntoView({block:"nearest"});
   });
 });
-/* «Más colores»: cada rejilla enseña dos filas; el botón la despliega entera. Si la muestra elegida queda escondida, la
-   rejilla se abre sola (el color actual nunca se pierde de vista). */
+/* ===================== Color de una fila (FLUYO-018.23, D4) =====================
+   Cada color es UNA fila: las muestras especiales del campo (automático, sin relleno…) y la paleta con nombre que quepa, más
+   «⋯», que despliega EN EL SITIO la rejilla entera, «Personalizado» y, en el borde, «Cuentagotas». Desplegar no toca la
+   selección ni el documento. Si el valor actual no cabe en la fila, su muestra se adelanta (.pinned); un color propio aparece
+   como primera muestra (markSw). Mismas rejillas, mismos ids, mismos campos que antes. */
+function toggleSwatches(grid, on){
+  const b=grid._more, row=grid.closest(".colorRow");
+  grid.classList.toggle("expanded", on);
+  if(row) row.classList.toggle("swOpen", on);
+  if(b){ b.setAttribute("aria-expanded", String(on)); b.setAttribute("aria-label", on ? "Menos colores" : "Más colores, personalizado"+(grid.id==="swatches" ? " y cuentagotas" : "")); b.dataset.tip = on ? "Menos colores" : "Más colores"; }
+  syncSwatchMore();
+}
 function addSwatchMore(gridId){
-  const grid=$(gridId), tools=grid.parentNode.querySelector(".colorTools");
+  const grid=$(gridId), host=grid.parentNode;
   const b=document.createElement("button");
-  b.type="button"; b.className="swMore btnGhost"; b.textContent="Más colores";
-  b.setAttribute("aria-expanded","false"); b.setAttribute("aria-controls", gridId);
-  b.onclick=()=>{ const on=!grid.classList.contains("expanded"); grid.classList.toggle("expanded", on); b.setAttribute("aria-expanded", String(on)); b.textContent=on ? "Menos colores" : "Más colores"; };
-  if(tools) tools.appendChild(b); else grid.after(b);
+  b.type="button"; b.className="swMore btnGhost"; b.textContent="⋯"; b.dataset.tipPos="end";
+  b.setAttribute("aria-controls", gridId);
+  b.onclick=()=>toggleSwatches(grid, !grid.classList.contains("expanded"));
+  host.appendChild(b);
   grid._more=b;
+  toggleSwatches(grid, false);
 }
 /* función y no constante: refreshPanel puede llegar antes de que se evalúe esta parte del archivo */
 function swatchGrids(){ return ["textColorSw","swatches","fillSw","textBgSw","kwBgSw","kwColorSw","lineSw","dotSw"]; }
 swatchGrids().forEach(addSwatchMore);
+function collapseSwatches(){ for(const id of swatchGrids()){ const g=$(id); if(g && g._more && g.classList.contains("expanded")) toggleSwatches(g, false); } }
 function syncSwatchMore(){
   for(const id of swatchGrids()){
-    const grid=$(id), b=grid._more;
-    if(!b || !grid.offsetParent) continue;
+    const grid=$(id);
+    if(!grid || !grid.offsetParent) continue;
     const sel=grid.querySelector(".swatch.sel");
-    if(sel && !grid.classList.contains("expanded") && sel.getBoundingClientRect().bottom > grid.getBoundingClientRect().bottom+1){
-      grid.classList.add("expanded"); b.setAttribute("aria-expanded","true"); b.textContent="Menos colores";
+    grid.querySelectorAll(".pinned").forEach(e=>e.classList.remove("pinned"));
+    if(sel && !grid.classList.contains("expanded")){
+      const first=grid.firstElementChild;
+      if(first && sel.offsetTop > first.offsetTop+2) sel.classList.add("pinned");
     }
-    b.hidden = !grid.classList.contains("expanded") && grid.scrollHeight<=grid.clientHeight+2;
   }
 }
 
@@ -376,6 +474,7 @@ $("lblEdit").addEventListener("input", ()=>{
   if(s&&s.obj){
     if(!lblDirty){ pushUndo(); lblDirty=true; }
     editObj(s.obj,{label:$("lblEdit").value});
+    syncSelHead(selN.size+selE.size, s);
     scheduleAutosave();
   }
 });
@@ -395,17 +494,71 @@ $("orderIn").onchange=()=>{ const n=singleNode(); if(n){ pushUndo(); editNode(n,
 $("routeSel").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); editEdge(e,{route:$("routeSel").value}); scheduleAutosave(); } };
 $("fromSel").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); editEdge(e,{fromSide:$("fromSel").value||null, waypoints:[]}); refreshPanel(); scheduleAutosave(); } };
 $("toSel").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); editEdge(e,{toSide:$("toSel").value||null, waypoints:[]}); refreshPanel(); scheduleAutosave(); } };
-$("animChk").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); editEdge(e,{animated:$("animChk").checked}); scheduleAutosave(); syncFlowSeg(e); } };
+$("animChk").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); editEdge(e,{animated:$("animChk").checked}); scheduleAutosave(); syncFlowSeg(e); syncPanelGroups(); } };
+/* ===================== Segmentados del panel (FLUYO-018.23) =====================
+   Un solo componente para Forma, Línea del borde, Resaltado, Ruta, Puntas, Sentido y Velocidad. Es un radiogroup: una parada
+   de tabulador (la opción marcada), las flechas, Inicio y Fin MUEVEN y ELIGEN (P2: antes el foco no podía salir de la marcada),
+   Espacio/Intro eligen. El valor vive en el control nativo (#shapeSel, #borderSel, #langSel, #routeSel, #flowSel,
+   #speedFacSel; #arrSChk/#arrEChk para las puntas): el segmentado solo lo refleja y llama a su mismo manejador, así que el
+   campo, el valor y el Undo son los de siempre. stopPropagation: las flechas y el Espacio son atajos del lienzo. */
+function segButtons(seg){ return [...seg.querySelectorAll(".segBtn")].filter(b=>!b.hidden && !b.disabled); }
+function segSync(id, v){
+  const seg=$(id); if(!seg) return;
+  const list=[...seg.querySelectorAll(".segBtn")];
+  let any=false;
+  list.forEach(b=>{ const on=b.dataset.v===String(v); if(on) any=true; b.setAttribute("aria-checked", String(on)); b.classList.toggle("active", on); b.tabIndex=on?0:-1; });
+  if(!any && list[0]) list[0].tabIndex=0;
+}
+function segBind(id, onPick){
+  const seg=$(id); if(!seg) return;
+  seg.querySelectorAll(".segBtn").forEach(b=>b.addEventListener("click", ()=>{ if(b.getAttribute("aria-checked")!=="true") onPick(b.dataset.v); }));
+  seg.addEventListener("keydown", ev=>{
+    const list=segButtons(seg), i=list.indexOf(document.activeElement);
+    if(i<0) return;
+    let j=null;
+    if(ev.key==="ArrowRight"||ev.key==="ArrowDown") j=(i+1)%list.length;
+    else if(ev.key==="ArrowLeft"||ev.key==="ArrowUp") j=(i-1+list.length)%list.length;
+    else if(ev.key==="Home") j=0;
+    else if(ev.key==="End") j=list.length-1;
+    else if(ev.key===" "||ev.key==="Enter"){ ev.preventDefault(); ev.stopPropagation(); list[i].click(); return; }
+    else return;
+    ev.preventDefault(); ev.stopPropagation();
+    list[j].focus(); list[j].click();
+  });
+}
+/* Un segmentado sobre un <select>: elegir = poner el valor y disparar su onchange (el manejador de siempre). */
+function segOnSelect(segId, selId){
+  segBind(segId, v=>{ const sel=$(selId); sel.value=v; if(typeof sel.onchange==="function") sel.onchange(); segSync(segId, sel.value); refreshPanel(); });
+}
+segOnSelect("shapeSeg","shapeSel");
+segOnSelect("borderSeg","borderSel");
+segOnSelect("langSeg","langSel");
+segOnSelect("routeSeg","routeSel");
+segOnSelect("speedSeg","speedFacSel");
+segOnSelect("flowSeg","flowSel");
 /* FLUYO-018.18 (D12): «Sentido de los puntos» refleja edge.flowDir con los tres valores de siempre y solo se enseña cuando
-   los puntos se mueven (sin movimiento no significa nada). El control nativo #flowSel manda; el segmentado lo refleja. */
+   los puntos se mueven (sin movimiento no significa nada; una nota lo dice). El control nativo #flowSel manda. */
 function syncFlowSeg(e){
   const v=(e && e.flowDir) || "normal";
   $("flowSel").value=v;
-  $("rowFlow").style.display=e && e.animated ? "flex" : "none";
-  document.querySelectorAll("#flowSeg [data-flow]").forEach(b=>{ const on=b.dataset.flow===v; b.setAttribute("aria-checked", String(on)); b.classList.toggle("active", on); b.tabIndex=on?0:-1; });
+  const moving=!!(e && e.animated);
+  $("rowFlow").style.display=moving ? "flex" : "none";
+  $("flowNote").style.display=e && !moving ? "block" : "none";
+  segSync("flowSeg", v);
 }
-document.querySelectorAll("#flowSeg [data-flow]").forEach(b=>{
-  b.onclick=()=>{ if($("flowSel").value===b.dataset.flow) return; $("flowSel").value=b.dataset.flow; $("flowSel").onchange(); };
+/* FLUYO-018.23 (D6): las PUNTAS como un segmentado de cuatro (Ninguna · Inicio · Fin · Ambas) sobre los MISMOS dos campos
+   (startArrow, endArrow: booleanos; endArrow ausente = true, como siempre). Solo escribe el campo que cambia, igual que pulsar
+   su interruptor; si cambian los dos (Inicio ↔ Fin), una sola entrada de Undo. #arrSChk/#arrEChk siguen reflejando el valor. */
+const ARROW_NAMES={none:"Ninguna", start:"Inicio", end:"Fin", both:"Ambas"};
+function arrowsOf(e){ const st=!!e.startArrow, en=e.endArrow!==false; return st&&en ? "both" : st ? "start" : en ? "end" : "none"; }
+function syncArrowSeg(e){ const v=arrowsOf(e); segSync("arrowSeg", v); $("arrowsValue").textContent=ARROW_NAMES[v]; }
+segBind("arrowSeg", v=>{
+  const e=singleEdge(); if(!e) return;
+  const wantS=v==="start"||v==="both", wantE=v==="end"||v==="both", patch={};
+  if(!!e.startArrow!==wantS) patch.startArrow=wantS;
+  if((e.endArrow!==false)!==wantE) patch.endArrow=wantE;
+  if(!Object.keys(patch).length) return;
+  pushUndo(); editEdge(e,patch); scheduleAutosave(); refreshPanel();
 });
 /* Estos tres controles llevaban en el HTML desde el merge de la rama de estilos,
    pero sin handler: se veían en el panel y no hacían nada. */
@@ -424,8 +577,8 @@ $("edgeDotsIn").oninput=()=>{
   scheduleAutosave();
 };
 $("dashChk").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); editEdge(e,{dashed:$("dashChk").checked}); scheduleAutosave(); } };
-$("arrSChk").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); editEdge(e,{startArrow:$("arrSChk").checked}); scheduleAutosave(); } };
-$("arrEChk").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); editEdge(e,{endArrow:$("arrEChk").checked}); scheduleAutosave(); } };
+$("arrSChk").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); editEdge(e,{startArrow:$("arrSChk").checked}); scheduleAutosave(); syncArrowSeg(e); } };
+$("arrEChk").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); editEdge(e,{endArrow:$("arrEChk").checked}); scheduleAutosave(); syncArrowSeg(e); } };
 $("flowSel").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); editEdge(e,{flowDir:$("flowSel").value}); scheduleAutosave(); syncFlowSeg(e); } };
 /* Devuelve la flecha seleccionada a su ruta automática. Es la salida cuando una
    ruta hecha a mano deja de servir, y desde que esas rutas se CONSERVAN al mover
@@ -912,7 +1065,7 @@ function diagramCut(){
 }
 function syncSurfaceButtons(){
   const open=document.body.classList.contains("panelOpen"), s=activeSurface();
-  $("btnPanel").setAttribute("aria-expanded", String(open && s==="properties"));
+  $("btnPanel").setAttribute("aria-expanded", String(isSheetLayout() ? open && s==="properties" : !propsFolded()));
   $("btnStories").setAttribute("aria-expanded", String(uiMode==="story" && (open || !isSheetLayout())));
   for(const [id, on] of [["tabProperties", uiMode==="edit"], ["tabScenarios", uiMode==="story"]]){
     const b=$(id); b.classList.toggle("active", on); b.setAttribute("aria-pressed", String(on));
@@ -1049,6 +1202,7 @@ function exitStoryMode(){
   if(isSheetLayout()) closeSurface();
 }
 function toggleSurface(name){
+  if(name==="properties" && !isSheetLayout()){ if(uiMode==="edit") setPropsFolded(!propsFolded()); return; }
   const playing=typeof isScenarioPlaybackActive==="function" && isScenarioPlaybackActive();
   const open=document.body.classList.contains("panelOpen");
   const mine=activeSurface()===name || (name==="properties" && playing);
@@ -1057,7 +1211,48 @@ function toggleSurface(name){
 }
 $("btnPanel").onclick=()=>toggleSurface("properties");
 $("btnStories").onclick=()=>toggleSurface("stories");
-$("btnPanelClose").onclick=()=>closeSurface();
+$("btnPanelClose").onclick=()=>{ if(isSheetLayout()) closeSurface(); else setPropsFolded(true); };
+
+/* ===================== Plegar el panel en columna (FLUYO-018.23, D2) =====================
+   Sin selección la columna NO desaparece sola (el lienzo no cambia de tamaño al seleccionar y nada se mueve bajo el cursor):
+   el usuario la pliega con la ✕/«plegar» de su cabecera o con ⚙, y la despliega con ⚙. Es una preferencia de ESTE navegador
+   (localStorage["fluyo.ui.props"]="folded"; desplegado = sin clave), como la interfaz oscura (decisión 134): nunca entra en el
+   documento, el autoguardado ni los enlaces. La aplica el script del <head> antes del primer pintado (<html data-props>).
+   Solo afecta al modo Editar en columna: Historias, las hojas móviles y Present no la leen. */
+const PROPS_KEY="fluyo.ui.props";
+function propsFolded(){ return document.documentElement.getAttribute("data-props")==="folded"; }
+function setPropsFolded(on){
+  if(on) document.documentElement.setAttribute("data-props","folded"); else document.documentElement.removeAttribute("data-props");
+  try{ if(on) localStorage.setItem(PROPS_KEY,"folded"); else localStorage.removeItem(PROPS_KEY); }catch(e){}
+  closeOrderMenu(false);
+  syncSurfaceButtons();
+}
+
+/* ===================== Menú «Orden» de la cabecera de selección (FLUYO-018.23) =====================
+   Las cuatro acciones de capas (mismos botones e ids: #btnFront, #btnForward, #btnBackward, #btnBack) en un menú de la
+   cabecera; como siempre, solo con un nodo. Se cierra con su botón, fuera, Escape o al usar una acción. */
+function openOrderMenu(){
+  const m=$("orderMenu"); if(!m) return;
+  m.hidden=false; $("btnOrder").setAttribute("aria-expanded","true");
+  const first=m.querySelector("button"); if(first) first.focus();
+}
+function closeOrderMenu(restore){
+  const m=$("orderMenu"); if(!m || m.hidden) return;
+  m.hidden=true; $("btnOrder").setAttribute("aria-expanded","false");
+  if(restore) $("btnOrder").focus();
+}
+$("btnOrder").onclick=()=>{ if($("orderMenu").hidden) openOrderMenu(); else closeOrderMenu(true); };
+$("orderMenu").addEventListener("keydown", ev=>{
+  const items=[...$("orderMenu").querySelectorAll("button")], i=items.indexOf(document.activeElement);
+  if(ev.key==="Escape"){ ev.preventDefault(); ev.stopPropagation(); closeOrderMenu(true); return; }
+  if(i<0) return;
+  let j=null;
+  if(ev.key==="ArrowDown") j=(i+1)%items.length; else if(ev.key==="ArrowUp") j=(i-1+items.length)%items.length;
+  else if(ev.key==="Home") j=0; else if(ev.key==="End") j=items.length-1;
+  if(j===null) return;
+  ev.preventDefault(); ev.stopPropagation(); items[j].focus();
+});
+document.addEventListener("pointerdown", ev=>{ if(!$("orderMenu").hidden && !ev.target.closest("#rowZ")) closeOrderMenu(false); }, true);
 $("btnStoryExit").onclick=()=>exitStoryMode();
 $("btnStoryExpand").onclick=()=>{
   const on=!document.body.classList.contains("storyExpanded");
@@ -1207,15 +1402,14 @@ function placeChrome(){
     if(canvasTools.parentNode!==$("canvasMenu")) $("canvasMenu").appendChild(canvasTools);
     if(pres.parentNode!==header) header.insertBefore(pres, $("btnPanel"));
   }
-  /* FLUYO-018.17 (M1, M2): en móvil la animación ambiental del lienzo (ajuste del documento) y la ayuda de atajos y gestos viven
-     en «Más»; en escritorio vuelven a su sitio del panel. Mismos nodos, mismos ids. */
-  const anim=$("grpAnim"), help=$("grpHelp"), animSec=$("animSection"), helpSec=$("helpSection");
+  /* FLUYO-018.17 (M1) y 018.23 (D3): la animación ambiental del lienzo es un ajuste del documento: en móvil vive en «Más» y en
+     escritorio en «Lienzo» (#grpAnimHome está dentro de #canvasMenu). La ayuda de atajos y gestos vive siempre en «Más»
+     (index.html): Propiedades habla solo de la selección. Mismos nodos, mismos ids. */
+  const anim=$("grpAnim"), animSec=$("animSection");
   if(mobile){
     if(anim && animSec && anim.parentNode!==animSec){ animSec.appendChild(anim); animSec.hidden=false; }
-    if(help && helpSec && help.parentNode!==helpSec){ helpSec.appendChild(help); helpSec.hidden=false; }
   } else {
     if(anim && animSec && anim.parentNode===animSec){ $("grpAnimHome").after(anim); animSec.hidden=true; }
-    if(help && helpSec && help.parentNode===helpSec){ $("grpHelpHome").after(help); helpSec.hidden=true; }
   }
   closeMoreMenu(false); closeCanvasMenu(false);
   if(!mobile) document.body.classList.remove("panelOpen");
@@ -1223,6 +1417,7 @@ function placeChrome(){
   applyGroupDefaults();
   if(typeof scSyncCompact==="function") scSyncCompact();
   $("btnPanel").hidden = mobile && selN.size+selE.size===0;
+  closeOrderMenu(false);
   syncSurfaceButtons();
   syncStoryState();
 }

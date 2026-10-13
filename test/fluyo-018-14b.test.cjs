@@ -40,7 +40,7 @@ test("alcance: kernel, identity.css y el formato intactos (git HEAD)", () => {
 
 test("sw.js: CACHE v73; los archivos que toca 018.14b ya estaban en el precache", () => {
   const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v80";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v81";/);
   for (const f of ["./index.html", "./css/system.css", "./css/styles.css", "./js/ui.js", "./js/editor-scenarios.js", "./js/editor-share.js", "./js/interaction.js"]) assert.ok(sw.includes('"' + f + '"'), f + " precacheado");
 });
 
@@ -127,12 +127,14 @@ test("panel: grupos plegables con los abiertos de B6 y todas las propiedades den
   const html = read("index.html");
   const sel = element(html, "selBody");
   const groups = [...sel.matchAll(/<details class="pgroup" id="(\w+)" data-group="([^"]+)"( open)?>/g)].map((m) => ({ id: m[1], name: m[2], open: !!m[3] }));
-  /* FLUYO-018.18 (D12): el grupo de ajuste fino de los puntos se llama «Puntos»; el sentido vive en Trazo › Dirección. */
-  assert.deepEqual(groups.map((g) => g.name), ["Texto", "Forma y color", "Código", "Recorrido", "Trazo", "Puntos", "Capas y aparición"]);
-  assert.deepEqual(groups.filter((g) => g.open).map((g) => g.id), ["grpText", "grpShape", "grpRoute", "grpStroke"], "abiertos: lo que se toca en cada elemento");
+  /* FLUYO-018.18 (D12): el grupo de ajuste fino de los puntos se llama «Puntos». FLUYO-018.23 (D1, D5): nodo = Apariencia · Texto ·
+     Código · Movimiento; conexión = Trazo · Dirección · Puntos (· Texto, que ui.js lleva al final). Ids de grupo conservados. */
+  assert.deepEqual(groups.map((g) => g.name), ["Apariencia", "Texto", "Código", "Movimiento", "Trazo", "Dirección", "Puntos"]);
+  assert.deepEqual(groups.filter((g) => g.open).map((g) => g.id), ["grpShape", "grpText", "grpStroke", "grpRoute"], "abiertos: lo que se toca en cada elemento");
   const rows = ["rowFs", "rowFont", "rowBold", "rowTextColor", "rowLblPos", "rowTextBg", "rowShape", "rowColor", "rowTint", "rowFill", "rowBorder", "rowLang", "rowKeywords", "rowKwBg", "rowKwColor",
-    "rowRoute", "rowFrom", "rowTo", "rowLineC", "rowDotC", "rowDash", "rowArrS", "rowArrE", "rowAnim", "rowSpeedF", "rowDotsGlobal", "rowDots", "rowFlow", "rowZ", "rowPulse", "rowOrder"];
+    "rowRoute", "rowFrom", "rowTo", "rowLineC", "rowDotC", "rowDash", "rowArrS", "rowArrE", "rowAnim", "rowSpeedF", "rowDotsGlobal", "rowDots", "rowFlow", "rowPulse", "rowOrder"];
   for (const r of rows) assert.ok(groups.some((g) => element(html, g.id).includes('id="' + r + '"')), r + " vive en un grupo");
+  assert.ok(element(html, "propSheetHead").includes('id="rowZ"'), "FLUYO-018.23: el orden de capas es una acción de la cabecera de la selección");
   assert.ok(sel.indexOf('id="rowLabel"') < sel.indexOf("<details"), "el texto va fuera y antes de los grupos");
   assert.match(element(html, "grpAnim"), /id="btnPlay"/);
   assert.doesNotMatch(element(html, "grpAnim"), / open/, "Animación del lienzo plegada");
@@ -140,9 +142,10 @@ test("panel: grupos plegables con los abiertos de B6 y todas las propiedades den
   const styles = read("css/styles.css");
   assert.match(styles, /aside\{\n  width:288px; flex:none;/, "panel de 288 px en escritorio");
   assert.match(styles, /aside\.scenariosOpen\{box-sizing:border-box;width:320px;flex:0 0 320px;/);
-  assert.match(styles, /\.swatches\{[^}]*max-height:46px; overflow:hidden;/, "muestras en dos filas");
+  assert.match(styles, /\.swatches\{[^}]*max-height:calc\(var\(--sw-size\) \+ 6px\); overflow:hidden;/, "FLUYO-018.23: muestras en una fila");
   const ui = read("js/ui.js");
-  assert.match(ui, /d\.open = !sheet && \["grpText","grpShape","grpRoute","grpStroke"\]\.includes\(d\.id\);/, "móvil: todo plegado; escritorio: B6");
+  assert.match(ui, /d\.open = !sheet && open\.includes\(d\.id\);/, "móvil: todo plegado; escritorio: los primarios del tipo (018.23)");
+  assert.match(ui, /function primaryGroups\(kind\)\{ return kind==="edge" \? \["grpStroke","grpRoute"\] : \["grpShape","grpText"\]; \}/);
   assert.match(ui, /if\(!s \|\| !s\.obj\)\{ syncPanelGroups\(\); return; \}/);
 });
 
@@ -167,7 +170,8 @@ test("hojas móviles: cierre propio, toque fuera y dos alturas de Historias (CSS
   const styles = read("css/styles.css"), ui = read("js/ui.js");
   const mobile = styles.slice(styles.indexOf("/* ---- Móvil (≤700 px) ---- */"));
   assert.match(mobile, /body:not\(\.storyMode\) \.sheetHead\{display:flex;/);
-  assert.match(mobile, /\.sheetHead \.sheetClose\{display:inline-flex; min-width:40px;/);
+  /* FLUYO-018.23 (D9): cerrar la hoja es una acción: 44 px con dedo */
+  assert.match(mobile, /\.sheetHead \.sheetClose\{display:inline-flex; min-width:var\(--ctl-h-touch\);/);
   /* FLUYO-018.17: la hoja mide lo que mide su contenido y el tope lo pone lo que el lienzo necesita (--canvas-useful); el
      estado va en body[data-story]. Lo fija test/fluyo-018-17.test.cjs. */
   assert.match(mobile, /aside\.scenariosOpen\{height:auto; max-height:calc\(100dvh - 52px - var\(--bb-h\) - var\(--canvas-useful\)\);/);

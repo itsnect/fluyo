@@ -67,6 +67,8 @@ try{
     document.querySelector('meta[name="theme-color"]').setAttribute("content","#1A1913");
   }
 }catch(e){}
+/* FLUYO-018.23 (D2): el panel de Propiedades plegado en columna también es una preferencia de este navegador (js/ui.js). */
+try{ if(localStorage.getItem("fluyo.ui.props")==="folded") document.documentElement.setAttribute("data-props","folded"); }catch(e){}
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js"></script>
 <!--
@@ -108,6 +110,7 @@ try{
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
   <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></symbol>
   <symbol id="i-redo" viewBox="0 0 24 24"><path d="M15 14l5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></symbol>
+  <symbol id="i-fold" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M15 4.5v15M8.5 9.5L11 12l-2.5 2.5"/></symbol>
   <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol>
   <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.5" fill="currentColor" stroke="none"/></symbol>
   <symbol id="i-present" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="12.5" rx="1.5"/><path d="M10.5 8.3v5l4-2.5z"/><path d="M12 17v3M8.5 20h7"/></symbol>
@@ -164,7 +167,7 @@ try{
   FLUYO-018.14b — Cabecera de tres zonas. El lienzo manda; la cabecera solo lleva lo que se usa en cada sesión:
     marca · historial | modo (Editar · Historias) ············ Lienzo ▾ | Exportar · Compartir · PRESENTAR · Más
   · «Lienzo ▾» (#canvasMenu) reúne lo que es del DOCUMENTO y se toca una vez: tema y fondo del lienzo, tipografía global,
-    cuadrícula y ajustar. En móvil esa misma sección viaja a «Más» (placeChrome, js/ui.js).
+    cuadrícula, ajustar y la animación del lienzo (018.23). En móvil esas secciones viajan a «Más» (placeChrome, js/ui.js).
   · «Más» reúne Archivo (Ejemplo, Abrir, Guardar, Limpiar), la INTERFAZ (tema de la aplicación, que no es del documento)
     y los enlaces del proyecto.
   · Presentar es la acción primaria; Compartir y Exportar, secundarias.
@@ -194,7 +197,7 @@ try{
   <button id="btnExport" class="btnGhost" type="button"><svg class="ic" aria-hidden="true"><use href="#i-export"/></svg><span class="lbl">Exportar</span></button>
   <button id="btnShare" type="button"><svg class="ic" aria-hidden="true"><use href="#i-link"/></svg><span class="lbl">Compartir</span></button>
   <button id="btnPresent" class="primary" type="button" title="Modo presentación (P): pantalla completa, una página por diapositiva"><svg class="ic" aria-hidden="true"><use href="#i-present"/></svg><span class="lbl">Presentar</span></button>
-  <!-- Solo a ≤700 px: ahí el panel es una hoja inferior en vez de una columna fija. -->
+  <!-- Propiedades: a ≤700 px abre/cierra la hoja (solo con selección, M2); en columna pliega/despliega el panel (FLUYO-018.23, D2). -->
   <button id="btnPanel" class="iconBtn btnGhost" type="button" data-tip="Propiedades" data-tip-pos="end" aria-label="Propiedades" aria-expanded="false" aria-controls="propPanel">
     <svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg>
   </button>
@@ -227,6 +230,25 @@ try{
         <svg class="ic" aria-hidden="true"><use href="#i-magnet"/></svg><span class="lbl">Ajustar a rejilla</span><input type="checkbox" id="chkSnap">
       </label>
     </div>
+    <!-- FLUYO-018.23 (D3): la animación ambiental del lienzo es un ajuste del DOCUMENTO: vive en «Lienzo» en escritorio y en «Más» en
+         móvil (M1). El mismo nodo viaja con placeChrome (js/ui.js) entre #grpAnimHome y #animSection. -->
+    <span id="grpAnimHome" hidden></span>
+    <details class="pgroup" id="grpAnim" data-group="Animación del lienzo">
+      <summary><span class="pgTitle">Animación del lienzo</span></summary>
+      <div class="pgBody">
+    <!-- FLUYO-018.12 (D6): la animación ambiental se pausa aquí y no en la cabecera (reproducir es de las Historias). Espacio la alterna. -->
+    <div class="row"><label for="btnPlay">Puntos en movimiento</label><button id="btnPlay" class="toggled" type="button" title="Pausar o reanudar los puntos que fluyen (Espacio)"><svg class="ic icPause" aria-hidden="true"><use href="#i-pause"/></svg><svg class="ic icPlay" aria-hidden="true"><use href="#i-play"/></svg><span class="lbl">Pausa</span></button></div>
+    <div class="row"><label for="speedIn">Velocidad de flujo</label><input type="range" id="speedIn" min="0.2" max="2" step="0.1" value="0.5"></div>
+    <div class="row"><label for="dotsIn">Puntos por flecha</label><input type="range" id="dotsIn" min="1" max="6" step="1" value="3"></div>
+    <div class="row" title="Una sola pelota recorre la cadena entera (nodo 1 → nodo 2 → nodo 3) en vez de puntos sueltos en cada flecha; en las bifurcaciones se parte y sigue por todas las ramas">
+      <label for="chkSingle">Una pelota por ruta</label><input type="checkbox" id="chkSingle">
+    </div>
+    <div class="row"><label for="buildChk">Animar aparición</label><input type="checkbox" id="buildChk"></div>
+    <div class="row"><label for="staggerIn">Intervalo aparición</label><input type="range" id="staggerIn" min="0.2" max="1.2" step="0.1" value="0.45"></div>
+    <p class="hint">La aparición usa el «orden» de cada nodo. Las flechas aparecen cuando ambos nodos son visibles.</p>
+    <p class="hint">Con «una pelota por ruta» las flechas se encadenan: sale una pelota de cada nodo de origen y recorre el diagrama entero. Al llegar a un nodo que se abre en varias ramas, la pelota se parte y sigue por todas a la vez.</p>
+      </div>
+    </details>
   </div>
   <!-- Menú «Más» (FLUYO-018.12, D8; 018.14b): Archivo, Interfaz y los enlaces del proyecto. Lo destructivo (Limpiar página)
        va al final de Archivo y en terracota. A ≤700 px recibe además Exportar y la sección Lienzo. -->
@@ -241,7 +263,7 @@ try{
       </div>
     </div>
     <!-- FLUYO-018.17 (M1): en móvil, la animación ambiental del lienzo (#grpAnim) es un ajuste del DOCUMENTO y vive aquí, junto a
-         la sección Lienzo, no en la hoja de la selección. El mismo nodo viaja con placeChrome (js/ui.js); en escritorio vuelve al panel. -->
+         la sección Lienzo. El mismo nodo viaja con placeChrome (js/ui.js); en escritorio vuelve a «Lienzo» (FLUYO-018.23, D3). -->
     <section id="animSection" class="menuSection animSection" aria-label="Animación del lienzo" hidden></section>
     <!-- Interfaz (FLUYO-018.14b, B4): preferencia de ESTE navegador. No cambia el lienzo ni se guarda en el documento. -->
     <section id="uiSection" class="menuSection uiSection" aria-label="Interfaz">
@@ -251,10 +273,31 @@ try{
       </label>
       <p class="hint moreNote">Solo cambia la aplicación. El tema del lienzo está en «Lienzo».</p>
     </section>
-    <!-- FLUYO-018.17 (M2): la ayuda de atajos y gestos (#grpHelp) deja de ser el estado vacío de la hoja en móvil: ⚙ es contextual
-         (solo con selección) y la ayuda se lee aquí. El mismo nodo viaja con placeChrome; en escritorio sigue en el panel. -->
-    <section id="helpSection" class="menuSection helpSection" aria-label="Ayuda y gestos" hidden>
+    <!-- FLUYO-018.17 (M2) y 018.23 (D3): la ayuda de atajos y gestos (#grpHelp) no es una propiedad de la selección: vive aquí en
+         todas las anchuras. Propiedades habla solo de lo seleccionado. -->
+    <section id="helpSection" class="menuSection helpSection" aria-label="Ayuda y gestos">
       <span class="menuKicker">Ayuda y gestos</span>
+      <span id="grpHelpHome" hidden></span>
+      <details class="pgroup pgHelp" id="grpHelp" data-group="Atajos y gestos">
+        <summary><span class="pgTitle">Atajos y gestos</span></summary>
+        <div class="pgBody">
+      <ul class="helpList">
+        <li>Forma del menú izquierdo → clic en el lienzo.</li>
+        <li><kbd>Rueda ratón</kbd> mover · <kbd>Ctrl+Rueda</kbd> zoom.</li>
+        <li><kbd>Clic derecho</kbd>, <kbd>Clic central</kbd> o <kbd>Alt+Arrastrar</kbd> para pan.</li>
+        <li>Táctil: <b>un dedo</b> mueve el plano, <b>dos dedos</b> hacen zoom, doble toque edita.</li>
+        <li>Pasa el ratón sobre un nodo y <b>arrastra el punto</b> que aparece en el lado más cercano para conectar.</li>
+        <li><b>Arrastra en el vacío</b> para seleccionar varios; <kbd>Shift</kbd>+clic suma o quita.</li>
+        <li><kbd>Ctrl+C</kbd> copiar · <kbd>Ctrl+X</kbd> cortar · <kbd>Ctrl+V</kbd> pegar · <kbd>Ctrl+D</kbd> duplicar · <kbd>Ctrl+A</kbd> todo.</li>
+        <li><kbd>Ctrl+Z</kbd> deshacer · <kbd>Ctrl+Y</kbd> rehacer (o las flechas de la cabecera).</li>
+        <li>Doble clic = editar texto. <kbd>Supr</kbd> borra, o la <b>papelera</b> de la cabecera del panel. <kbd>Esc</kbd> cancela.</li>
+        <li>Táctil: con algo seleccionado salen <b>Conectar</b> y <b>Seleccionar varios</b> arriba y la <b>papelera</b> abajo. Toca la pestaña activa para renombrar la página.</li>
+        <li><kbd>P</kbd> presenta a pantalla completa; <kbd>←</kbd> <kbd>→</kbd> cambian de página.</li>
+        <li>Con una flecha seleccionada, arrastra sus <b>extremos</b> (círculos) para cambiar de lado o de forma, sus <b>codos</b> (cuadrados) y las <b>barras</b> de cada tramo para deslizar un tramo; doble clic en un codo lo elimina.</li>
+        <li><kbd>R</kbd> devuelve una flecha a su <b>ruta automática</b>, deshaciendo los tramos que hayas movido.</li>
+      </ul>
+        </div>
+      </details>
     </section>
     <section class="moreLinks menuSection" aria-label="Proyecto">
       <span class="menuKicker">Fluyo</span>
@@ -360,290 +403,287 @@ try{
   </div>
 
   <!-- FLUYO-018.14b — El panel derecho tiene dos superficies y una sola puerta (openSurface/closeSurface/setUiMode, js/ui.js):
-       · Editar: las propiedades de la selección, en grupos plegables (B6). Abiertos lo que se toca en cada elemento (Texto,
-         Forma y color, Recorrido, Trazo); plegados lo raro (Código, Flujo, Capas y aparición) y lo del documento (Animación).
-       · Historias: la superficie del MODO Historia (B1), con su salida «Volver a editar».
-       A ≤700 px es una hoja inferior: Propiedades con su botón de cerrar; Historias con cuatro estados (FLUYO-018.17, body[data-story]):
-       compacta (mando: Historia, Reproducir, Volver a editar), ampliada (taller: eventos como chips y la línea de tiempo, único
-       desplazable; el lienzo sigue a la vista y útil), reproduciendo (transporte + momento en curso) y cerrada. -->
+       · Editar: las propiedades de la selección. · Historias: la superficie del MODO Historia (B1), con «Volver a editar».
+       A ≤700 px es una hoja inferior (Propiedades) o la hoja de Historias de cuatro estados (FLUYO-018.17, body[data-story]).
+       FLUYO-018.23 — Propiedades habla SOLO de la selección (la animación del lienzo vive en «Lienzo», la ayuda en «Más»):
+       · cabecera de la selección (nombre, tipo e id, Orden, Eliminar y plegar/cerrar), la MISMA en columna y en hoja;
+       · grupos por tipo: nodo = Apariencia · Texto · Código (solo code) · Movimiento; conexión = Trazo · Dirección · Puntos · Texto.
+         ui.js reordena los mismos nodos (grpText va al final en una conexión; color y fondo del texto de un code van a Código);
+       · color de una fila (la paleta con nombre) y «⋯» que despliega en el sitio la rejilla, el personalizado y el cuentagotas;
+       · segmentados sobre los controles nativos, que siguen siendo la fuente de verdad (decisión 36): mismos ids, mismos campos.
+       Los ids de grupo se conservan: grpShape = Apariencia, grpLayers = Movimiento, grpRoute = Dirección, grpStroke = Trazo. -->
   <aside id="propPanel">
-    <div id="propSheetHead" class="sheetHead">
-      <span class="sheetTitle">Propiedades</span>
-      <!-- Solo a ≤700 px, donde el panel es una hoja sobre el lienzo: la salida tiene que estar en la propia hoja. -->
-      <button id="btnPanelClose" class="iconBtn btnGhost sheetClose" type="button" title="Cerrar y volver al lienzo" aria-label="Cerrar panel">
-        <svg class="ic" aria-hidden="true"><use href="#i-x"/></svg>
+    <div id="propSheetHead" class="sheetHead selHead">
+      <div class="selHeadText">
+        <span id="selTitle" class="sheetTitle">Propiedades</span>
+        <span id="selMeta" class="selMeta" hidden></span>
+      </div>
+      <span id="rowZ" class="orderWrap" hidden>
+        <button id="btnOrder" class="iconBtn btnGhost" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="orderMenu" aria-label="Orden de capas" data-tip="Orden de capas" data-tip-pos="end"><svg class="ic" aria-hidden="true"><use href="#i-layers"/></svg></button>
+        <div id="orderMenu" class="menu orderMenu" role="menu" aria-label="Orden de capas" hidden>
+          <button id="btnFront" class="menuItem" type="button" role="menuitem"><svg class="ic" aria-hidden="true"><use href="#i-front"/></svg>Al frente</button>
+          <button id="btnForward" class="menuItem" type="button" role="menuitem"><svg class="ic" aria-hidden="true"><use href="#i-up"/></svg>Subir una capa</button>
+          <button id="btnBackward" class="menuItem" type="button" role="menuitem"><svg class="ic" aria-hidden="true"><use href="#i-down"/></svg>Bajar una capa</button>
+          <button id="btnBack" class="menuItem" type="button" role="menuitem"><svg class="ic" aria-hidden="true"><use href="#i-back"/></svg>Al fondo</button>
+        </div>
+      </span>
+      <button id="btnDel" class="iconBtn btnGhost danger" type="button" aria-label="Eliminar (Supr)" data-tip="Eliminar · Supr" data-tip-pos="end" hidden><svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg></button>
+      <!-- Hoja (≤700 px, apaisado táctil): cierra y vuelve al lienzo. Columna: pliega el panel (preferencia del navegador, D2). -->
+      <button id="btnPanelClose" class="iconBtn btnGhost sheetClose" type="button" aria-label="Cerrar panel" data-tip="Plegar el panel" data-tip-pos="end">
+        <svg class="ic icClose" aria-hidden="true"><use href="#i-x"/></svg><svg class="ic icFold" aria-hidden="true"><use href="#i-fold"/></svg>
       </button>
     </div>
     <div id="panelProperties">
     <section class="selSection">
-      <h3>Selección</h3><span id="selMeta" class="badge selMeta" hidden></span>
       <div id="noSel" class="hint emptySel">
         <p class="emptyTitle">Nada seleccionado.</p>
         <p class="emptyLead">Elige una forma del rail y toca el lienzo, o selecciona un elemento para ver sus propiedades.</p>
-        <span id="grpHelpHome" hidden></span>
-        <details class="pgroup pgHelp" id="grpHelp" data-group="Atajos y gestos">
-          <summary><span class="pgTitle">Atajos y gestos</span></summary>
-          <div class="pgBody">
-        <ul class="helpList">
-          <li>Forma del menú izquierdo → clic en el lienzo.</li>
-          <li><kbd>Rueda ratón</kbd> mover · <kbd>Ctrl+Rueda</kbd> zoom.</li>
-          <li><kbd>Clic derecho</kbd>, <kbd>Clic central</kbd> o <kbd>Alt+Arrastrar</kbd> para pan.</li>
-          <li>Táctil: <b>un dedo</b> mueve el plano, <b>dos dedos</b> hacen zoom, doble toque edita.</li>
-          <li>Pasa el ratón sobre un nodo y <b>arrastra el punto</b> que aparece en el lado más cercano para conectar.</li>
-          <li><b>Arrastra en el vacío</b> para seleccionar varios; <kbd>Shift</kbd>+clic suma o quita.</li>
-          <li><kbd>Ctrl+C</kbd> copiar · <kbd>Ctrl+X</kbd> cortar · <kbd>Ctrl+V</kbd> pegar · <kbd>Ctrl+D</kbd> duplicar · <kbd>Ctrl+A</kbd> todo.</li>
-          <li><kbd>Ctrl+Z</kbd> deshacer · <kbd>Ctrl+Y</kbd> rehacer (o las flechas de la cabecera).</li>
-          <li>Doble clic = editar texto. <kbd>Supr</kbd> borra, o el botón <b>Eliminar</b> de abajo. <kbd>Esc</kbd> cancela.</li>
-          <li>Táctil: con algo seleccionado salen <b>Conectar</b> y <b>Seleccionar varios</b> arriba y la <b>papelera</b> abajo. Toca la pestaña activa para renombrar la página.</li>
-          <li><kbd>P</kbd> presenta a pantalla completa; <kbd>←</kbd> <kbd>→</kbd> cambian de página.</li>
-          <li>Con una flecha seleccionada, arrastra sus <b>extremos</b> (círculos) para cambiar de lado o de forma, sus <b>codos</b> (cuadrados) y las <b>barras</b> de cada tramo para deslizar un tramo; doble clic en un codo lo elimina.</li>
-          <li><kbd>R</kbd> devuelve una flecha a su <b>ruta automática</b>, deshaciendo los tramos que hayas movido.</li>
-        </ul>
-          </div>
-        </details>
+        <p class="emptyLead emptyHelp">Atajos y gestos: en «Más».</p>
       </div>
       <div id="multiSel" style="display:none">
-        <p class="hint multiCount" id="multiCount"></p>
         <div class="btnGrid">
           <button id="mCopy">Copiar</button>
           <button id="mCut">Cortar</button>
           <button id="mDup">Duplicar</button>
           <button id="mDel" class="danger"><svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg>Eliminar</button>
         </div>
+        <p class="hint multiCount" id="multiCount"></p>
       </div>
       <div id="selBody" style="display:none">
-        <!-- El texto es lo primero que se edita: fuera de los grupos, siempre a la vista (también en la hoja móvil). -->
-          <div class="row rowLabel" id="rowLabel" data-stack>
-          <label for="lblEdit">Texto (Enter = nueva línea)</label>
-          <textarea id="lblEdit"></textarea>
+        <!-- Contenido: lo primero que se edita, fuera de los grupos y siempre a la vista. En un code es el código (mono, más alto). -->
+        <div class="row rowLabel" id="rowLabel" data-stack>
+          <label for="lblEdit" id="lblEditLbl">Texto</label>
+          <textarea id="lblEdit" rows="2"></textarea>
         </div>
+      <details class="pgroup" id="grpShape" data-group="Apariencia" open>
+        <summary><span class="pgTitle">Apariencia</span></summary>
+        <div class="pgBody">
+          <div class="row" id="rowShape" data-stack>
+            <span class="lblText" id="shapeLbl">Forma <span class="segValue" id="shapeValue"></span></span>
+            <div class="seg pseg shapeSeg" id="shapeSeg" role="radiogroup" aria-labelledby="shapeLbl">
+              <button type="button" class="segBtn" role="radio" data-v="rect" aria-label="Caja" data-tip="Caja"><svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="3"/></svg></button>
+              <button type="button" class="segBtn" role="radio" data-v="cylinder" aria-label="BD" data-tip="BD"><svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/></svg></button>
+              <button type="button" class="segBtn" role="radio" data-v="diamond" aria-label="Rombo" data-tip="Rombo"><svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><path d="M12 3l9 9-9 9-9-9z"/></svg></button>
+              <button type="button" class="segBtn" role="radio" data-v="circle" aria-label="Círculo" data-tip="Círculo"><svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><circle cx="12" cy="12" r="9"/></svg></button>
+              <button type="button" class="segBtn" role="radio" data-v="hex" aria-label="Hexágono" data-tip="Hexágono"><svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><path d="M7 4h10l4 8-4 8H7l-4-8z"/></svg></button>
+              <button type="button" class="segBtn" role="radio" data-v="text" aria-label="Texto" data-tip="Texto"><svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><path d="M5 6h14M12 6v13"/></svg></button>
+              <button type="button" class="segBtn" role="radio" data-v="code" aria-label="Código" data-tip="Código"><svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><path d="M9 8l-4 4 4 4M15 8l4 4-4 4"/></svg></button>
+            </div>
+            <select id="shapeSel" class="srOnly" tabindex="-1" aria-hidden="true">
+              <option value="rect">Caja</option><option value="cylinder">BD</option>
+              <option value="diamond">Rombo</option><option value="circle">Círculo</option>
+              <option value="hex">Hexágono</option><option value="text">Texto</option>
+              <option value="code">Código</option>
+            </select>
+          </div>
+          <div class="row colorRow" id="rowColor" data-stack>
+            <span class="lblText" id="colorLbl">Borde</span>
+            <div class="swRow"><div class="swatches" id="swatches"></div></div>
+            <div class="colorTools">
+              <label class="pickLbl" title="Color personalizado del borde"><input type="color" id="strokeCustom"><span>Personalizado</span></label>
+              <button id="btnEyedrop" class="mini btnGhost" type="button" title="Cuentagotas: tomar un color del lienzo"><svg class="ic" aria-hidden="true"><use href="#i-eyedrop"/></svg>Cuentagotas</button>
+            </div>
+          </div>
+          <div class="row" id="rowTint"><label for="tintChk">Teñir el icono con el color</label><input type="checkbox" id="tintChk"></div>
+          <div class="row colorRow" id="rowFill" data-stack>
+            <span class="lblText" id="fillLbl">Relleno</span>
+            <div class="swRow"><div class="swatches" id="fillSw"></div></div>
+            <div class="colorTools">
+              <label class="pickLbl" title="Color de relleno personalizado"><input type="color" id="fillCustom"><span>Personalizado</span></label>
+            </div>
+          </div>
+          <div class="row inlineSeg" id="rowBorder">
+            <span class="lblText" id="borderLbl">Línea del borde</span>
+            <div class="seg pseg" id="borderSeg" role="radiogroup" aria-labelledby="borderLbl">
+              <button type="button" class="segBtn" role="radio" data-v="solid" aria-label="Sólido"><span class="lineSample solid" aria-hidden="true"></span></button>
+              <button type="button" class="segBtn" role="radio" data-v="dashed" aria-label="Discontinuo"><span class="lineSample dashed" aria-hidden="true"></span></button>
+              <button type="button" class="segBtn" role="radio" data-v="dotted" aria-label="Punteado"><span class="lineSample dotted" aria-hidden="true"></span></button>
+            </div>
+            <select id="borderSel" class="srOnly" tabindex="-1" aria-hidden="true">
+              <option value="solid">Sólido</option>
+              <option value="dashed">Discontinuo</option>
+              <option value="dotted">Punteado</option>
+            </select>
+          </div>
+        </div>
+      </details>
       <details class="pgroup" id="grpText" data-group="Texto" open>
         <summary><span class="pgTitle">Texto</span></summary>
         <div class="pgBody">
-          <div class="row" id="rowFs"><label for="fsIn">Tamaño de texto</label><input type="number" id="fsIn" min="8" max="96" placeholder="auto"></div>
-          <div class="row" id="rowFont"><label for="fontSel">Tipografía</label><select id="fontSel"></select></div>
-          <div class="row" id="rowBold"><label for="boldChk">Negrita</label><input type="checkbox" id="boldChk"></div>
-          <div class="row" id="rowTextColor" data-stack>
-          <label>Color del texto</label>
-          <div class="swatches" id="textColorSw"></div>
-          <div class="colorTools">
-            <label class="pickLbl" title="Color de texto personalizado">
-              <input type="color" id="textColorCustom"><span>Personalizado</span>
-            </label>
+          <!-- Tipografía, tamaño y negrita en una sola fila (mismos campos: font, fs, bold). -->
+          <div class="row typoRow" id="rowFont">
+            <label for="fontSel" class="srOnly">Tipografía</label><select id="fontSel" aria-label="Tipografía"></select>
+            <span id="rowFs" class="typoFs"><input type="number" id="fsIn" min="8" max="96" placeholder="auto" aria-label="Tamaño de texto" title="Tamaño de texto"></span>
+            <span id="rowBold" class="boldTog" title="Negrita"><input type="checkbox" id="boldChk" aria-label="Negrita"><span aria-hidden="true">N</span></span>
           </div>
-        </div>
-          <div class="row" id="rowLblPos"><label>Posición del texto</label>
-          <select id="lblPosSel">
-            <option value="center">Centro</option>
-            <option value="top">Arriba</option>
-            <option value="bottom">Abajo</option>
-            <option value="left">Izquierda</option>
-            <option value="right">Derecha</option>
-          </select>
-        </div>
-          <div class="row" id="rowTextBg" data-stack>
-          <label>Fondo del texto</label>
-          <div class="swatches" id="textBgSw"></div>
-          <div class="colorTools">
-            <label class="pickLbl" title="Fondo de texto personalizado">
-              <input type="color" id="textBgCustom"><span>Personalizado</span>
-            </label>
+          <div class="row colorRow" id="rowTextColor" data-stack>
+            <span class="lblText" id="textColorLbl">Color</span>
+            <div class="swRow"><div class="swatches" id="textColorSw"></div></div>
+            <div class="colorTools">
+              <label class="pickLbl" title="Color de texto personalizado"><input type="color" id="textColorCustom"><span>Personalizado</span></label>
+            </div>
           </div>
-        </div>
+          <div class="row colorRow" id="rowTextBg" data-stack>
+            <span class="lblText" id="textBgLbl">Fondo</span>
+            <div class="swRow"><div class="swatches" id="textBgSw"></div></div>
+            <div class="colorTools">
+              <label class="pickLbl" title="Fondo de texto personalizado"><input type="color" id="textBgCustom"><span>Personalizado</span></label>
+            </div>
+          </div>
+          <div class="row" id="rowLblPos"><label for="lblPosSel">Posición</label>
+            <select id="lblPosSel">
+              <option value="center">Centro</option>
+              <option value="top">Arriba</option>
+              <option value="bottom">Abajo</option>
+              <option value="left">Izquierda</option>
+              <option value="right">Derecha</option>
+            </select>
+          </div>
         </div>
       </details>
-      <details class="pgroup" id="grpShape" data-group="Forma y color" open>
-        <summary><span class="pgTitle">Forma y color</span></summary>
-        <div class="pgBody">
-          <div class="row" id="rowShape"><label>Forma</label>
-          <select id="shapeSel">
-            <option value="rect">Caja</option><option value="cylinder">BD</option>
-            <option value="diamond">Rombo</option><option value="circle">Círculo</option>
-            <option value="hex">Hexágono</option><option value="text">Texto</option>
-            <option value="code">Código</option>
-          </select>
-        </div>
-          <div class="row" id="rowColor" data-stack>
-          <label>Color de línea / borde</label>
-          <div class="swatches" id="swatches"></div>
-          <div class="colorTools">
-            <label class="pickLbl" title="Color personalizado del borde">
-              <input type="color" id="strokeCustom"><span>Personalizado</span>
-            </label>
-            <button id="btnEyedrop" class="mini btnGhost" title="Cuentagotas: tomar un color del lienzo"><svg class="ic" aria-hidden="true"><use href="#i-eyedrop"/></svg>Cuentagotas</button>
-          </div>
-        </div>
-          <div class="row" id="rowTint"><label for="tintChk">Teñir el icono con el color</label><input type="checkbox" id="tintChk"></div>
-          <div class="row" id="rowFill" data-stack>
-          <label>Relleno de la forma</label>
-          <div class="swatches" id="fillSw"></div>
-          <div class="colorTools">
-            <label class="pickLbl" title="Color de relleno personalizado">
-              <input type="color" id="fillCustom"><span>Personalizado</span>
-            </label>
-          </div>
-        </div>
-          <div class="row" id="rowBorder"><label>Estilo de borde</label>
-          <select id="borderSel">
-            <option value="solid">Sólido —</option>
-            <option value="dashed">Discontinuo - -</option>
-            <option value="dotted">Punteado ·····</option>
-          </select>
-        </div>
-        </div>
-      </details>
+      <!-- FLUYO-018.23 (D7): todo lo que es del BLOQUE de código vive aquí (resaltado, lista propia, color del código, fondo del bloque,
+           palabra clave y su caja). Sin caja por defecto (018.14a, codeKwBg ""). El panel del nodo (fill) es Apariencia. -->
       <details class="pgroup" id="grpCode" data-group="Código">
         <summary><span class="pgTitle">Código</span></summary>
         <div class="pgBody">
-          <div class="row" id="rowLang"><label>Palabras clave</label>
-          <select id="langSel">
-            <option value="sql">SQL / ksqlDB</option>
-            <option value="none">Ninguna</option>
-            <option value="custom">Lista propia…</option>
-          </select>
-        </div>
+          <div class="row" id="rowLang" data-stack>
+            <span class="lblText" id="langLbl">Resaltado</span>
+            <div class="seg pseg" id="langSeg" role="radiogroup" aria-labelledby="langLbl">
+              <button type="button" class="segBtn" role="radio" data-v="sql">SQL</button>
+              <button type="button" class="segBtn" role="radio" data-v="none">Ninguno</button>
+              <button type="button" class="segBtn" role="radio" data-v="custom">Lista propia</button>
+            </div>
+            <select id="langSel" class="srOnly" tabindex="-1" aria-hidden="true">
+              <option value="sql">SQL / ksqlDB</option>
+              <option value="none">Ninguna</option>
+              <option value="custom">Lista propia…</option>
+            </select>
+          </div>
           <div class="row" id="rowKeywords" data-stack>
-          <label for="kwEdit">Lista propia (separadas por espacios o comas)</label>
-          <textarea id="kwEdit" rows="2" placeholder="SELECT FROM WHERE"></textarea>
-        </div>
-          <div class="row" id="rowKwBg" data-stack>
-          <label>Fondo del resaltado</label>
-          <div class="swatches" id="kwBgSw"></div>
-          <div class="colorTools">
-            <label class="pickLbl" title="Fondo de resaltado personalizado">
-              <input type="color" id="kwBgCustom"><span>Personalizado</span>
-            </label>
+            <label for="kwEdit">Lista propia (separadas por espacios o comas)</label>
+            <textarea id="kwEdit" rows="2" placeholder="SELECT FROM WHERE"></textarea>
           </div>
-        </div>
-          <div class="row" id="rowKwColor" data-stack>
-          <label>Texto del resaltado</label>
-          <div class="swatches" id="kwColorSw"></div>
-          <div class="colorTools">
-            <label class="pickLbl" title="Color de texto del resaltado personalizado">
-              <input type="color" id="kwColorCustom"><span>Personalizado</span>
-            </label>
+          <span id="codeTextHome" hidden></span>
+          <div class="row colorRow" id="rowKwColor" data-stack>
+            <span class="lblText">Palabra clave</span>
+            <div class="swRow"><div class="swatches" id="kwColorSw"></div></div>
+            <div class="colorTools">
+              <label class="pickLbl" title="Color de la palabra clave personalizado"><input type="color" id="kwColorCustom"><span>Personalizado</span></label>
+            </div>
           </div>
-        </div>
+          <div class="row colorRow" id="rowKwBg" data-stack>
+            <span class="lblText">Caja de la palabra clave</span>
+            <div class="swRow"><div class="swatches" id="kwBgSw"></div></div>
+            <div class="colorTools">
+              <label class="pickLbl" title="Caja de la palabra clave personalizada"><input type="color" id="kwBgCustom"><span>Personalizado</span></label>
+            </div>
+          </div>
         </div>
       </details>
-      <details class="pgroup" id="grpRoute" data-group="Recorrido" open>
-        <summary><span class="pgTitle">Recorrido</span></summary>
+      <details class="pgroup" id="grpLayers" data-group="Movimiento">
+        <summary><span class="pgTitle">Movimiento</span></summary>
         <div class="pgBody">
-          <div class="row" id="rowRoute"><label>Ruta</label>
-          <select id="routeSel"><option value="straight">Recta</option><option value="ortho">Ortogonal</option></select>
-        </div>
-          <div class="row" id="rowFrom"><label>Sale por</label>
-          <select id="fromSel"><option value="">Auto</option><option value="n">Arriba</option><option value="e">Derecha</option><option value="s">Abajo</option><option value="w">Izquierda</option></select>
-        </div>
-          <div class="row" id="rowTo"><label>Entra por</label>
-          <select id="toSel"><option value="">Auto</option><option value="n">Arriba</option><option value="e">Derecha</option><option value="s">Abajo</option><option value="w">Izquierda</option></select>
-        </div>
-          <!-- Va aquí, pegado a Ruta / Sale por / Entra por, y no al final de la
-             lista: desde que una ruta hecha a mano se CONSERVA al mover los
-             nodos, deshacerla dejó de ser un rincón y pasó a ser la salida
-             habitual cuando la forma ya no sirve. Tiene que estar donde el
-             usuario ya está mirando cuando la flecha no le sale. -->
-        <button id="btnWps" class="wfull" style="display:none" title="Descarta los tramos que has movido a mano y vuelve al ruteo automático (R)">Volver a la ruta automática</button>
+          <div class="row" id="rowPulse"><label for="pulseChk">Pulso (resaltar)</label><input type="checkbox" id="pulseChk"></div>
+          <div class="row" id="rowOrder"><label for="orderIn">Orden de aparición</label><input type="number" id="orderIn" min="0" max="99"></div>
+          <p class="hint rowNote" id="orderNote" hidden>Se usa con «Animar aparición», en Lienzo.</p>
         </div>
       </details>
       <details class="pgroup" id="grpStroke" data-group="Trazo" open>
         <summary><span class="pgTitle">Trazo</span></summary>
         <div class="pgBody">
-          <div class="row" id="rowLineC" data-stack>
-          <label>Color de línea</label>
-          <div class="swatches" id="lineSw"></div>
-          <div class="colorTools">
-            <label class="pickLbl" title="Color de línea personalizado">
-              <input type="color" id="lineCustom"><span>Personalizado</span>
-            </label>
+          <div class="row colorRow" id="rowLineC" data-stack>
+            <span class="lblText">Color</span>
+            <div class="swRow"><div class="swatches" id="lineSw"></div></div>
+            <div class="colorTools">
+              <label class="pickLbl" title="Color de línea personalizado"><input type="color" id="lineCustom"><span>Personalizado</span></label>
+            </div>
           </div>
-        </div>
           <div class="row" id="rowDash"><label for="dashChk">Línea punteada</label><input type="checkbox" id="dashChk"></div>
-          <!-- FLUYO-018.18 (D12): la dirección de una conexión, donde se busca, nombrando las dos cosas distintas que existen:
-               las PUNTAS (startArrow/endArrow, se dibujan siempre, también en PNG/SVG) y el SENTIDO de los puntos animados
-               (flowDir: normal → «Hacia el destino», reverse → «Hacia el origen», alternate → «Ida y vuelta»). Mismo dato,
-               mismos valores; #flowSel sigue siendo el control nativo y el segmentado lo refleja (decisión 36). -->
-          <p class="pgSub" id="dirKicker">Dirección</p>
-          <div class="row" id="rowArrS"><label for="arrSChk">Punta al inicio</label><input type="checkbox" id="arrSChk"></div>
-          <div class="row" id="rowArrE"><label for="arrEChk">Punta al final</label><input type="checkbox" id="arrEChk"></div>
-          <div class="row" id="rowAnim"><label for="animChk">Puntos en movimiento</label><input type="checkbox" id="animChk"></div>
-          <div class="row" id="rowFlow" data-stack><span class="lblText" id="flowLbl">Sentido de los puntos</span>
-          <div class="seg flowSeg" id="flowSeg" role="radiogroup" aria-labelledby="flowLbl">
-            <button type="button" class="segBtn" role="radio" data-flow="normal" aria-checked="true">Hacia el destino</button>
-            <button type="button" class="segBtn" role="radio" data-flow="reverse" aria-checked="false">Hacia el origen</button>
-            <button type="button" class="segBtn" role="radio" data-flow="alternate" aria-checked="false">Ida y vuelta</button>
+          <div class="row inlineSeg" id="rowRoute">
+            <span class="lblText" id="routeLbl">Ruta</span>
+            <div class="seg pseg" id="routeSeg" role="radiogroup" aria-labelledby="routeLbl">
+              <button type="button" class="segBtn" role="radio" data-v="straight">Recta</button>
+              <button type="button" class="segBtn" role="radio" data-v="ortho">Ortogonal</button>
+            </div>
+            <select id="routeSel" class="srOnly" tabindex="-1" aria-hidden="true"><option value="straight">Recta</option><option value="ortho">Ortogonal</option></select>
           </div>
-          <select id="flowSel" class="srOnly" tabindex="-1" aria-hidden="true"><option value="normal">Hacia el destino</option><option value="reverse">Hacia el origen</option><option value="alternate">Ida y vuelta</option></select>
+          <!-- Pegado a Ruta: desde que una ruta hecha a mano se CONSERVA al mover los nodos, deshacerla es la salida habitual
+               cuando la forma ya no sirve, y tiene que estar donde el usuario mira cuando la flecha no le sale. -->
+          <button id="btnWps" class="wfull" style="display:none" title="Descarta los tramos que has movido a mano y vuelve al ruteo automático (R)">Volver a la ruta automática</button>
+          <div class="row endsRow" id="rowEnds">
+            <div id="rowFrom" class="endsCol"><label for="fromSel">Sale por</label>
+              <select id="fromSel"><option value="">Auto</option><option value="n">Arriba</option><option value="e">Derecha</option><option value="s">Abajo</option><option value="w">Izquierda</option></select>
+            </div>
+            <div id="rowTo" class="endsCol"><label for="toSel">Entra por</label>
+              <select id="toSel"><option value="">Auto</option><option value="n">Arriba</option><option value="e">Derecha</option><option value="s">Abajo</option><option value="w">Izquierda</option></select>
+            </div>
+          </div>
         </div>
+      </details>
+      <!-- FLUYO-018.23 (D5, D6): la DIRECCIÓN de una conexión es un grupo propio y abierto. Nombra por separado las PUNTAS
+           (startArrow/endArrow: un segmentado de cuatro que escribe los mismos dos campos, con un Undo) y el SENTIDO de los puntos
+           animados (flowDir: normal → «Hacia el destino», reverse → «Hacia el origen», alternate → «Ida y vuelta»; decisión 161).
+           #arrSChk, #arrEChk y #flowSel siguen siendo los controles nativos; los segmentados los reflejan (decisión 36). -->
+      <details class="pgroup" id="grpRoute" data-group="Dirección" open>
+        <summary><span class="pgTitle">Dirección</span></summary>
+        <div class="pgBody">
+          <p class="pgSub" id="dirKicker" hidden>Dirección</p>
+          <div class="row inlineSeg" id="rowArrows">
+            <span class="lblText" id="arrowsLbl">Puntas <span class="segValue" id="arrowsValue"></span></span>
+            <div class="seg pseg" id="arrowSeg" role="radiogroup" aria-labelledby="arrowsLbl">
+              <button type="button" class="segBtn" role="radio" data-v="none" aria-label="Ninguna" data-tip="Ninguna"><svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><path d="M4 12h16"/></svg></button>
+              <button type="button" class="segBtn" role="radio" data-v="start" aria-label="Inicio" data-tip="Inicio"><svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><path d="M4 12h16M9 7l-5 5 5 5"/></svg></button>
+              <button type="button" class="segBtn" role="radio" data-v="end" aria-label="Fin" data-tip="Fin"><svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><path d="M4 12h16M15 7l5 5-5 5"/></svg></button>
+              <button type="button" class="segBtn" role="radio" data-v="both" aria-label="Ambas" data-tip="Ambas"><svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><path d="M4 12h16M9 7l-5 5 5 5M15 7l5 5-5 5"/></svg></button>
+            </div>
+          </div>
+          <div class="row srOnly" id="rowArrS"><label for="arrSChk">Punta al inicio</label><input type="checkbox" id="arrSChk" tabindex="-1" aria-hidden="true"></div>
+          <div class="row srOnly" id="rowArrE"><label for="arrEChk">Punta al final</label><input type="checkbox" id="arrEChk" tabindex="-1" aria-hidden="true"></div>
+          <div class="row" id="rowAnim"><label for="animChk">Puntos en movimiento</label><input type="checkbox" id="animChk"></div>
+          <p class="hint rowNote" id="flowNote">El sentido de los puntos se elige al ponerlos en movimiento.</p>
+          <div class="row" id="rowFlow" data-stack><span class="lblText" id="flowLbl">Sentido de los puntos</span>
+            <div class="seg pseg flowSeg" id="flowSeg" role="radiogroup" aria-labelledby="flowLbl">
+              <button type="button" class="segBtn" role="radio" data-v="normal" data-flow="normal" aria-checked="true">Hacia el destino</button>
+              <button type="button" class="segBtn" role="radio" data-v="reverse" data-flow="reverse" aria-checked="false">Hacia el origen</button>
+              <button type="button" class="segBtn" role="radio" data-v="alternate" data-flow="alternate" aria-checked="false">Ida y vuelta</button>
+            </div>
+            <select id="flowSel" class="srOnly" tabindex="-1" aria-hidden="true"><option value="normal">Hacia el destino</option><option value="reverse">Hacia el origen</option><option value="alternate">Ida y vuelta</option></select>
+          </div>
         </div>
       </details>
       <details class="pgroup" id="grpFlow" data-group="Puntos">
         <summary><span class="pgTitle">Puntos</span></summary>
         <div class="pgBody">
-          <div class="row" id="rowDotC" data-stack>
-          <label>Color de puntos</label>
-          <div class="swatches" id="dotSw"></div>
-          <div class="colorTools">
-            <label class="pickLbl" title="Color de puntos personalizado">
-              <input type="color" id="dotCustom"><span>Personalizado</span>
-            </label>
+          <div class="row colorRow" id="rowDotC" data-stack>
+            <span class="lblText">Color de puntos</span>
+            <div class="swRow"><div class="swatches" id="dotSw"></div></div>
+            <div class="colorTools">
+              <label class="pickLbl" title="Color de puntos personalizado"><input type="color" id="dotCustom"><span>Personalizado</span></label>
+            </div>
           </div>
-        </div>
-          <div class="row" id="rowSpeedF"><label>Velocidad (× global)</label>
-          <select id="speedFacSel">
-            <option value="1">1× (global)</option>
-            <option value="2">2×</option>
-            <option value="3">3×</option>
-            <option value="4">4×</option>
-          </select>
-        </div>
+          <div class="row" id="rowSpeedF" data-stack>
+            <span class="lblText" id="speedLbl">Velocidad (× global)</span>
+            <div class="seg pseg" id="speedSeg" role="radiogroup" aria-labelledby="speedLbl">
+              <button type="button" class="segBtn" role="radio" data-v="1">1×</button>
+              <button type="button" class="segBtn" role="radio" data-v="2">2×</button>
+              <button type="button" class="segBtn" role="radio" data-v="3">3×</button>
+              <button type="button" class="segBtn" role="radio" data-v="4">4×</button>
+            </div>
+            <select id="speedFacSel" class="srOnly" tabindex="-1" aria-hidden="true">
+              <option value="1">1× (global)</option>
+              <option value="2">2×</option>
+              <option value="3">3×</option>
+              <option value="4">4×</option>
+            </select>
+          </div>
           <div class="row" id="rowDotsGlobal"><label for="dotsGlobalChk">Puntos globales</label><input type="checkbox" id="dotsGlobalChk"></div>
-          <div class="row" id="rowDots"><label>Puntos (esta flecha)</label>
-          <input type="number" id="edgeDotsIn" min="1" max="6" step="1">
-        </div>
-        </div>
-      </details>
-      <details class="pgroup" id="grpLayers" data-group="Capas y aparición">
-        <summary><span class="pgTitle">Capas y aparición</span></summary>
-        <div class="pgBody">
-          <div class="row" id="rowZ" data-stack>
-          <label>Orden (capas)</label>
-          <div class="btnGrid">
-            <button id="btnFront" title="Traer al frente"><svg class="ic" aria-hidden="true"><use href="#i-front"/></svg>Al frente</button>
-            <button id="btnBack" title="Enviar al fondo"><svg class="ic" aria-hidden="true"><use href="#i-back"/></svg>Al fondo</button>
-            <button id="btnForward" title="Subir una capa"><svg class="ic" aria-hidden="true"><use href="#i-up"/></svg>Subir</button>
-            <button id="btnBackward" title="Bajar una capa"><svg class="ic" aria-hidden="true"><use href="#i-down"/></svg>Bajar</button>
+          <div class="row" id="rowDots"><label for="edgeDotsIn">Puntos (esta flecha)</label>
+            <input type="number" id="edgeDotsIn" min="1" max="6" step="1">
           </div>
         </div>
-          <div class="row" id="rowPulse"><label for="pulseChk">Pulso (resaltar)</label><input type="checkbox" id="pulseChk"></div>
-          <div class="row" id="rowOrder"><label for="orderIn">Orden de aparición</label><input type="number" id="orderIn" min="0" max="99"></div>
-        </div>
       </details>
-        <button id="btnDel" class="danger wfull"><svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg>Eliminar <kbd>Supr</kbd></button>
       </div>
     </section>
-
-    <section class="animSection">
-      <span id="grpAnimHome" hidden></span>
-      <details class="pgroup" id="grpAnim" data-group="Animación del lienzo">
-        <summary><span class="pgTitle">Animación del lienzo</span></summary>
-        <div class="pgBody">
-      <!-- FLUYO-018.12 (D6): la animación ambiental del lienzo se pausa aquí y no en la cabecera, donde se confundía con reproducir
-           una Historia. Espacio sigue alternándola. -->
-      <div class="row"><label for="btnPlay">Puntos en movimiento</label><button id="btnPlay" class="toggled" type="button" title="Pausar o reanudar los puntos que fluyen (Espacio)"><svg class="ic icPause" aria-hidden="true"><use href="#i-pause"/></svg><svg class="ic icPlay" aria-hidden="true"><use href="#i-play"/></svg><span class="lbl">Pausa</span></button></div>
-      <div class="row"><label for="speedIn">Velocidad de flujo</label><input type="range" id="speedIn" min="0.2" max="2" step="0.1" value="0.5"></div>
-      <div class="row"><label for="dotsIn">Puntos por flecha</label><input type="range" id="dotsIn" min="1" max="6" step="1" value="3"></div>
-      <div class="row" title="Una sola pelota recorre la cadena entera (nodo 1 → nodo 2 → nodo 3) en vez de puntos sueltos en cada flecha; en las bifurcaciones se parte y sigue por todas las ramas">
-        <label for="chkSingle">Una pelota por ruta</label><input type="checkbox" id="chkSingle">
-      </div>
-      <div class="row"><label for="buildChk">Animar aparición</label><input type="checkbox" id="buildChk"></div>
-      <div class="row"><label for="staggerIn">Intervalo aparición</label><input type="range" id="staggerIn" min="0.2" max="1.2" step="0.1" value="0.45"></div>
-      <p class="hint">La aparición usa el «orden» de cada nodo. Las flechas aparecen cuando ambos nodos son visibles.</p>
-      <p class="hint">Con «una pelota por ruta» las flechas se encadenan: sale una pelota de cada nodo de origen y recorre el diagrama entero. Al llegar a un nodo que se abre en varias ramas, la pelota se parte y sigue por todas a la vez.</p>
-        </div>
-      </details>
-    </section>
-
     </div>
 
     <div id="panelScenarios" style="display:none;">

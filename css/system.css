@@ -109,6 +109,7 @@
   --scrim:rgba(22,21,15,.5);
   --select-arrow:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5l3 3 3-3' fill='none' stroke='%2367624F' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   --fs-field:11.5px;                      /* etiquetas del panel: un punto por encima de los metadatos */
+  --sw-size:24px;                         /* muestra de color: 24 con ratón (WCAG 2.5.8), 32 con dedo (FLUYO-018.23) */
 
   /* ---- Iconos como máscara: para lo que se genera desde JS sin markup (pestañas de página) ---- */
   --mask-x:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M6.5 6.5l11 11M17.5 6.5l-11 11'/%3E%3C/svg%3E");
@@ -142,6 +143,7 @@
   color:var(--ink);
 }
 @media (pointer:coarse){ :root{ --ctl-h:var(--ctl-h-touch); } }
+@media (pointer:coarse){ :root{ --sw-size:32px; } }   /* FLUYO-018.23 (D9): muestras de 32 con dedo */
 
 /* ===================== Interfaz oscura (FLUYO-018.14b, B4) =====================
    El mismo Fluyo invertido: tinta profunda como superficie, hueso como texto, oliva pálido para lo activo y terracota
@@ -295,7 +297,7 @@ input[type=color]::-moz-color-swatch{ border:none; border-radius:2px; }
   border-bottom:2px solid transparent;
 }
 .tabs > button:hover, .tabBtn:hover{ background:transparent; color:var(--ink); border-color:transparent transparent var(--rule-2); }
-.tabs > button.active, .tabBtn.active{ color:var(--ink); border-bottom-color:var(--rule-ink); background:transparent; }
+.tabs > button.active, .tabBtn.active{ color:var(--ink); border-bottom-color:var(--active); background:transparent; }
 
 /* ===================== Insignias ===================== */
 .badge{ display:inline-flex; align-items:center; gap:4px; height:18px; padding:0 7px; border-radius:var(--r-pill); border:1px solid var(--rule-2); font:500 var(--fs-micro)/1 var(--font-mono); letter-spacing:.04em; color:var(--ink-2); background:var(--surface-raised); white-space:nowrap; }
@@ -359,8 +361,11 @@ kbd{ font:500 var(--fs-micro)/1 var(--font-mono); color:var(--ink-2); background
   display:inline-flex; align-items:center; justify-content:center; white-space:nowrap;
 }
 .seg > .segBtn:hover{ background:var(--hover-veil); border-color:transparent; color:var(--ink); }
-.seg > .segBtn.active, .seg > .segBtn[aria-pressed="true"]{ background:var(--surface-raised); border-color:var(--rule-2); color:var(--ink); box-shadow:0 1px 2px rgba(0,0,0,.08); }
-.seg > .segBtn.active .ic, .seg > .segBtn[aria-pressed="true"] .ic{ color:var(--active); }
+/* FLUYO-018.23 (D8): «activo» es oliva en todo el sistema (como .toggled, los interruptores y la muestra elegida): velo oliva y
+   borde oliva sólido (≥ 3:1 frente al lecho en los dos temas), texto en tinta. No es decoración: solo marca el estado del control,
+   no el color del elemento seleccionado (marcas del lienzo, decisión 127) ni los colores del documento. */
+.seg > .segBtn.active, .seg > .segBtn[aria-pressed="true"], .seg > .segBtn[aria-checked="true"]{ background:var(--active-veil); border-color:var(--active); color:var(--ink); box-shadow:none; }
+.seg > .segBtn.active .ic, .seg > .segBtn[aria-pressed="true"] .ic, .seg > .segBtn[aria-checked="true"] .ic{ color:var(--active); }
 
 /* ===================== Grupo plegable (FLUYO-018.14b) =====================
    <details> nativo: teclado, lector de pantalla y estado sin JS. El rótulo es mono en versalitas (mecanismo); el
@@ -368,7 +373,7 @@ kbd{ font:500 var(--fs-micro)/1 var(--font-mono); color:var(--ink-2); background
 .pgroup{ border-top:1px solid var(--rule); }
 .pgroup > summary{
   list-style:none; display:flex; align-items:center; justify-content:space-between; gap:8px;
-  min-height:36px; padding:0 2px; cursor:pointer; user-select:none;
+  min-height:32px; padding:0 2px; cursor:pointer; user-select:none;
   font:500 var(--fs-micro)/1.3 var(--font-mono); letter-spacing:var(--track-micro); text-transform:uppercase; color:var(--ink-3);
 }
 .pgroup > summary::-webkit-details-marker{ display:none; }
@@ -376,7 +381,7 @@ kbd{ font:500 var(--fs-micro)/1 var(--font-mono); color:var(--ink-2); background
 .pgroup[open] > summary::after{ transform:rotate(180deg); }
 .pgroup > summary:hover{ color:var(--ink); }
 .pgroup > summary:focus-visible{ outline:var(--focus); outline-offset:-2px; border-radius:var(--r-xs); }
-.pgroup > .pgBody{ padding:2px 0 10px; }
+.pgroup > .pgBody{ padding:2px 0 8px; }
 @media (pointer:coarse){
   .pgroup > summary{ min-height:var(--ctl-h-touch); }
   /* Interruptores con dedo: un punto más grandes (la fila entera también los activa). */

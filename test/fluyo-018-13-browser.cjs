@@ -163,23 +163,26 @@ async function journey(browser, base, vp) {
   if (mobile) { await press(t, "#btnPanel", vp); await page.waitForTimeout(350); }
   const meta = await page.evaluate(() => { const m = document.getElementById("selMeta"); return m.hidden ? "" : m.textContent; });
   check(meta === "Caja · id " + sel, `el panel nombra la selección como metadato («${meta}»)`);
-  check(/Playfair Display/.test(await fam(page, "#panelProperties h3")), "títulos de sección en serif");
+  /* FLUYO-018.23: el título del panel es el nombre de la selección (cabecera de selección), en serif */
+  check(/Playfair Display/.test(await fam(page, "#selTitle")), "títulos de sección en serif");
   /* 018.14b: los grupos son <details class="pgroup"> con su rótulo en <summary> */
   const groups = await page.evaluate(() => [...document.querySelectorAll("#selBody > details.pgroup")].filter((d) => !d.hidden && d.offsetParent).map((d) => d.querySelector("summary").textContent.trim()));
-  check(groups.includes("Forma y color") && groups.includes("Capas y aparición"), "los grupos del nodo tienen rótulo y filete " + JSON.stringify(groups));
-  const sw = await page.evaluate(() => { const c = document.getElementById("boldChk"), cs = getComputedStyle(c), r = c.getBoundingClientRect(); return { app: cs.appearance, w: r.width, h: r.height }; });
-  check(sw.app === "none" && sw.w > sw.h, "las casillas del panel son interruptores " + JSON.stringify(sw));
+  /* FLUYO-018.23 (D1): Apariencia · Texto · Movimiento */
+  check(groups.includes("Apariencia") && groups.includes("Movimiento"), "los grupos del nodo tienen rótulo y filete " + JSON.stringify(groups));
+  const sw = await page.evaluate(() => { const c = document.getElementById("pulseChk"), cs = getComputedStyle(c); $("grpLayers").open = true; const r = c.getBoundingClientRect(); const b = document.querySelector(".boldTog"); return { app: cs.appearance, w: r.width, h: r.height, bold: !!b && getComputedStyle($("boldChk")).appearance === "none" }; });
+  check(sw.app === "none" && sw.w > sw.h && sw.bold, "las casillas del panel son interruptores; «N» es un conmutador (018.23) " + JSON.stringify(sw));
   /* 018.14b: en la hoja móvil los grupos empiezan plegados; se abre «Texto» con el dedo, como haría quien edita */
   if (mobile) { await page.locator("#grpText > summary").tap(); await page.waitForTimeout(150); }
   if (vp.touch) await page.locator("#boldChk").tap(); else await page.locator("#boldChk").click();
   check(await page.evaluate((id) => P().nodes.find((n) => n.id === id).bold === true, sel), "el interruptor «Negrita» cambia el documento");
-  const tgt = await controls(page, "#panelProperties button, #panelProperties select, #panelProperties input[type=number], .panelTabs button");
+  /* 018.23: «⋯» de una fila de color mide lo que sus muestras (≥ 24 con ratón, WCAG 2.5.8; ≥ 44 con dedo): lo vigila fluyo-018-23-browser */
+  const tgt = await controls(page, "#panelProperties button:not(.swMore), #panelProperties select, #panelProperties input[type=number], .panelTabs button");
   check(tgt.every((c) => c.h >= minH), `controles del panel ≥ ${minH} px ` + JSON.stringify(tgt.filter((c) => c.h < minH)));
   await shot(t, vp, "1-panel-nodo");
   const edge = await page.evaluate(() => { const e = P().edges[0]; clearSel(); selE.add(e.id); refreshPanel(); return [e.from, e.to]; });
   const meta2 = await page.evaluate(() => document.getElementById("selMeta").textContent);
   const egroups = await page.evaluate(() => [...document.querySelectorAll("#selBody > details.pgroup")].filter((d) => !d.hidden && d.offsetParent).map((d) => d.querySelector("summary").textContent.trim()));
-  check(meta2 === `Conexión · ${edge[0]} → ${edge[1]}` && egroups.includes("Recorrido") && egroups.includes("Trazo"), `conexión: metadato y grupos propios («${meta2}», ${JSON.stringify(egroups)})`);
+  check(meta2 === `Conexión · ${edge[0]} → ${edge[1]}` && egroups.includes("Dirección") && egroups.includes("Trazo"), `conexión: metadato y grupos propios («${meta2}», ${JSON.stringify(egroups)})`);
   if (mobile) {
     await press(t, "#btnPanelClose", vp); await page.waitForTimeout(350);
     check(!(await page.evaluate(() => document.body.classList.contains("panelOpen"))), "móvil: la hoja se cierra con su botón");
@@ -321,7 +324,7 @@ async function serviceWorker(browser, base) {
     const have = []; for (const w of want) if (await c.match(location.origin + "/" + w)) have.push(w);
     return { keys, have, want: want.length };
   });
-  check(cache.keys.length === 1 && cache.keys[0] === "fluyo-static-v80", "caché instalada: fluyo-static-v80 " + JSON.stringify(cache.keys));
+  check(cache.keys.length === 1 && cache.keys[0] === "fluyo-static-v81", "caché instalada: fluyo-static-v81 " + JSON.stringify(cache.keys));
   check(cache.have.length === cache.want, "system.css y las tres fuentes están precacheadas " + JSON.stringify(cache.have));
   await ctx.setOffline(true);
   await page.reload(); await page.waitForFunction(() => typeof renderTabs === "function"); await page.evaluate(() => document.fonts.ready);

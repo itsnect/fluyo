@@ -114,7 +114,7 @@ function hitEdgeEnd(e,x,y){
    de ella, no solo en el centro. Se recorta a SEG_GRIP px del centro (config.js)
    para no invadir los vértices vecinos, que tienen manejador propio. */
 function hitSegment(e,x,y){
-  const pts=edgePoints(e);
+  const pts=edgeHandlePts(e);                  // sin vértices sin giro (FLUYO-018.25): una recta, una barra
   const r = isTouch()? Math.max(14, 18/viewZoom) : Math.max(9, 7/viewZoom);
   /* la barra se dibuja de 16 px de pantalla (FLUYO-018.16); el agarre no es nunca más corto */
   const grip = Math.max(SEG_GRIP, 10/viewZoom);
@@ -139,7 +139,7 @@ function segEje(a,b){ return Math.abs(a.x-b.x)>=Math.abs(a.y-b.y)? "y" : "x"; }
 function segHoverCur(e,p){
   const i=hitSegment(e,p.x,p.y);
   if(i<0) return null;
-  const pts=edgePoints(e);
+  const pts=edgeHandlePts(e);
   return segEje(pts[i],pts[i+1])==="x"? "ew-resize" : "ns-resize";
 }
 /* ===================== Deslizar un tramo =====================
@@ -156,7 +156,15 @@ function segHoverCur(e,p){
       copia en vez de mutar lo ya movido: así el quiebro de más abajo se calcula
       una vez por posición y no se acumula.
 
-   No se apila undo aquí sino en quien llama, junto al resto de gestos. */
+   No se apila undo aquí sino en quien llama, junto al resto de gestos. Y quien llama
+   solo lo hace con el PRIMER movimiento real (FLUYO-018.25): agarrar y soltar sin
+   mover no materializa, no congela y no apila nada (ver routePending).
+
+   Se materializa la ruta de los MANEJADORES (edgeHandlePts), sin vértices sin giro:
+   `mi` es un índice de esa lista. Por lo mismo, unos waypoints que ya traen vértices
+   sin giro (los dejaba el clic sin mover de antes de 018.25) se normalizan aquí, con
+   el Undo ya apilado: sin eso el índice de la barra no coincidiría con el de
+   e.waypoints. No cambia nada visible: solo se van puntos que no giran. */
 function iniciarTramo(e,mi){
   const A=nodeById(e.from), B=nodeById(e.to);
   if(!A||!B) return null;
@@ -164,8 +172,11 @@ function iniciarTramo(e,mi){
   if(!e.fromSide) e.fromSide=sideOfPoint(A,pts[0]);
   if(!e.toSide)   e.toSide  =sideOfPoint(B,pts[pts.length-1]);
   if(!(e.waypoints||[]).length){
-    pts=edgePoints(e);                       // el lado congelado puede cambiar la ruta
+    pts=edgeHandlePts(e);                    // el lado congelado puede cambiar la ruta
     e.waypoints=pts.slice(1,-1).map(q=>({x:q.x,y:q.y}));
+  } else {
+    const h=edgeHandlePts(e);
+    if(h.length<e.waypoints.length+2) e.waypoints=h.slice(1,-1).map(q=>({x:q.x,y:q.y}));
   }
   pts=edgePoints(e);
   const i0=mi-1, i1=mi, base=e.waypoints;
@@ -332,8 +343,42 @@ function startTouchLink(){
 function cancelTouchLink(){ if(touchLink===null) return; touchLink=null; refreshPanel(); }
 function setTouchMulti(on){ touchMulti=!!on; touchLink=null; refreshPanel(); }
 function cancelTouchModes(){ touchMulti=false; touchLink=null; }
+/* ===================== Agarrar no escribe (FLUYO-018.25) =====================
+   Pulsar sobre una barra de tramo, el anillo de una recta o un codo solo ANOTA el gesto.
+   Antes pointerdown ya apilaba Undo y, en una ortogonal, congelaba los lados flotantes y
+   materializaba la ruta en waypoints: un clic sin mover dejaba una entrada de Undo que no
+   deshacía nada visible, vaciaba Rehacer y sacaba la conexión de la ruta automática
+   (230 de 230 clics medidos). Ahora todo eso pasa en el PRIMER pointermove que cambiaría
+   el documento —el mismo criterio que el arrastre de nodos desde 018.12— y un clic o un
+   toque sin movimiento es inerte. Como hasta entonces nada se escribe, el Undo que se
+   apila al empezar es la foto de antes de agarrar. */
+let routePending=null;   // {edgeId, kind:"seg"|"wp", idx, p0}
+function routeGestureMoves(rp,p){
+  const e=edgeById(rp.edgeId); if(!e) return false;
+  if(rp.kind==="wp"){ const w=(e.waypoints||[])[rp.idx]; return !!w && (snapV(p.x)!==w.x || snapV(p.y)!==w.y); }
+  if(e.route==="ortho"){
+    const h=edgeHandlePts(e), a=h[rp.idx], b=h[rp.idx+1];
+    if(a && b){ const eje=segEje(a,b); return snapV(p[eje])!==Math.round(a[eje]); }
+  }
+  return snapV(p.x)!==snapV(rp.p0.x) || snapV(p.y)!==snapV(rp.p0.y);
+}
+/* Empieza de verdad el gesto anotado: Undo, y lo que antes hacía pointerdown. */
+function startRouteGesture(rp){
+  const e=edgeById(rp.edgeId); if(!e) return;
+  pushUndo();
+  if(rp.kind==="wp"){ wpDrag={edgeId:e.id, idx:rp.idx}; return; }
+  /* Ortogonal: el tramo se desliza entero. Recta: se inserta un codo donde se agarró,
+     que ahí sí tiene sentido. Ver bendableSegs() en geometry.js. */
+  if(e.route==="ortho"){
+    const sd=iniciarTramo(e,rp.idx);
+    if(sd){ segDrag=sd; freezeEdgeLabels(); return; }
+  }
+  e.waypoints=e.waypoints||[];
+  e.waypoints.splice(rp.idx,0,{x:rp.p0.x,y:rp.p0.y});
+  wpDrag={edgeId:e.id, idx:rp.idx};
+}
 function cancelGestures(){
-  drag=null; resizing=null; wpDrag=null; marquee=null; connectDrag=null; panDrag=null;
+  drag=null; resizing=null; wpDrag=null; marquee=null; connectDrag=null; panDrag=null; routePending=null;
   /* thaw incondicional: si el gesto se cancela a mitad, dejar el mapa congelado
      dejaría las etiquetas clavadas para siempre. */
   endDrag=null; segDrag=null; thawEdgeLabels();
@@ -462,20 +507,13 @@ cv.addEventListener("pointerdown", ev=>{
        hermana del par paralelo, que salta 14 px sin que nadie la toque. */
     const end=hitEdgeEnd(se,p.x,p.y);
     if(end){ endDrag={edgeId:se.id, which:end}; freezeEdgeLabels(); return; }
+    /* Codo, barra o anillo: solo se anota; el documento y el Undo esperan al primer
+       movimiento real (startRouteGesture, FLUYO-018.25). */
     const wi=hitWaypoint(se,p.x,p.y);
-    if(wi>=0){ pushUndo(); wpDrag={edgeId:se.id, idx:wi}; return; }
+    if(wi>=0){ routePending={edgeId:se.id, kind:"wp", idx:wi, p0:{x:p.x,y:p.y}}; return; }
     const mi=hitSegment(se,p.x,p.y);
     if(mi>=0){
-      pushUndo();
-      /* Ortogonal: el tramo se desliza entero. Recta: se inserta un codo donde
-         agarras, que ahí sí tiene sentido. Ver bendableSegs() en geometry.js. */
-      if(se.route==="ortho"){
-        const sd=iniciarTramo(se,mi);
-        if(sd){ segDrag=sd; freezeEdgeLabels(); return; }
-      }
-      se.waypoints=se.waypoints||[];
-      se.waypoints.splice(mi,0,{x:p.x,y:p.y});
-      wpDrag={edgeId:se.id, idx:mi};
+      routePending={edgeId:se.id, kind:"seg", idx:mi, p0:{x:p.x,y:p.y}};
       return;
     }
   }
@@ -603,6 +641,10 @@ cv.addEventListener("pointermove", ev=>{
       editNode(n,{w:Math.round(w), h:Math.round(h), x:Math.round((p.x+resizing.fx)/2), y:Math.round((p.y+resizing.fy)/2)});
     }
     return;
+  }
+  if(routePending){
+    if(!routeGestureMoves(routePending,p)) return;   // todavía nada que escribir
+    const rp=routePending; routePending=null; startRouteGesture(rp);
   }
   if(segDrag){ moverTramo(segDrag,p); return; }
   if(wpDrag){
@@ -756,11 +798,17 @@ cv.addEventListener("pointerup", ev=>{
     return n && n.x===o.x && n.y===o.y;
   })) resetAnalyticsBaseline();
   drag=null; resizing=null; wpDrag=null;
+  routePending=null;     // agarrado y soltado sin mover: no pasó nada (FLUYO-018.25)
   /* El tramo deslizado se descongela aquí, igual que endDrag: las etiquetas se
-     recolocan una vez al soltar y no sesenta veces por segundo. */
+     recolocan una vez al soltar y no sesenta veces por segundo.
+
+     FLUYO-018.25: si al soltar la ruta ha vuelto a ser UNA recta (se deslizó y se
+     devolvió a la línea), sus waypoints ya no dicen nada y se quitan: la conexión
+     vuelve a la ruta automática. Solo aquí, al soltar un TRAMO: mover un nodo no
+     limpia nunca una ruta hecha a mano (podarWaypoints, más abajo, no cambia). */
   if(segDrag){
     const e=edgeById(segDrag.edgeId);
-    if(e) podarWaypoints(e);
+    if(e){ podarWaypoints(e); if(e.route==="ortho" && (e.waypoints||[]).length && routeIsStraight(edgePoints(e))) e.waypoints=[]; }
     segDrag=null; thawEdgeLabels();
   }
   if(hadDrag) scheduleAutosave();
@@ -983,7 +1031,7 @@ document.addEventListener("keydown", ev=>{
      pointerdown se apiló antes de tocar nada, o sea que esto devuelve la arista
      a su ruta automática. */
   if(ev.key==="Escape" && (touchMulti || touchLink!==null)){ cancelTouchModes(); refreshPanel(); }
-  if(ev.key==="Escape"){ if(segDrag){ segDrag=null; undo(); } pendingShape=null; pendingIcon=null; pendingAnim=null; connecting=null; connectDrag=null; endDrag=null; thawEdgeLabels(); marquee=null; $("iconDrawer").style.display="none"; $("animDrawer").style.display="none"; syncRail(); }
+  if(ev.key==="Escape"){ routePending=null; if(segDrag){ segDrag=null; undo(); } pendingShape=null; pendingIcon=null; pendingAnim=null; connecting=null; connectDrag=null; endDrag=null; thawEdgeLabels(); marquee=null; $("iconDrawer").style.display="none"; $("animDrawer").style.display="none"; syncRail(); }
   if(k==="v") setMode("select");
   if(k==="c"){
     /* FLUYO-018.14b: en modo Historia no se construye (el rail no está): C no arma una herramienta invisible. */

@@ -72,9 +72,10 @@ function sideOfPoint(n,p){
    se leía «che hit che».
 
    Cada arista del grupo recibe ahora un carril propio: se desplaza cada tramo
-   perpendicularmente a sí mismo, siempre la misma cantidad. El desplazamiento se
-   reparte centrado, así que con una sola arista (el caso normal) vale 0 y la
-   geometría no cambia ni un píxel.
+   perpendicularmente a sí mismo, siempre la misma cantidad. La primera del canal
+   se queda en el carril 0 y las demás se apartan hacia fuera (FLUYO-018.25, ver
+   trackKey), así que con una sola arista (el caso normal) vale 0 y la geometría no
+   cambia ni un píxel, y añadir una hermana tampoco mueve las que ya estaban.
 
    El signo se decide en un marco canónico —el par ordenado por id, no el sentido
    de la flecha—. Si dependiera del sentido, las dos mitades de un par
@@ -84,19 +85,128 @@ function sideOfPoint(n,p){
    Una arista con waypoints queda fuera del reparto: ahí la ruta la puso alguien
    a mano y mandan sus puntos. */
 const PARALLEL_SEP=28;
-function parallelKey(e){ return e.from<e.to? e.from+"-"+e.to : e.to+"-"+e.from; }
-/* Devuelve el carril de esta arista: `off` es su desplazamiento y `half` el
-   semiancho del abanico completo del grupo, que hace falta para reservarle sitio
-   en el lado del nodo antes de mover nada. */
+/* FLUYO-018.25 — carriles por CANAL, estables.
+   Antes eran hermanas TODAS las aristas del mismo par de nodos y se repartían en
+   un abanico simétrico (i − (n−1)/2)·SEP por su orden en la página. Dos defectos:
+   una directa e→w se apartaba 14 px por culpa de una U n/n que no comparte con
+   ella ni un lado ni un tramo, y añadir una hermana MOVÍA la que ya estaba (500 de
+   500 pares del barrido de 018.25).
+
+   Ahora comparten carril solo las del mismo CANAL: el mismo par de nodos y los
+   mismos lados en cada uno (lados sin correr, baseAnchors, en el marco canónico
+   del par ordenado por id). En una U, el carril k va k·SEP más afuera (edgePoints).
+   En los demás canales los carriles los decide laneLayout: estabilidad cuando cabe,
+   recolocación mínima cuando no. */
+function trackKey(e){
+  const b=baseAnchors(e); if(!b) return null;
+  return e.from<e.to? e.from+":"+b.s1+"|"+e.to+":"+b.s2 : e.to+":"+b.s2+"|"+e.from+":"+b.s1;
+}
+/* Las aristas del canal de `e`, por id. Primero el filtro de enteros (mismo par,
+   sin waypoints) y solo para esas la geometría: esto corre dentro del bucle de render. */
+function trackSiblings(e){
+  if((e.waypoints||[]).length) return [e];
+  const par=[];
+  for(const o of P().edges){
+    if((o.waypoints||[]).length) continue;
+    if((o.from===e.from&&o.to===e.to)||(o.from===e.to&&o.to===e.from)) par.push(o);
+  }
+  if(par.length<2) return par;
+  const k=trackKey(e);
+  return par.filter(o=>o===e || trackKey(o)===k).sort((a,b)=>a.id-b.id);
+}
+/* El carril de esta arista: `k` es su puesto en el canal (0 = la primera, id menor) y
+   `off`, el desplazamiento de sus anclas a lo largo de sus lados (y de su canal
+   central). En una U, off=0 y edgePoints aplica k. `clamp`: reparto de último recurso. */
 function parallelLane(e){
-  const none={off:0, half:0};
-  if((e.waypoints||[]).length) return none;
-  const key=parallelKey(e);
-  const sib=P().edges.filter(o=>!(o.waypoints||[]).length && parallelKey(o)===key);
+  const none={off:0, half:0, k:0};
+  const sib=trackSiblings(e);
   if(sib.length<2) return none;
-  const i=sib.findIndex(o=>o.id===e.id);
-  if(i<0) return none;
-  return {off:(i-(sib.length-1)/2)*PARALLEL_SEP, half:(sib.length-1)/2*PARALLEL_SEP};
+  const k=sib.indexOf(e);
+  if(k<0) return none;
+  const b=baseAnchors(sib[0]);
+  if(!b || b.s1===b.s2) return k? {off:0, half:0, k} : none;     // U: anidadas en edgePoints
+  const L=laneLayout(sib,b);
+  return {off:L.offs[k], half:L.half||0, k, clamp:!!L.clamp};
+}
+/* ===================== Carriles: estabilidad cuando cabe, recolocación mínima cuando no =====================
+   FLUYO-018.25. Prioridades, en este orden: ninguna ruta atraviesa un nodo, se vuelve
+   atrás ni se cruza con su hermana; luego, la conexión que ya estaba no se mueve si hay
+   sitio para apartar la hermana; si no lo hay, se mueve el conjunto lo mínimo.
+
+   Los desplazamientos son a lo largo de los lados (el mismo valor en los dos extremos,
+   marco absoluto) y solo valen dentro del lado menos LANE_INSET por punta. Candidatas,
+   cada una evaluada con sus rutas de verdad:
+     · ESTABLE: la primera en 0 y las demás alternando +g, −g, +2g… (también en espejo),
+       con g el mayor ≤ SEP que cabe y nunca menor que LANE_MIN.
+     · RECOLOCADA: el mismo orden con la separación razonable g = LANE_MIN (o lo que
+       quepa), corrida el mínimo t que hace caber a todas, también la primera: el
+       movimiento mínimo necesario.
+   Gana la de menos defectos —penetración en CUALQUIER nodo de la página, retroceso,
+   diagonal, cruce entre hermanas— y, a igualdad, la estable, la de menor movimiento y
+   la orientación preferida (+). Sin ninguna que quepa, el abanico de antes (recortado).
+   Medido: el canal se mantiene estable en el barrido de 500 pares salvo cuando la
+   primera está pegada a una esquina; en rag-chatbot (MCP) gana la recolocación. */
+const LANE_MIN=PARALLEL_SEP/2, LANE_INSET=10;
+/* Desplazamientos admitidos para un ancla de este lado, relativos a ella. */
+function laneRange(n0,side,p){
+  const n=anchorBox(n0), horiz=(side==="n"||side==="s"), c=horiz? n.x : n.y;
+  const lim=Math.max(0,(horiz? n.w/2 : n.h/2)-LANE_INSET), v=horiz? p.x : p.y;
+  return [c-lim-v, c+lim-v];
+}
+function laneShift(p,side,o){ return (side==="n"||side==="s")? {x:p.x+o, y:p.y} : {x:p.x, y:p.y+o}; }
+function laneLayout(sib,b){
+  const n=sib.length, A=nodeById(sib[0].from), B=nodeById(sib[0].to);
+  const r1=laneRange(A,b.s1,b.p1), r2=laneRange(B,b.s2,b.p2);
+  const lo=Math.max(r1[0],r2[0]), hi=Math.min(r1[1],r2[1]);
+  const alt=(k)=>(k%2? 1 : -1)*Math.ceil(k/2);
+  const cajas=P().nodes.map(obstBox);
+  /* la ruta de la hermana k con su desplazamiento `o`, en su propio sentido */
+  const ruta=(e,o)=>{
+    const s=(e.from===sib[0].from)? [b.s1,b.s2] : [b.s2,b.s1], q=(e.from===sib[0].from)? [b.p1,b.p2] : [b.p2,b.p1];
+    const a=laneShift(q[0],s[0],o), z=laneShift(q[1],s[1],o);
+    return e.route==="ortho"? orthoRoute(a,DIR[s[0]],z,DIR[s[1]],o,nodeById(e.from),nodeById(e.to)) : [a,z];
+  };
+  const defectos=(offs)=>{
+    const rs=sib.map((e,k)=>ruta(e,offs[k]));
+    let d=0;
+    for(const r of rs){
+      if(pathInBoxes(r,cajas)>=OBST_MIN) d++;
+      for(let i=2;i<r.length;i++){ const a=r[i-2], m=r[i-1], c=r[i];
+        if((m.x-a.x)*(c.x-m.x)+(m.y-a.y)*(c.y-m.y)<-1 && Math.abs((m.x-a.x)*(c.y-m.y)-(m.y-a.y)*(c.x-m.x))<1) d++; }
+      for(let i=1;i<r.length;i++) if(Math.abs(r[i].x-r[i-1].x)>1.5 && Math.abs(r[i].y-r[i-1].y)>1.5) d++;
+    }
+    for(let i=0;i<rs.length;i++) for(let j=i+1;j<rs.length;j++) d+=laneCrossings(rs[i],rs[j]);
+    return d;
+  };
+  const cands=[];
+  for(const sg of [1,-1]){
+    /* estable: la mayor separación ≤ SEP que deja a cada hermana dentro de su lado */
+    let g=PARALLEL_SEP;
+    for(let k=1;k<n;k++){ const a=sg*alt(k); g=Math.min(g, a>0? hi/a : lo/a); }
+    if(g>=LANE_MIN-1e-9) cands.push({fam:0, mov:0, sg, offs:sib.map((e,k)=>k? sg*alt(k)*g : 0)});
+  }
+  if(hi>=lo){
+    const g=n>1? Math.min(LANE_MIN,(hi-lo)/(n-1)) : 0;     // el movimiento mínimo: la separación razonable, no la máxima
+    for(const sg of [1,-1]){
+      const st=sib.map((e,k)=>sg*alt(k)*g), t0=Math.min(...st);
+      const t=clamp(t0, lo, hi-(n-1)*g);
+      cands.push({fam:1, mov:Math.abs(t-t0), sg, offs:st.map(v=>v-t0+t)});
+    }
+  }
+  if(!cands.length) return {offs:sib.map((e,k)=>(k-(n-1)/2)*PARALLEL_SEP), half:(n-1)/2*PARALLEL_SEP, clamp:true};
+  for(const c of cands) c.def=defectos(c.offs);
+  cands.sort((a,b)=>a.def-b.def || a.fam-b.fam || a.mov-b.mov || b.sg-a.sg);
+  return {offs:cands[0].offs};
+}
+/* cruces propios entre dos rutas (segmentos que se cortan en su interior) */
+function laneCrossings(p,q){
+  const o=(P0,Q,R)=>Math.sign((Q.x-P0.x)*(R.y-P0.y)-(Q.y-P0.y)*(R.x-P0.x));
+  let n=0;
+  for(let i=1;i<p.length;i++) for(let j=1;j<q.length;j++){
+    const a=p[i-1], b=p[i], c=q[j-1], d=q[j];
+    if(o(a,b,c)*o(a,b,d)<0 && o(c,d,a)*o(c,d,b)<0) n++;
+  }
+  return n;
 }
 /* ===================== Puertos compartidos =====================
    Cuando dos aristas fijan el mismo lado de un nodo con fromSide/toSide,
@@ -141,16 +251,10 @@ function baseAnchors(e){
   return {p1, p2, s1:e.fromSide||inferSide(A,p1), s2:e.toSide||inferSide(B,p2)};
 }
 function portKey(nodeId,side,p){ return nodeId+":"+side+":"+Math.round(p.x)+","+Math.round(p.y); }
-/* Cuántas aristas unen el mismo par que `e`. Comparación de enteros y sin
-   construir claves: esto corre dentro del bucle de render. */
-function siblingCount(e){
-  let n=0;
-  for(const o of P().edges){
-    if((o.waypoints||[]).length) continue;
-    if((o.from===e.from&&o.to===e.to)||(o.from===e.to&&o.to===e.from)) n++;
-  }
-  return n;
-}
+/* Cuántas aristas comparten el CANAL de `e` (FLUYO-018.25: antes, el par de nodos).
+   Una arista de un canal compartido ya tiene su carril y no entra en el reparto por
+   puerto; una del mismo par por otros lados, sí, como cualquier otra. */
+function siblingCount(e){ return trackSiblings(e).length; }
 /* `which` es "from" o "to": el reparto es por extremo, no por arista, porque una
    arista puede compartir puerto en un lado y no en el otro.
 
@@ -279,7 +383,16 @@ function pathLen(pts){
   return L;
 }
 function orthoRoute(p1,d1,p2,d2,off,A,B){
-  const pad=28;
+  /* FLUYO-018.25 — caras que se miran muy cerca. El pasillo de `pad` px delante de
+     cada extremo no cabe cuando las caras están a menos de 2·pad: los dos pasillos
+     se cruzaban y la ruta avanzaba, retrocedía y volvía a avanzar sobre la misma
+     línea (390→418→410→401→429 con 39 px de hueco). El trazo parecía recto, pero los
+     puntos de flujo la recorren y se veían volver atrás. Ahí cada pasillo mide la
+     mitad del hueco: la ruta es monótona en su eje y sigue entrando perpendicular. */
+  let pad=28;
+  const deFrente=d1.x===-d2.x && d1.y===-d2.y;
+  const hueco=(p2.x-p1.x)*d1.x+(p2.y-p1.y)*d1.y;
+  if(deFrente && hueco>0 && hueco<2*pad) pad=hueco/2;
   const s={x:p1.x+d1.x*pad, y:p1.y+d1.y*pad};
   const t={x:p2.x+d2.x*pad, y:p2.y+d2.y*pad};
   const armar=(mids)=>{
@@ -297,9 +410,25 @@ function orthoRoute(p1,d1,p2,d2,off,A,B){
   const zy=(c)=>[{x:s.x,y:c},{x:t.x,y:c}];
   let mids;
   /* el tramo central también se aparta: separar solo las anclas dejaría las dos
-     rutas compartiendo el canal largo del medio, que es donde va la etiqueta */
-  if(d1.x!==0 && d2.x!==0){ mids=zx((s.x+t.x)/2+(off||0)); }
-  else if(d1.y!==0 && d2.y!==0){ mids=zy((s.y+t.y)/2+(off||0)); }
+     rutas compartiendo el canal largo del medio, que es donde va la etiqueta.
+
+     FLUYO-018.25 — la U. Con los dos lados en el MISMO sentido `u` (n/n, s/s, e/e,
+     w/w) el canal no está ENTRE los pasillos sino más allá de los dos. El punto
+     medio (s+t)/2 solo vale cuando los lados se miran; en una U caía por dentro del
+     pasillo más exterior en cuanto los pasillos no coincidían (nodos de distinto
+     tamaño o desalineados) o el carril de un par apuntaba hacia los nodos, y la ruta
+     salía 28 px, volvía y cruzaba: un muñón FUERA de los nodos, que el guardián de
+     abajo no ve porque solo mide penetración (la captura de 018.25). El canal va al
+     pasillo exterior; el carril k de una U llega aquí como off = u·k·SEP, siempre
+     hacia fuera (edgePoints).
+
+     Entre caras que se miran de frente, el canal del carril se queda ENTRE los dos
+     pasillos: un carril más ancho que el hueco lo dejaría más allá del pasillo de
+     destino y la ruta volvería atrás. Con hueco de sobra, (s+t)/2+off como siempre. */
+  const enU=(u,a,b)=>(u>0? Math.max(a,b) : Math.min(a,b)) + (off||0);
+  const medio=(a,b)=>{ const c=(a+b)/2+(off||0); return deFrente && hueco>0 ? clamp(c, Math.min(a,b), Math.max(a,b)) : c; };
+  if(d1.x!==0 && d2.x!==0){ mids=zx(d1.x===d2.x? enU(d1.x,s.x,t.x) : medio(s.x,t.x)); }
+  else if(d1.y!==0 && d2.y!==0){ mids=zy(d1.y===d2.y? enU(d1.y,s.y,t.y) : medio(s.y,t.y)); }
   else if(d1.x!==0){ mids=[{x:t.x,y:s.y}]; }
   else { mids=[{x:s.x,y:t.y}]; }
   const actual=armar(mids);
@@ -346,8 +475,20 @@ function edgePoints(e){
   /* los lados se deciden con las anclas SIN correr: apartarse para no solaparse
      no debe cambiar por qué cara sale la flecha */
   const s1=e.fromSide||inferSide(A,p1), s2=e.toSide||inferSide(B,p2);
-  const {off,half}=parallelLane(e);
-  if(off){ p1=slideAnchor(A,s1,p1,off,half); p2=slideAnchor(B,s2,p2,off,half); }
+  const lane=parallelLane(e), off=lane.off, k=lane.k;
+  let canal=off;
+  if(k && s1===s2){
+    /* U (FLUYO-018.25): el carril k va k·SEP más afuera y sus anclas se apartan del
+       otro extremo, así que las U de un canal se anidan sin cruzarse */
+    const ax=DIR[s1].x!==0? "y" : "x", d=Math.sign(p1[ax]-p2[ax])||1, m=k*PARALLEL_SEP;
+    p1=slideAnchor(A,s1,p1,d*m,m); p2=slideAnchor(B,s2,p2,-d*m,m);
+    canal=(DIR[s1].x||DIR[s1].y)*m;
+  }
+  else if(off){
+    /* carril de laneLayout: cabe en los dos lados por construcción (o, sin sitio, el abanico recortado de antes) */
+    if(lane.clamp){ p1=slideAnchor(A,s1,p1,off,lane.half); p2=slideAnchor(B,s2,p2,off,lane.half); }
+    else { p1=laneShift(p1,s1,off); p2=laneShift(p2,s2,off); }
+  }
   else{
     /* el reparto por puerto es por extremo y no toca el canal central: en el
        caso ortogonal el canal ya sale de las anclas, así que se mueve solo */
@@ -356,7 +497,7 @@ function edgePoints(e){
     if(o2.off) p2=slideAnchor(B,s2,p2,o2.off,o2.half);
   }
   if(e.route==="ortho" && wps.length===0){
-    return orthoRoute(p1,DIR[s1],p2,DIR[s2],off,A,B);
+    return orthoRoute(p1,DIR[s1],p2,DIR[s2],canal,A,B);
   }
   return [p1,...wps,p2];
 }
@@ -392,6 +533,36 @@ function bendableSegs(e,pts){
   if(n<=2) return [];                         // sin tramos interiores no hay nada que deslizar
   const out=[]; for(let i=1;i<=n-2;i++) out.push(i);
   return out;
+}
+/* ===================== Un vértice sin giro no es un vértice (FLUYO-018.25) =====================
+   Entre nodos alineados el canal de orthoRoute degenera en un punto sobre la recta: la ruta
+   `p1 s m t p2` es UNA recta con un vértice que no gira. El trazo ya lo ignora (edgeStroke,
+   «sin giro»), pero los manejadores no: la recta salía con dos barras, y deslizar una dejaba
+   su vecina colineal en el sitio y la unión en diagonal (32 de 460 gestos medidos).
+
+   handleRoute quita los vértices interiores sin giro y conserva los índices 0, 1, n−2 y n−1
+   (anclas y pasillos de aproximación): en una recta queda `p1 s t p2`, una barra centrada que
+   al deslizarse da un puente limpio; en una ruta que gira devuelve la misma lista. Una ida y
+   vuelta SÍ es giro (180°) y se conserva. Solo la usan los manejadores (render.js, acierto y
+   gesto en interaction.js); el trazo, la exportación y el MCP siguen en edgePoints. */
+function handleRoute(pts){
+  const n=pts.length;
+  if(n<=4) return pts.slice();
+  const gira=(a,b,c)=>Math.abs((b.x-a.x)*(c.y-b.y)-(b.y-a.y)*(c.x-b.x))>1e-6 || ((b.x-a.x)*(c.x-b.x)+(b.y-a.y)*(c.y-b.y))<0;
+  return pts.filter((p,i)=> i<=1 || i>=n-2 || gira(pts[i-1],p,pts[i+1]));
+}
+function edgeHandlePts(e){ const p=edgePoints(e); return e.route==="ortho"? handleRoute(p) : p; }
+/* ¿La ruta entera es una sola recta recorrida en un sentido? (sin giros ni idas y vueltas) */
+function routeIsStraight(pts){
+  let u=null;
+  for(let i=1;i<pts.length;i++){
+    const dx=pts[i].x-pts[i-1].x, dy=pts[i].y-pts[i-1].y, L=Math.hypot(dx,dy);
+    if(L<=1) continue;
+    const v={x:dx/L, y:dy/L};
+    if(u && (Math.abs(u.x-v.x)>1e-6 || Math.abs(u.y-v.y)>1e-6)) return false;
+    u=v;
+  }
+  return true;
 }
 /* ===================== Trazo de una conexión (FLUYO-018.16) =====================
    UNA geometría para DIBUJAR una conexión, que recorren el lienzo (editor, Present

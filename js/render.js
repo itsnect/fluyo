@@ -551,6 +551,13 @@ function edgeDots(e){
   return settings.dots;
 }
 function edgeSpeedFac(e){ return clamp(+e.speedFac||1,1,4); }
+/* FLUYO-018.25 — cuántos puntos caben. Los puntos se reparten a L/n sobre la ruta y cada
+   uno pinta un halo de 9 (18 de diámetro): en una conexión corta los halos se pisaban y los
+   puntos se leían como un bulto que se amontona. Nunca menos de FLOW_DOT_SEP (los dos halos
+   más 6 de aire) entre puntos: n efectivo = clamp(floor(L/24), 1, n). Con sitio (L ≥ 24·n)
+   es exactamente n, así que las conexiones normales no cambian; la velocidad y flowDir, igual. */
+const FLOW_DOT_SEP=24;
+function flowDotCount(n,L){ return clamp(Math.floor(L/FLOW_DOT_SEP),1,n); }
 
 /* ===================== Pelota única por ruta =====================
    Este modo no anima cada flecha por separado: manda UNA pelota desde cada nodo
@@ -847,7 +854,7 @@ function drawEdge(c,e,t,theme,isExport,rs){
      con las partículas SEND controladas por el Trace. */
   if(e.animated && !settings.single && !rs.scenarioRuntime){
     c.fillStyle=e.dotColor||A.color;
-    const n=edgeDots(e);
+    const n=flowDotCount(edgeDots(e), polyLen(pts));
     const sp=settings.speed*edgeSpeedFac(e);
     for(let i=0;i<n;i++){
       let base=(t*sp + i/n)%1; if(base<0)base+=1;
@@ -906,9 +913,11 @@ function drawEdge(c,e,t,theme,isExport,rs){
          no hace.
        · ruta recta → anillo. Ahí sí se inserta un codo donde agarras.
 
-       Ver bendableSegs() en js/geometry.js. */
-    for(const i of bendableSegs(e,pts)){
-      const a=pts[i], b=pts[i+1];
+       Ver bendableSegs() en js/geometry.js. Las barras salen de la ruta sin vértices
+       sin giro (edgeHandlePts, FLUYO-018.25): una recta lleva una, centrada. */
+    const hp=edgeHandlePts(e);
+    for(const i of bendableSegs(e,hp)){
+      const a=hp[i], b=hp[i+1];
       const mx=(a.x+b.x)/2, my=(a.y+b.y)/2;
       c.fillStyle=M.knob;
       c.strokeStyle=M.ink;

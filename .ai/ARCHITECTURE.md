@@ -553,3 +553,34 @@ stepHistory: was=P(), keep=selSnap() ─► applyHistoryEntry ─► inverse.sel
 - **Ráfagas de escritura** (`ui.js`): `#kwEdit` y `#edgeDotsIn` apilan una entrada en la primera tecla (`kwDirty`/`dotsDirty`, como `lblDirty`/`fsDirty`); `onchange` (salir del campo, o cada paso de las flechas del número) y `refreshPanel` cierran la ráfaga.
 - `CACHE` v82 (`js/selection.js`, `js/ui.js`). Sin cambios en el kernel, `model.js`, el formato, `index.html`, CSS, Historias, Present, el Viewer, Share ni el MCP.
 - Pruebas: `test/fluyo-018-24.test.cjs` (vm con el arnés de 018.7c: edición, eliminar, creación, múltiple, otra página, `sel` fuera del documento; estáticos de las ráfagas; alcance), `test/fluyo-018-24-browser.cjs` (Chrome real, 1440 ratón y 390 dedo) y `test/fluyo-018-24-mutations.cjs` (14).
+
+## La ruta que se dobla sola (FLUYO-018.25)
+
+```
+parallelLane(e) ─► trackSiblings (mismo par + mismos lados, por id) ─► laneLayout   geometry.js; port idéntico en svg.ts
+  candidatas: ESTABLE (la primera en 0; ±g, g ≤ 28 y ≥ 14) · RECOLOCADA (g = 14, corrida lo mínimo)
+  elige: menos defectos (nodo atravesado, retroceso, diagonal, cruce) › estable › menor movimiento › +
+  U: carril k = k·28 más afuera, anclas apartándose del otro extremo
+orthoRoute(p1,d1,p2,d2,off,A,B)
+  caras de frente a < 2·pad      ─► pasillos = hueco/2; canal acotado entre los pasillos
+  lados que se miran (d1 = −d2)  ─► canal (s+t)/2 + off                       (sin cambios con hueco)
+  U (d1 = d2 = u)                ─► canal pasillo exterior + off               (nunca por dentro de un pasillo)
+render.js: puntos de flujo n = flowDotCount(edgeDots(e), polyLen(pts)) = clamp(floor(L/24), 1, n)
+edgeHandlePts(e) = ortho ? handleRoute(edgePoints(e)) : edgePoints(e)
+  handleRoute: fuera los vértices interiores sin giro; se quedan anclas y pasillos (0, 1, n−2, n−1)
+  └► barras: render.js (dibujo), hitSegment/segHoverCur/iniciarTramo (interaction.js)
+pointerdown sobre barra/anillo/codo ─► routePending (no escribe)
+pointermove que cambiaría algo     ─► pushUndo + startRouteGesture (iniciarTramo | codo | anillo) ─► segDrag/wpDrag
+pointerup sin moverse              ─► nada · soltar un tramo que quedó recto ─► waypoints:[] (routeIsStraight)
+```
+
+- **Geometría compartida**: R1, P1 y P2 cambian `edgePoints` (decisiones 190, 194, 195); el corpus publicado no cambia. La paridad vértice a vértice con `svg.ts` mide ahora también 812 páginas sintéticas (`visual-regression.test.ts`: barrido de lados, hermanas, U y caras cercanas), que el corpus no cubría.
+- **Manejadores ≠ trazo**: `edgeHandlePts`, `handleRoute` y `routeIsStraight` son del editor. El trazo, las etiquetas, los puntos de flujo, la exportación y el MCP siguen con `edgePoints`/`edgeStroke` (`edgeStroke` no cambia).
+- **Gesto perezoso**: `routePending` vive en `interaction.js` (no en `state.js`). `cancelGestures`, `pointerup` y Escape lo vacían.
+- **Puntos de flujo** (decisión 196): solo el lienzo los anima; no toca el SVG ni el MCP.
+- `CACHE` v83 (`js/geometry.js`, `js/interaction.js`, `js/render.js`). Sin cambios en el kernel, `model.js`, el formato, `index.html`, CSS, Historias, Present, el Viewer ni Share. En el MCP: `src/svg.ts` (R1), el golden compartido `fluyo-018-16-conexiones-svg.json` y el test de contrato de `add_step` (`waitsForArrivalOf`, aserción obsoleta tras 018.22).
+- Pruebas:
+  - `test/fluyo-018-25.test.cjs`: vm, comparando con el `geometry.js` de HEAD; la captura, el barrido, lo que cambia y lo que no, corpus, golden, puntas, barras y alcance.
+  - `test/fluyo-018-25-browser.cjs`: Chrome real d1440/m390; la captura con el gesto real y su SVG, clic inerte, un movimiento = un Undo, Escape, matrices, guarda de F5 y `editor-inline.html`.
+  - `test/fluyo-018-25-mutations.cjs`.
+  - En el MCP: `test/fluyo-018-25.test.ts` y la paridad del barrido.

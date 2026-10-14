@@ -587,6 +587,12 @@ function routeIsStraight(pts){
    Devuelve segmentos {op:"M"|"L"|"Q"|"Z"} (los de cylinderSegments más "Q"):
    `line` para trazar y `heads` (0, 1 o 2) para rellenar con el color de la línea. */
 const EDGE_W=1.5, EDGE_CORNER=8, EDGE_GAP=3, EDGE_HEAD_LEN=11, EDGE_HEAD_HALF=4, EDGE_HEAD_NOTCH=2.8;
+/* FLUYO-018.27: `arrowSize` (opcional, por conexión) escala la aguja ENTERA —largo, ancho y muesca— y el recorte de la
+   línea hasta la muesca, con la punta donde siempre (a EDGE_GAP del ancla). Ausente o 1 = la aguja de siempre; 1,5 y 2
+   son las que ofrece el panel; el modelo acota en [ARROW_SIZE_MIN, ARROW_SIZE_MAX] (model.js) y aquí se vuelve a acotar
+   para que un documento no normalizado dibuje lo mismo. Es solo dibujo: ni EDGE_GAP, ni EDGE_W, ni la ruta cambian. */
+const ARROW_SIZE_MIN=1, ARROW_SIZE_MAX=2;
+function edgeArrowSize(e){ const k=e? +e.arrowSize : NaN; return Number.isFinite(k) ? Math.min(ARROW_SIZE_MAX, Math.max(ARROW_SIZE_MIN, k)) : 1; }
 /* Dirección del último tramo con longitud, recorriendo `pts` desde el final (o desde
    el principio con `fromStart`): un waypoint repetido no puede dejar la punta sin
    orientación. */
@@ -599,13 +605,14 @@ function strokeDir(pts, fromStart){
   }
   return null;
 }
-function edgeHeadSegs(tip, u){
-  const nx=-u.y, ny=u.x, bx=tip.x-u.x*EDGE_HEAD_LEN, by=tip.y-u.y*EDGE_HEAD_LEN, k=EDGE_HEAD_LEN-EDGE_HEAD_NOTCH;
+function edgeHeadSegs(tip, u, size){
+  const s=size||1, len=EDGE_HEAD_LEN*s, half=EDGE_HEAD_HALF*s, k=(EDGE_HEAD_LEN-EDGE_HEAD_NOTCH)*s;
+  const nx=-u.y, ny=u.x, bx=tip.x-u.x*len, by=tip.y-u.y*len;
   return [
     {op:"M", x:tip.x, y:tip.y},
-    {op:"L", x:bx+nx*EDGE_HEAD_HALF, y:by+ny*EDGE_HEAD_HALF},
+    {op:"L", x:bx+nx*half, y:by+ny*half},
     {op:"L", x:tip.x-u.x*k, y:tip.y-u.y*k},
-    {op:"L", x:bx-nx*EDGE_HEAD_HALF, y:by-ny*EDGE_HEAD_HALF},
+    {op:"L", x:bx-nx*half, y:by-ny*half},
     {op:"Z"},
   ];
 }
@@ -620,21 +627,21 @@ function edgeStroke(e, pts){
     const k=Math.min(d, Math.max(0, L-1));
     b.x-=(b.x-a.x)/L*k; b.y-=(b.y-a.y)/L*k;
   };
-  const n=line.length;
+  const n=line.length, size=edgeArrowSize(e), cut=EDGE_GAP+(EDGE_HEAD_LEN-EDGE_HEAD_NOTCH)*size;
   if(e.endArrow!==false){
     const u=strokeDir(pts,false);
     if(u){
       const z=pts[n-1], tip={x:z.x-u.x*EDGE_GAP, y:z.y-u.y*EDGE_GAP};
-      out.heads.push(edgeHeadSegs(tip,u));
-      trim(n-1, n-2, EDGE_GAP+EDGE_HEAD_LEN-EDGE_HEAD_NOTCH);
+      out.heads.push(edgeHeadSegs(tip,u,size));
+      trim(n-1, n-2, cut);
     }
   }
   if(e.startArrow){
     const u=strokeDir(pts,true);
     if(u){
       const z=pts[0], tip={x:z.x-u.x*EDGE_GAP, y:z.y-u.y*EDGE_GAP};
-      out.heads.push(edgeHeadSegs(tip,u));
-      trim(0, 1, EDGE_GAP+EDGE_HEAD_LEN-EDGE_HEAD_NOTCH);
+      out.heads.push(edgeHeadSegs(tip,u,size));
+      trim(0, 1, cut);
     }
   }
   out.line.push({op:"M", x:line[0].x, y:line[0].y});

@@ -21,7 +21,7 @@ const DOTS_NO_UNDO = ["  if(!dotsDirty){ pushUndo(); dotsDirty=true; }\n", ""];
 const DOTS_ONE_BURST = ['$("edgeDotsIn").onchange=()=>{ dotsDirty=false; };', ""];
 /* [nombre, suite, archivo, desde, hasta, ONLY del browser test] */
 const MUTATIONS = [
-  ["U1 CACHE no sube (sigue v81)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v83";', 'const CACHE = "fluyo-static-v81";'],
+  ["U1 CACHE no sube (sigue v81)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v84";', 'const CACHE = "fluyo-static-v81";'],
   ["U2 model.js tocado", UNIT, "js/model.js", "function updateNodeIn(pg, id, patch, context){", "function updateNodeIn(pg, id, patch, context){ void 0;"],
   ["U3 Undo vuelve a limpiar la selección", UNIT, "js/selection.js", ...CLEAR],
   ["B3 Undo vuelve a limpiar la selección", BROWSER, "js/selection.js", ...CLEAR, "d1440"],

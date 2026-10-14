@@ -675,7 +675,7 @@ function setInitialAvailability(pg,nodeId,state){
 const NODE_SPEC_KEYS=new Set(["ref","id","shape","x","y","w","h","label","color","fill","border","lblPos",
   "textBg","textColor","font","bold","pulse","order","fs","icon","anim","img","tint","lang","keywords","kwBg","kwColor"]);
 const CONNECTION_SPEC_KEYS=new Set(["ref","id","source","target","fromSide","toSide","route","waypoints","label",
-  "font","bold","animated","dashed","startArrow","endArrow","flowDir","lineColor","dotColor","fs","speedFac","dots","dotsGlobal"]);
+  "font","bold","animated","dashed","startArrow","endArrow","flowDir","lineColor","dotColor","fs","speedFac","dots","dotsGlobal","arrowSize"]);
 
 function authoringPage(pg){
   if(!projectObject(pg) || !Array.isArray(pg.nodes) || !Array.isArray(pg.edges)) throw projectDataError("invalid_document","page");
@@ -781,12 +781,13 @@ function createConnectionIn(pg, spec, context){
 const NODE_UPDATE_KEYS=new Set(["x","y","w","h","shape","label","color","fill","border","lblPos","textBg","textColor",
   "font","bold","pulse","order","fs","tint","lang","keywords","kwBg","kwColor"]);
 const CONNECTION_UPDATE_KEYS=new Set(["source","target","fromSide","toSide","route","waypoints","label","font","bold","fs",
-  "animated","dashed","startArrow","endArrow","flowDir","lineColor","dotColor","speedFac","dots","dotsGlobal"]);
+  "animated","dashed","startArrow","endArrow","flowDir","lineColor","dotColor","speedFac","dots","dotsGlobal","arrowSize"]);
 /* Formas que ofrece el selector de forma; image/icon/anim no cambian de forma (el control se oculta). */
 const EDITABLE_SHAPES=new Set(["rect","cylinder","diamond","circle","hex","text","code"]);
 const FROZEN_SHAPES=new Set(["image","icon","anim"]);
 const UPDATE_BOOLEANS=new Set(["bold","pulse","tint","animated","dashed","startArrow","endArrow","dotsGlobal"]);
-const UPDATE_NUMBERS=new Set(["speedFac","dots"]);               // la normalización de la carga sustituye en silencio un valor no numérico: aquí se rechaza
+const UPDATE_NUMBERS=new Set(["speedFac","dots","arrowSize"]);   // la normalización de la carga sustituye en silencio un valor no numérico: aquí se rechaza
+const UPDATE_NULLABLE_NUMBERS=new Set(["dots","arrowSize"]);         // null = volver al valor por defecto (quita la clave)
 const UPDATE_NULLABLE_STRINGS=new Set(["lineColor","dotColor"]);   // normalizeProjectItem no los comprueba
 const NODE_FIELDS_BY_SHAPE={tint:["icon"], lang:["code"], keywords:["code"], kwBg:["code"], kwColor:["code"]};
 
@@ -804,7 +805,7 @@ function updatePatch(patch,allowed){
   for(const k of fields){
     const v=patch[k];
     if(UPDATE_BOOLEANS.has(k) && typeof v!=="boolean") throw projectDataError("invalid_document",k);
-    if(UPDATE_NUMBERS.has(k) && !(typeof v==="number" && Number.isFinite(v)) && !(v===null && k==="dots")) throw projectDataError("invalid_document",k);
+    if(UPDATE_NUMBERS.has(k) && !(typeof v==="number" && Number.isFinite(v)) && !(v===null && UPDATE_NULLABLE_NUMBERS.has(k))) throw projectDataError("invalid_document",k);
     if(UPDATE_NULLABLE_STRINGS.has(k) && v!==null && typeof v!=="string") throw projectDataError("invalid_document",k);
   }
   return fields;
@@ -851,7 +852,8 @@ function updateConnectionIn(pg, id, patch, context){
     if(fields.includes("target") && !pg.nodes.some(n=>n.id===to)) throw projectDataError("target_not_found","target");
   }
   const cand=validatedCandidate(e,fields,patch,[],c=>{ normalizeProjectItem(c); normalizeProjectEdge(c,DEFAULT_SETTINGS.dots); });
-  for(const k of fields) e[connectionKey(k)]=cand[connectionKey(k)];
+  // una clave que la normalización quita (arrowSize:null) desaparece del registro: no queda como `undefined`
+  for(const k of fields){ const kk=connectionKey(k); if(cand[kk]===undefined) delete e[kk]; else e[kk]=cand[kk]; }
   return e;
 }
 /* Quita el nodo, las conexiones que lo tocan y su Behavior. Devuelve lo que se llevó: {node, connections, behaviors}. */
@@ -1171,6 +1173,11 @@ function normalizeProjectEdge(e,defaultDots){
   if(!Array.isArray(e.waypoints) || e.waypoints.some(wp=>!projectObject(wp) || !Number.isFinite(wp.x) || !Number.isFinite(wp.y))) throw projectDataError();
   if(e.speedFac!==undefined) e.speedFac=clamp(projectNumber(e.speedFac,1),1,4);
   if(e.dots!==undefined) e.dots=clamp(Math.round(projectNumber(e.dots,defaultDots)),1,6);
+  /* FLUYO-018.27: tamaño de las puntas, opcional. Ausente = 1 y NO se rellena (los documentos no se migran: una conexión sin
+     `arrowSize` se guarda y se dibuja como siempre); null lo quita; un número se acota en [1, 2], el mismo rango que
+     ARROW_SIZE_MIN/ARROW_SIZE_MAX en geometry.js (que no forma parte del kernel). */
+  if(e.arrowSize===null) delete e.arrowSize;
+  else if(e.arrowSize!==undefined) e.arrowSize=clamp(projectNumber(e.arrowSize,1),1,2);
 }
 function normalizeProjectNode(n,i){
   // Mismo contrato para archivo, deep link y viewer; SVG estático seguro.

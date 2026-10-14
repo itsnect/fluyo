@@ -72,7 +72,7 @@ function refreshPanel(){
   $("fontSel").value=obj.font||"";
   $("boldChk").checked=!!obj.bold;
   const nodeRows=["rowColor","rowTint","rowFill","rowBorder","rowLblPos","rowTextBg","rowTextColor","rowShape","rowPulse","rowOrder","rowLang","rowKeywords","rowKwBg","rowKwColor"];
-  const edgeRows=["rowRoute","rowEnds","rowFrom","rowTo","rowAnim","rowSpeedF","rowDotsGlobal","rowDots","rowDash","rowArrows","rowArrS","rowArrE","rowFlow","rowLineC","rowDotC"];
+  const edgeRows=["rowRoute","rowEnds","rowFrom","rowTo","rowAnim","rowSpeedF","rowDotsGlobal","rowDots","rowDash","rowArrows","rowArrowSize","rowArrS","rowArrE","rowFlow","rowLineC","rowDotC"];
   nodeRows.forEach(r=>$(r).style.display=isNode?"flex":"none");
   edgeRows.forEach(r=>$(r).style.display=isNode?"none":"flex");
   $("btnWps").style.display=(!isNode&&(obj.waypoints||[]).length)?"block":"none";
@@ -555,7 +555,22 @@ function syncFlowSeg(e){
    su interruptor; si cambian los dos (Inicio ↔ Fin), una sola entrada de Undo. #arrSChk/#arrEChk siguen reflejando el valor. */
 const ARROW_NAMES={none:"Ninguna", start:"Inicio", end:"Fin", both:"Ambas"};
 function arrowsOf(e){ const st=!!e.startArrow, en=e.endArrow!==false; return st&&en ? "both" : st ? "start" : en ? "end" : "none"; }
-function syncArrowSeg(e){ const v=arrowsOf(e); segSync("arrowSeg", v); $("arrowsValue").textContent=ARROW_NAMES[v]; }
+function syncArrowSeg(e){ const v=arrowsOf(e); segSync("arrowSeg", v); $("arrowsValue").textContent=ARROW_NAMES[v]; syncArrowSizeSeg(e); }
+/* FLUYO-018.27: el TAMAÑO de las puntas (edge.arrowSize: 1 · 1,5 · 2; ausente = 1) es un segmentado sobre #arrowSizeSel, el control
+   nativo, con el patrón de la decisión 182: elegir = poner el valor y disparar su onchange; un cambio = una entrada de Undo; elegir
+   el valor que ya está no escribe nada. Solo se enseña con alguna punta (sin puntas no significa nada). El modelo acota en [1, 2]. */
+function syncArrowSizeSeg(e){
+  const v=String(edgeArrowSize(e));
+  $("arrowSizeSel").value=v; segSync("arrowSizeSeg", v);
+  $("rowArrowSize").style.display=arrowsOf(e)==="none" ? "none" : "flex";
+}
+segOnSelect("arrowSizeSeg","arrowSizeSel");
+$("arrowSizeSel").onchange=()=>{
+  const e=singleEdge(); if(!e) return;
+  const v=+$("arrowSizeSel").value||1;
+  if(edgeArrowSize(e)===v) return;
+  pushUndo(); editEdge(e,{arrowSize:v}); scheduleAutosave(); syncArrowSizeSeg(e);
+};
 segBind("arrowSeg", v=>{
   const e=singleEdge(); if(!e) return;
   const wantS=v==="start"||v==="both", wantE=v==="end"||v==="both", patch={};

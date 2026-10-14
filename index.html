@@ -637,6 +637,17 @@ try{ if(localStorage.getItem("fluyo.ui.props")==="folded") document.documentElem
               <button type="button" class="segBtn" role="radio" data-v="both" aria-label="Ambas" data-tip="Ambas"><svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><path d="M4 12h16M9 7l-5 5 5 5M15 7l5 5-5 5"/></svg></button>
             </div>
           </div>
+          <!-- FLUYO-018.27: TAMAÑO de las puntas (edge.arrowSize: 1 · 1,5 · 2; ausente = 1×, el de siempre). Segmentado sobre el control nativo
+               #arrowSizeSel (decisión 182); solo se enseña cuando la conexión tiene alguna punta. Es dibujo: no cambia la ruta ni el ancla. -->
+          <div class="row inlineSeg" id="rowArrowSize">
+            <span class="lblText" id="arrowSizeLbl">Tamaño de flecha</span>
+            <div class="seg pseg" id="arrowSizeSeg" role="radiogroup" aria-labelledby="arrowSizeLbl">
+              <button type="button" class="segBtn" role="radio" data-v="1">1×</button>
+              <button type="button" class="segBtn" role="radio" data-v="1.5">1,5×</button>
+              <button type="button" class="segBtn" role="radio" data-v="2">2×</button>
+            </div>
+            <select id="arrowSizeSel" class="srOnly" tabindex="-1" aria-hidden="true"><option value="1">1×</option><option value="1.5">1,5×</option><option value="2">2×</option></select>
+          </div>
           <div class="row srOnly" id="rowArrS"><label for="arrSChk">Punta al inicio</label><input type="checkbox" id="arrSChk" tabindex="-1" aria-hidden="true"></div>
           <div class="row srOnly" id="rowArrE"><label for="arrEChk">Punta al final</label><input type="checkbox" id="arrEChk" tabindex="-1" aria-hidden="true"></div>
           <div class="row" id="rowAnim"><label for="animChk">Puntos en movimiento</label><input type="checkbox" id="animChk"></div>

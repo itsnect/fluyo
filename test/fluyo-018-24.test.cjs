@@ -128,7 +128,7 @@ test("alcance: kernel, model.js, formato, render, Historias, Present, Viewer y S
 });
 
 test("release: CACHE v82", () => {
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v83";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v84";/);
 });
 
 void J;

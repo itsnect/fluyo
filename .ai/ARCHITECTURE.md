@@ -531,7 +531,7 @@ fuera del panel                            Animación del lienzo → «Lienzo» 
 ```
 
 - **Un solo panel** (`#panelProperties`) para columna (288/216), hoja inferior y hoja lateral: mismo DOM, mismos grupos, mismo orden, mismos ids. Cambian el contenedor, los objetivos (`--ctl-h`, `--sw-size` 24/32) y qué grupos empiezan abiertos (`applyGroupDefaults(kind)`: primarios del tipo en columna, todo plegado en la hoja). `refreshPanel` sigue siendo la única lectura de la selección; `placePanelRows(kind)` mueve los mismos nodos (Texto al final en una conexión; `#rowTextColor`/`#rowTextBg` a Código en un code) y `applyGroupDefaults` solo actúa al cambiar de tipo. Ruta, Puntas y Línea del borde van en línea con su etiqueta (`.inlineSeg`) y se apilan con `@container` (< 240 px).
-- **Segmentados** (`segBind`/`segSync`/`segOnSelect`, `ui.js`): radiogroup con tabindex móvil y flechas/Inicio/Fin/Espacio; el valor vive en el control nativo oculto (`#shapeSel`, `#borderSel`, `#langSel`, `#routeSel`, `#flowSel`, `#speedFacSel`), que dispara su manejador de siempre. Puntas: `#arrowSeg` (Ninguna · Inicio · Fin · Ambas) escribe solo el booleano que cambia (`startArrow`/`endArrow`) con un Undo; `#arrSChk`/`#arrEChk` siguen reflejándolo.
+- **Segmentados** (`segBind`/`segSync`/`segOnSelect`, `ui.js`): radiogroup con tabindex móvil y flechas/Inicio/Fin/Espacio; el valor vive en el control nativo oculto (`#shapeSel`, `#borderSel`, `#langSel`, `#routeSel`, `#flowSel`, `#speedFacSel`, `#arrowSizeSel`), que dispara su manejador de siempre. Puntas: `#arrowSeg` (Ninguna · Inicio · Fin · Ambas) escribe solo el booleano que cambia (`startArrow`/`endArrow`) con un Undo; `#arrSChk`/`#arrEChk` siguen reflejándolo. Tamaño de flecha (FLUYO-018.27): `#arrowSizeSeg` (1× · 1,5× · 2×) escribe `edge.arrowSize` con un Undo y se oculta sin puntas.
 - **Color de una fila** (`.colorRow`): rejilla de siempre recortada a una fila (`--sw-size`), «⋯» (`.swMore`, `toggleSwatches`) la despliega en el sitio con «Personalizado» y «Cuentagotas» (`.swOpen`); `markSw` antepone una muestra «actual» (`.swCurrent`) si el valor es un color propio y `syncSwatchMore` adelanta la elegida (`.pinned`) si no cabe. `setWell` escribe el pozo con el valor real o `data-auto` (marca de automático), nunca el valor anterior.
 - **Plegado** (columna): `<html data-props="folded">` desde `localStorage["fluyo.ui.props"]` (script del `<head>`), `setPropsFolded`, ⚙ (`#btnPanel`, visible también en columna) y `#btnPanelClose`. No lo leen el modo Historia, las hojas ni el documento.
 - **Activo = oliva** (`system.css`): `.seg` activo (`aria-checked`/`aria-pressed`/`.active`) con velo y borde `--active`; muestra elegida, «N», «⋯» abierto y pestañas con `--active`.
@@ -584,3 +584,21 @@ pointerup sin moverse              ─► nada · soltar un tramo que quedó rec
   - `test/fluyo-018-25-browser.cjs`: Chrome real d1440/m390; la captura con el gesto real y su SVG, clic inerte, un movimiento = un Undo, Escape, matrices, guarda de F5 y `editor-inline.html`.
   - `test/fluyo-018-25-mutations.cjs`.
   - En el MCP: `test/fluyo-018-25.test.ts` y la paridad del barrido.
+## Tamaño configurable de las puntas (FLUYO-018.27)
+
+```
+edge.arrowSize  (opcional; ausente = 1; número acotado en [1, 2]; null lo quita)      model.js: CONNECTION_SPEC_KEYS, CONNECTION_UPDATE_KEYS, UPDATE_NUMBERS, normalizeProjectEdge
+edgeStroke(e, pts)                                                                       geometry.js; port idéntico en svg.ts
+  size = edgeArrowSize(e)                 → aguja = edgeHeadSegs(tip, u, size): largo 11·k, medio ancho 4·k, muesca 2,8·k, desde la punta
+  tip  = ancla − u·EDGE_GAP               → la punta NO se mueve (3 px del ancla), sea cual sea k
+  cut  = EDGE_GAP + (11 − 2,8)·k          → la línea muere en la muesca escalada
+  ruta (edgePoints), anclas, etiquetas, puntos de flujo: sin cambios; EDGE_W sin cambios
+Lienzo (editor, Present, Viewer: render.js), SVG del editor (export.js) y export_diagram (svg.ts) no cambian: ya pasaban la conexión entera a edgeStroke.
+UI: #rowArrowSize (Dirección, bajo Puntas) → segOnSelect("arrowSizeSeg","arrowSizeSel") → editEdge(e,{arrowSize}) con pushUndo; oculta con Puntas = Ninguna y para nodos (edgeRows).
+```
+
+- **Formato**: `arrowSize` es una clave nueva y opcional de la conexión; ningún documento se migra (una conexión sin la clave se guarda y se dibuja como en 018.25). Un editor anterior la conserva tal cual (passthrough) y la ignora.
+- **Medidas** (px de mundo): 1× = 11 × 8; 1,5× = 16,5 × 12; 2× = 22 × 16. Tramo recto delante de la punta en el pasillo de 28 px: 8,8 / 6,35 / 4,3. Con el zoom escala como la línea (a zoom 2, el doble de píxeles).
+- **MCP**: `ConnectionSpec`/`ConnectionPatch` (`author_document`: `create_connection`, `update_connection`) y `EdgeSpec` (`create_diagram`, acotado en el schema) llevan `arrowSize`; el kernel (`model.js` resincronizado) lo valida; `describe_document` no cambia (no lista propiedades visuales).
+- `CACHE` v84 (`js/geometry.js`, `js/model.js`, `js/ui.js`, `index.html`). Sin cambios en `render.js`, `export.js`, `interaction.js`, CSS, Historias, Present, el Viewer ni Share.
+- Pruebas: `test/fluyo-018-27.test.cjs` (vm: corpus idéntico a HEAD sin la clave, escala proporcional, puntas, conexión corta, barrido, modelo, carga, clonado, deep link, estáticos, alcance), `test/fluyo-018-27-browser.cjs` (Chrome real d1440/m390: casos A–F medidos en píxeles, zoom, panel, Undo/Redo, teclado, SVG, eliminar/duplicar, Present, Share → Viewer, dedo) y `test/fluyo-018-27-mutations.cjs`. En el MCP: `test/fluyo-018-27.test.ts`, la paridad con cada tamaño (`visual-regression.test.ts`) y `scripts/mutate-018-27.ts`.

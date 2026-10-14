@@ -1,8 +1,10 @@
-# FLUYO-018.24 — AUDIT
+# FLUYO-018.24 — AUDIT y «Deshacer sin perder el contexto»
 
-Estado: **READY FOR REVIEW** (auditoría de consolidación UX; sin cambios de código, tests ni `CACHE`).
+Estado: **IMPLEMENTADO — READY FOR COMMIT** (auditoría aprobada; slice §8 implementado, ver «Implementación» al final). Sin commit, push ni deploy. `CACHE` v81 → v82.
 Fecha: 13 de octubre de 2026.
-Owner/agente actual: libre (pendiente de revisión del owner).
+Owner/agente actual: libre (pendiente de revisión del owner y commit).
+
+> Nota: §0 describe el estado en el momento de la auditoría. Después, 018.23 se commiteó y desplegó (`4a6d028`, `CACHE` v81); la implementación parte de ahí.
 
 > Repo público: solo contenido técnico del proyecto open source.
 > Fuentes leídas: `AGENTS.md`, `.ai/ARCHITECTURE.md`, `.ai/DECISIONS.md` (118–187), `.ai/tasks/FLUYO-018.11.md`–`018.23.md` (resúmenes, decisiones, pendientes y riesgos). Código: `js/ui.js` (panel, segmentados, color, `kwEdit`, `edgeDotsIn`, tema, Present), `js/selection.js` (`pushUndo`, `stepHistory`, `undo`/`redo`), `js/editor-scenarios.js` (`scNewScenario`, `scNotice`, seguimiento), `js/viewer.js`, `index.html` (cabecera, rail, panel, Historias, Present), `s/index.html`.
@@ -178,6 +180,144 @@ Diálogos nativos (R3), aviso en Present (R4), contraste (R8), selección de Ste
 ## Handoff
 
 - **Qué se hizo**: lectura de documentación y código relevante; auditoría dirigida en Chrome real (5 recorridos + 2 micro-comprobaciones, ≈ 75 s); clasificación de problemas, deudas y recomendación.
-- **Próximo paso concreto**: (1) commit + deploy de 018.23; (2) revisión del owner de §7 y de D1–D5; (3) si A, implementar §8.
+- **Próximo paso (entonces)**: (1) commit + deploy de 018.23; (2) revisión del owner de §7 y de D1–D5; (3) si A, implementar §8. → Hecho: 018.23 publicado; A aprobada; ver «Implementación».
 
-# FLUYO-018.24 — READY FOR REVIEW
+---
+
+## Implementación
+
+Base: `fluyo` `4a6d028` (018.23 commiteado y desplegado), árbol limpio, `CACHE` `fluyo-static-v81`.
+
+### Decisiones cerradas
+
+| | Decisión | Cómo quedó |
+|---|---|---|
+| D1 | Selección tras Undo/Redo | Se conserva lo que estaba seleccionado y sigue existiendo; si la operación lo quitó todo, nada; **sin selección** (p. ej. tras eliminar) vuelve la que había al crear la entrada; otra página → se limpia. Decisión **188** |
+| D2 | Hoja móvil | Sigue abierta mientras quede selección; sin selección se cierra como antes (la decide `refreshPanel`, sin estado nuevo) |
+| D3 | `kwEdit` / `edgeDotsIn` | Dentro: una entrada por ráfaga. Decisión **189** |
+| D4 | Aviso en Present (R4) | Fuera |
+| D5 | Después | Congelar la interfaz; no se abre otro slice UX |
+
+### Reproducción previa (antes de tocar código)
+
+El test nuevo `test/fluyo-018-24-browser.cjs`, contra una copia de `HEAD` (`4a6d028`), da **9 ✘** antes de quedarse sin elemento que editar (justo por el defecto: la conexión deja de estar seleccionada y su campo se oculta):
+
+- Undo de un color → `sel=""`, título «Propiedades»; Redo, igual; eliminar → Undo: el nodo vuelve sin seleccionar.
+- `kwEdit`: escribir «uno dos tres» apila **0** entradas (`#btnUndo` apagado); Undo no deshace nada.
+- «Línea punteada» + puntos = **1** entrada; Ctrl+Z deshace los dos: `[5, punteada] → [2, continua]`.
+- Micro-comprobación en móvil (auditoría): `{sel:1, hoja:abierta}` → color → Deshacer → `{sel:"", hoja:cerrada}`.
+
+### Cambios realizados
+
+- **`js/selection.js`**:
+  - `selSnap()`.
+  - `pushUndoSnapshot` guarda `s.sel` si la entrada no la trae; es memoria de la UI, no del documento.
+  - `restoreSelAfterHistory(keep, recorded)`.
+  - `stepHistory` hace lo siguiente:
+    1. Guarda la página y la selección de antes de aplicar.
+    2. Da a la inversa la selección de su página.
+    3. Sustituye `clearSel()` por `restoreSelAfterHistory(misma página ? keep : null, s.sel)`.
+  - Las dos líneas que anclan mutaciones históricas no cambian: `restoreLibrary` (018.7d) y `redo()` (016).
+  - Se declaran `kwDirty` y `dotsDirty` junto a `lblDirty` y `fsDirty`.
+- **`js/ui.js`**:
+  - `refreshPanel` reinicia también `kwDirty` y `dotsDirty`.
+  - `#kwEdit.oninput` y `#edgeDotsIn.oninput` apilan en la primera tecla de la ráfaga.
+  - `#kwEdit.onchange` y `#edgeDotsIn.onchange` cierran la ráfaga.
+  - Se usa asignación `onchange=`, como el resto del archivo, y no `addEventListener`. El motivo: el test de puntas de 018.23 ejecuta ese tramo de `ui.js` en `vm` con un `$` simulado.
+- **`sw.js`**: `fluyo-static-v81` → **`v82`**.
+- **Documentación**: `.ai/ARCHITECTURE.md` (sección nueva), `.ai/DECISIONS.md` (188, 189) y este documento.
+
+### Archivos modificados
+
+| Archivo | Por qué |
+|---|---|
+| `js/selection.js`, `js/ui.js` | El cambio |
+| `sw.js` | `CACHE` v82: se sirven dos archivos cambiados |
+| `test/fluyo-018-24.test.cjs`, `-browser.cjs`, `-mutations.cjs` (nuevos) | Pruebas del slice |
+| 34 tests con el pin `fluyo-static-v81` → `v82` | Convención de cada release, igual que en 018.23. Es un reemplazo mecánico del texto: sin él, esas suites fallarían solo por el número de versión |
+| `.ai/ARCHITECTURE.md`, `.ai/DECISIONS.md`, `.ai/tasks/FLUYO-018.24.md` | Documentación |
+
+Sin cambios en: `js/model.js` y el resto del kernel, el formato, `index.html`, CSS, `render.js`, `interaction.js`, `state.js`, `editor-scenarios.js` (Historias), Present, Viewer (`s/`, `viewer.js`), Share ni fluyo-mcp. `KERNEL_ID` intacto.
+
+### Pruebas (tiempos reales de esta sesión)
+
+| Suite | Resultado | Tiempo |
+|---|---|---|
+| `node --test test/fluyo-018-24.test.cjs` | **10 ✔ · 0 ✘** | **1,0 s** |
+| `node test/fluyo-018-24-browser.cjs` (1440 ratón · 390 dedo, una pasada) | **53 ✔ · 0 ✘** | **15,6 s** |
+| `node test/fluyo-018-24-mutations.cjs` | **14/14 detectadas** | **139,3 s** (pasada anterior: 138,2 s) — **algo por encima del objetivo de 2 min**: cada mutación copia el árbol y 6 de las 14 lanzan Chrome; no se recortó para no perder las B |
+
+Casos de Chrome (los 8 pedidos y algo más), en 1440 y 390:
+
+1. Nodo → color → Undo: la selección y el panel siguen.
+2. Color → Undo → Redo.
+3. Móvil: la hoja sigue abierta tras Undo y Redo.
+4. Eliminar → Undo: el nodo vuelve seleccionado. Redo: no queda selección y la hoja se cierra.
+5. Undo de una creación: el nodo desaparece y no queda nada seleccionado.
+6. Undo que vuelve a otra página: la selección es válida en la página activa.
+7. `kwEdit` → Undo → Redo, con valores exactos.
+8. `edgeDotsIn` → Undo → Redo, con valores exactos.
+9. Punteada + puntos: dos entradas, que se deshacen una a una.
+10. Dos cambios del número son dos entradas.
+11. `kwEdit` + `edgeDotsIn` consecutivos: Undo deshace uno por uno y Redo los rehace en orden.
+12. Escribir después de un Undo vacía Rehacer, y Ctrl+Y no pisa lo escrito.
+13. Ctrl+Z del teclado conserva la selección.
+14. 0 errores de consola.
+
+Mutaciones (14):
+
+| Mutación | Unitario (U) | Chrome (B) |
+|---|---|---|
+| `CACHE` sin subir | U1 | — |
+| `model.js` tocado | U2 | — |
+| `clearSel()` vuelve | U3 | B3 |
+| Se restauran ids que ya no existen | U4 | — |
+| La selección viaja a otra página | U5 | — |
+| Eliminar → Undo no vuelve seleccionado | U6 | B6 |
+| La hoja móvil se cierra con selección | — | B7 |
+| `kwEdit` sin entrada de Undo | U8 | B8 |
+| `edgeDotsIn` sin entrada de Undo | U9 | B9 |
+| Dos cambios del número en una sola entrada | — | B10 |
+
+### Regresiones dirigidas
+
+- **Unitarios** (34 suites: las que ejercen Undo/Redo y las del pin de `CACHE`; 600 pruebas, 2,2 s). Se comparan con una copia de `HEAD` hecha con `git archive`.
+  - Quedan solo **3 fallos nuevos**: `fluyo-018-19` #1, `fluyo-018-21` #18 y `fluyo-018-23` #1.
+  - Los tres son comprobaciones de alcance frente a `HEAD`, del tipo «`js/selection.js` sin cambios». **Pasan tras el commit**; es el mismo patrón que en 018.18–018.23.
+- **Chrome**:
+
+  | Suite | Resultado | Tiempo |
+  |---|---|---|
+  | `fluyo-018-23-browser` `ONLY=d1440` (Undo de cada control del panel) | 49 ✔ · 0 ✘ | 6,3 s |
+  | `fluyo-018-23-browser` `ONLY=m390` | 32 ✔ · 0 ✘ | 4,5 s |
+  | `fluyo-018-7c-browser` (Undo estructural por referencia de página) | OK, 0 errores | 10 s |
+
+- **QA visual** (capturas `d1440-undo-color.png` y `m390-undo-color.png` en el scratchpad de la sesión):
+  - Tras Deshacer, el nodo conserva su marco de selección oliva en el lienzo.
+  - El panel muestra su nombre con el relleno restaurado («automático» marcado).
+  - En 390, la hoja sigue abierta.
+  - Deshacer queda apagado cuando ya no hay nada que deshacer, y Rehacer encendido.
+
+### Defectos preexistentes (no tocados)
+
+- `fluyo-011-final-fixes.test` (14) y `fluyo-012-1-qa.test` (28) fallan igual en `HEAD`. Su arnés en `vm` no carga `js/story-clock.js` (desde 018.18): «FluyoStoryClock is not defined». Es deuda de tests.
+- `fluyo-018-17.test` #8: una aserción sobre el texto fuente de `scFollowActive` quedó desfasada. Falla igual en `HEAD` (ya documentado en 018.23 y en la auditoría, R9).
+- R3 (diálogos nativos), R4 (aviso en Present), R5–R8 de la auditoría: siguen como deuda, fuera de este slice.
+
+### Riesgos
+
+- **Selección recuperada tras eliminar**: deshacer un borrado vuelve a seleccionar lo restaurado. Con varias selecciones múltiples sucesivas, vuelve la que había al crear esa entrada; está probado en vm y en Chrome.
+- **Entradas antiguas en memoria**: las entradas sin `sel` (anteriores a esta versión en la misma sesión) no pueden existir tras recargar, porque las pilas no se guardan. Si no hay `sel`, simplemente no se recupera nada.
+- **Modo Historia**: la selección del editor no se pinta allí, y `refreshPanel` ya se llamaba en cada entrada a través de `clearSel()`. No cambia nada visible; lo cubren las regresiones de 018.23 y 018.7c.
+- **Escape durante el arrastre de un tramo** (`interaction.js`, `undo()`): ahora la conexión sigue seleccionada tras cancelar, cuando antes se deseleccionaba. Es coherente con D1 y no tiene test propio.
+
+### Confirmación
+
+No se tocó el kernel, `model.js`, el formato del documento, el MCP (fluyo-mcp), Share, el Viewer, Historias ni Present (comprobado por `fluyo-018-24.test` «alcance» frente a `HEAD` y por la mutación U2). Sin commit, push ni deploy. Tras 018.24 no se abre otro slice UX: la interfaz queda congelada (§3) para validar producto y uso real.
+
+## Handoff (implementación)
+
+- **Qué se hizo**: reproducción de los dos defectos en Chrome, implementación (§ «Cambios realizados»), pruebas, mutaciones, regresiones dirigidas y documentación.
+- **Próximo paso concreto**: revisión del owner y commit de fluyo (el MCP no cambia). Después, ningún slice UX: validar producto y uso real.
+
+# FLUYO-018.24 — READY FOR COMMIT

@@ -537,3 +537,19 @@ fuera del panel                            Animación del lienzo → «Lienzo» 
 - **Activo = oliva** (`system.css`): `.seg` activo (`aria-checked`/`aria-pressed`/`.active`) con velo y borde `--active`; muestra elegida, «N», «⋯» abierto y pestañas con `--active`.
 - `CACHE` v81 (`index.html`, `css/styles.css`, `css/system.css`, `js/ui.js`, `docs/index.html`). Sin cambios en el kernel, `model.js`, el formato, el render, el Viewer, Share ni el MCP.
 - Pruebas: `test/fluyo-018-23.test.cjs` (alcance, inventario de ids, jerarquía, separación, segmentados, puntas en vm, color y pozo en vm, oliva, plegado, táctil), `test/fluyo-018-23-browser.cjs` (Chrome real: 1440/1280/1024 ratón, 768 tableta, 390 móvil; nodo, code, BD, conexión, flowDir, puntas, colores, teclado, Undo, plegado, oscuro, Historia/Present) y `test/fluyo-018-23-mutations.cjs` (21).
+
+## Deshacer sin perder el contexto (FLUYO-018.24)
+
+```
+pushUndoSnapshot(s) ─► s.sel = {n,e} (selección de la página activa al crear la entrada; memoria, nunca el documento)
+stepHistory: was=P(), keep=selSnap() ─► applyHistoryEntry ─► inverse.sel = keep (o vacía si cambió de página)
+            └► restoreSelAfterHistory(misma página ? keep : null, s.sel) ─► refreshPanel ─► renderTabs
+                 · keep con algo: sobreviven los ids que siguen existiendo (nodeById/edgeById); si no queda ninguno, nada
+                 · keep vacía (p. ej. tras eliminar): vuelve s.sel, filtrada igual
+                 · otra página: se limpia
+```
+
+- **Selección** (`selection.js`): `stepHistory` ya no hace `clearSel()`; `restoreSelAfterHistory` decide y llama a `refreshPanel`, que pinta el panel con los valores restaurados y, en la hoja móvil, la deja abierta mientras quede selección (la cierra, como antes, si no queda). Los ids son estables (contadores que nunca bajan, decisión 104), así que no hay selección «fantasma». El documento, las pilas y la semántica de cada entrada no cambian.
+- **Ráfagas de escritura** (`ui.js`): `#kwEdit` y `#edgeDotsIn` apilan una entrada en la primera tecla (`kwDirty`/`dotsDirty`, como `lblDirty`/`fsDirty`); `onchange` (salir del campo, o cada paso de las flechas del número) y `refreshPanel` cierran la ráfaga.
+- `CACHE` v82 (`js/selection.js`, `js/ui.js`). Sin cambios en el kernel, `model.js`, el formato, `index.html`, CSS, Historias, Present, el Viewer, Share ni el MCP.
+- Pruebas: `test/fluyo-018-24.test.cjs` (vm con el arnés de 018.7c: edición, eliminar, creación, múltiple, otra página, `sel` fuera del documento; estáticos de las ráfagas; alcance), `test/fluyo-018-24-browser.cjs` (Chrome real, 1440 ratón y 390 dedo) y `test/fluyo-018-24-mutations.cjs` (14).

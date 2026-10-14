@@ -37,7 +37,7 @@ let panelKind=null, panelSelKey=null;
 let kwPendingId=null;
 const HEX6=v=>(typeof v==="string"&&/^#[0-9a-f]{6}$/i.test(v))?v:null;
 function refreshPanel(){
-  lblDirty=false; fsDirty=false;
+  lblDirty=false; fsDirty=false; kwDirty=false; dotsDirty=false;
   // limpiar referencias muertas
   selN.forEach(id=>{ if(!nodeById(id)) selN.delete(id); });
   selE.forEach(id=>{ if(!edgeById(id)) selE.delete(id); });
@@ -317,11 +317,15 @@ $("langSel").onchange=()=>{
   } else { editNode(sel.obj,{lang:v, keywords:null}); }
   refreshPanel(); scheduleAutosave();
 };
+/* FLUYO-018.24: una entrada de Undo por ráfaga de escritura (como el texto y el tamaño): la primera tecla apila, el resto edita en
+   vivo, y salir del campo (change) cierra la ráfaga. Antes escribía sin pushUndo y Ctrl+Z se llevaba también la acción anterior. */
 $("kwEdit").oninput=()=>{
   const sel=singleSel(); if(!sel||!sel.obj) return;
+  if(!kwDirty){ pushUndo(); kwDirty=true; }
   editNode(sel.obj,{keywords:parseKeywords($("kwEdit").value)});
   scheduleAutosave();
 };
+$("kwEdit").onchange=()=>{ kwDirty=false; };
 function applyNodeVal(field,val){
   if(!selN.size) return;
   pushUndo();
@@ -570,12 +574,16 @@ $("dotsGlobalChk").onchange=()=>{
   editEdge(e,{dotsGlobal:global, dots:(global===false && !e.dots)? settings.dots : undefined});   // arranca donde estaba, no en vacío
   refreshPanel(); scheduleAutosave();
 };
+/* FLUYO-018.24: el número de puntos, su propia entrada de Undo (antes se fundía con «Línea punteada» o con lo anterior). Cada
+   paso de las flechas del campo es un change: cada uno, su entrada. */
 $("edgeDotsIn").oninput=()=>{
   const e=singleEdge(); if(!e) return;
+  if(!dotsDirty){ pushUndo(); dotsDirty=true; }
   const v=+$("edgeDotsIn").value;
   editEdge(e,{dots:(v>=1&&v<=6)? Math.round(v) : null});
   scheduleAutosave();
 };
+$("edgeDotsIn").onchange=()=>{ dotsDirty=false; };
 $("dashChk").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); editEdge(e,{dashed:$("dashChk").checked}); scheduleAutosave(); } };
 $("arrSChk").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); editEdge(e,{startArrow:$("arrSChk").checked}); scheduleAutosave(); syncArrowSeg(e); } };
 $("arrEChk").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); editEdge(e,{endArrow:$("arrEChk").checked}); scheduleAutosave(); syncArrowSeg(e); } };

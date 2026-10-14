@@ -190,7 +190,7 @@ function requestDeletePage(index){
    solo sitio para cualquier tipo de entrada, así que crear/editar/eliminar un EventType (que ya hacían pushUndo) se deshace, y deshacer
    el borrado de una página nunca deja Steps apuntando a un EventType que se eliminó después. Fuera de Undo siguen el tema, crear/renombrar
    páginas y la navegación. */
-let undoStack=[], redoStack=[], lblDirty=false, fsDirty=false;
+let undoStack=[], redoStack=[], lblDirty=false, fsDirty=false, kwDirty=false, dotsDirty=false;
 /* Biblioteca restaurable: los MISMOS objetos EventType (identidad) y una copia de su contenido. El contador nunca baja. */
 function libSnap(){ return Array.isArray(doc.eventTypes) ? {objs:doc.eventTypes.slice(), data:deep(doc.eventTypes), nextEventTypeId:doc.nextEventTypeId} : null; }
 function restoreLibrary(lib){
@@ -200,7 +200,10 @@ function restoreLibrary(lib){
 }
 function pageSnap(pg){ return {kind:"page", page:pg, data:deep(pg), lib:libSnap()}; }
 function snapPage(){ return pageSnap(P()); }
-function pushUndoSnapshot(s){ undoStack.push(s); if(undoStack.length>60) undoStack.shift(); redoStack.length=0; scheduleAutosave(); }
+/* FLUYO-018.24: cada entrada recuerda qué estaba seleccionado cuando se creó (`sel`, ids de la página activa). Es estado de la UI en
+   memoria —las pilas no se guardan—, no del documento. */
+function selSnap(){ return {n:[...selN], e:[...selE]}; }
+function pushUndoSnapshot(s){ if(!s.sel) s.sel=selSnap(); undoStack.push(s); if(undoStack.length>60) undoStack.shift(); redoStack.length=0; scheduleAutosave(); }
 function pushUndo(){ pushUndoSnapshot(snapPage()); }
 function restorePageContent(pg, data){
   const restored=deep(data);
@@ -233,15 +236,33 @@ function applyHistoryEntry(s){
   doc.cur=i;
   return inverse;
 }
+/* FLUYO-018.24 — Deshacer sin perder el contexto. Tras aplicar una entrada en la MISMA página:
+   · con selección: se conservan los ids que siguen existiendo; si la operación quitó todos, no queda nada seleccionado;
+   · sin selección (p. ej. justo después de eliminar): vuelve la que había cuando se creó la entrada (`sel`), filtrada igual.
+   Si la entrada cambia de página, la selección no es de esta página: se limpia como antes. Solo cambia la selección (y, por
+   refreshPanel, la hoja móvil, que sigue abierta mientras quede algo seleccionado): el documento y las pilas, igual que antes. */
+function restoreSelAfterHistory(keep, recorded){
+  const live=(ids, has)=>(ids||[]).filter(id=>has(id));
+  const pick=(q)=>({n:live(q&&q.n, nodeById), e:live(q&&q.e, edgeById)});
+  let next={n:[], e:[]};
+  if(keep && (keep.n.length || keep.e.length)) next=pick(keep);
+  else if(keep && recorded) next=pick(recorded);
+  selN.clear(); selE.clear();
+  next.n.forEach(id=>selN.add(id)); next.e.forEach(id=>selE.add(id));
+  refreshPanel();
+}
 function stepHistory(from, to){
   while(from.length){
     const s=from.pop(), lib=libSnap();                                   // la biblioteca ANTES de aplicar: va en la inversa
+    const was=P(), keep=selSnap();                                       // la página y la selección ANTES de aplicar
     const inverse=applyHistoryEntry(s);
     if(!inverse) continue;
     if(s.lib) restoreLibrary(s.lib);
     inverse.lib=lib;
+    const same=P()===was;
+    inverse.sel=same ? keep : {n:[], e:[]};                             // la inversa recuerda la selección de su página
     to.push(inverse);
-    clearSel(); renderTabs();
+    restoreSelAfterHistory(same ? keep : null, s.sel); renderTabs();
     /* El panel de Escenarios lee el documento: sin esto queda mostrando Scenarios/Steps ya deshechos. */
     if(typeof scRefreshIfVisible==="function") scRefreshIfVisible();
     scheduleAutosave();

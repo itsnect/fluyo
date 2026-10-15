@@ -223,6 +223,13 @@ try{ if(localStorage.getItem("fluyo.ui.props")==="folded") document.documentElem
       <label class="fieldRow" for="fontGlobalSel"><span class="lbl">Tipografía</span>
         <select id="fontGlobalSel" title="Tipografía global — cambia la fuente de todo el diagrama" aria-label="Tipografía global"></select>
       </label>
+      <!-- FLUYO-019.2: aspecto del DOCUMENTO (settings.skin) en Present, exportación y Viewer; el lienzo del editor sigue plano. -->
+      <label class="fieldRow" for="skinSel"><span class="lbl">Aspecto</span>
+        <select id="skinSel" title="Aspecto en Present, exportación y Viewer — el lienzo del editor sigue plano" aria-label="Aspecto del documento">
+          <option value="flat">Plano</option>
+          <option value="built">Construido (2.5D)</option>
+        </select>
+      </label>
       <label id="lblGrid" class="hdrOpt">
         <svg class="ic" aria-hidden="true"><use href="#i-grid"/></svg><span class="lbl">Cuadrícula</span><input type="checkbox" id="chkGrid" checked>
       </label>
@@ -928,8 +935,8 @@ try{ if(localStorage.getItem("fluyo.ui.props")==="folded") document.documentElem
     <span id="prPos" aria-live="polite"></span>
     <button id="prNext" class="iconBtn" type="button" title="Página siguiente (→)" aria-label="Página siguiente"><svg class="ic" aria-hidden="true"><use href="#i-next"/></svg></button>
   </div>
-  <!-- FLUYO-019.1: aspecto de Present (plano / construido 2.5D). Efímero: no es del documento. Tecla B. -->
-  <button id="prSkin" type="button" aria-pressed="true" title="Aspecto construido (2.5D) · pulsa B para ver el plano">Construido</button>
+  <!-- FLUYO-019.1/019.2: aspecto (plano / construido 2.5D). Es del DOCUMENTO (settings.skin): el botón y la tecla B lo escriben. -->
+  <button id="prSkin" type="button" aria-pressed="false" title="Aspecto plano · pulsa B para ver el construido">Plano</button>
   <button id="prExit" type="button" title="Salir de la presentación (Esc)" aria-label="Salir de la presentación"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg><span class="lbl">Salir</span></button>
 </div>
 <!-- Encabezado de la Historia en Present: qué está pasando ahora (secundario al Canvas) -->
@@ -987,7 +994,7 @@ try{ if(localStorage.getItem("fluyo.ui.props")==="folded") document.documentElem
         <option value="2">2x (Muy grande)</option>
       </select>
     </div>
-    <!-- FLUYO-019.1: aspecto de la exportación; arranca con el de Present y no se guarda en el documento -->
+    <!-- FLUYO-019.1/019.2: aspecto de ESTA exportación; arranca con el del documento (settings.skin) y nunca lo escribe -->
     <div class="row" id="exRowSkin"><label for="exSkin">Aspecto</label>
       <select id="exSkin">
         <option value="built">Construido (2.5D)</option>

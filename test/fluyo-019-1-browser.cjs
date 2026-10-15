@@ -3,7 +3,7 @@
    d1440 (ratón):
    · Plano = HEAD byte a byte: con el árbol de HEAD servido al lado, los 8 ejemplos y la escena de prueba dan el MISMO SVG
      (buildSVGDocument) y el MISMO raster de exportación (toDataURL de render export a t=0) que antes.
-   · Editor: siempre plano (píxel de la tapa = fondo), aunque presentSkin sea "built".
+   · Editor: siempre plano (píxel de la tapa = fondo), aunque settings.skin sea "built" (FLUYO-019.2: la piel es del documento).
    · Present (tecla P): la piel pinta tapa, lateral y LED (píxeles medidos con los tonos de skinTones); B y el botón de la
      barra alternan; edgePoints y getBounds no cambian con la piel; a zoom 0,25 cae a plano; al salir el editor sigue plano.
    · Exportación: buildSVGDocument(1) === buildSVGDocument(1,"flat"); con "built" hay capas de piel (skin-clip- del cilindro);
@@ -142,10 +142,11 @@ async function main() {
     const tp = await topFacePoint(page, ids.w1), sp = await sidePoint(page, ids.w1);
     const tones = await page.evaluate((id) => skinTones(nodeById(id).color, doc.theme, __t.bg()), ids.w1);
     const bgRGB = await page.evaluate(() => __t.hex(__t.bg()));
-    /* editor: plano aunque presentSkin sea "built" */
+    /* editor: plano aunque settings.skin sea "built" (019.2: la piel es un ajuste del documento; aquí se fija para la validación) */
     {
-      const r = await page.evaluate(([tp, sp]) => ({ skin: presentSkin, top: __t.px(tp), side: __t.px(sp) }), [tp, sp]);
-      check(r.skin === "built" && JSON.stringify(r.top) === JSON.stringify(bgRGB) && JSON.stringify(r.side) === JSON.stringify(bgRGB), `editor: plano (tapa y lateral = fondo) con presentSkin=${r.skin}`);
+      const r = await page.evaluate(([tp, sp]) => { settings.skin = "built"; return { skin: projectSkin(settings), top: __t.px(tp), side: __t.px(sp) }; }, [tp, sp]);
+      await frame(page);
+      check(r.skin === "built" && JSON.stringify(r.top) === JSON.stringify(bgRGB) && JSON.stringify(r.side) === JSON.stringify(bgRGB), `editor: plano (tapa y lateral = fondo) con settings.skin=${r.skin}`);
     }
     await shot(page, "01-editor-plano");
     /* Present: construido */
@@ -162,12 +163,12 @@ async function main() {
     /* B → plano; B → construido; botón */
     await page.keyboard.press("b"); await frame(page);
     {
-      const r = await page.evaluate(([tp]) => ({ skin: presentSkin, top: __t.px(tp), btn: $("prSkin").textContent }), [tp]);
+      const r = await page.evaluate(([tp]) => ({ skin: projectSkin(settings), top: __t.px(tp), btn: $("prSkin").textContent }), [tp]);
       check(r.skin === "flat" && JSON.stringify(r.top) === JSON.stringify(bgRGB) && r.btn === "Plano", "tecla B: plano (tapa = fondo), botón «Plano»");
     }
     await shot(page, "03-present-plano");
     await page.locator("#prSkin").click(); await frame(page);
-    check((await page.evaluate(() => presentSkin)) === "built", "botón de la barra: vuelve a construido");
+    check((await page.evaluate(() => projectSkin(settings))) === "built", "botón de la barra: vuelve a construido");
     check((await page.evaluate(() => __t.geom())) === geom0, "tras alternar: geometría intacta");
     /* zoom 0,25 → plano; vuelta */
     await page.evaluate(() => { viewZoom = 0.25; viewX = 200; viewY = 60; }); await frame(page);
@@ -179,7 +180,7 @@ async function main() {
       await page.evaluate(() => { pausedAt = now(); playing = false; }); await frame(page);
       const builtPx = await block(); await page.keyboard.press("b"); await frame(page); const flatPx = await block(); await page.keyboard.press("b"); await frame(page);
       await page.evaluate(() => { t0 = performance.now() - pausedAt * 1000; playing = true; });
-      check(builtPx === flatPx && (await page.evaluate(() => presentSkin)) === "built", "zoom 0,25: canto de 2 px → se pinta exactamente como plano (skinActive=false)");
+      check(builtPx === flatPx && (await page.evaluate(() => projectSkin(settings))) === "built", "zoom 0,25: canto de 2 px → se pinta exactamente como plano (skinActive=false)");
     }
     await page.evaluate(() => { fitViewPresent(); }); await frame(page);
     /* cilindro e icono con piel */
@@ -220,13 +221,13 @@ async function main() {
         window.downloadTextFile = (name, content) => got.push({ name, content });
         $("btnExport").click(); const start = $("exSkin").value; $("exFmt").value = "svg"; $("exGo").click();
         $("btnExport").click(); $("exSkin").value = "flat"; $("exFmt").value = "svg"; $("exGo").click();
-        return { start, built: got[0] && got[0].content.includes("skin-clip-"), flat: got[1] && !got[1].content.includes("skin-clip-"), n: got.length, skinAfter: presentSkin };
+        return { start, built: got[0] && got[0].content.includes("skin-clip-"), flat: got[1] && !got[1].content.includes("skin-clip-"), n: got.length, skinAfter: projectSkin(settings) };
       });
-      check(r.start === "built", `diálogo: «Aspecto» arranca con el de Present (${r.start})`);
+      check(r.start === "built", `diálogo: «Aspecto» arranca con el del documento (${r.start})`);
       check(r.n === 2 && r.built && r.flat, "exGo: SVG con piel con «Construido» y sin ella con «Plano»");
-      check(r.skinAfter === "built", "elegir «Plano» en el diálogo no cambia el aspecto de Present");
-      const r2 = await page.evaluate(([tp]) => ({ top: __t.px(tp), json: JSON.stringify(serializeProject()).includes("skin") }), [tp]);
-      check(JSON.stringify(r2.top) === JSON.stringify(bgRGB) && !r2.json, "tras salir de Present: editor plano, el documento no sabe nada de la piel");
+      check(r.skinAfter === "built", "elegir «Plano» en el diálogo no cambia el aspecto del documento");
+      const r2 = await page.evaluate(([tp]) => ({ top: __t.px(tp), json: JSON.stringify(serializeProject()).includes('"skin":"built"') }), [tp]);
+      check(JSON.stringify(r2.top) === JSON.stringify(bgRGB) && r2.json, "tras salir de Present: editor plano; el documento lleva skin:\"built\" (019.2)");
     }
     check(t.errors.length === 0, `escena: 0 errores (${t.errors.join(" | ")})`);
     await t.ctx.close();
@@ -234,7 +235,7 @@ async function main() {
     console.log(`\n── ${vp.key}: ejemplos en Present, plano vs construido`);
     for (const slug of ["kafka-event-pipeline", "microservicios-api-gateway"]) {
       const p = await open(browser, base, vp, "/?ejemplo=" + slug); await p.page.waitForFunction(() => P().nodes.length > 0);
-      await p.page.evaluate(() => { setUiMode("edit"); });
+      await p.page.evaluate(() => { setUiMode("edit"); settings.skin = "built"; });
       const g0 = await p.page.evaluate(() => __t.geom());
       await p.page.keyboard.press("p"); await p.page.waitForFunction(() => presenting === true); await frame(p.page); await frame(p.page);
       await shot(p.page, `04-${slug}-construido`);
@@ -247,7 +248,7 @@ async function main() {
     console.log(`\n── ${vp.key}: Historia en Present con la piel`);
     {
       const p = await open(browser, base, vp);
-      await p.page.evaluate((json) => { applyProjectData(JSON.parse(json)); setUiMode("story"); }, STORY);
+      await p.page.evaluate((json) => { const d = JSON.parse(json); d.settings.skin = "built"; applyProjectData(d); setUiMode("story"); }, STORY);
       await frame(p.page);
       const traceFlat = await p.page.evaluate(() => { const sc = scActiveScenario(); return JSON.stringify(FluyoStory.run(P(), sc).trace); });
       await p.page.keyboard.press("p"); await p.page.waitForFunction(() => presenting === true); await frame(p.page);

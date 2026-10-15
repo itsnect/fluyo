@@ -7,6 +7,12 @@ function blankPage(name){ return {name, nodes:[], edges:[], nextId:1, behaviors:
 let doc={ theme:"dark", customBg:"", eventTypes:[], nextEventTypeId:1, pages:[blankPage("Página 1")], cur:0 };
 const DEFAULT_SETTINGS={speed:.5, dots:3, build:false, stagger:.45, grid:true, snap:false, font:DEFAULT_FONT, single:false};
 let settings={...DEFAULT_SETTINGS};
+/* FLUYO-019.2: aspecto del documento en Present, exportación y Viewer (la piel «construido» de js/skin.js; el editor
+   pinta plano siempre). Lista cerrada: "flat" | "built". La clave es OPCIONAL y solo se persiste "built": ausente,
+   "flat" o cualquier otro valor = plano, y la normalización QUITA la clave (como arrowSize, 018.27), así que un
+   documento sin ella se carga y se guarda byte a byte como antes. projectSkin() es la lectura canónica. */
+const SKIN_VALUES=["flat","built"];
+const projectSkin=st=>(st && st.skin==="built")? "built" : "flat";
 const P=()=>doc.pages[doc.cur];
 
 /* ===================== Utilidades puras de modelo ===================== */
@@ -1139,6 +1145,9 @@ function settingsFromProjectData(source){
   for(const key of ["build","grid","snap","single"])
     normalized[key]=typeof source[key]==="boolean"? source[key] : DEFAULT_SETTINGS[key];
   normalized.font=FONTS.some(font=>font.f===source.font)? source.font : DEFAULT_FONT;
+  /* FLUYO-019.2: solo "built" se conserva; todo lo demás es plano y no deja clave */
+  if(source.skin===SKIN_VALUES[1]) normalized.skin=SKIN_VALUES[1];
+  else delete normalized.skin;
   return normalized;
 }
 function normalizeProjectItem(item){

@@ -422,8 +422,9 @@ function syncExportRows(){
 }
 $("exFmt").onchange=syncExportRows;
 $("btnExport").onclick=()=>{
-  /* FLUYO-019.1: el aspecto de la exportación arranca con el de Present (efímero; nunca sale del documento) */
-  $("exSkin").value = (typeof presentSkin==="string" && presentSkin==="built") ? "built" : "flat";
+  /* FLUYO-019.2: la fila «Aspecto» arranca con el del documento (settings.skin) y vale SOLO para esta exportación:
+     cambiarla aquí nunca escribe el documento. */
+  $("exSkin").value = projectSkin(settings);
   exModal.style.display="flex"; syncExportRows();
 };
 $("exCancel").onclick=()=>exModal.style.display="none";

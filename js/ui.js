@@ -473,6 +473,7 @@ $("dotCustom").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); editEdge(
 $("fontSel").onchange=()=>{ const s=singleSel(); if(s&&s.obj){ pushUndo(); editObj(s.obj,{font:$("fontSel").value||null}); scheduleAutosave(); } };
 $("boldChk").onchange=()=>{ const s=singleSel(); if(s&&s.obj){ pushUndo(); editObj(s.obj,{bold:$("boldChk").checked}); scheduleAutosave(); } };
 $("fontGlobalSel").onchange=()=>{ settings.font=$("fontGlobalSel").value||DEFAULT_FONT; scheduleAutosave(); };
+$("skinSel").onchange=()=>setDocumentSkin($("skinSel").value);   /* FLUYO-019.2 */
 $("lblEdit").addEventListener("input", ()=>{
   const s=singleSel();
   if(s&&s.obj){
@@ -974,14 +975,25 @@ function showPageRename(i){
    La vista previa (posición y zoom) se guarda y se restaura al salir, para que
    quien estaba trabajando en una esquina del lienzo vuelva exactamente ahí. */
 let preView=null;
-/* FLUYO-019.1: alterna el aspecto de Present (botón de la barra y tecla B). Solo runtime. */
-function togglePresentSkin(){
-  presentSkin = presentSkin==="built" ? "flat" : "built";
-  updatePresentBar();
+/* FLUYO-019.2: el aspecto es del DOCUMENTO (settings.skin, model.js). Lo escriben el control «Aspecto» de «Lienzo», el
+   botón de la barra de Present y la tecla B; se autoguarda y viaja en el archivo y en el share. Como el resto de ajustes
+   no crea entrada de Undo. Plano = sin clave, para que el documento quede canónico sin esperar a una recarga. */
+function setDocumentSkin(v){
+  const next = v==="built" ? "built" : "flat";
+  if(projectSkin(settings)!==next){
+    if(next==="built") settings.skin="built"; else delete settings.skin;
+    scheduleAutosave();
+  }
+  syncSkinControls();
+}
+function togglePresentSkin(){ setDocumentSkin(projectSkin(settings)==="built" ? "flat" : "built"); }
+function syncSkinControls(){
+  if($("skinSel")) $("skinSel").value=projectSkin(settings);
+  syncPresentSkinButton();
 }
 function syncPresentSkinButton(){
   const b=$("prSkin"); if(!b) return;
-  const built=presentSkin==="built";
+  const built=projectSkin(settings)==="built";
   b.textContent = built ? "Construido" : "Plano";
   b.setAttribute("aria-pressed", built ? "true" : "false");
   b.title = built ? "Aspecto construido (2.5D) · pulsa B para ver el plano" : "Aspecto plano · pulsa B para ver el construido";

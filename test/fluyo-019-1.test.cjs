@@ -7,9 +7,9 @@
    · Aterrizaje: solo n/e, solo con tramo final ortogonal, nunca en una recta de dos puntos; el penúltimo acompaña.
    · Paridad lienzo/SVG: las mismas capas recorridas por traceSegments (render.js) y por segmentsToSVGPath (geometry.js)
      dan los mismos vértices, también en los arcos (clip incluido).
-   · Alcance: el documento no cambia (model.js, config.js, kernel, story-clock, Share, Viewer y su HTML idénticos a HEAD;
-     DEFAULT_SETTINGS sin `skin`; serialización idéntica); skin.js cargado solo por el editor, entre geometry y render;
-     sw.js v85 con skin.js; las aserciones de CACHE del árbol de tests ya miran v85.
+   · Alcance (actualizado en FLUYO-019.2): kernel salvo model.js, geometría, Historias y Share idénticos a HEAD; la piel es
+     settings.skin (lista cerrada, solo se persiste "built", DEFAULT_SETTINGS sin `skin`); skin.js lo cargan el editor y el
+     Viewer entre geometry y render; sw.js con skin.js; las aserciones de CACHE del árbol de tests miran la versión actual.
    Lo que necesita lienzo y Chrome (editor plano byte a byte, Present construido, tecla B, zoom, export) lo mide
    test/fluyo-019-1-browser.cjs. */
 const test = require("node:test");
@@ -170,32 +170,33 @@ test("paridad · traceSegments (lienzo) y segmentsToSVGPath (SVG) recorren los m
 });
 
 /* ── alcance ── */
-const SAME_AS_HEAD = ["js/model.js", "js/config.js", "js/safe-svg.js", "js/scenario-engine.js", "js/scenario-playback.js", "js/story-playback.js", "js/story-clock.js",
+/* FLUYO-019.2 sacó de esta lista js/model.js (settings.skin), js/viewer.js y s/index.html (el Viewer pinta la piel del documento). */
+const SAME_AS_HEAD = ["js/config.js", "js/safe-svg.js", "js/scenario-engine.js", "js/scenario-playback.js", "js/story-playback.js", "js/story-clock.js",
   "js/document-integrity.js", "js/story-authoring.js", "js/share-url.js", "js/editor-share.js", "js/deeplink.js", "js/link-codec.js", "js/share-loader.js",
-  "js/viewer.js", "js/viewer-viewport.js", "s/index.html", "css/share.css", "css/identity.css", "js/geometry.js", "js/selection.js", "js/editor-scenarios.js", "js/present-story.js"];
-test("alcance · documento, kernel, geometría, Historias, Share y Viewer idénticos a HEAD; skin.js solo lo carga el editor", () => {
+  "js/viewer-viewport.js", "css/share.css", "css/identity.css", "js/geometry.js", "js/selection.js", "js/editor-scenarios.js", "js/present-story.js"];
+test("alcance · kernel (salvo model.js), geometría, Historias y Share idénticos a HEAD; skin.js lo cargan el editor y el Viewer (019.2) entre geometry y render", () => {
   for (const f of SAME_AS_HEAD) assert.equal(read(f), head(f), f + " idéntico a HEAD");
   const html = read("index.html"), viewer = read("s/index.html");
   assert.ok(html.indexOf('<script src="js/geometry.js">') < html.indexOf('<script src="js/skin.js">') && html.indexOf('<script src="js/skin.js">') < html.indexOf('<script src="js/render.js">'), "editor: geometry → skin → render");
-  assert.ok(!viewer.includes("skin.js"), "el Viewer no carga la piel");
+  assert.ok(viewer.indexOf('<script src="../js/geometry.js">') < viewer.indexOf('<script src="../js/skin.js">') && viewer.indexOf('<script src="../js/skin.js">') < viewer.indexOf('<script src="../js/render.js">'), "Viewer (019.2): geometry → skin → render");
   assert.ok(!/^\s*import\s/m.test(read("js/skin.js")), "script clásico, sin import");
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v85";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v86";/);
   assert.ok(read("sw.js").includes('"./js/skin.js",'), "skin.js precacheado");
   /* skin.js va justo después de geometry.js también en la lista precacheada (el orden de carga del editor) */
   const sw = read("sw.js");
   assert.ok(sw.indexOf('"./js/geometry.js",') < sw.indexOf('"./js/skin.js",') && sw.indexOf('"./js/skin.js",') < sw.indexOf('"./js/render.js",'), "sw.js: geometry → skin → render");
 });
-test("alcance · nada se persiste: DEFAULT_SETTINGS sin `skin`, serialización idéntica a HEAD, presentSkin fuera del documento", () => {
+test("alcance (019.2) · la piel es un ajuste del documento: DEFAULT_SETTINGS sin `skin` (ausente = plano), solo se persiste \"built\", presentSkin ya no existe", () => {
   const M = skinCtx(false);
   vm.runInContext(read("js/model.js"), M);
-  assert.ok(!("skin" in run(M, "DEFAULT_SETTINGS")), "DEFAULT_SETTINGS no conoce la piel");
-  assert.ok(!/skin/i.test(read("js/model.js")), "model.js no menciona la piel");
-  const st = read("js/state.js");
-  assert.match(st, /let presentSkin="built";/, "estado de runtime del editor");
-  assert.ok(!/presentSkin/.test(read("js/model.js")) && !/presentSkin/.test(read("js/share-url.js")), "ni el modelo ni Share lo ven");
-  assert.ok(!/localStorage/.test(read("js/skin.js")) && !read("js/ui.js").slice(read("js/ui.js").indexOf("function togglePresentSkin"), read("js/ui.js").indexOf("function updatePresentBar")).includes("localStorage"), "sin localStorage");
-  /* el editor-runtime solo pasa la piel al viewport en Present */
-  assert.match(read("js/editor-runtime.js"), /skin: presenting \? presentSkin : "flat"/);
+  assert.ok(!("skin" in run(M, "DEFAULT_SETTINGS")), "DEFAULT_SETTINGS no conoce la piel: ausente = plano");
+  assert.deepEqual(run(M, "SKIN_VALUES"), ["flat", "built"], "lista cerrada");
+  assert.equal(run(M, 'settingsFromProjectData({skin:"built"}).skin'), "built");
+  assert.ok(!("skin" in run(M, 'settingsFromProjectData({skin:"flat"})')), "\"flat\" se representa por ausencia");
+  for (const f of ["js/state.js", "js/ui.js", "js/editor-runtime.js", "js/export.js", "js/interaction.js", "js/model.js", "js/share-url.js", "index.html"]) assert.ok(!/presentSkin/.test(read(f)), f + ": sin presentSkin");
+  assert.ok(!/localStorage/.test(read("js/skin.js")) && !read("js/ui.js").slice(read("js/ui.js").indexOf("function setDocumentSkin"), read("js/ui.js").indexOf("function updatePresentBar")).includes("localStorage"), "sin localStorage");
+  /* el editor-runtime solo pasa la piel al viewport en Present, y la decide el documento */
+  assert.match(read("js/editor-runtime.js"), /skin: presenting \? projectSkin\(settings\) : "flat"/);
 });
 test("alcance · render.js y export.js: la piel es un argumento (opts.skin / viewport.skin) y todo queda bajo typeof-guard para el Viewer", () => {
   const r = read("js/render.js"), e = read("js/export.js");
@@ -203,9 +204,13 @@ test("alcance · render.js y export.js: la piel es un argumento (opts.skin / vie
   assert.match(e, /function buildSVGDocument\(scale=1, skin\)/);
   assert.match(e, /const skinOn=typeof skinActive==="function" && skinActive\(skin, 1\);/);
   for (const fn of ["skinNode", "skinEdgeLanding", "skinEdgePort"]) assert.ok(r.includes(`typeof ${fn}==="function"`) && e.includes(`typeof ${fn}==="function"`), fn + " con guardia");
-  assert.ok(!/settings\.skin/.test(r + e), "nadie lee settings.skin");
+  assert.ok(!/settings\.skin/.test(r), "render.js no lee settings.skin: la piel le llega como argumento (viewport.skin / opts.skin)");
+  assert.match(e, /\$\("exSkin"\)\.value = projectSkin\(settings\);/, "export.js (019.2): la fila del diálogo arranca con el aspecto del documento, vía projectSkin");
 });
-test("alcance · las aserciones de CACHE de los tests ya miran v85 (ningún test del árbol espera v84 como actual)", () => {
-  const stale = fs.readdirSync(path.join(root, "test")).filter((f) => f.endsWith(".cjs") && f !== "fluyo-018-27-mutations.cjs" && f !== "fluyo-019-1.test.cjs" && read("test/" + f).includes("fluyo-static-v84"));
+test("alcance · las aserciones de CACHE de los tests ya miran la versión actual (ningún test del árbol espera la anterior como actual)", () => {
+  const current = /const CACHE = "fluyo-static-v(\d+)";/.exec(read("sw.js"))[1], previous = "fluyo-static-v" + (current - 1);
+  /* las mutaciones usan la anterior como «no sube»; el smoke del service worker de 019.2 instala la anterior para medir el upgrade */
+  const mutations = (f) => /-mutations\.cjs$/.test(f) || f === "fluyo-019-1.test.cjs" || f === "fluyo-019-2-browser.cjs";
+  const stale = fs.readdirSync(path.join(root, "test")).filter((f) => f.endsWith(".cjs") && !mutations(f) && read("test/" + f).includes(previous));
   assert.deepEqual(stale, []);
 });

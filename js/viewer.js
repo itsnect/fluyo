@@ -104,7 +104,10 @@ function viewerRenderState(){
   const dpr=sv.fluyoDpr||1;
   return makeReadOnlyRenderState({
     x:view.x, y:view.y, zoom:view.zoom,
-    width:sv.width/dpr, height:sv.height/dpr, dpr, presenting
+    width:sv.width/dpr, height:sv.height/dpr, dpr, presenting,
+    /* FLUYO-019.2: el aspecto lo dice el documento compartido (settings.skin); se aplica en la vista normal y en Present.
+       Sin conmutador: el Viewer lee, no decide. Por debajo de 3 px de canto en pantalla, skinActive lo apaga solo. */
+    skin: projectSkin(settings)
   });
 }
 function renderViewerFrame(){

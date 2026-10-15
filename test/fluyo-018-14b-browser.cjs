@@ -343,7 +343,7 @@ async function serviceWorker(browser, base) {
   await page.goto(base + "/"); await page.waitForFunction(() => typeof renderTabs === "function");
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
   const keys = await page.evaluate(() => caches.keys());
-  check(keys.length === 1 && keys[0] === "fluyo-static-v85", "caché instalada: fluyo-static-v85 " + JSON.stringify(keys));
+  check(keys.length === 1 && keys[0] === "fluyo-static-v86", "caché instalada: fluyo-static-v86 " + JSON.stringify(keys));
   await page.evaluate(() => localStorage.setItem("fluyo.ui.theme", "dark"));
   await ctx.setOffline(true);
   await page.reload(); await page.waitForFunction(() => typeof setUiMode === "function");

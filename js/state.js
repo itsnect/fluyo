@@ -37,10 +37,8 @@ function renamePage(index,name){ return renamePageIn(doc,index,name).page; }
 const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
 let viewX=0, viewY=0, viewZoom=0.8;
 let presenting=false;         // modo presentación: el lienzo ocupa la pantalla y las páginas son diapositivas
-/* FLUYO-019.1: aspecto de Present y de la exportación ("built" = piel 2.5D, "flat" = plano). Estado de
-   RUNTIME del editor: no entra en el documento, ni en el autoguardado, ni en localStorage; se pierde al
-   recargar, a propósito (es una validación visual). El editor pinta plano siempre. */
-let presentSkin="built";
+/* El aspecto de Present y de la exportación ("built" = piel 2.5D, "flat" = plano) es del DOCUMENTO desde
+   FLUYO-019.2: settings.skin (model.js, projectSkin). Aquí no hay estado de runtime para él. El editor pinta plano siempre. */
 let panDrag=null;
 
 /* ===================== Interacción del editor ===================== */
@@ -145,6 +143,7 @@ function syncProjectControls(){
   if($("chkSingle")) $("chkSingle").checked=!!settings.single;
   if($("bgCustom")) $("bgCustom").value=doc.customBg || (THEMES[doc.theme]||THEMES.dark).bg;   /* sin color propio, el del tema (018.17) */
   if($("fontGlobalSel")) $("fontGlobalSel").value=settings.font||DEFAULT_FONT;
+  if($("skinSel")) $("skinSel").value=projectSkin(settings);   /* FLUYO-019.2: aspecto del documento */
 }
 function applyProjectData(d){
   const normalized=projectFromProjectData(d);

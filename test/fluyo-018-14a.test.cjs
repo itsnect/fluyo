@@ -93,7 +93,8 @@ test("code: respaldos del sistema por tema y lo explícito del nodo manda", () =
   const exp = col({ fill: "#112233", textBg: "#000000", textColor: "#ff0000", kwBg: "#a8b34a", kwColor: "#123456" }, "dark");
   assert.deepEqual(exp, { panel: "#112233", paper: "#000000", text: "#ff0000", kwBg: "#a8b34a", kwText: "#123456" }, "cada valor explícito gana");
   assert.equal(col({ fill: "none" }, "dark").panel, "#161616", "fill:none conserva el fondo del tema (como antes)");
-  assert.equal(col({ color: "#abc" }, "dark").panel, "#161616", "color no hex de 6: el respaldo de siempre");
+  assert.equal(col({ color: "#abc" }, "dark").panel, "rgba(170,187,204,0.18)", "#rgb se expande: el mismo tinte que #aabbcc (FLUYO-019.5, D2/D5)");
+  assert.equal(col({ color: "red" }, "dark").panel, "#161616", "color ilegible: el respaldo de siempre");
   /* tipografía y peso */
   assert.equal(g.run(`codeFont(${n({ font: null })})`), PLEX, "sin font propio: IBM Plex Mono");
   assert.equal(g.run(`codeFont(${n({ font: "Georgia, serif" })})`), "Georgia, serif", "font explícito: se respeta");
@@ -133,7 +134,7 @@ test("lienzo, shapePath y SVG usan la geometría compartida (sin Bézier de 0,8 
   assert.match(svg, /segmentsToSVGPath\(seg\.outline\)/); assert.match(svg, /segmentsToSVGPath\(seg\.lip\)/);
   assert.ok(!/<ellipse| C \$/.test(svg), "el SVG no construye el cilindro por su cuenta");
   /* code: la caja de la palabra clave solo con kwBg; peso por token; fuente desde codeFont */
-  const dc = r.slice(r.indexOf("function drawCodeNode"), r.indexOf("function colHex"));
+  const dc = r.slice(r.indexOf("function drawCodeNode"), r.indexOf("function nodeTint"));
   assert.match(dc, /if\(tk\.kw && col\.kwBg\)/); assert.match(dc, /codeTokenWeight\(n,tk\.kw\)/); assert.match(dc, /codeFont\(n\)/);
   const sc = e.slice(e.indexOf('case "code":{'), e.indexOf('case "anim":{'));
   assert.match(sc, /if\(tk\.kw && col\.kwBg\)/); assert.match(sc, /codeTokenWeight\(n,tk\.kw\)/);
@@ -169,7 +170,7 @@ test("Viewer: system.css y la mono precargada, CSP intacta (sin style inline), i
 
 test("sw.js: CACHE v72; lo que carga el Viewer está precacheado", () => {
   const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v87";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v88";/);
   const html = read("s/index.html");
   for (const m of html.matchAll(/(?:src|href)="\.\.\/((?:css|js|assets)\/[^"#?]+)"/g)) assert.ok(sw.includes('"./' + m[1] + '"'), m[1] + " precacheado");
 });

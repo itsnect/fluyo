@@ -39,7 +39,7 @@ test("alcance: kernel, model.js, formato, render, Viewer y Share idénticos a HE
 
 test("release: CACHE v81 y ningún archivo servido nuevo", () => {
   const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v87";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v88";/);
   const local = [...html.matchAll(/(?:src|href)="((?!https?:|#|data:)[^"]+\.(?:js|css|woff2))"/g)].map((m) => m[1]);
   for (const u of local) assert.ok(sw.includes('"./' + u.replace(/^\.\//, "") + '"'), "en el precache: " + u);
 });

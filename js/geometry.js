@@ -734,11 +734,27 @@ function codeBlockLayout(n){
    fillFor en js/render.js y svgFillColor en js/export.js), así que `code` se lee
    como un nodo más. `fill:"none"` conserva lo de siempre: el fondo del tema. El
    resto de respaldos vive en THEMES (js/config.js); `kwBg:""` significa «sin caja».
-   Lo explícito del nodo (fill, textBg, textColor, kwBg, kwColor) manda siempre. */
-function codePanelTint(color,theme){
-  if(typeof color!=="string" || !/^#[0-9a-f]{6}$/i.test(color)) return null;
-  const v=parseInt(color.slice(1),16);
-  return `rgba(${v>>16&255},${v>>8&255},${v&255},${theme==="crema"?.16:.18})`;
+   Lo explícito del nodo (fill, textBg, textColor, kwBg, kwColor) manda siempre.
+   FLUYO-019.5: el tinte sale de colorTint, la misma regla que el relleno automático;
+   un color ilegible sigue cayendo en el fondo del tema. */
+function codePanelTint(color,theme){ return colorTint(color, theme==="crema"?.16:.18); }
+/* FLUYO-019.5: el tinte de un color de nodo (relleno automático, panel de `code`, pista
+   de `anim`) es ese color con opacidad k. Lee exactamente los HEX del dominio (HEX_COLOR
+   de story-authoring.js), sin distinguir mayúsculas e ignorando los espacios de los
+   extremos (como skinColor y el trazo de Canvas):
+   · #rrggbb → rgba(r,g,b,k), el string de siempre; #rgb → se expande a #rrggbb;
+   · #rrggbbaa → el alfa multiplica la opacidad: rgba(r,g,b,k·aa/255) con 4 decimales
+     (aa=ff → k exacto). Sobre el fondo da lo mismo que componer como la piel (decisión
+     205) y teñir después;
+   · cualquier otro valor → null, y quien llama decide el respaldo.
+   Pura y sin dependencias: fluyo-mcp la porta literalmente (src/svg.ts). */
+function colorTint(color,k){
+  const m=typeof color==="string" && /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.exec(color.trim());
+  if(!m) return null;
+  let s=m[1]; if(s.length===3) s=s.split("").map(ch=>ch+ch).join("");
+  const v=parseInt(s.slice(0,6),16);
+  const a=s.length===8? Math.round(k*parseInt(s.slice(6),16)/255*1e4)/1e4 : k;
+  return `rgba(${v>>16&255},${v>>8&255},${v&255},${a})`;
 }
 function codeColors(n,theme){
   const T=THEMES[theme];

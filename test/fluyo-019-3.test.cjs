@@ -23,6 +23,7 @@ const before = (f) => execFileSync("git", ["-C", gitRoot, "show", BEFORE + ":" +
 const J = (v) => JSON.parse(JSON.stringify(v));
 const GOLDEN = "test/fixtures/fluyo-019-3-colores.json";
 
+/* withRender: true = el render.js actual; un string = ese render.js (OLD usa el de 1ee65ee, que aún tenía colHex: FLUYO-019.5 lo sustituyó por nodeTint) */
 function ctxWith(skinSrc, withRender) {
   const ctx = vm.createContext({ doc: { pages: [], cur: 0, theme: "dark", customBg: "" }, settings: { font: "Georgia, serif" },
     lerp: (a, b, t) => a + (b - a) * t, clamp: (v, a, b) => Math.min(b, Math.max(a, v)), console });
@@ -30,12 +31,12 @@ function ctxWith(skinSrc, withRender) {
   vm.runInContext("P=()=>doc.pages[doc.cur]; nodeById=id=>P().nodes.find(n=>n.id===id); edgeById=id=>P().edges.find(e=>e.id===id);", ctx);
   vm.runInContext(read("js/geometry.js"), ctx);
   vm.runInContext(skinSrc, ctx);
-  if (withRender) vm.runInContext(read("js/render.js"), ctx);
+  if (withRender) vm.runInContext(typeof withRender === "string" ? withRender : read("js/render.js"), ctx);
   return ctx;
 }
 const run = (G, code, arg) => { G.__a = arg === undefined ? null : J(arg); return J(vm.runInContext(code, G)); };
 const G = ctxWith(read("js/skin.js"), true), G0 = ctxWith(read("js/skin.js"), false);
-const OLD = ctxWith(before("js/skin.js"), true);
+const OLD = ctxWith(before("js/skin.js"), before("js/render.js"));
 const PALETTE0 = run(G, "PALETTE[0].c");
 const THEME_BG = run(G, "({dark:THEMES.dark.bg, crema:THEMES.crema.bg, claro:THEMES.claro.bg})");
 
@@ -200,7 +201,7 @@ test("alcance · skin.js: skinColor es el único lector de color (tonos, LED y r
   assert.ok(/const col=skinColor\(color, base\) \|\| PALETTE\[0\]\.c;/.test(src));
   assert.equal((src.match(/skinColor\(n\.fill, T\.bg\) \|\| T\.front/g) || []).length, 2);
   assert.ok(!/skinHexRGB\(n\.fill\)/.test(src), "el relleno ya no se lee aparte");
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v87";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v88";/);
   /* el resto de skin.js no cambia respecto a 019.2: mismas funciones exportadas */
   const fns = (s) => [...s.matchAll(/^function (\w+)/gm)].map((m) => m[1]);
   assert.deepEqual(fns(src).filter((f) => f !== "skinColor"), fns(before("js/skin.js")));

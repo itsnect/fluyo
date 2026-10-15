@@ -97,7 +97,7 @@ function drawLabelLines(c,n,theme,editing,fo){
 function fillFor(n,theme){
   if(n.fill==="none") return null;
   if(n.fill) return n.fill;
-  return hexA(n.color, theme==="crema"?.16:.18);
+  return nodeTint(n.color, theme==="crema"?.16:.18);
 }
 function borderDash(n,c){
   if(n.border==="dashed") c.setLineDash([9,7]);
@@ -142,7 +142,7 @@ function drawAnim(c,n,t,theme,glow){
   switch(n.anim){
     case "spinner":{
       const a0=(t*rate*Math.PI*2)%(Math.PI*2);
-      c.strokeStyle=hexA(colHex(col),.2); c.lineWidth=r*.28;
+      c.strokeStyle=nodeTint(col,.2); c.lineWidth=r*.28;
       c.beginPath(); c.arc(cx,cy,r,0,Math.PI*2); c.stroke();
       c.strokeStyle=col; c.beginPath(); c.arc(cx,cy,r,a0,a0+Math.PI*1.4); c.stroke();
       break;
@@ -150,7 +150,7 @@ function drawAnim(c,n,t,theme,glow){
     case "progress":{
       const w=r*3, h=r*.5, x=cx-w/2, y=cy-h/2;
       const p=(t*rate*.5)%1;
-      c.fillStyle=hexA(colHex(col),.2);
+      c.fillStyle=nodeTint(col,.2);
       c.beginPath(); roundRect(c,x,y,w,h,h/2); c.fill();
       c.save(); c.beginPath(); roundRect(c,x,y,w,h,h/2); c.clip();
       c.fillStyle=col; c.fillRect(x, y, w*p, h); c.restore();
@@ -162,7 +162,7 @@ function drawAnim(c,n,t,theme,glow){
       const tw=r*1.1, th=r*1.3;
       const x=cx-span/2 + p*(span) - tw/2;
       c.globalAlpha=Math.min(1, Math.min(p,1-p)*6);
-      c.strokeStyle=col; c.fillStyle=hexA(colHex(col),.15); c.lineWidth=2.4;
+      c.strokeStyle=col; c.fillStyle=nodeTint(col,.15); c.lineWidth=2.4;
       c.beginPath(); roundRect(c,x,cy-th/2,tw,th,4); c.fill(); c.stroke();
       c.strokeStyle=col; c.lineWidth=1.8;
       c.beginPath();
@@ -276,7 +276,9 @@ function drawCodeNode(c,n,theme,glow){
   }
   c.restore();
 }
-function colHex(c){ return (typeof c==="string" && c[0]==="#")? c : PALETTE[0].c; }   // color no hex (histórico): respaldo de normalizeProjectNode
+/* FLUYO-019.5: tinte de un color de nodo (colorTint, js/geometry.js). Un color ilegible tiñe con el respaldo histórico
+   del documento (normalizeProjectNode, skinColor): PALETTE[0]. Lo usan fillFor, drawAnim y svgFillColor (js/export.js). */
+function nodeTint(c,k){ return colorTint(c,k) || colorTint(PALETTE[0].c,k); }
 function prefersReducedMotion(){
   try{ return !!(typeof window!=="undefined" && window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches); }
   catch(e){ return false; }

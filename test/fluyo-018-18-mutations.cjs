@@ -14,7 +14,7 @@ const BROWSER = ["test/fluyo-018-18-browser.cjs"];
 /* [nombre, suite, archivo, desde, hasta, ONLY del browser test] */
 const MUTATIONS = [
   /* release y alcance */
-  ["U1 CACHE no sube (sigue v76)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v87";', 'const CACHE = "fluyo-static-v76";'],
+  ["U1 CACHE no sube (sigue v76)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v88";', 'const CACHE = "fluyo-static-v76";'],
   ["U2 story-clock.js fuera del precache", UNIT, "sw.js", '  "./js/story-clock.js",\n', ""],
   ["U3 model.js tocado", UNIT, "js/model.js", "function validateEventType(et){", "function validateEventType(et){ /* 018.18 */"],
   ["U4 el reloj entra en el kernel (story-playback.js tocado)", UNIT, "js/story-playback.js", "var FluyoStory = (function(){", "var FluyoStory = (function(){ /* reloj */"],

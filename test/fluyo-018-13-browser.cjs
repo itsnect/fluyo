@@ -324,7 +324,7 @@ async function serviceWorker(browser, base) {
     const have = []; for (const w of want) if (await c.match(location.origin + "/" + w)) have.push(w);
     return { keys, have, want: want.length };
   });
-  check(cache.keys.length === 1 && cache.keys[0] === "fluyo-static-v87", "caché instalada: fluyo-static-v87 " + JSON.stringify(cache.keys));
+  check(cache.keys.length === 1 && cache.keys[0] === "fluyo-static-v88", "caché instalada: fluyo-static-v88 " + JSON.stringify(cache.keys));
   check(cache.have.length === cache.want, "system.css y las tres fuentes están precacheadas " + JSON.stringify(cache.have));
   await ctx.setOffline(true);
   await page.reload(); await page.waitForFunction(() => typeof renderTabs === "function"); await page.evaluate(() => document.fonts.ready);

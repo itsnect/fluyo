@@ -118,11 +118,8 @@ function escapeXML(value){
     .replaceAll("'","&apos;");
 }
 function escapeAttribute(value){ return escapeXML(value); }
-function svgFillColor(hex, theme){
-  const v=parseInt(hex.slice(1),16);
-  const a=theme==="crema"?.16:.18;
-  return `rgba(${v>>16&255},${v>>8&255},${v&255},${a})`;
-}
+/* el mismo tinte que fillFor en el lienzo (nodeTint, FLUYO-019.5) */
+function svgFillColor(hex, theme){ return nodeTint(hex, theme==="crema"?.16:.18); }
 function getExportDimensions(scale=1){
   return { width:Math.round(W*scale), height:Math.round(H*scale) };
 }

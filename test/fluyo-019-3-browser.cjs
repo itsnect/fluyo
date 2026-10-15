@@ -9,7 +9,8 @@
      tono de skinTones (el color compuesto sobre el fondo de la piel);
    · paridad lienzo/SVG: el píxel del frente relleno con #rrggbbaa = el fill de la capa en el SVG;
    · colores ilegibles (#12345, «red») caen en PALETTE[0] sin errores;
-   · en plano, el SVG y el raster de este documento son idénticos byte a byte a los de 1ee65ee (la piel no toca el plano).
+   · en plano, el SVG y el raster de este documento son idénticos byte a byte a los de 1ee65ee (la piel no toca el plano), una
+     vez aplicado a 1ee65ee el tinte de FLUYO-019.5 (#rgb/#rrggbbaa/ilegibles en el relleno automático).
    Uso: node test/fluyo-019-3-browser.cjs   (Playwright vía NODE_PATH; FLUYO_BROWSER=chrome) */
 let chromium;
 try { ({ chromium } = require("playwright")); } catch { ({ chromium } = require("playwright-core")); }
@@ -92,6 +93,18 @@ function expected(pr, theme, customBg) {
 const hex6 = (c) => "#" + c.map((v) => v.toString(16).padStart(2, "0")).join("");
 const near = (a, b, tol = 6) => Math.abs(a[0] - b[0]) <= tol && Math.abs(a[1] - b[1]) <= tol && Math.abs(a[2] - b[2]) <= tol;
 
+/* FLUYO-019.5: la regla del tinte (relleno automático), escrita a mano para inyectarla en el árbol de 1ee65ee */
+const TINT_019_5 = () => {
+  const tint = (c, k) => {
+    const m = typeof c === "string" && /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.exec(c.trim()); if (!m) return null;
+    const s = m[1].length === 3 ? m[1].split("").map((x) => x + x).join("") : m[1], v = parseInt(s.slice(0, 6), 16);
+    return `rgba(${v >> 16 & 255},${v >> 8 & 255},${v & 255},${s.length === 8 ? Math.round(k * parseInt(s.slice(6), 16) / 255 * 1e4) / 1e4 : k})`;
+  };
+  const node = (c, k) => tint(c, k) || tint(PALETTE[0].c, k);
+  window.fillFor = (n, theme) => n.fill === "none" ? null : (n.fill || node(n.color, theme === "crema" ? .16 : .18));
+  window.svgFillColor = (hex, theme) => node(hex, theme === "crema" ? .16 : .18);
+};
+
 async function openEditor(browser, base, theme, customBg) {
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, serviceWorkers: "block", deviceScaleFactor: 1 });
   await ctx.route((u) => !u.href.startsWith(base), (r) => r.fulfill({ status: 200, contentType: "application/javascript", body: "" }));
@@ -172,10 +185,12 @@ async function main() {
       }
       check(verr.length === 0, `${tag}: Viewer, 0 errores (${verr.slice(0, 2).join(" | ")})`);
 
-      /* en plano, idéntico a 1ee65ee */
+      /* en plano, idéntico a 1ee65ee salvo el tinte del relleno, que FLUYO-019.5 corrige para #rgb/#rrggbbaa/ilegibles: al árbol
+         de 1ee65ee se le aplica la regla del tinte escrita aquí (no la de geometry.js) y el resultado debe ser idéntico byte a byte */
       const o = await openEditor(browser, baseOld, theme, customBg);
+      await o.page.evaluate(TINT_019_5);
       const a = await page.evaluate(() => ({ svg: buildSVGDocument(1), png: __t.rasterFlat() })), b = await o.page.evaluate(() => ({ svg: buildSVGDocument(1), png: __t.rasterFlat() }));
-      check(a.svg === b.svg && a.png === b.png, `${tag}: en plano, SVG y raster idénticos a ${BEFORE} (${b.svg.length} bytes)`);
+      check(a.svg === b.svg && a.png === b.png, `${tag}: en plano, SVG y raster idénticos a ${BEFORE} + el tinte de 019.5 (${b.svg.length} bytes)`);
       await o.ctx.close(); await e.ctx.close();
     }
   } finally {

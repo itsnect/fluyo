@@ -285,7 +285,7 @@ test("alcance · rutas (edgePoints, orthoRoute, parallelLane, laneLayout, handle
   assert.equal(sin, mo, "model.js = HEAD + las seis ediciones de 018.27 (kernel, Historias, clonado, integridad: intactos)");
 });
 test("release · CACHE v84; fluyo-mcp (si está al lado) lleva el kernel resincronizado y el port de svg.ts con el mismo factor", () => {
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v87";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v88";/);
   const mcp = path.resolve(root, "..", "fluyo-mcp");
   if (!fs.existsSync(path.join(mcp, "src", "svg.ts"))) return;
   const kernel = fs.readFileSync(path.join(mcp, "src", "generated", "kernel-sources.ts"), "utf8");

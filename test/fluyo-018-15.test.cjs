@@ -118,7 +118,7 @@ test("editor: la herramienta de animaciones usa DEFAULT_NODE_COLOR; ningún nodo
   assert.match(inter, /label:ANIMS\[pendingAnim\]\.n, color:DEFAULT_NODE_COLOR\}\)/);
   for (const f of fs.readdirSync(path.join(root, "js")).filter((f) => f.endsWith(".js"))) {
     const uses = (code(read("js/" + f)).match(/PALETTE\[0\]/g) || []).length;
-    const allowed = { "model.js": 1, "render.js": 2 }[f] || 0;   // normalizeProjectNode · respaldos de drawAnim y colHex
+    const allowed = { "model.js": 1, "render.js": 2, "skin.js": 1 }[f] || 0;   // normalizeProjectNode · respaldos de drawAnim y colHex · respaldo de la piel (skinTones, FLUYO-019.3: el mismo de normalizeProjectNode/colHex)
     assert.equal(uses, allowed, `${f}: PALETTE[0] solo como respaldo histórico`);
   }
 });
@@ -164,6 +164,6 @@ test("fixture compartido con fluyo-mcp: idéntico si el repo hermano está al la
 
 test("sw.js: CACHE v74 (cambian config, model, render, ui, interaction y styles, todos ya precacheados)", () => {
   const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v86";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v87";/);
   for (const f of ["./js/config.js", "./js/model.js", "./js/render.js", "./js/ui.js", "./js/interaction.js", "./css/styles.css"]) assert.ok(sw.includes('"' + f + '"'), f + " precacheado");
 });

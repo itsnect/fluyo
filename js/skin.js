@@ -50,12 +50,24 @@ function skinMix(bg, col, t){
   return "#"+c.map(v=>v.toString(16).padStart(2,"0")).join("");
 }
 function skinRGBA(hex, alpha){ const c=skinHexRGB(hex); return `rgba(${c[0]},${c[1]},${c[2]},${alpha})`; }
+/* FLUYO-019.3: lector ÚNICO de los colores que la piel interpreta (color y relleno del nodo). Admite exactamente
+   los HEX del dominio (HEX_COLOR de story-authoring.js):
+   · #rgb y #rrggbb → el MISMO string, sin tocar (los resultados de 019.1/019.2 no cambian);
+   · #rrggbbaa → el color OPACO que se ve sobre el fondo de la piel `base` (ya resuelto: customBg #rgb/#rrggbb o el
+     del tema): por canal round(fondo·(1−α) + color·α), α = aa/255, la misma mezcla que skinMix; "#rrggbb" en minúsculas;
+   · cualquier otra cosa → null, y quien llama decide el respaldo (color: PALETTE[0]; relleno: el tono de cara).
+   Total y determinista: no depende de render.js ni de colHex. `base` debe ser #rgb/#rrggbb. */
+function skinColor(c, base){
+  if(skinHexRGB(c)) return c;
+  const m=typeof c==="string" && /^#([0-9a-f]{6})([0-9a-f]{2})$/i.exec(c.trim());
+  return m? skinMix(base, "#"+m[1], parseInt(m[2],16)/255) : null;
+}
 /* Tonos de un nodo sobre el fondo real del lienzo (tema o fondo personalizado). */
 function skinTones(color, theme, bg){
   const T=THEMES[theme]||THEMES.dark, K=SKIN_TONES[theme==="dark"?"dark":"light"];
   const base=skinHexRGB(bg)? bg : T.bg;
-  /* un color no hex (histórico) cae en el mismo respaldo que el lienzo (colHex, render.js) */
-  const col=skinHexRGB(color)? color : (typeof colHex==="function"? colHex(color) : DEFAULT_NODE_COLOR);
+  /* un color que la piel no sabe leer cae en el respaldo histórico del documento (normalizeProjectNode, colHex): PALETTE[0] */
+  const col=skinColor(color, base) || PALETTE[0].c;
   return { top:skinMix(base,col,K.top), front:skinMix(base,col,K.front), side:skinMix(base,col,K.side),
            line:skinRGBA(T.text,K.line), contact:skinRGBA(T.text,K.contact), bg:base, color:col };
 }
@@ -89,7 +101,7 @@ function skinNode(n, theme, bg){
   const layers=[];
   if(n.shape==="cylinder"){
     const s=cylinderSegments(n), g=cylinderGeom(n), capY=g.top+g.ry, baseY=g.bot-g.ry;
-    const front=n.fill==="none"? T.bg : (skinHexRGB(n.fill)? n.fill : T.front);
+    const front=n.fill==="none"? T.bg : (skinColor(n.fill, T.bg) || T.front);
     layers.push({k:"body", segs:s.outline, fill:front, stroke:T.line, sw:1, dash});
     const bx=g.cx+g.rx*.5;
     layers.push({k:"band", segs:skinPoly([{x:bx,y:capY-g.ry-2},{x:g.cx+g.rx+2,y:capY-g.ry-2},{x:g.cx+g.rx+2,y:baseY+g.ry+2},{x:bx,y:baseY+g.ry+2}]), fill:T.side, clip:s.outline});
@@ -106,7 +118,7 @@ function skinNode(n, theme, bg){
     return {layers};
   }
   const f=skinFaces(x0,y0,n.w,n.h,d);
-  const front=n.fill==="none"? T.bg : (skinHexRGB(n.fill)? n.fill : T.front);
+  const front=n.fill==="none"? T.bg : (skinColor(n.fill, T.bg) || T.front);
   layers.push({k:"contact", segs:[{op:"M",x:x0+2,y:y0+n.h+1.5},{op:"L",x:x0+n.w+1,y:y0+n.h+1.5}], stroke:T.contact, sw:2});
   layers.push({k:"top",   segs:skinPoly(f.top),  fill:T.top,  stroke:T.line, sw:1});
   layers.push({k:"side",  segs:skinPoly(f.side), fill:T.side, stroke:T.line, sw:1});
@@ -155,7 +167,8 @@ function skinEdgeLanding(pts, toSide){
   if(toSide==="n") p.x+=sx; else p.y+=sy;
   return out;
 }
-/* Anillo de salida de una conexión: relleno del fondo, borde del color de la línea. */
+/* Anillo de salida de una conexión: relleno del fondo, borde del color de la línea. No interpreta colores (019.3):
+   el anillo lleva el color de la línea y el fondo tal como los pinta el lienzo, sin pasar por skinColor. */
 function skinEdgePort(p, lineColor, bg){
   return {k:"port", segs:skinEllipse(p.x,p.y,SKIN_PORT_R,SKIN_PORT_R), fill:bg, stroke:lineColor, sw:1.5};
 }

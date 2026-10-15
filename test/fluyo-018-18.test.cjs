@@ -39,7 +39,7 @@ test("alcance: kernel (model, config, motor, playback, story-playback, integrida
 
 test("story-clock.js: fuera del kernel, cargado por el editor y el Viewer tras story-playback.js, precacheado; CACHE v77", () => {
   const sw = read("sw.js"), html = read("index.html"), viewer = read("s/index.html");
-  assert.match(sw, /const CACHE = "fluyo-static-v84";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v85";/);
   assert.ok(sw.includes('"./js/story-clock.js"'), "precacheado");
   assert.ok(html.indexOf('src="js/story-playback.js"') < html.indexOf('src="js/story-clock.js"') && html.indexOf('src="js/story-clock.js"') < html.indexOf('src="js/editor-scenarios.js"'), "editor: tras story-playback y antes de editor-scenarios");
   assert.ok(viewer.indexOf('src="../js/story-playback.js"') < viewer.indexOf('src="../js/story-clock.js"') && viewer.indexOf('src="../js/story-clock.js"') < viewer.indexOf('src="../js/viewer.js"'), "Viewer: tras story-playback y antes de viewer.js");

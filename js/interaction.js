@@ -995,6 +995,8 @@ document.addEventListener("keydown", ev=>{
     if(["ArrowLeft","ArrowUp","PageUp","Backspace"].includes(ev.key)){ ev.preventDefault(); prevSlide(); return; }
     if(ev.key==="Home"){ ev.preventDefault(); goSlide(0); return; }
     if(ev.key==="End"){ ev.preventDefault(); goSlide(doc.pages.length-1); return; }
+    /* FLUYO-019.1: B alterna plano / construido */
+    if(k==="b" && !ctl && !ev.altKey){ ev.preventDefault(); togglePresentSkin(); return; }
     return;
   }
   if(k==="p" && !ctl && !ev.altKey){ ev.preventDefault(); enterPresent(); return; }

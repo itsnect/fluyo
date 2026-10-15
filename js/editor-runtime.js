@@ -10,7 +10,9 @@ function buildEditorRenderState(){
   const rs={
     /* width/height en px CSS: el respaldo del lienzo puede ser mayor (pantallas de alta densidad, FLUYO-018.12)
        y render() escala una sola vez con `dpr`. Todo lo demás —gestos, vista, textarea— sigue en px CSS. */
-    viewport:{x:viewX,y:viewY,zoom:viewZoom,width:cv.width/(cv.fluyoDpr||1),height:cv.height/(cv.fluyoDpr||1),dpr:cv.fluyoDpr||1,presenting:!!presenting},
+    viewport:{x:viewX,y:viewY,zoom:viewZoom,width:cv.width/(cv.fluyoDpr||1),height:cv.height/(cv.fluyoDpr||1),dpr:cv.fluyoDpr||1,presenting:!!presenting,
+      /* FLUYO-019.1: la piel solo en Present; el editor es plano */
+      skin: presenting ? presentSkin : "flat"},
     interaction:{
       mode,
       pendingShape:!!pendingShape,

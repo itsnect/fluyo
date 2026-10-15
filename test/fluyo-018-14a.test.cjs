@@ -143,7 +143,8 @@ test("fuentes: la exportación rasterizada y el Viewer esperan a las del documen
   const r = read("js/render.js"), e = read("js/export.js"), v = read("js/viewer.js");
   assert.match(r, /function renderFontStacks\(d, st\)/); assert.match(r, /function waitForRenderFonts\(d, timeoutMs=2500, st\)/);
   assert.match(r, /if\(n\.shape==="code"\) out\.add\(codeFont\(n\)\)/, "incluye la fuente del bloque code");
-  assert.match(e, /waitForRenderFonts\(doc\)\.then\(\(\)=>\{ if\(fmt==="gif"\) exportGIF\(scale, tr\); else exportStatic\(fmt, scale, tr\); \}\);/);
+  /* FLUYO-019.1: la exportación recibe además el aspecto (skin); la espera a las fuentes es la misma */
+  assert.match(e, /waitForRenderFonts\(doc\)\.then\(\(\)=>\{ if\(fmt==="gif"\) exportGIF\(scale, tr(, skin)?\); else exportStatic\(fmt, scale, tr(, skin)?\); \}\);/);
   const boot = v.slice(v.indexOf("async function bootViewer"), v.indexOf("function centerClient"));
   const wait = boot.indexOf("await waitForRenderFonts("), first = boot.indexOf("renderViewerFrame();");
   assert.ok(wait > 0 && wait < first, "el Viewer espera antes del primer render");
@@ -168,7 +169,7 @@ test("Viewer: system.css y la mono precargada, CSP intacta (sin style inline), i
 
 test("sw.js: CACHE v72; lo que carga el Viewer está precacheado", () => {
   const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v84";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v85";/);
   const html = read("s/index.html");
   for (const m of html.matchAll(/(?:src|href)="\.\.\/((?:css|js|assets)\/[^"#?]+)"/g)) assert.ok(sw.includes('"./' + m[1] + '"'), m[1] + " precacheado");
 });

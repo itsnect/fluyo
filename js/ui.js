@@ -974,7 +974,20 @@ function showPageRename(i){
    La vista previa (posición y zoom) se guarda y se restaura al salir, para que
    quien estaba trabajando en una esquina del lienzo vuelva exactamente ahí. */
 let preView=null;
+/* FLUYO-019.1: alterna el aspecto de Present (botón de la barra y tecla B). Solo runtime. */
+function togglePresentSkin(){
+  presentSkin = presentSkin==="built" ? "flat" : "built";
+  updatePresentBar();
+}
+function syncPresentSkinButton(){
+  const b=$("prSkin"); if(!b) return;
+  const built=presentSkin==="built";
+  b.textContent = built ? "Construido" : "Plano";
+  b.setAttribute("aria-pressed", built ? "true" : "false");
+  b.title = built ? "Aspecto construido (2.5D) · pulsa B para ver el plano" : "Aspecto plano · pulsa B para ver el construido";
+}
 function updatePresentBar(){
+  syncPresentSkinButton();
   $("prPos").textContent=(doc.cur+1)+" / "+doc.pages.length;
   $("prPrev").disabled=doc.cur===0;
   $("prNext").disabled=doc.cur===doc.pages.length-1;
@@ -1042,6 +1055,7 @@ $("btnPresent").onclick=enterPresent;
 $("prNext").onclick=nextSlide;
 $("prPrev").onclick=prevSlide;
 $("prExit").onclick=exitPresent;
+$("prSkin").onclick=togglePresentSkin;
 $("psPlay").onclick=presentPlay;
 $("psStop").onclick=presentStop;
 $("psPause").onclick=presentTogglePause;

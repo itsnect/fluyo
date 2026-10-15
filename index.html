@@ -928,6 +928,8 @@ try{ if(localStorage.getItem("fluyo.ui.props")==="folded") document.documentElem
     <span id="prPos" aria-live="polite"></span>
     <button id="prNext" class="iconBtn" type="button" title="Página siguiente (→)" aria-label="Página siguiente"><svg class="ic" aria-hidden="true"><use href="#i-next"/></svg></button>
   </div>
+  <!-- FLUYO-019.1: aspecto de Present (plano / construido 2.5D). Efímero: no es del documento. Tecla B. -->
+  <button id="prSkin" type="button" aria-pressed="true" title="Aspecto construido (2.5D) · pulsa B para ver el plano">Construido</button>
   <button id="prExit" type="button" title="Salir de la presentación (Esc)" aria-label="Salir de la presentación"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg><span class="lbl">Salir</span></button>
 </div>
 <!-- Encabezado de la Historia en Present: qué está pasando ahora (secundario al Canvas) -->
@@ -983,6 +985,13 @@ try{ if(localStorage.getItem("fluyo.ui.props")==="folded") document.documentElem
         <option value="1" selected>1x (Normal)</option>
         <option value="1.5">1.5x (Grande)</option>
         <option value="2">2x (Muy grande)</option>
+      </select>
+    </div>
+    <!-- FLUYO-019.1: aspecto de la exportación; arranca con el de Present y no se guarda en el documento -->
+    <div class="row" id="exRowSkin"><label for="exSkin">Aspecto</label>
+      <select id="exSkin">
+        <option value="built">Construido (2.5D)</option>
+        <option value="flat">Plano</option>
       </select>
     </div>
     <div class="row" id="exRowTr"><label>Fondo transparente</label><input type="checkbox" id="exTr"></div>
@@ -1047,6 +1056,7 @@ try{ if(localStorage.getItem("fluyo.ui.props")==="folded") document.documentElem
 <script src="js/state.js"></script>
 <script src="js/selection.js"></script>
 <script src="js/geometry.js"></script>
+<script src="js/skin.js"></script>
 <script src="js/render.js"></script>
 <script src="js/interaction.js"></script>
 <script src="js/editor-runtime.js"></script>

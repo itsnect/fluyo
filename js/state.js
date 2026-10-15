@@ -37,6 +37,10 @@ function renamePage(index,name){ return renamePageIn(doc,index,name).page; }
 const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
 let viewX=0, viewY=0, viewZoom=0.8;
 let presenting=false;         // modo presentación: el lienzo ocupa la pantalla y las páginas son diapositivas
+/* FLUYO-019.1: aspecto de Present y de la exportación ("built" = piel 2.5D, "flat" = plano). Estado de
+   RUNTIME del editor: no entra en el documento, ni en el autoguardado, ni en localStorage; se pierde al
+   recargar, a propósito (es una validación visual). El editor pinta plano siempre. */
+let presentSkin="built";
 let panDrag=null;
 
 /* ===================== Interacción del editor ===================== */

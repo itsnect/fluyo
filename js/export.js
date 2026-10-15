@@ -199,9 +199,9 @@ function svgTextWidth(text, fs, family, bold){
 }
 /* Medidor para el exportador: getBBox() en un <svg> oculto, que es medición real
    del mismo motor de fuentes que usa el lienzo. */
-function measureSvgLabel(n){
+function measureSvgLabel(n,fo){
   const lines=String(n.label==null?"":n.label).split("\n");
-  const family=n.font||settings.font||DEFAULT_FONT, bold=!!n.bold;
+  const family=(fo&&fo.family)||n.font||settings.font||DEFAULT_FONT, bold=!!n.bold;
   return fs=>Math.max(...lines.map(l=>svgTextWidth(l,fs,family,bold)),1);
 }
 function svgNodeFill(n, theme){
@@ -215,11 +215,13 @@ function svgDash(n){
   return "";
 }
 const SVG_ANCHOR={left:"start", right:"end", center:"middle"};
-function svgLabelLines(n, theme){
+/* `fo` (FLUYO-019.1): voz propuesta por la piel; la misma regla que objFont en el lienzo. */
+function svgLabelLines(n, theme, fo){
   if(!n.label) return "";
   const T=THEMES[theme];
-  const family=n.font||settings.font||DEFAULT_FONT, bold=!!n.bold;
-  const {lines, fs, lh, tx, align, baseY}=labelLayout(n, measureSvgLabel(n));
+  const family=(fo&&fo.family)||n.font||settings.font||DEFAULT_FONT, bold=!!n.bold;
+  const weightAttr=bold? ' font-weight="bold"' : (fo&&fo.weight? ` font-weight="${fo.weight}"` : "");
+  const {lines, fs, lh, tx, align, baseY}=labelLayout(n, measureSvgLabel(n,fo));
   const anchor=SVG_ANCHOR[align];
   const fill=n.textColor || ((n.shape==="text"||n.shape==="anim")? n.color : T.text);
   const parts=[];
@@ -231,7 +233,7 @@ function svgLabelLines(n, theme){
     parts.push(`<rect x="${bx.toFixed(2)}" y="${by.toFixed(2)}" width="${bw.toFixed(2)}" height="${bh.toFixed(2)}" rx="8" ry="8" fill="${escapeAttribute(n.textBg)}"/>`);
   }
   lines.forEach((l,i)=>{
-    parts.push(`<text x="${tx.toFixed(2)}" y="${(baseY+i*lh).toFixed(2)}" font-family="${escapeAttribute(family)}" font-size="${fs.toFixed(1)}"${bold?' font-weight="bold"':''} fill="${escapeAttribute(fill)}" text-anchor="${anchor}" dominant-baseline="middle">${escapeXML(l)}</text>`);
+    parts.push(`<text x="${tx.toFixed(2)}" y="${(baseY+i*lh).toFixed(2)}" font-family="${escapeAttribute(family)}" font-size="${fs.toFixed(1)}"${weightAttr} fill="${escapeAttribute(fill)}" text-anchor="${anchor}" dominant-baseline="middle">${escapeXML(l)}</text>`);
   });
   return parts.join("\n");
 }
@@ -246,9 +248,35 @@ function renderImageToSVG(n){
   if(!n.img) return "";
   return `<image x="${(n.x-n.w/2).toFixed(2)}" y="${(n.y-n.h/2).toFixed(2)}" width="${n.w}" height="${n.h}" href="${escapeAttribute(n.img)}" preserveAspectRatio="xMidYMid meet"/>`;
 }
-function renderNodeToSVG(n, theme, syms){
+/* FLUYO-019.1: las capas de la piel (js/skin.js) como <path>; un clip por capa que lo pida. */
+function skinLayersToSVG(layers, n){
+  const out=[]; let k=0;
+  for(const L of layers){
+    const st=`fill="${L.fill&&L.fill!=="none"? escapeAttribute(L.fill):"none"}"${L.stroke? ` stroke="${escapeAttribute(L.stroke)}" stroke-width="${L.sw||1}"`:""}${L.dash? ` stroke-dasharray="${L.dash.join(" ")}"`:""} stroke-linejoin="round"`;
+    if(L.clip){
+      const id=`skin-clip-${n.id}-${k++}`;
+      out.push(`<clipPath id="${id}"><path d="${segmentsToSVGPath(L.clip)}"/></clipPath>`);
+      out.push(`<path d="${segmentsToSVGPath(L.segs)}" ${st} clip-path="url(#${id})"/>`);
+    } else out.push(`<path d="${segmentsToSVGPath(L.segs)}" ${st}/>`);
+  }
+  return out.join("\n");
+}
+function renderNodeToSVG(n, theme, syms, skinOn){
   const fill=svgNodeFill(n, theme), stroke=escapeAttribute(n.color), dash=svgDash(n);
   const parts=[`<g id="node-${n.id}">`];
+  /* FLUYO-019.1: con la piel, las mismas capas que el lienzo; el glifo del icono y el rótulo, como siempre */
+  const sk=skinOn && typeof skinNode==="function" ? skinNode(n, theme, doc.customBg||THEMES[theme].bg) : null;
+  if(sk){
+    const fo=skinLabelFont(n, settings.font);
+    parts.push(skinLayersToSVG(sk.layers, n));
+    if(n.shape==="icon"){
+      const s=Math.min(n.w,n.h-26)*.78;
+      parts.push(syms.use(iconURLFor(n.icon, nodeIconTint(n)), n.x-s/2, n.y-n.h/2+4, s));
+    }
+    parts.push(svgLabelLines(n,theme,fo));
+    parts.push("</g>");
+    return parts.filter(Boolean).join("\n");
+  }
   switch(n.shape){
     case "circle":
       parts.push(`<ellipse cx="${n.x}" cy="${n.y}" rx="${(n.w/2).toFixed(2)}" ry="${(n.h/2).toFixed(2)}" fill="${fill}" stroke="${stroke}" stroke-width="2.5"${dash}/>`);
@@ -322,17 +350,23 @@ function renderNodeToSVG(n, theme, syms){
   parts.push("</g>");
   return parts.filter(Boolean).join("\n");
 }
-function renderConnectorToSVG(e, theme){
+function renderConnectorToSVG(e, theme, skinOn){
   const A=nodeById(e.from), B=nodeById(e.to);
   if(!A||!B) return "";
-  const pts=edgePoints(e);
+  let pts=edgePoints(e);
   if(pts.length<2) return "";
+  /* FLUYO-019.1: el mismo aterrizaje que el lienzo (copia; edgePoints no cambia) */
+  if(skinOn && typeof skinEdgeLanding==="function") pts=skinEdgeLanding(pts, inferSide(B, pts[pts.length-1]));
   const T=THEMES[theme];
   const lineCol=escapeAttribute(e.lineColor||T.edge);
   const dash=e.dashed? ' stroke-dasharray="8 7"':"";
   const stroke=edgeStroke(e,pts);
   const parts=[`<path d="${segmentsToSVGPath(stroke.line)}" fill="none" stroke="${lineCol}" stroke-width="${EDGE_W}" stroke-linejoin="round"${dash}/>`];
   for(const h of stroke.heads) parts.push(`<path d="${segmentsToSVGPath(h)}" fill="${lineCol}"/>`);
+  if(skinOn && !e.startArrow && typeof skinEdgePort==="function"){
+    const port=skinEdgePort(pts[0], e.lineColor||T.edge, doc.customBg||T.bg);
+    parts.push(`<path d="${segmentsToSVGPath(port.segs)}" fill="${escapeAttribute(port.fill)}" stroke="${escapeAttribute(port.stroke)}" stroke-width="${port.sw}"/>`);
+  }
   if(e.label){
     const m=labelPointFor(e,pts), efs=edgeLabelFs(e);
     const family=e.font||settings.font||DEFAULT_FONT, bold=!!e.bold;
@@ -343,10 +377,12 @@ function renderConnectorToSVG(e, theme){
   }
   return parts.join("\n");
 }
-function buildSVGDocument(scale=1){
+/* `skin` (FLUYO-019.1): "built" pinta la piel; ausente o cualquier otro valor, el SVG de siempre. */
+function buildSVGDocument(scale=1, skin){
   const {width,height}=getExportDimensions(scale);
   const page=getCurrentPageForExport();
   const theme=doc.theme;
+  const skinOn=typeof skinActive==="function" && skinActive(skin, 1);
   const parts=[
     '<?xml version="1.0" encoding="UTF-8"?>',
     `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${width}" height="${height}" viewBox="0 0 ${W} ${H}">`
@@ -358,20 +394,20 @@ function buildSVGDocument(scale=1){
     const efs=edgeLabelFs(e);
     return {w:svgTextWidth(e.label, efs, e.font||settings.font||DEFAULT_FONT, !!e.bold), h:efs*1.7};
   });
-  for(const e of page.edges||[]) parts.push(renderConnectorToSVG(e,theme));
+  for(const e of page.edges||[]) parts.push(renderConnectorToSVG(e,theme,skinOn));
   /* Los símbolos se recogen dibujando, así que el <defs> con los iconos solo se
      conoce al final. Se inserta después de las conexiones y antes de los nodos en
      vez de al final del documento: un id se resuelve igual esté donde esté, pero un SVG que
      declara antes de usar es el que abren sin quejarse los editores externos. */
   const syms=svgSymbols();
-  const nodos=(page.nodes||[]).map(n=>renderNodeToSVG(n,theme,syms));
+  const nodos=(skinOn? skinPaintOrder(page.nodes||[]) : (page.nodes||[])).map(n=>renderNodeToSVG(n,theme,syms,skinOn));
   const defs=syms.defs();
   if(defs) parts.push(defs);
   parts.push(...nodos, "</svg>");
   return parts.join("\n");
 }
-function exportSVG(scale=1){
-  downloadTextFile(slug()+".svg", buildSVGDocument(scale), "image/svg+xml;charset=utf-8");
+function exportSVG(scale=1, skin){
+  downloadTextFile(slug()+".svg", buildSVGDocument(scale, skin), "image/svg+xml;charset=utf-8");
   trackEvent("diagram_exported",{format:"svg"});
 }
 
@@ -385,7 +421,11 @@ function syncExportRows(){
   $("exHint").style.display = f==="gif" ? "block":"none";
 }
 $("exFmt").onchange=syncExportRows;
-$("btnExport").onclick=()=>{ exModal.style.display="flex"; syncExportRows(); };
+$("btnExport").onclick=()=>{
+  /* FLUYO-019.1: el aspecto de la exportación arranca con el de Present (efímero; nunca sale del documento) */
+  $("exSkin").value = (typeof presentSkin==="string" && presentSkin==="built") ? "built" : "flat";
+  exModal.style.display="flex"; syncExportRows();
+};
 $("exCancel").onclick=()=>exModal.style.display="none";
 function slug(){ return (P().name||"diagrama").toLowerCase().replace(/[^a-z0-9áéíóúñ]+/gi,"-"); }
 
@@ -396,7 +436,7 @@ function slug(){ return (P().name||"diagrama").toLowerCase().replace(/[^a-z0-9á
 function gifEncoderReady(){ return typeof GIF==="function"; }
 
 $("exGo").onclick=()=>{
-  const fmt=$("exFmt").value, scale=+$("exRes").value;
+  const fmt=$("exFmt").value, scale=+$("exRes").value, skin=$("exSkin").value==="built"? "built" : "flat";
   exModal.style.display="none";
   if(P().nodes.length===0){ alert("La página está vacía."); return; }
   if(fmt==="gif" && !gifEncoderReady()){
@@ -409,17 +449,17 @@ $("exGo").onclick=()=>{
   /* FLUYO-018.14a: GIF/PNG/JPG se rasterizan en un lienzo propio, que solo usa las
      webfonts ya cargadas; se espera a las del documento (con tope) antes de pintar.
      El SVG no rasteriza: lleva la pila y quien lo abra usa la reserva si le falta. */
-  if(fmt==="svg"){ exportSVG(scale); return; }
+  if(fmt==="svg"){ exportSVG(scale, skin); return; }
   const tr=$("exTr").checked;
-  waitForRenderFonts(doc).then(()=>{ if(fmt==="gif") exportGIF(scale, tr); else exportStatic(fmt, scale, tr); });
+  waitForRenderFonts(doc).then(()=>{ if(fmt==="gif") exportGIF(scale, tr, skin); else exportStatic(fmt, scale, tr, skin); });
 };
-function exportStatic(fmt,scale,transparent){
+function exportStatic(fmt,scale,transparent,skin){
   const b = getBounds();
   const w=Math.round(b.w*scale), h=Math.round(b.h*scale);
   const off=document.createElement("canvas"); off.width=w; off.height=h;
   const oc=off.getContext("2d");
   oc.save(); oc.scale(scale,scale); oc.translate(-b.x, -b.y);
-  render(oc, now(), {export:true, transparent: fmt==="png"&&transparent, bounds:b, renderState: makeReadOnlyRenderState({width: off.width, height: off.height})});
+  render(oc, now(), {export:true, skin, transparent: fmt==="png"&&transparent, bounds:b, renderState: makeReadOnlyRenderState({width: off.width, height: off.height})});
   oc.restore();
   const mime=fmt==="png"?"image/png":"image/jpeg";
   off.toBlob(blob=>{
@@ -473,7 +513,7 @@ async function getWorker(){
   workerUrl=URL.createObjectURL(new Blob([src],{type:"application/javascript"}));
   return workerUrl;
 }
-async function exportGIF(scale, transparent){
+async function exportGIF(scale, transparent, skin){
   const fps=+$("exFps").value;
   let dur=clamp(+$("exDur").value||3,1,15);
   const bDur=buildDuration();
@@ -502,7 +542,7 @@ async function exportGIF(scale, transparent){
     for(let f=0;f<frames;f++){
       const t=f/fps;
       oc.save(); oc.scale(scale,scale); oc.translate(-b.x, -b.y);
-      render(oc,t, transparent? {export:true, bg:keyCss, bounds:b, renderState: makeReadOnlyRenderState({width: off.width, height: off.height})} : {export:true, bounds:b, renderState: makeReadOnlyRenderState({width: off.width, height: off.height})});
+      render(oc,t, transparent? {export:true, skin, bg:keyCss, bounds:b, renderState: makeReadOnlyRenderState({width: off.width, height: off.height})} : {export:true, skin, bounds:b, renderState: makeReadOnlyRenderState({width: off.width, height: off.height})});
       oc.restore();
       gif.addFrame(off,{copy:true, delay:Math.round(1000/fps)});
       if(f%5===0){

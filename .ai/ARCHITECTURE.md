@@ -602,3 +602,24 @@ UI: #rowArrowSize (Dirección, bajo Puntas) → segOnSelect("arrowSizeSeg","arro
 - **MCP**: `ConnectionSpec`/`ConnectionPatch` (`author_document`: `create_connection`, `update_connection`) y `EdgeSpec` (`create_diagram`, acotado en el schema) llevan `arrowSize`; el kernel (`model.js` resincronizado) lo valida; `describe_document` no cambia (no lista propiedades visuales).
 - `CACHE` v84 (`js/geometry.js`, `js/model.js`, `js/ui.js`, `index.html`). Sin cambios en `render.js`, `export.js`, `interaction.js`, CSS, Historias, Present, el Viewer ni Share.
 - Pruebas: `test/fluyo-018-27.test.cjs` (vm: corpus idéntico a HEAD sin la clave, escala proporcional, puntas, conexión corta, barrido, modelo, carga, clonado, deep link, estáticos, alcance), `test/fluyo-018-27-browser.cjs` (Chrome real d1440/m390: casos A–F medidos en píxeles, zoom, panel, Undo/Redo, teclado, SVG, eliminar/duplicar, Present, Share → Viewer, dedo) y `test/fluyo-018-27-mutations.cjs`. En el MCP: `test/fluyo-018-27.test.ts`, la paridad con cada tamaño (`visual-regression.test.ts`) y `scripts/mutate-018-27.ts`.
+
+## Piel «construido» (2.5D) en Present y exportación (FLUYO-019.1)
+
+```
+documento (sin cambios) → geometry.js (anclas, rutas, etiquetas: sin cambios)
+      → js/skin.js (puro, sin DOM): skinNode(n, theme, bg) → capas {k, segs M/L/Q/A/Z, fill, stroke, sw, dash?, clip?}
+                                    skinEdgeLanding(pts, toSide) → copia de la ruta con la punta posada en la tapa/lateral (n/e, d/2)
+                                    skinEdgePort(p, lineColor, bg) → anillo de salida · skinExtent(n) · skinPaintOrder(nodes) · skinLabelFont(n, globalFont)
+      → render.js: drawSkinLayers (traceSegments) ← Present (viewport.skin = presentSkin) · exportación raster (opts.skin)
+      → export.js: skinLayersToSVG (segmentsToSVGPath) ← buildSVGDocument(scale, skin)
+   editor: render() sin bandera → plano, como siempre      Viewer: no carga skin.js → plano, sin cambios
+```
+
+- **La piel es un argumento de pintado, no un dato.** `render(c,t,{skin})` / `buildSVGDocument(scale, skin)` con `"built"` pintan la piel; ausente o cualquier otro valor, el lienzo y el SVG de siempre, byte a byte (los 8 ejemplos y su raster de exportación se comparan con HEAD en `test/fluyo-019-1-browser.cjs`). `skinActive(skin, zoom)` la apaga por debajo de 3 px de canto en pantalla (zoom < 0,375).
+- **Nada se persiste**: `presentSkin` (`state.js`) es estado de runtime del editor, por defecto `"built"`; no entra en `serializeProject`, ni en el autoguardado, ni en `localStorage`. `model.js`, el kernel, Share, el Viewer y su HTML son idénticos a HEAD. `settings.skin`, Share, Viewer y la paridad con `svg.ts` del MCP quedan para 019.2.
+- **Sistema** (medidas en `skin.js` y en `.ai/tasks/FLUYO-019.md` §4): vector de profundidad constante d = (+8, −8); la cara frontal es exactamente la caja semántica (anclas, rutas, acierto y selección no cambian); tres tonos planos por cara mezclando el color del nodo con el fondo real del lienzo (tema o `customBg`); línea de tinta de 1 px; línea de contacto; LED del color del nodo. `rect` (y formas desconocidas) = bloque; `cylinder` = la geometría de 018.14a con tapa clara y banda lateral; `icon` = glifo plano sobre una peana; `hex`, `diamond`, `circle`, `text`, `code`, `image`, `anim` = planos. Rótulo: `labelLayout` de siempre; la voz pasa a IBM Plex Mono 500 solo si el nodo no trae fuente y la global es la de serie.
+- **Conexiones**: la ruta (`edgePoints`, `laneLayout`, `placeEdgeLabels`) no cambia; el aterrizaje desplaza una COPIA del último vértice (y el penúltimo lo acompaña) cuando entra por n/e con tramo final ortogonal; una recta de dos puntos no se toca. Un anillo de salida en el origen (no con `startArrow`). Los overlays de Historia recortan a `skinExtent` y los cues se apilan sobre la tapa; el Trace no cambia.
+- **Orden de pintor** con la piel: derivado (y ascendente, x descendente), solo para dibujar; el orden Z del documento manda en el acierto.
+- **UI**: `#prSkin` en la barra de Present («Construido» / «Plano», tecla B) y la fila «Aspecto» (`#exSkin`) del diálogo de exportar, que arranca con el de Present y se aplica a los cuatro formatos (todos pasan por `render(..., {export:true})` / `buildSVGDocument`).
+- `CACHE` v85 (`js/skin.js` nuevo; `render.js`, `export.js`, `state.js`, `editor-runtime.js`, `ui.js`, `interaction.js`, `index.html`, `sw.js`).
+- Pruebas: `test/fluyo-019-1.test.cjs` (vm: golden `test/fixtures/fluyo-019-1-skin.json`, pureza, activación, aterrizaje, paridad traceSegments/segmentsToSVGPath, alcance) y `test/fluyo-019-1-browser.cjs` (Chrome real: plano = HEAD byte a byte en SVG, raster y documento; Present construido medido en píxeles; B y botón; zoom; cilindro, icono; exportación y diálogo; Historia; capturas).

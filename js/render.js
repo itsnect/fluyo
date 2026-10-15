@@ -55,25 +55,27 @@ function traceSegments(c,segs){
     else if(s.op==="Z") c.closePath();
   }
 }
-function objFont(o,fs){
-  const fam=(o&&o.font)||settings.font||"Georgia, serif";
-  return `${o&&o.bold?"bold ":""}${fs}px ${fam}`;
+/* `fo` (FLUYO-019.1): voz propuesta por la piel ({family, weight}); nunca pisa la fuente del nodo ni la negrita. */
+function objFont(o,fs,fo){
+  const fam=(fo&&fo.family)||(o&&o.font)||settings.font||"Georgia, serif";
+  const weight=o&&o.bold? "bold " : (fo&&fo.weight? fo.weight+" " : "");
+  return `${weight}${fs}px ${fam}`;
 }
 /* Medidor para el lienzo. Toca c.font, que quien dibuja vuelve a fijar antes de
    escribir nada, así que el efecto secundario no se ve. */
-function measureNodeLabel(c,n){
+function measureNodeLabel(c,n,fo){
   const lines=String(n.label==null?"":n.label).split("\n");
-  return fs=>{ c.font=objFont(n,fs); return Math.max(...lines.map(l=>c.measureText(l).width),1); };
+  return fs=>{ c.font=objFont(n,fs,fo); return Math.max(...lines.map(l=>c.measureText(l).width),1); };
 }
-function drawLabelLines(c,n,theme,editing){
+function drawLabelLines(c,n,theme,editing,fo){
   const T=THEMES[theme];
   /* Mientras se edita, el texto lo pinta el textarea transparente que hay encima.
      Dibujarlo también aquí deja dos copias desplazadas medio píxel, que se ve
      peor que el recuadro opaco que esto viene a quitar. */
   if(editing===n) return;
-  const L=labelLayout(n, measureNodeLabel(c,n));
+  const L=labelLayout(n, measureNodeLabel(c,n,fo));
   const {lines, fs, lh, tx, align, baseY}=L;
-  c.font=objFont(n,fs);
+  c.font=objFont(n,fs,fo);
   // fondo del texto (rectángulo tipo caja)
   if(n.textBg){
     const maxW=Math.max(...lines.map(l=>c.measureText(l).width),1);
@@ -101,6 +103,28 @@ function borderDash(n,c){
   if(n.border==="dashed") c.setLineDash([9,7]);
   else if(n.border==="dotted") c.setLineDash([2,5]);
   else c.setLineDash([]);
+}
+/* ===================== Piel «construido» (FLUYO-019.1) =====================
+   Las capas salen de js/skin.js como segmentos; aquí solo se recorren. El pulso
+   (glow) se aplica a la cara frontal, como al contorno de una forma plana. */
+function drawSkinLayers(c,layers,n,glow){
+  for(const L of layers){
+    c.save();
+    if(L.clip){ c.beginPath(); traceSegments(c,L.clip); c.clip(); }
+    if(glow>0 && (L.k==="front"||L.k==="body")){ c.shadowColor=n.color; c.shadowBlur=18*glow; }
+    c.beginPath(); traceSegments(c,L.segs);
+    if(L.fill && L.fill!=="none"){ c.fillStyle=L.fill; c.fill(); }
+    if(L.stroke){ c.strokeStyle=L.stroke; c.lineWidth=L.sw||1; c.setLineDash(L.dash||[]); c.lineJoin="round"; c.stroke(); }
+    c.restore();
+  }
+}
+/* Recorte de los overlays de Historia: con la piel, la envolvente (caja + caras);
+   sin ella, la forma de siempre. Devuelve la caja que hay que rellenar. */
+function nodeOverlayClip(c,n,rs){
+  const X=rs && rs.skinOn && typeof skinExtent==="function" ? skinExtent(n) : null;
+  if(X){ c.beginPath(); c.rect(X.x0-2,X.y0-2,X.x1-X.x0+4,X.y1-X.y0+4); c.clip(); return [X.x0-2, X.y0-2, X.x1-X.x0+4, X.y1-X.y0+4]; }
+  shapePath(c,n); c.clip();
+  return [n.x-n.w/2-2, n.y-n.h/2-2, n.w+4, n.h+4];
 }
 function nodeCorners(n){
   return [[n.x-n.w/2-6,n.y-n.h/2-6],[n.x+n.w/2+6,n.y-n.h/2-6],
@@ -362,7 +386,8 @@ function drawScenarioNodeCue(c,n,t,rs){
   if(!stack.length) return;
   const reduced = prefersReducedMotion();
   const measure = (text,font)=>{ c.font = font; return c.measureText(text).width; };
-  const offset = {above:0, below:0};
+  /* con la piel el símbolo y el mensaje arrancan por encima de la tapa, no del borde 2D */
+  const offset = {above: rs.skinOn && typeof skinExtent==="function" && skinExtent(n) ? (n.y-n.h/2)-skinExtent(n).y0 : 0, below:0};
   for(const cue of stack){
     const layout = computeNodeCueLayout(n, cue.fx, cue.token, measure, offset);
     offset.above = layout.extent.above; offset.below = layout.extent.below;
@@ -394,8 +419,8 @@ function drawScenarioNodeOverlay(c,n,t,state,theme,rs){
   const reduced = prefersReducedMotion();
   const box = [n.x-n.w/2-2, n.y-n.h/2-2, n.w+4, n.h+4];
   if(isDown){
-    c.save(); shapePath(c,n); c.clip();
-    c.fillStyle = "rgba(0,0,0,0.26)"; c.fillRect(...box);
+    c.save(); const b=nodeOverlayClip(c,n,rs);
+    c.fillStyle = "rgba(0,0,0,0.26)"; c.fillRect(...b);
     c.restore();
   }
   for(const q of cues){
@@ -405,13 +430,13 @@ function drawScenarioNodeOverlay(c,n,t,state,theme,rs){
     c.save();
     c.globalAlpha = q.alpha * blink;
     if(fx.fillColor){
-      c.save(); shapePath(c,n); c.clip();
-      c.fillStyle = hexA(fx.fillColor, 0.38); c.fillRect(...box);
+      c.save(); const b=nodeOverlayClip(c,n,rs);
+      c.fillStyle = hexA(fx.fillColor, 0.38); c.fillRect(...b);
       c.restore();
     }
     if(fx.dim){
-      c.save(); shapePath(c,n); c.clip();
-      c.fillStyle = "rgba(0,0,0,0.30)"; c.fillRect(...box);
+      c.save(); const b=nodeOverlayClip(c,n,rs);
+      c.fillStyle = "rgba(0,0,0,0.30)"; c.fillRect(...b);
       c.restore();
     }
     if(fx.highlight || (fx.blink && !fx.fillColor && !fx.dim)){
@@ -457,7 +482,23 @@ function drawNode(c,n,t,theme,isExport,rs){
   if(n.pulse) glow=(Math.sin(t*2*Math.PI*Math.max(.3,settings.speed)*2)+1)/2;
   const T=THEMES[theme];
 
-  if(n.shape==="image" && n.img){
+  /* FLUYO-019.1: con la piel activa (Present / exportación), las formas con piel se
+     pintan por capas; el glifo del icono y el rótulo siguen siendo los de siempre. */
+  const sk=rs.skinOn && typeof skinNode==="function" ? skinNode(n,theme,rs.skinBg) : null;
+  if(sk){
+    const fo=skinLabelFont(n, settings.font);
+    drawSkinLayers(c,sk.layers,n,glow);
+    if(n.shape==="icon"){
+      const im=getImg(iconURLFor(n.icon, nodeIconTint(n)));
+      const s=Math.min(n.w,n.h-26)*.78;
+      if(glow>0){c.shadowColor=n.color; c.shadowBlur=18*glow;}   /* el pulso sigue rodeando el glifo, como sin piel */
+      if(im.complete && im.naturalWidth) c.drawImage(im, n.x-s/2, n.y-n.h/2+4, s, s);
+      c.shadowBlur=0;
+      if(n.label) drawLabelLines(c,n,theme,rs.interaction.editing,fo);
+    }
+    else drawLabelLines(c,n,theme,rs.interaction.editing,fo);
+  }
+  else if(n.shape==="image" && n.img){
     const im=getImg(n.img);
     if(im.complete && im.naturalWidth){
       if(glow>0){c.shadowColor=n.color; c.shadowBlur=20*glow;}   // como el resto de formas (FLUYO-018.15)
@@ -824,7 +865,9 @@ function drawScenarioEdgeOverlay(c,e,pts,active,completed,theme,rs){
 function drawEdge(c,e,t,theme,isExport,rs){
   const A=nodeById(e.from), B=nodeById(e.to); if(!A||!B) return;
   const a=Math.min(nodeAlpha(A,t),nodeAlpha(B,t)); if(a<=0) return;
-  const pts=edgePoints(e); if(pts.length<2) return;
+  let pts=edgePoints(e); if(pts.length<2) return;
+  /* FLUYO-019.1: con la piel la punta se posa en la cara visible (copia; la ruta del documento no cambia) */
+  if(rs.skinOn && typeof skinEdgeLanding==="function") pts=skinEdgeLanding(pts, inferSide(B, pts[pts.length-1]));
   const T=THEMES[theme];
   const seld=!isExport && rs.selection.edges.has(e.id);
   const single=!isExport && (()=>{ const s=rs.selection.single; return s && s.type==="edge" && s.obj && s.obj.id===e.id; })();
@@ -848,6 +891,12 @@ function drawEdge(c,e,t,theme,isExport,rs){
   c.stroke(); c.setLineDash([]);
   c.fillStyle=lineCol;
   for(const h of stroke.heads){ c.beginPath(); traceSegments(c,h); c.fill(); }
+  /* FLUYO-019.1: anillo de salida (no si hay punta de inicio: ya ocupa ese sitio) */
+  if(rs.skinOn && !e.startArrow && typeof skinEdgePort==="function"){
+    const port=skinEdgePort(pts[0], lineCol, rs.skinBg);
+    c.beginPath(); traceSegments(c,port.segs);
+    c.fillStyle=port.fill; c.fill(); c.strokeStyle=port.stroke; c.lineWidth=port.sw; c.stroke();
+  }
   /* con la pelota única los puntos por flecha se apagan: si no, se verían las
      dos animaciones a la vez sobre la misma línea */
   /* Durante Scenario playback se suprime el flujo decorativo para no competir
@@ -1059,6 +1108,12 @@ function render(c,t,opts={}){
   const rs=opts.renderState;
   const theme=doc.theme, T=THEMES[theme];
   const isExport=!!opts.export;
+  /* FLUYO-019.1: la piel es un argumento de pintado (opts.skin en exportación,
+     viewport.skin en Present); sin skin.js cargado (Viewer) o sin bandera, todo es plano. */
+  const skinZoom=isExport? 1 : ((rs.viewport&&rs.viewport.zoom)||1);
+  rs.skinOn=typeof skinActive==="function" && skinActive(opts.skin!==undefined? opts.skin : (rs.viewport&&rs.viewport.skin), skinZoom);
+  rs.skinBg=doc.customBg||T.bg;
+  const nodesInPaintOrder=()=> rs.skinOn ? skinPaintOrder(P().nodes) : P().nodes;
 
   if(isExport){
     const b = opts.bounds || getBounds();
@@ -1076,7 +1131,7 @@ function render(c,t,opts={}){
     edgeLabelPos=placeEdgeLabels(measureCanvasLabel(c));
     for(const e of P().edges) drawEdge(c,e,t,theme,isExport,rs);
     drawFlowBalls(c,t);
-    for(const n of P().nodes) drawNode(c,n,t,theme,isExport,rs);
+    for(const n of nodesInPaintOrder()) drawNode(c,n,t,theme,isExport,rs);
     return;
   }
 
@@ -1111,7 +1166,7 @@ function render(c,t,opts={}){
   refreshEdgeLabels(measureCanvasLabel(c));
   for(const e of P().edges) drawEdge(c,e,t,theme,isExport,rs);
   if(!rs.scenarioRuntime) drawFlowBalls(c,t);
-  for(const n of P().nodes) drawNode(c,n,t,theme,isExport,rs);
+  for(const n of nodesInPaintOrder()) drawNode(c,n,t,theme,isExport,rs);
   /* Z-order de Scenarios: base → fill/dim/highlight (drawNode) → conexiones y tokens
      → símbolo/mensaje del cue → UI de selección/interacción. */
   if(rs.scenarioRuntime) for(const n of P().nodes) drawScenarioNodeCue(c,n,t,rs);

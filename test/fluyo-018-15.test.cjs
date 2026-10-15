@@ -164,6 +164,6 @@ test("fixture compartido con fluyo-mcp: idéntico si el repo hermano está al la
 
 test("sw.js: CACHE v74 (cambian config, model, render, ui, interaction y styles, todos ya precacheados)", () => {
   const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v84";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v85";/);
   for (const f of ["./js/config.js", "./js/model.js", "./js/render.js", "./js/ui.js", "./js/interaction.js", "./css/styles.css"]) assert.ok(sw.includes('"' + f + '"'), f + " precacheado");
 });

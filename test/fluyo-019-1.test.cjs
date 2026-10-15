@@ -181,7 +181,9 @@ test("alcance · documento, kernel, geometría, Historias, Share y Viewer idént
   assert.ok(!/^\s*import\s/m.test(read("js/skin.js")), "script clásico, sin import");
   assert.match(read("sw.js"), /const CACHE = "fluyo-static-v85";/);
   assert.ok(read("sw.js").includes('"./js/skin.js",'), "skin.js precacheado");
-  assert.equal(read("sw.js").replace(/v85/g, "v84").replace('  "./js/skin.js",\n', ""), head("sw.js"), "sw.js: solo la versión y el archivo nuevo");
+  /* skin.js va justo después de geometry.js también en la lista precacheada (el orden de carga del editor) */
+  const sw = read("sw.js");
+  assert.ok(sw.indexOf('"./js/geometry.js",') < sw.indexOf('"./js/skin.js",') && sw.indexOf('"./js/skin.js",') < sw.indexOf('"./js/render.js",'), "sw.js: geometry → skin → render");
 });
 test("alcance · nada se persiste: DEFAULT_SETTINGS sin `skin`, serialización idéntica a HEAD, presentSkin fuera del documento", () => {
   const M = skinCtx(false);

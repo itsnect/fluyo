@@ -1,7 +1,7 @@
 # FLUYO-019.1 — Piel B 2.5D en Present y exportación (validación visual)
 
-Estado: **READY FOR COMMIT** — implementado el 15 de octubre de 2026 con el alcance reformulado por el owner (abajo). Sin commit, push ni deploy. Handoff al final.
-Owner/agente actual: libre (pendiente de revisión visual del owner y de su commit).
+Estado: **DONE — commiteado el 15 de octubre de 2026 (`6b80905`), capturas aprobadas por el owner.** Sin push ni deploy (pendientes del owner). READY para el siguiente paso (019.2). Handoff al final.
+Owner/agente actual: libre.
 
 > Esta tarea es la **fuente de verdad** de su trabajo. Repo público: solo contenido técnico del proyecto open source.
 > Base: `FLUYO-019.md` (diagnóstico, sistema visual §4, riesgos §7, prototipo y capturas). Aquí no se repiten las medidas: se enlazan.

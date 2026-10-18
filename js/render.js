@@ -678,6 +678,17 @@ function pathGeometry(path, cache){
   }
   return {segs, total};
 }
+/* FLUYO-019-FLOW-FADE: la pelota se apaga al llegar a CADA nodo, no solo al final
+   del camino. s es la distancia recorrida dentro de la conexión en curso y L su
+   longitud: nace con α 0 en su ancla de salida, sube en FLOW_FADE_PX px de mundo y
+   baja hasta 0 en su ancla de llegada. Así el salto entre el ancla de llegada de
+   una conexión y el ancla de salida de la siguiente queda en α 0 y no se ve. La
+   ventana se acota a L/2 para que una conexión corta también se vea entera. */
+const FLOW_FADE_PX=35;
+function flowBallFade(s,L){
+  const W=Math.min(FLOW_FADE_PX, L/2);
+  return clamp(Math.min(s, L-s)/W, 0, 1);
+}
 function drawFlowBalls(c,t){
   if(!settings.single) return;
   let f=(t*settings.speed)%1; if(f<0) f+=1;
@@ -694,7 +705,8 @@ function drawFlowBalls(c,t){
       if(d>g.total) continue;                    // esta rama ya llegó al final
       let seg=g.segs[g.segs.length-1];
       for(const s of g.segs){ if(d<=s.start+s.L){ seg=s; break; } }
-      const p=pointAt(seg.pts, clamp((d-seg.start)/seg.L,0,1));
+      const s=clamp(d-seg.start,0,seg.L);
+      const p=pointAt(seg.pts, s/seg.L);
       /* dos caminos que aún comparten tramo dan el mismo punto: se dibuja una
          vez, si no el halo se sumaría consigo mismo y esa parte del recorrido
          se vería más brillante que el resto */
@@ -706,8 +718,8 @@ function drawFlowBalls(c,t){
          todavía no se ve quedaría flotando en el vacío */
       const a=Math.min(nodeAlpha(A,t), nodeAlpha(B,t));
       if(a<=0) continue;
-      // nace en el nodo de origen y se apaga al llegar al final de SU camino
-      const fade=clamp(Math.min(d, g.total-d)/(D*.125), 0, 1);
+      // se enciende al salir de cada nodo y se apaga al llegar al siguiente (por conexión)
+      const fade=flowBallFade(s, seg.L);
       c.save();
       c.fillStyle=seg.e.dotColor||A.color||"#d08b5b";
       c.globalAlpha=a*fade;

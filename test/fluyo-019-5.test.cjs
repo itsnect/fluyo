@@ -173,6 +173,6 @@ test("alcance · kernel (model, config, motor, playback, integridad, autoría), 
   const changed = execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BEFORE, "--", "js", "s", "css", "index.html", "sw.js", "manifest.webmanifest"], { encoding: "utf8" })
     .split("\n").filter(Boolean).sort();
   assert.deepEqual(changed, ["js/export.js", "js/geometry.js", "js/render.js", "sw.js"]);
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v88";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v89";/);
   for (const f of ["./js/geometry.js", "./js/render.js", "./js/export.js"]) assert.ok(read("sw.js").includes(`"${f}"`) || read("sw.js").includes(`'${f}'`) || read("sw.js").includes(f.slice(1)), "precacheado: " + f);
 });

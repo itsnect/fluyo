@@ -10,7 +10,7 @@
      normal y en Present; un share plano da en el Viewer el mismo lienzo que el Viewer de HEAD; el Viewer de HEAD (sin skin.js)
      abre un share construido plano y sin errores; «Abrir en Fluyo» entra con la piel.
    · Historia con la piel en Present y en el Viewer: mismo Trace, 0 errores.
-   · Service worker: con la versión anterior instalada (b534a97, v87), el árbol nuevo activa la siguiente (v88) (skipWaiting + claim) y el Viewer pasa a pintar construido.
+   · Service worker: con la versión anterior instalada (266ac09, v88), el árbol nuevo activa la siguiente (v89) (skipWaiting + claim) y el Viewer pasa a pintar construido.
    Capturas: FLUYO_SHOTS=<dir>. FLUYO_QUICK=1 (mutaciones): corpus corto, sin móvil, sin Historia, sin service worker.
    Uso: node test/fluyo-019-2-browser.cjs   (Playwright vía NODE_PATH; FLUYO_BROWSER=chrome) */
 let chromium;
@@ -140,9 +140,9 @@ async function shot(page, name) { await page.mouse.move(2, 2); await frame(page)
 async function main() {
   const t0 = Date.now();
   const head = headTree();
-  /* smoke del service worker: la versión anterior es una revisión FIJA (b534a97, CACHE v87) y no HEAD, para que siga valiendo
-     después de commitear la v88 (FLUYO-019.5) */
-  const swPrev = headTree("b534a97");
+  /* smoke del service worker: la versión anterior es una revisión FIJA (266ac09, CACHE v88; antes b534a97) y no HEAD, para que siga valiendo
+     después de commitear la v89 (FLUYO-019-FLOW-FADE) */
+  const swPrev = headTree("266ac09");
   /* El «Viewer anterior» (sin skin.js) es una revisión FIJA, la última de 019.1 (v85): desde que 019.2 está commiteada, HEAD
      ya carga skin.js y no sirve para eso (FLUYO-019.3). */
   const pre = headTree("2000360");
@@ -341,7 +341,7 @@ async function main() {
       check(st.story && st.skin === "built" && st.vp === "built" && sv.errors.length === 0, `Historia en el Viewer con la piel: transporte visible, reproduce, 0 errores (${sv.errors.join(" | ")})`);
       await sv.ctx.close();
 
-      console.log(`\n── Service worker: de v87 (b534a97) a v88 — el Viewer pasa a pintar construido`);
+      console.log(`\n── Service worker: de v88 (266ac09) a v89 — el Viewer pasa a pintar construido`);
       const sw = await serve(swPrev);
       const ctx = await browser.newContext({ viewport: { width: vp.width, height: vp.height }, deviceScaleFactor: 1 });
       await ctx.route((u) => !u.href.startsWith(sw.base), (r) => r.fulfill({ status: 200, contentType: "application/javascript", body: "" }));
@@ -360,23 +360,23 @@ async function main() {
            borraría la caché nueva a medio llenar */
         const activated = () => until(async () => { const r = await navigator.serviceWorker.getRegistration(); return !!r && !r.installing && !r.waiting && !!r.active && r.active.state === "activated"; }, null, "worker activado");
         await pg.evaluate(async () => { await navigator.serviceWorker.ready; });
-        await installed("fluyo-static-v87"); await activated();
-        check(true, "b534a97 servido: caché fluyo-static-v87 instalada y worker activado");
+        await installed("fluyo-static-v88"); await activated();
+        check(true, "266ac09 servido: caché fluyo-static-v88 instalada y worker activado");
         sw.state.dir = root;
         await pg.evaluate(async () => { const r = await navigator.serviceWorker.getRegistration(); await r.update(); });
-        await installed("fluyo-static-v88"); await activated();
-        await until(async () => !(await caches.keys()).includes("fluyo-static-v87"), null, "v87 borrada");
-        const after = await pg.evaluate(async () => { const r = await navigator.serviceWorker.getRegistration(); const c = await caches.open("fluyo-static-v88"); return { state: r.active.state, entries: (await c.keys()).length, keys: await caches.keys() }; });
-        check(after.state === "activated" && after.entries >= 50 && after.keys.join() === "fluyo-static-v88", `árbol nuevo: v88 instalada (${after.entries} entradas) y activada (skipWaiting + claim), v87 borrada`);
+        await installed("fluyo-static-v89"); await activated();
+        await until(async () => !(await caches.keys()).includes("fluyo-static-v88"), null, "v88 borrada");
+        const after = await pg.evaluate(async () => { const r = await navigator.serviceWorker.getRegistration(); const c = await caches.open("fluyo-static-v89"); return { state: r.active.state, entries: (await c.keys()).length, keys: await caches.keys() }; });
+        check(after.state === "activated" && after.entries >= 50 && after.keys.join() === "fluyo-static-v89", `árbol nuevo: v89 instalada (${after.entries} entradas) y activada (skipWaiting + claim), v88 borrada`);
         await pg.close();
         const vw = await ctx.newPage(), errs = [];
         vw.on("pageerror", (e) => errs.push(e.message));
         await vw.goto(sw.base + "/s/#d=" + payloads.crema.built); await vw.waitForFunction(() => window.__viewer && window.__viewer.phase === "ready");
         await vw.evaluate(VIEWER_HELPERS); await vw.evaluate(() => __v.frame());
-        const fromSW = await vw.evaluate(async () => { const c = await caches.open("fluyo-static-v88"); return !!(await c.match(location.origin + "/js/skin.js")); });
+        const fromSW = await vw.evaluate(async () => { const c = await caches.open("fluyo-static-v89"); return !!(await c.match(location.origin + "/js/skin.js")); });
         const vtp = await vw.evaluate((id) => __v.top(id), ids.w1);
         const tone = await vw.evaluate((id) => __v.hex(skinTones(nodeById(id).color, doc.theme, __v.bg()).top), ids.w1);
-        check(fromSW && (await vw.evaluate(() => typeof skinNode)) === "function" && await vw.evaluate(([p, c]) => __v.near(__v.px(p), c), [vtp, tone]) && errs.length === 0, "tras el upgrade, el Viewer sirve skin.js desde la caché v88 y pinta construido");
+        check(fromSW && (await vw.evaluate(() => typeof skinNode)) === "function" && await vw.evaluate(([p, c]) => __v.near(__v.px(p), c), [vtp, tone]) && errs.length === 0, "tras el upgrade, el Viewer sirve skin.js desde la caché v89 y pinta construido");
       } finally { await ctx.close(); sw.server.close(); }
     }
 

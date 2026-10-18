@@ -55,7 +55,7 @@ test("README.md: nombra las 15 tools y no edit_diagram", () => {
 
 test("sw.js: CACHE v72 y ./docs/ en el precache de páginas (PAGE_ASSETS)", () => {
   const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v88";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v89";/);
   const pages = /const PAGE_ASSETS = \[([\s\S]*?)\];/.exec(sw)[1];
   assert.ok(pages.includes('"./docs/"'), "./docs/ debe seguir en el precache de páginas");
   assert.match(sw, /cache\.addAll\(PAGE_ASSETS\)/, "y ese precache se instala");

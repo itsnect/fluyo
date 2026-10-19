@@ -720,3 +720,36 @@ documento: settings.skin ("built" | ausente = plano; model.js SKIN_VALUES, proje
   - `test/fluyo-019-4a-mutations.cjs`.
   - `test/fluyo-019-4a-undo.cjs`: deshace 019.4a en los tests de alcance de slices anteriores.
   - Goldens: la sección `landing` de `fluyo-019-1-skin.json` (ahora con el destino: `{in, out}` por pieza y caso), `fluyo-019-2-skin-svg.json` y `fluyo-019-d6-capas-svg.json`.
+
+## Semántica de conexiones (SCENARIOS-SEMANTICS-001, FASE 1)
+
+```
+documento: edge.kind  (opcional; "FLOWS_TO" | "REQUIRES"; ausente = Conexión; texto desconocido se conserva)   model.js (kernel)
+  edgeKind(e) → FLOWS_TO | REQUIRES | GENERIC (solo lectura) · EDGE_KINDS · authoringKind (autoría: lista cerrada o null)
+editor:   ?labs=escenarios → LABS_SEMANTICS (ui.js) → #rowKind / #kindSeg en «Trazo» → pushUndo + editEdge(e,{kind}) → updateConnectionIn
+          W5: #kindNote (flowArrowReversed / syncKindNote) — aviso si la punta visible de un Flujo apunta al revés; solo lee
+lienzo:   edgeSemanticMarks(e, pts) (geometry.js) → drawEdgeSemanticMarks (render.js, dentro de drawEdge; no al exportar)
+          editor · Present · Viewer (sin bandera)            exportación y export_diagram: FASE 5
+```
+
+- Registro de decisiones: `.ai/architecture/SCENARIO-SEMANTICS-001.md` (aceptado); tarea: `.ai/tasks/FLUYO-SCENARIOS-SEMANTICS-001.md`. Decisiones 214–222.
+- Copiar/pegar, duplicar (`cloneStructureIn`), Undo, autoguardado, archivo, `#d=`, Share y «Añadir como página» transportan `kind` sin código propio (copian la conexión entera).
+- UNKNOWN sigue fuera del kernel (D3): `SCENARIO_STATES` y `VALID_STATES` solo admiten `UP`/`DOWN`.
+- `CACHE` v94 sobre `main` `0409f4d` (v93); en la línea reconstruida sobre `ce8e699` era la v92. Cambian `model.js`, `geometry.js`, `render.js`, `ui.js`, `index.html` y `css/styles.css`; sin archivos nuevos. Kernel del MCP resincronizado; sin cambios en sus schemas.
+- Pruebas: `test/fluyo-scenarios-semantics-1.test.cjs` (vm: modelo, corpus = `0409f4d`, autoría, clonado, `#d=`, bandera, selector con Undo/Redo del editor real, W5, marcas, alcance) y `test/fluyo-scenarios-semantics-1-mutations.cjs` (26 mutaciones).
+- Línea histórica: `feat/scenario-semantics` (`4fb5872`, sobre `d31703e`) es la primera implementación de FASE 1; `59588a9` (sobre `ce8e699`) es su reaplicación limpia, reintegrada sobre `0409f4d` junto con FASE 2. Los tests de alcance de slices anteriores descuentan FASE 1 con `test/fluyo-scenarios-semantics-undo.cjs` (decisión 218).
+
+## Derivación de la disponibilidad de un flujo (SCENARIOS-SEMANTICS-001, FASE 2)
+
+```
+js/flow-semantics.js (FluyoFlow, puro; depende de edgeKind de model.js; la app aún NO lo carga → sin CACHE ni sync del MCP)
+  availabilityAt(page, events, t)                → {id: UP|DOWN}       Behaviors + state_changed del Trace con at ≤ t
+  flowStatus(page, source, target, states)       → AVAILABLE | UNAVAILABLE | NO_PATH   (G = FLOWS_TO; BFS, O(V+E), sin tope)
+  availabilityProvenance(page, steps, t, timeOf) → {id: EXPLICIT|DEFAULT}  Behavior o SET_STATE (aunque no cambie) con timeOf ≤ t
+  flowAvailability(…, states, provenance)        → {status, explicitPath}  explicitPath: camino AVAILABLE todo EXPLICIT (o null)
+```
+
+- Decisiones 223–225; contrato congelado en `.ai/tasks/FLUYO-SCENARIOS-SEMANTICS-001.md` § FASE 2. UNKNOWN reservado y rechazado (`invalid_availability`).
+- FASE 3 lo cablea: el editor lo carga (`<script>`, precache y CACHE) y le pasa el Trace visible y `FluyoStoryClock.visibleAt`.
+- Pruebas: `test/fluyo-scenarios-semantics-2.test.cjs` (vm, 33: M1–M6 con > 64 caminos, ciclos, aislamiento, `source == target`, estado, procedencia, equivalencia con el motor, errores, determinismo y 600 grafos aleatorios contra un oráculo de caminos simples) y `test/fluyo-scenarios-semantics-2-mutations.cjs` (18).
+- Línea histórica: `94e50fa` (sobre `4fb5872`); reaplicado sobre la FASE 1 reconstruida (`59588a9`, `ca08fc1`) con la misma lógica y reintegrado sobre `0409f4d` sin cambios.

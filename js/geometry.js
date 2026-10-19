@@ -658,6 +658,47 @@ function edgeStroke(e, pts){
   out.line.push({op:"L", x:line[n-1].x, y:line[n-1].y});
   return out;
 }
+/* ===================== Marcas de semántica de una conexión (SCENARIOS-SEMANTICS-001) =====================
+   Significado del DIAGRAMA, no comportamiento: se pintan siempre que la conexión tenga `kind`, en cualquier instante, y
+   nunca cambian con el estado de nadie (el Requisito no propaga). Geometría pura, en px de mundo, sobre la misma ruta que
+   el trazo (`pts`, ya con el aterrizaje de la piel si lo hay). Sin `kind` → null: el lienzo de siempre.
+   · Flujo: dos cuñas pequeñas en el centro del tramo más largo, en el sentido from → to (las puntas visibles no cuentan).
+   · Requisito: un anillo sobre la línea, cerca del extremo que requiere (origen), detrás de la punta de inicio si la hay.
+     No usa el discontinuo: `dashed` es un estilo del usuario y una Conexión discontinua no debe parecer un Requisito. */
+const SEM_CHEVRON=4.2, SEM_CHEVRON_GAP=3.5, SEM_CHEVRON_MIN_SEG=28, SEM_RING_R=4.2, SEM_RING_OFFSET=10;
+function edgeSemanticMarks(e, pts){
+  const kind=edgeKind(e);
+  if(kind===EDGE_KIND_GENERIC || !pts || pts.length<2) return null;
+  if(kind==="FLOWS_TO"){
+    /* tramos visibles: una ruta ortogonal trae vértices sin giro (pasillos, 018.25); se unen antes de elegir el más largo */
+    let best=0, a=null, b=null;
+    for(let i=0;i<pts.length-1;){
+      let j=i+1;
+      const dx=pts[j].x-pts[i].x, dy=pts[j].y-pts[i].y;
+      if(!dx && !dy){ i=j; continue; }            // punto repetido: no define dirección
+      while(j<pts.length-1){
+        const ex=pts[j+1].x-pts[j].x, ey=pts[j+1].y-pts[j].y;
+        if(Math.abs(dx*ey-dy*ex)>1e-6 || dx*ex+dy*ey<0) break;
+        j++;
+      }
+      const L=Math.hypot(pts[j].x-pts[i].x, pts[j].y-pts[i].y);
+      if(L>best){ best=L; a=pts[i]; b=pts[j]; }
+      i=j;
+    }
+    if(best<SEM_CHEVRON_MIN_SEG) return {kind, chevrons:[]};
+    const ux=(b.x-a.x)/best, uy=(b.y-a.y)/best, mx=(a.x+b.x)/2, my=(a.y+b.y)/2, s=SEM_CHEVRON;
+    const chevrons=[-SEM_CHEVRON_GAP, SEM_CHEVRON_GAP].map(off=>{
+      const cx=mx+ux*off, cy=my+uy*off;
+      return [{op:"M", x:cx-ux*s+uy*s, y:cy-uy*s-ux*s}, {op:"L", x:cx, y:cy}, {op:"L", x:cx-ux*s-uy*s, y:cy-uy*s+ux*s}];
+    });
+    return {kind, chevrons};
+  }
+  const L=polyLen(pts);
+  const behindHead=e.startArrow ? EDGE_GAP + EDGE_HEAD_LEN*edgeArrowSize(e) : 0;
+  const d=Math.min(behindHead + SEM_RING_OFFSET, L/3);
+  const p=L>0 ? pointAt(pts, d/L) : pts[0];
+  return {kind, ring:{x:p.x, y:p.y, r:SEM_RING_R}};
+}
 /* ===================== Puerto de conectar (FLUYO-018.16) =====================
    Sustituye a las cuatro flechas de bloque «estilo draw.io». Con ratón aparece UN
    puerto, en el lado del nodo que mira al cursor, a CONNECT_PORT_OFF px de PANTALLA

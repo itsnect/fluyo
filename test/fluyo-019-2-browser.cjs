@@ -10,7 +10,7 @@
      normal y en Present; un share plano da en el Viewer el mismo lienzo que el Viewer de HEAD; el Viewer de HEAD (sin skin.js)
      abre un share construido plano y sin errores; «Abrir en Fluyo» entra con la piel.
    · Historia con la piel en Present y en el Viewer: mismo Trace, 0 errores.
-   · Service worker: con la versión anterior instalada (22f82eb, v92), el árbol nuevo activa la siguiente (v93) (skipWaiting + claim) y el Viewer pasa a pintar construido.
+   · Service worker: con la versión anterior instalada (0409f4d, v93), el árbol nuevo activa la siguiente (v94) (skipWaiting + claim) y el Viewer pasa a pintar construido.
    Capturas: FLUYO_SHOTS=<dir>. FLUYO_QUICK=1 (mutaciones): corpus corto, sin móvil, sin Historia, sin service worker.
    Uso: node test/fluyo-019-2-browser.cjs   (Playwright vía NODE_PATH; FLUYO_BROWSER=chrome) */
 let chromium;
@@ -140,9 +140,9 @@ async function shot(page, name) { await page.mouse.move(2, 2); await frame(page)
 async function main() {
   const t0 = Date.now();
   const head = headTree();
-  /* smoke del service worker: la versión anterior es una revisión FIJA (22f82eb, CACHE v92; antes d4fb06d, ce8e699, d31703e, 266ac09 y b534a97) y no HEAD, para que siga valiendo
-     después de commitear la v93 (FLUYO-019.4a) */
-  const swPrev = headTree("22f82eb");
+  /* smoke del service worker: la versión anterior es una revisión FIJA (0409f4d, CACHE v93; antes 22f82eb, d4fb06d, ce8e699, d31703e, 266ac09 y b534a97) y no HEAD, para que siga valiendo
+     después de commitear la v94 (SCENARIOS-SEMANTICS-001) */
+  const swPrev = headTree("0409f4d");
   /* El «Viewer anterior» (sin skin.js) es una revisión FIJA, la última de 019.1 (v85): desde que 019.2 está commiteada, HEAD
      ya carga skin.js y no sirve para eso (FLUYO-019.3). */
   const pre = headTree("2000360");
@@ -341,7 +341,7 @@ async function main() {
       check(st.story && st.skin === "built" && st.vp === "built" && sv.errors.length === 0, `Historia en el Viewer con la piel: transporte visible, reproduce, 0 errores (${sv.errors.join(" | ")})`);
       await sv.ctx.close();
 
-      console.log(`\n── Service worker: de v92 (22f82eb) a v93 — el Viewer pasa a pintar construido`);
+      console.log(`\n── Service worker: de v93 (0409f4d) a v94 — el Viewer pasa a pintar construido`);
       const sw = await serve(swPrev);
       const ctx = await browser.newContext({ viewport: { width: vp.width, height: vp.height }, deviceScaleFactor: 1 });
       await ctx.route((u) => !u.href.startsWith(sw.base), (r) => r.fulfill({ status: 200, contentType: "application/javascript", body: "" }));
@@ -360,23 +360,23 @@ async function main() {
            borraría la caché nueva a medio llenar */
         const activated = () => until(async () => { const r = await navigator.serviceWorker.getRegistration(); return !!r && !r.installing && !r.waiting && !!r.active && r.active.state === "activated"; }, null, "worker activado");
         await pg.evaluate(async () => { await navigator.serviceWorker.ready; });
-        await installed("fluyo-static-v92"); await activated();
-        check(true, "22f82eb servido: caché fluyo-static-v92 instalada y worker activado");
+        await installed("fluyo-static-v93"); await activated();
+        check(true, "0409f4d servido: caché fluyo-static-v93 instalada y worker activado");
         sw.state.dir = root;
         await pg.evaluate(async () => { const r = await navigator.serviceWorker.getRegistration(); await r.update(); });
-        await installed("fluyo-static-v93"); await activated();
-        await until(async () => !(await caches.keys()).includes("fluyo-static-v92"), null, "v92 borrada");
-        const after = await pg.evaluate(async () => { const r = await navigator.serviceWorker.getRegistration(); const c = await caches.open("fluyo-static-v93"); return { state: r.active.state, entries: (await c.keys()).length, keys: await caches.keys() }; });
-        check(after.state === "activated" && after.entries >= 50 && after.keys.join() === "fluyo-static-v93", `árbol nuevo: v93 instalada (${after.entries} entradas) y activada (skipWaiting + claim), v92 borrada`);
+        await installed("fluyo-static-v94"); await activated();
+        await until(async () => !(await caches.keys()).includes("fluyo-static-v93"), null, "v93 borrada");
+        const after = await pg.evaluate(async () => { const r = await navigator.serviceWorker.getRegistration(); const c = await caches.open("fluyo-static-v94"); return { state: r.active.state, entries: (await c.keys()).length, keys: await caches.keys() }; });
+        check(after.state === "activated" && after.entries >= 50 && after.keys.join() === "fluyo-static-v94", `árbol nuevo: v94 instalada (${after.entries} entradas) y activada (skipWaiting + claim), v93 borrada`);
         await pg.close();
         const vw = await ctx.newPage(), errs = [];
         vw.on("pageerror", (e) => errs.push(e.message));
         await vw.goto(sw.base + "/s/#d=" + payloads.crema.built); await vw.waitForFunction(() => window.__viewer && window.__viewer.phase === "ready");
         await vw.evaluate(VIEWER_HELPERS); await vw.evaluate(() => __v.frame());
-        const fromSW = await vw.evaluate(async () => { const c = await caches.open("fluyo-static-v93"); return !!(await c.match(location.origin + "/js/skin.js")); });
+        const fromSW = await vw.evaluate(async () => { const c = await caches.open("fluyo-static-v94"); return !!(await c.match(location.origin + "/js/skin.js")); });
         const vtp = await vw.evaluate((id) => __v.top(id), ids.w1);
         const tone = await vw.evaluate((id) => __v.hex(skinTones(nodeById(id).color, doc.theme, __v.bg()).top), ids.w1);
-        check(fromSW && (await vw.evaluate(() => typeof skinNode)) === "function" && await vw.evaluate(([p, c]) => __v.near(__v.px(p), c), [vtp, tone]) && errs.length === 0, "tras el upgrade, el Viewer sirve skin.js desde la caché v93 y pinta construido");
+        check(fromSW && (await vw.evaluate(() => typeof skinNode)) === "function" && await vw.evaluate(([p, c]) => __v.near(__v.px(p), c), [vtp, tone]) && errs.length === 0, "tras el upgrade, el Viewer sirve skin.js desde la caché v94 y pinta construido");
       } finally { await ctx.close(); sw.server.close(); }
     }
 

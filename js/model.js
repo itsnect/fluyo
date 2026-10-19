@@ -681,7 +681,7 @@ function setInitialAvailability(pg,nodeId,state){
 const NODE_SPEC_KEYS=new Set(["ref","id","shape","x","y","w","h","label","color","fill","border","lblPos",
   "textBg","textColor","font","bold","pulse","order","fs","icon","anim","img","tint","lang","keywords","kwBg","kwColor"]);
 const CONNECTION_SPEC_KEYS=new Set(["ref","id","source","target","fromSide","toSide","route","waypoints","label",
-  "font","bold","animated","dashed","startArrow","endArrow","flowDir","lineColor","dotColor","fs","speedFac","dots","dotsGlobal","arrowSize"]);
+  "font","bold","animated","dashed","startArrow","endArrow","flowDir","lineColor","dotColor","fs","speedFac","dots","dotsGlobal","arrowSize","kind"]);
 
 function authoringPage(pg){
   if(!projectObject(pg) || !Array.isArray(pg.nodes) || !Array.isArray(pg.edges)) throw projectDataError("invalid_document","page");
@@ -757,6 +757,7 @@ function createConnectionIn(pg, spec, context){
   if(source===target && source!==undefined) throw projectDataError("self_loop","target");
   if(!pg.nodes.some(n=>n.id===source)) throw projectDataError("source_not_found","source");
   if(!pg.nodes.some(n=>n.id===target)) throw projectDataError("target_not_found","target");
+  if(spec.kind!==undefined) authoringKind(spec.kind);
   const ref=authoringRef(spec,context);
   const id=authoringId(pg,spec);
   const e=authoringAssign({ id, from:source, to:target, fromSide:null, toSide:null,
@@ -787,7 +788,7 @@ function createConnectionIn(pg, spec, context){
 const NODE_UPDATE_KEYS=new Set(["x","y","w","h","shape","label","color","fill","border","lblPos","textBg","textColor",
   "font","bold","pulse","order","fs","tint","lang","keywords","kwBg","kwColor"]);
 const CONNECTION_UPDATE_KEYS=new Set(["source","target","fromSide","toSide","route","waypoints","label","font","bold","fs",
-  "animated","dashed","startArrow","endArrow","flowDir","lineColor","dotColor","speedFac","dots","dotsGlobal","arrowSize"]);
+  "animated","dashed","startArrow","endArrow","flowDir","lineColor","dotColor","speedFac","dots","dotsGlobal","arrowSize","kind"]);
 /* Formas que ofrece el selector de forma; image/icon/anim no cambian de forma (el control se oculta). */
 const EDITABLE_SHAPES=new Set(["rect","cylinder","diamond","circle","hex","text","code"]);
 const FROZEN_SHAPES=new Set(["image","icon","anim"]);
@@ -813,8 +814,14 @@ function updatePatch(patch,allowed){
     if(UPDATE_BOOLEANS.has(k) && typeof v!=="boolean") throw projectDataError("invalid_document",k);
     if(UPDATE_NUMBERS.has(k) && !(typeof v==="number" && Number.isFinite(v)) && !(v===null && UPDATE_NULLABLE_NUMBERS.has(k))) throw projectDataError("invalid_document",k);
     if(UPDATE_NULLABLE_STRINGS.has(k) && v!==null && typeof v!=="string") throw projectDataError("invalid_document",k);
+    if(k==="kind") authoringKind(v);
   }
   return fields;
+}
+/* La autoría (editor y MCP) solo escribe la lista cerrada; null = Conexión (quita la clave). Un valor desconocido que ya
+   traiga el documento se conserva al cargar (normalizeProjectEdge), pero nadie lo escribe. */
+function authoringKind(v){
+  if(v!==null && !EDGE_KINDS.includes(v)) throw projectDataError("invalid_document","kind");
 }
 /* Aplica el parche a una copia y la valida con la normalización de la carga. Si falla sin nombrar el campo, se atribuye al
    primer campo del parche que falla por sí solo (así el rechazo dice QUÉ valor no vale). */
@@ -1187,6 +1194,18 @@ function normalizeProjectEdge(e,defaultDots){
      ARROW_SIZE_MIN/ARROW_SIZE_MAX en geometry.js (que no forma parte del kernel). */
   if(e.arrowSize===null) delete e.arrowSize;
   else if(e.arrowSize!==undefined) e.arrowSize=clamp(projectNumber(e.arrowSize,1),1,2);
+  /* SCENARIOS-SEMANTICS-001 (D1): semántica opcional. Ausente = Conexión y NO se rellena; null o un valor que no es
+     texto quitan la clave; un texto se conserva tal cual aunque no sea de la lista (un valor futuro no lo borra un editor
+     de hoy) y edgeKind lo lee como Conexión. */
+  if(e.kind===null || (e.kind!==undefined && typeof e.kind!=="string")) delete e.kind;
+}
+/* Semántica de una conexión (SCENARIOS-SEMANTICS-001, D1/D2). Lo único que la autoría escribe es EDGE_KINDS;
+   cualquier otra cosa (ausente, desconocido) es una Conexión genérica. "GENERIC" es solo la lectura: nunca se guarda. */
+const EDGE_KINDS=["FLOWS_TO","REQUIRES"];
+const EDGE_KIND_GENERIC="GENERIC";
+function edgeKind(e){
+  const k=e && e.kind;
+  return k==="FLOWS_TO" || k==="REQUIRES" ? k : EDGE_KIND_GENERIC;
 }
 function normalizeProjectNode(n,i){
   // Mismo contrato para archivo, deep link y viewer; SVG estático seguro.

@@ -598,6 +598,19 @@ try{ if(localStorage.getItem("fluyo.ui.props")==="folded") document.documentElem
       <details class="pgroup" id="grpStroke" data-group="Trazo" open>
         <summary><span class="pgTitle">Trazo</span></summary>
         <div class="pgBody">
+          <!-- SCENARIOS-SEMANTICS-001 (D1/D2): semántica de la conexión (edge.kind; ausente = Conexión). Solo con la bandera labs
+               (ui.js, LABS_SEMANTICS); la primera fila del grupo, como en el prototipo validado por el PO. -->
+          <div class="row" id="rowKind" data-stack style="display:none">
+            <span class="lblText" id="kindLbl">Semántica</span>
+            <div class="seg pseg" id="kindSeg" role="radiogroup" aria-labelledby="kindLbl">
+              <button type="button" class="segBtn" role="radio" data-v="GENERIC">Conexión</button>
+              <button type="button" class="segBtn" role="radio" data-v="FLOWS_TO">Flujo</button>
+              <button type="button" class="segBtn" role="radio" data-v="REQUIRES">Requisito</button>
+            </div>
+          </div>
+          <!-- SCENARIOS-SEMANTICS-001 (W5): aviso no bloqueante, solo con la bandera labs, cuando la punta visible de un Flujo
+               apunta al revés (ui.js, syncKindNote). Nunca cambia origen ni destino. -->
+          <p class="hint rowNote" id="kindNote" role="status" hidden>La punta visible apunta en sentido contrario al flujo. El flujo se calcula de origen a destino; la punta solo cambia la apariencia.</p>
           <div class="row colorRow" id="rowLineC" data-stack>
             <span class="lblText">Color</span>
             <div class="swRow"><div class="swatches" id="lineSw"></div></div>

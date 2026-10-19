@@ -216,6 +216,10 @@ body.storyMode .sheetHead.selHead{display:none;}
 #panelProperties .pseg{display:grid; grid-auto-flow:column; grid-auto-columns:minmax(0,1fr); width:100%;}
 #panelProperties .seg > .segBtn{white-space:normal; overflow-wrap:anywhere; text-align:center; line-height:1.2; min-width:0; padding:3px 4px; min-height:calc(var(--ctl-h) - 2px); font-size:var(--fs-label);}
 #panelProperties .seg > .segBtn .ic{width:16px; height:16px;}
+/* SCENARIOS-SEMANTICS-001: Conexión · Flujo · Requisito son palabras enteras; en la columna estrecha (216 px) pasan a otra fila
+   en vez de partirse («Conexió/n»). */
+#panelProperties #kindSeg{display:flex; flex-wrap:wrap;}
+#panelProperties #kindSeg > .segBtn{flex:1 1 auto; overflow-wrap:normal;}
 /* Segmentados cortos en línea con su etiqueta (Ruta, Puntas, Línea del borde); en la columna estrecha se apilan (@container). */
 #panelProperties .row.inlineSeg > .pseg{width:auto; flex:0 1 176px;}
 #panelProperties .row.inlineSeg > .lblText{flex:1 1 auto; min-width:0;}

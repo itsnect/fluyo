@@ -22,6 +22,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs"), path = require("node:path"), vm = require("node:vm");
 const { execFileSync } = require("node:child_process");
 const { undo4a, BASE4A } = require("./fluyo-019-4a-undo.cjs");
+const { undoSemantics } = require("./fluyo-scenarios-semantics-undo.cjs");   /* SCENARIOS-SEMANTICS-001 (FASE 1) cambia a propósito model.js, geometry.js, render.js, ui.js, index.html y styles.css: se deshace aquí; su alcance lo vigila test/fluyo-scenarios-semantics-1.test.cjs */
 const root = path.resolve(__dirname, "..");
 const read = (f) => fs.readFileSync(path.join(root, f), "utf8").replace(/\r\n/g, "\n");
 const gitRoot = process.env.FLUYO_GIT_ROOT || root;
@@ -380,13 +381,13 @@ test("memo · plano no la usa; la pelota (F13), su reloj y su bucle son los mism
 
 /* ───────── alcance ───────── */
 test("alcance · frente a 22f82eb solo cambian skin.js (aterrizaje), render.js (llamada y pelota), export.js (llamada) y sw.js (CACHE v93)", () => {
-  for (const f of ["js/skin.js", "js/render.js", "js/export.js"]) assert.equal(undo4a(f, read(f)), atBase(f), f + ": fuera de lo de 019.4a, idéntico");
+  for (const f of ["js/skin.js", "js/render.js", "js/export.js"]) assert.equal(undoSemantics(f, undo4a(f, read(f))), atBase(f), f + ": fuera de lo de 019.4a, idéntico");
   for (const f of ["js/geometry.js", "js/model.js", "js/config.js", "js/interaction.js", "js/selection.js", "js/state.js", "js/ui.js", "js/viewer.js", "js/editor-runtime.js",
     "js/editor-scenarios.js", "js/present-story.js", "js/share-url.js", "js/deeplink.js", "index.html", "s/index.html", "css/styles.css", "css/system.css"])
-    if (fs.existsSync(path.join(root, f))) assert.equal(read(f), atBase(f), f + " idéntico");
+    if (fs.existsSync(path.join(root, f))) assert.equal(undoSemantics(f, read(f)), atBase(f), f + " idéntico");
   const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v93";/);
-  assert.equal(sw.replace('"fluyo-static-v93"', '"fluyo-static-v' + (93 - 1) + '"'), atBase("sw.js"), "sw.js: solo cambia CACHE");
+  assert.match(sw, /const CACHE = "fluyo-static-v94";/);
+  assert.equal(sw.replace('"fluyo-static-v94"', '"fluyo-static-v' + (93 - 1) + '"'), atBase("sw.js"), "sw.js: solo cambia CACHE");
   /* la piel en sí no cambia: mismas capas, extensión, orden, voz y anillo */
   const fn = (src, name) => { const i = src.indexOf("function " + name + "("); assert.ok(i >= 0, name); const j = src.indexOf("\n}\n", i); return src.slice(i, j); };
   for (const name of ["skinNode", "skinExtent", "skinPaintOrder", "skinLabelFont", "skinEdgePort", "skinTones", "skinColor", "skinFaces", "skinHasSkin", "skinActive"])

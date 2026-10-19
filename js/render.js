@@ -885,6 +885,17 @@ function drawScenarioEdgeOverlay(c,e,pts,active,completed,theme,rs){
   drawFlowOverlay(c,pts,withToken,completed,T);
 }
 
+/* Pinta las marcas de semántica con el color de la línea (Requisito: anillo relleno del fondo, así la línea no lo cruza). */
+function drawEdgeSemanticMarks(c,sem,lineCol,bg){
+  c.save();
+  c.strokeStyle=lineCol; c.lineWidth=1.6; c.lineCap="round"; c.lineJoin="round"; c.setLineDash([]);
+  for(const ch of sem.chevrons||[]){ c.beginPath(); traceSegments(c,ch); c.stroke(); }
+  if(sem.ring){
+    c.fillStyle=bg;
+    c.beginPath(); c.arc(sem.ring.x,sem.ring.y,sem.ring.r,0,Math.PI*2); c.fill(); c.stroke();
+  }
+  c.restore();
+}
 function drawEdge(c,e,t,theme,isExport,rs){
   const A=nodeById(e.from), B=nodeById(e.to); if(!A||!B) return;
   const a=Math.min(nodeAlpha(A,t),nodeAlpha(B,t)); if(a<=0) return;
@@ -914,6 +925,11 @@ function drawEdge(c,e,t,theme,isExport,rs){
   c.stroke(); c.setLineDash([]);
   c.fillStyle=lineCol;
   for(const h of stroke.heads){ c.beginPath(); traceSegments(c,h); c.fill(); }
+  /* SCENARIOS-SEMANTICS-001: marcas de Flujo/Requisito (edgeSemanticMarks, geometry.js), sin bandera: lo que dice el documento
+     se ve en el editor, Present y el Viewer. Estables: no dependen de la Historia. Fuera de la exportación hasta que el SVG y
+     export_diagram del MCP las porten (FASE 5), para que raster, SVG y MCP no difieran. Sin `kind`, nada cambia. */
+  const sem=!isExport && typeof edgeSemanticMarks==="function" ? edgeSemanticMarks(e,pts) : null;
+  if(sem) drawEdgeSemanticMarks(c,sem,lineCol,(typeof doc!=="undefined" && doc.customBg)||T.bg);
   /* FLUYO-019.1: anillo de salida (no si hay punta de inicio: ya ocupa ese sitio) */
   if(rs.skinOn && !e.startArrow && typeof skinEdgePort==="function"){
     const port=skinEdgePort(pts[0], lineCol, rs.skinBg);

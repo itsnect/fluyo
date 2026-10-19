@@ -203,15 +203,18 @@ test("D7: releasePanelFocus es lo PRIMERO del pointerdown y closeEditBox quita e
 });
 
 /* ───────── alcance ───────── */
-test("alcance: frente a d31703e solo cambian interaction.js, geometry.js (isContainerNode), editor-scenarios.js y sw.js (CACHE v90)", () => {
-  for (const f of ["js/render.js", "js/export.js", "js/skin.js", "js/model.js", "js/ui.js", "js/config.js", "js/selection.js", "js/state.js", "js/viewer.js", "js/editor-runtime.js", "index.html", "s/index.html"])
+test("alcance: frente a d31703e solo cambian interaction.js, geometry.js (isContainerNode), editor-scenarios.js y sw.js (CACHE)", () => {
+  /* FLUYO-019-HIT-TEST-D6 cambia a propósito render.js, export.js, geometry.js (containmentPaintOrder) y CACHE (v91):
+     su alcance lo vigila test/fluyo-019-d6.test.cjs */
+  for (const f of ["js/skin.js", "js/model.js", "js/ui.js", "js/config.js", "js/selection.js", "js/state.js", "js/viewer.js", "js/editor-runtime.js", "index.html", "s/index.html"])
     assert.equal(read(f), atBase(f), f + " idéntico");
   const g = read("js/geometry.js"), gB = atBase("js/geometry.js");
   const added = between(g, "/* FLUYO-019-HIT-TEST (D1)", "function isContainerNode(") + between(g, "function isContainerNode(", "\n}\n") + "\n}\n";
-  assert.equal(g.replace(added, ""), gB, "geometry.js: solo se añade isContainerNode");
-  const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v90";/);
-  /* la anterior se construye (sin su literal): fluyo-019-1 vigila que ningún test fuera de las mutaciones la nombre */
-  assert.equal(sw.replace('"fluyo-static-v90"', '"fluyo-static-v' + (90 - 1) + '"'), atBase("sw.js"), "sw.js: solo cambia CACHE");
+  const addedD6 = g.includes("function containmentPaintOrder(") ? between(g, "/* FLUYO-019-HIT-TEST-D6", "function containmentPaintOrder(") + between(g, "function containmentPaintOrder(", "\n}\n") + "\n}\n" : "";
+  assert.equal(g.replace(added, "").replace(addedD6, ""), gB, "geometry.js: solo se añaden isContainerNode (y containmentPaintOrder, D6)");
+  const sw = read("sw.js"), cur = +/const CACHE = "fluyo-static-v(\d+)";/.exec(sw)[1];
+  assert.ok(cur >= 90, "CACHE ≥ v90");
+  /* la de d31703e (v89) se construye sin literal: fluyo-019-1 vigila que ningún test fuera de las mutaciones nombre la anterior */
+  assert.equal(sw.replace('"fluyo-static-v' + cur + '"', '"fluyo-static-v' + 89 + '"'), atBase("sw.js"), "sw.js: solo cambia CACHE");
   for (const f of ["js/interaction.js", "js/geometry.js", "js/editor-scenarios.js"]) assert.ok(sw.includes("./" + f), "servido: " + f);
 });

@@ -1,0 +1,41 @@
+{
+  "version": 5,
+  "app": "fluyo",
+  "doc": {
+    "theme": "crema",
+    "pages": [
+      {
+        "name": "P",
+        "behaviors": [],
+        "scenarios": [
+          { "id": 1, "engineVersion": 2, "name": "Consulta interna", "nextStepId": 2, "steps": [{ "id": 1, "at": 0, "eventTypeId": 1, "action": "SEND", "edgeId": 10 }] }
+        ],
+        "nextScenarioId": 2,
+        "nextId": 20,
+        "nodes": [
+          { "id": 1, "shape": "rect", "x": 500, "y": 350, "w": 640, "h": 420, "label": "GCP", "color": "#6a9fb5", "border": "dashed", "font": null, "bold": false, "order": 0, "fill": null, "lblPos": "center", "textBg": null, "textColor": null },
+          { "id": 2, "shape": "rect", "x": 330, "y": 300, "w": 120, "h": 60, "label": "A", "color": "#b5734a", "font": null, "bold": false, "order": 1, "fill": null, "border": "solid", "lblPos": "center", "textBg": null, "textColor": null },
+          { "id": 3, "shape": "rect", "x": 670, "y": 300, "w": 120, "h": 60, "label": "B", "color": "#b5734a", "font": null, "bold": false, "order": 2, "fill": null, "border": "solid", "lblPos": "center", "textBg": null, "textColor": null },
+          { "id": 4, "shape": "rect", "x": 500, "y": 470, "w": 120, "h": 60, "label": "C", "color": "#b5734a", "font": null, "bold": false, "order": 3, "fill": null, "border": "solid", "lblPos": "center", "textBg": null, "textColor": null }
+        ],
+        "edges": [
+          { "id": 10, "from": 2, "to": 3, "route": "straight", "label": "", "font": null, "bold": false, "fromSide": null, "toSide": null, "endArrow": true, "startArrow": false, "flowDir": "normal", "waypoints": [] },
+          { "id": 11, "from": 3, "to": 4, "route": "straight", "label": "", "font": null, "bold": false, "fromSide": null, "toSide": null, "endArrow": true, "startArrow": false, "flowDir": "normal", "waypoints": [] }
+        ]
+      }
+    ],
+    "cur": 0,
+    "customBg": "",
+    "eventTypes": [
+      {
+        "id": 1, "name": "Consulta", "primitive": "FLOW", "sentenceTemplate": "{source} consulta a {target}", "visual": { "kind": "token", "value": "●" }, "motion": "slow",
+        "presentation": {
+          "nodeEffects": { "showSymbol": false, "symbolSize": "medium", "message": "", "messageColor": "", "messageSize": "medium", "messageWeight": "normal", "messageFont": "default", "messagePosition": "above", "highlight": false, "blink": false, "dim": false, "fillColor": "", "visualDuration": "normal", "visualDurationMs": 1500 },
+          "connectionEffects": { "size": "large", "style": "direct", "trail": "none", "arrival": "none", "during": "none" }
+        }
+      }
+    ],
+    "nextEventTypeId": 2
+  },
+  "settings": { "grid": false, "speed": 0.5, "dots": 3, "build": false, "stagger": 0.45, "snap": false, "font": "Georgia, serif", "single": false }
+}

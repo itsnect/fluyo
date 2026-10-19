@@ -1127,7 +1127,10 @@ function render(c,t,opts={}){
   const skinZoom=isExport? 1 : ((rs.viewport&&rs.viewport.zoom)||1);
   rs.skinOn=typeof skinActive==="function" && skinActive(opts.skin!==undefined? opts.skin : (rs.viewport&&rs.viewport.skin), skinZoom);
   rs.skinBg=doc.customBg||T.bg;
-  const nodesInPaintOrder=()=> rs.skinOn ? skinPaintOrder(P().nodes) : P().nodes;
+  /* FLUYO-019-HIT-TEST-D6: con la piel, capas contenedores → conexiones (+ flujo, tokens) → hojas (containmentPaintOrder,
+     geometry.js); la `y` solo ordena DENTRO de cada capa. En plano no hay capa de contenedores y los nodos van en el orden
+     del documento, como siempre: el lienzo 2D no cambia. */
+  const paintLayers=()=> rs.skinOn ? containmentPaintOrder(P().nodes, skinPaintOrder) : {containers:[], leaves:P().nodes};
 
   if(isExport){
     const b = opts.bounds || getBounds();
@@ -1143,9 +1146,11 @@ function render(c,t,opts={}){
       c.stroke();
     }
     edgeLabelPos=placeEdgeLabels(measureCanvasLabel(c));
+    const lay=paintLayers();
+    for(const n of lay.containers) drawNode(c,n,t,theme,isExport,rs);
     for(const e of P().edges) drawEdge(c,e,t,theme,isExport,rs);
     drawFlowBalls(c,t);
-    for(const n of nodesInPaintOrder()) drawNode(c,n,t,theme,isExport,rs);
+    for(const n of lay.leaves) drawNode(c,n,t,theme,isExport,rs);
     return;
   }
 
@@ -1178,9 +1183,11 @@ function render(c,t,opts={}){
   /* refreshEdgeLabels y no una asignación directa: mientras se arrastra un
      extremo el mapa está congelado. Ver js/geometry.js. */
   refreshEdgeLabels(measureCanvasLabel(c));
+  const lay=paintLayers();
+  for(const n of lay.containers) drawNode(c,n,t,theme,isExport,rs);
   for(const e of P().edges) drawEdge(c,e,t,theme,isExport,rs);
   if(!rs.scenarioRuntime) drawFlowBalls(c,t);
-  for(const n of nodesInPaintOrder()) drawNode(c,n,t,theme,isExport,rs);
+  for(const n of lay.leaves) drawNode(c,n,t,theme,isExport,rs);
   /* Z-order de Scenarios: base → fill/dim/highlight (drawNode) → conexiones y tokens
      → símbolo/mensaje del cue → UI de selección/interacción. */
   if(rs.scenarioRuntime) for(const n of P().nodes) drawScenarioNodeCue(c,n,t,rs);

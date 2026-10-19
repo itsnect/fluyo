@@ -765,6 +765,29 @@ function isContainerNode(n,nodes){
   for(const m of nodes) if(m!==n && m.w*m.h<a && Math.abs(m.x-n.x)<n.w/2 && Math.abs(m.y-n.y)<n.h/2) return true;
   return false;
 }
+/* FLUYO-019-HIT-TEST-D6: capas de pintado con la piel «construido». La piel pinta cada caja con un frente OPACO, así que el
+   orden decide qué se ve: antes iban todas las conexiones y después todos los nodos por `y` (skinPaintOrder), y un
+   contenedor tapaba a los hijos que quedaban por encima de su centro y a todas sus conexiones. Ahora: (1) contenedores
+   (isContainerNode, la misma definición que el acierto de D1) en recorrido en profundidad de fuera adentro, cada uno con su
+   padre = el contenedor de menor área (estrictamente mayor que la suya) que contiene su centro, a igual área el de más arriba
+   en el documento; raíces y hermanos en el orden `order`; (2) aquí no: las conexiones las pinta quien llama, entre las dos
+   capas; (3) hojas en el orden `order`. Sin contenedores, containers = [] y leaves = order(nodes): el orden de siempre.
+   Pura: el orden de pintor (skinPaintOrder) llega como argumento, así que no depende de skin.js ni del DOM. */
+function containmentPaintOrder(nodes,order){
+  const conts=nodes.filter(n=>isContainerNode(n,nodes)), isCont=new Set(conts), parent=new Map();
+  for(const c of conts){
+    let best=null;
+    for(const o of conts){
+      if(o===c || o.w*o.h<=c.w*c.h || Math.abs(c.x-o.x)>=o.w/2 || Math.abs(c.y-o.y)>=o.h/2) continue;
+      if(!best || o.w*o.h<best.w*best.h || (o.w*o.h===best.w*best.h && nodes.indexOf(o)>nodes.indexOf(best))) best=o;
+    }
+    parent.set(c,best);
+  }
+  const containers=[];
+  const walk=c=>{ containers.push(c); for(const k of order(conts.filter(k=>parent.get(k)===c))) walk(k); };
+  for(const r of order(conts.filter(c=>parent.get(c)===null))) walk(r);
+  return {containers, leaves:order(nodes.filter(n=>!isCont.has(n)))};
+}
 function codeColors(n,theme){
   const T=THEMES[theme];
   return {

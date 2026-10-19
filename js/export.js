@@ -391,15 +391,20 @@ function buildSVGDocument(scale=1, skin){
     const efs=edgeLabelFs(e);
     return {w:svgTextWidth(e.label, efs, e.font||settings.font||DEFAULT_FONT, !!e.bold), h:efs*1.7};
   });
-  for(const e of page.edges||[]) parts.push(renderConnectorToSVG(e,theme,skinOn));
+  /* FLUYO-019-HIT-TEST-D6: con la piel, las mismas capas que el lienzo (containmentPaintOrder): contenedores → conexiones →
+     hojas. En plano, o con la piel y sin contenedores, el SVG de siempre byte a byte. */
+  const lay=skinOn? containmentPaintOrder(page.nodes||[], skinPaintOrder) : {containers:[], leaves:page.nodes||[]};
   /* Los símbolos se recogen dibujando, así que el <defs> con los iconos solo se
-     conoce al final. Se inserta después de las conexiones y antes de los nodos en
+     conoce al final. Se inserta antes del primer nodo (después de las conexiones si no hay contenedores) en
      vez de al final del documento: un id se resuelve igual esté donde esté, pero un SVG que
      declara antes de usar es el que abren sin quejarse los editores externos. */
   const syms=svgSymbols();
-  const nodos=(skinOn? skinPaintOrder(page.nodes||[]) : (page.nodes||[])).map(n=>renderNodeToSVG(n,theme,syms,skinOn));
+  const contenedores=lay.containers.map(n=>renderNodeToSVG(n,theme,syms,skinOn));
+  const conexiones=(page.edges||[]).map(e=>renderConnectorToSVG(e,theme,skinOn));
+  const nodos=lay.leaves.map(n=>renderNodeToSVG(n,theme,syms,skinOn));
   const defs=syms.defs();
-  if(defs) parts.push(defs);
+  if(contenedores.length){ if(defs) parts.push(defs); parts.push(...contenedores, ...conexiones); }
+  else { parts.push(...conexiones); if(defs) parts.push(defs); }
   parts.push(...nodos, "</svg>");
   return parts.join("\n");
 }

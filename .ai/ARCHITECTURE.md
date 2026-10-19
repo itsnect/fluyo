@@ -623,7 +623,7 @@ documento: settings.skin ("built" | ausente = plano; model.js SKIN_VALUES, proje
 - **Viewer**: `s/index.html` carga `../js/skin.js` entre `geometry.js` y `render.js` (CSP intacta); `viewerRenderState` pasa `skin: projectSkin(settings)` al viewport, en la vista normal y en Present, sin conmutador. Un Viewer con el service worker anterior (sin `skin.js`) abre un share construido plano y sin errores (los `typeof` de `render.js`).
 - **Sistema** (medidas en `skin.js` y en `.ai/tasks/FLUYO-019.md` §4): vector de profundidad constante d = (+8, −8); la cara frontal es exactamente la caja semántica (anclas, rutas, acierto y selección no cambian); tres tonos planos por cara mezclando el color del nodo con el fondo real del lienzo (tema o `customBg`); línea de tinta de 1 px; línea de contacto; LED del color del nodo. `rect` (y formas desconocidas) = bloque; `cylinder` = la geometría de 018.14a con tapa clara y banda lateral; `icon` = glifo plano sobre una peana; `hex`, `diamond`, `circle`, `text`, `code`, `image`, `anim` = planos. Rótulo: `labelLayout` de siempre; la voz pasa a IBM Plex Mono 500 solo si el nodo no trae fuente y la global es la de serie.
 - **Conexiones**: la ruta (`edgePoints`, `laneLayout`, `placeEdgeLabels`) no cambia; el aterrizaje desplaza una COPIA del último vértice (y el penúltimo lo acompaña) cuando entra por n/e con tramo final ortogonal; una recta de dos puntos no se toca. Un anillo de salida en el origen (no con `startArrow`). Los overlays de Historia recortan a `skinExtent` y los cues se apilan sobre la tapa; el Trace no cambia.
-- **Orden de pintor** con la piel: derivado (y ascendente, x descendente), solo para dibujar; el orden Z del documento manda en el acierto.
+- **Orden de pintor** con la piel: derivado (y ascendente, x descendente), solo para dibujar; el orden Z del documento manda en el acierto. Desde FLUYO-019-HIT-TEST-D6 se aplica **dentro** de cada capa (contenedores → conexiones → hojas, decisión 212).
 - **UI**: `#prSkin` en la barra de Present («Construido» / «Plano», tecla B) y la fila «Aspecto» (`#exSkin`) del diálogo de exportar, que arranca con el de Present y se aplica a los cuatro formatos (todos pasan por `render(..., {export:true})` / `buildSVGDocument`).
 - **Color (019.3, decisión 205)**: `skinColor(c, base)` es el único lector de los colores que la piel interpreta: el color del nodo (tonos y LED) y el relleno de los frentes. `#rgb`/`#rrggbb` → el mismo string; `#rrggbbaa` (válido en el dominio, `HEX_COLOR`) → el color opaco compuesto sobre el fondo de la piel, `skinMix(base, rgb, aa/255)`, con `base` = `customBg` `#rgb`/`#rrggbb` o el del tema; cualquier otro valor → `null`, y entonces color = `PALETTE[0]` (respaldo histórico, como `normalizeProjectNode`/`colHex`) y relleno = tono de cara. Total y determinista: no depende de `render.js`. El anillo de salida no interpreta colores. Antes de 019.3 un `#rrggbbaa` hacía lanzar a la piel (exportación, Present y Viewer en fase `error`).
 - **MCP (019.3, decisión 206)**: `export_diagram` pinta la misma piel que «Exportar → SVG», verificado contra los goldens de fluyo (`fluyo-019-1-skin.json`, `fluyo-019-2-skin-svg.json`, `fluyo-019-3-colores.json`) y contra el `skin.js` real en `vm` (`visual-regression.test.ts`). Sin la clave, el SVG de siempre, byte a byte. `create_diagram` acepta `skin` (`"flat"` = ausencia).
@@ -664,3 +664,23 @@ documento: settings.skin ("built" | ausente = plano; model.js SKIN_VALUES, proje
   - `test/fluyo-019-hit-test.test.cjs` (vm: `isContainerNode`, tabla de la tarea, Z invertido, anidado, puerto de hoja antes que de contenedor, no regresión en rejilla contra `d31703e` en los 8 ejemplos, D3–D5 fijadas, contratos de D2/D7 y alcance);
   - `test/fluyo-019-hit-test-browser.cjs` (Chrome real con gestos reales; la base `d31703e` debe reproducir cada bug);
   - `test/fluyo-019-hit-test-mutations.cjs`.
+
+## Capas de pintado con la piel «construido» (FLUYO-019-HIT-TEST-D6)
+
+- **Regla (decisión 212)**: solo con la piel activa (`rs.skinOn` en `render()`, `skinOn` en `buildSVGDocument`), el orden de pintado es:
+  1. contenedores (`isContainerNode`, la misma definición que el acierto de D1), en recorrido en profundidad de fuera adentro;
+  2. las conexiones, completas (trazo, aguja, etiqueta, tokens de Historia), y después el flujo (`drawFlowBalls`);
+  3. las hojas.
+
+  La `y` (`skinPaintOrder`) solo ordena dentro de cada capa. Sin contenedores, el orden es el de antes.
+- `containmentPaintOrder(nodes, order)` (`geometry.js`, fuera del kernel) es pura y devuelve `{containers, leaves}`:
+  - padre de un contenedor = el contenedor de menor área (estrictamente mayor que la suya) que contiene su centro; a igual área, el de más arriba;
+  - raíces y hermanos se ordenan con `order`;
+  - el orden de pintor llega como argumento, así que la función no depende de `skin.js`.
+
+  `render()` (las dos ramas: lienzo y exportación) y `buildSVGDocument` la llaman con `skinPaintOrder`.
+- **Superficies**: Present, el Viewer y su Present (el mismo `render()`), GIF/PNG/JPG (rama de exportación) y el SVG del editor.
+- **En plano no cambia nada**: el lienzo del editor, Present plano y la exportación plana son píxel a píxel y byte a byte los de antes. `skin.js` no cambia.
+- **Paridad con el MCP**: pendiente del port (fase 2). El contrato es `test/fixtures/fluyo-019-d6-capas.json` (orden esperado, calculado a mano) más `fluyo-019-d6-capas-svg.json` (golden SVG del caso anidado). Hasta el port, `export_diagram` con la piel y contenedores conserva el orden anterior.
+- `CACHE` v91.
+- Pruebas: `test/fluyo-019-d6.test.cjs` (vm), `-browser.cjs` (Chrome real; la base `ce8e699` reproduce el bug) y `-mutations.cjs`.

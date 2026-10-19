@@ -9,7 +9,8 @@
    · Present del editor y Viewer (#d=) reales, caso D: A, B y A→B visibles (base: tapados).
    · Historia: el token de un SEND por la conexión interna A→B, en Present con la piel y en pausa, se ve (base: tapado).
    · «Una pelota por ruta»: la pelota sobre conexiones internas se ve (base: tapada).
-   · Rendimiento: un fotograma con la piel y 100 nodos (10 contenedores × 9 hojas) cuesta ≤ 1 ms más que en la base.
+   · Rendimiento: un fotograma con la piel y 100 nodos (10 contenedores × 9 hojas) cuesta ≤ 1 ms más que en la base (mediana de 11
+     rondas intercaladas en páginas limpias; ver el comentario de la sección).
    · 0 errores de página.
    Uso: node test/fluyo-019-d6-browser.cjs   (Playwright vía NODE_PATH; FLUYO_BROWSER=chrome; SKIP_BASE=1 sin la base) */
 let chromium;
@@ -235,14 +236,38 @@ async function editor(browser, base) {
     await balls(T, "árbol", true); if (B) await balls(B, "BASE (reproduce el bug)", false);
 
     if (B) {
-      console.log("── Rendimiento: un fotograma con la piel, 100 nodos (10 contenedores × 9 hojas)");
+      /* Rendimiento. El criterio anterior medía UNA vez cada árbol, siempre primero el de trabajo, y en las mismas páginas que ya
+         habían pasado por todas las comprobaciones anteriores (con más memoria y otro estado del JIT que la de la base). El orden
+         fijo y la historia de cada página sesgaban la diferencia, que variaba entre −0,3 y +1,9 ms de una ejecución a otra.
+         Ahora: dos páginas LIMPIAS (una por árbol) con el mismo documento, calentadas, y 11 rondas INTERCALADAS que alternan qué
+         árbol va primero. En cada ronda se mide la media de 30 fotogramas de cada uno y se toma la diferencia. El criterio es la
+         MEDIANA de esas diferencias ≤ 1 ms, el mismo umbral de la tarea. Se informa además del coste de containmentPaintOrder sola. */
+      console.log("── Rendimiento: un fotograma con la piel, 100 nodos (10 contenedores × 9 hojas), páginas limpias y rondas intercaladas");
       const big = { name: "100", nodes: [], edges: [], containers: [] }; let id = 1;
       for (let k = 0; k < 10; k++) { const cx = 300 + (k % 5) * 700, cy = 300 + Math.floor(k / 5) * 600; big.nodes.push({ id: id++, shape: "rect", x: cx, y: cy, w: 600, h: 500, label: "C" + k }); big.containers.push(id - 1);
         const first = id; for (let j = 0; j < 9; j++) big.nodes.push({ id: id++, shape: "rect", x: cx - 180 + (j % 3) * 180, y: cy - 150 + Math.floor(j / 3) * 150, w: 120, h: 60, label: "n" + k + j });
         for (let j = 0; j < 8; j++) big.edges.push({ id: 1000 + k * 10 + j, from: first + j, to: first + j + 1 }); }
-      const ms = async (ed) => { await ed.load(docOf(big)); return ed.page.evaluate(() => { const B0 = getBounds(); for (let i = 0; i < 5; i++) __canvas("built", B0); const t = performance.now(); for (let i = 0; i < 30; i++) __canvas("built", B0); return (performance.now() - t) / 30; }); };
-      const a = await ms(T), b = await ms(B);
-      check(a - b <= 1, `fotograma ${a.toFixed(2)} ms (base ${b.toFixed(2)} ms; +${(a - b).toFixed(2)} ms)`);
+      /* un lienzo reutilizado por página y sin copiar sus píxeles en cada fotograma (getImageData de ~16 MB metía al recolector de
+         basura en la medida): 30 render() por lote y una lectura de 1 px al final, que obliga a volcar lo pendiente */
+      const FRAME = () => { const B0 = getBounds(); const c = window.__perfCanvas || (window.__perfCanvas = Object.assign(document.createElement("canvas"), { width: Math.ceil(B0.w), height: Math.ceil(B0.h) }));
+        const oc = c.getContext("2d"), rs = makeReadOnlyRenderState({ width: c.width, height: c.height }), t = performance.now();
+        for (let i = 0; i < 30; i++) { oc.save(); oc.translate(-B0.x, -B0.y); render(oc, 0.37, { export: true, skin: "built", bounds: B0, renderState: rs }); oc.restore(); }
+        oc.getImageData(0, 0, 1, 1); return (performance.now() - t) / 30; };
+      const perfPage = async (srv) => { const ed = await editor(browser, srv.base); await ed.load(docOf(big));
+        for (let i = 0; i < 3; i++) await ed.page.evaluate(FRAME); return ed; };
+      const PT = await perfPage(now), PB = await perfPage(old);
+      const frame = (ed) => ed.page.evaluate(FRAME);
+      const deltas = [];
+      for (let r = 0; r < 11; r++) {
+        let a, b;
+        if (r % 2 === 0) { a = await frame(PT); b = await frame(PB); } else { b = await frame(PB); a = await frame(PT); }
+        deltas.push(a - b);
+      }
+      const median = deltas.slice().sort((x, y) => x - y)[Math.floor(deltas.length / 2)];
+      const alone = await PT.page.evaluate(() => { const ns = P().nodes; for (let i = 0; i < 50; i++) containmentPaintOrder(ns, skinPaintOrder); const t = performance.now(); for (let i = 0; i < 500; i++) containmentPaintOrder(ns, skinPaintOrder); return (performance.now() - t) / 500; });
+      check(median <= 1, `fotograma: mediana +${median.toFixed(2)} ms en 11 rondas intercaladas (${deltas.map((d) => d.toFixed(2)).join(" ")}); containmentPaintOrder sola ${alone.toFixed(3)} ms`);
+      check(PT.errors.length === 0 && PB.errors.length === 0, "0 errores de página en las páginas de rendimiento");
+      await PT.ctx.close(); await PB.ctx.close();
     }
 
     check(T.errors.length === 0, "0 errores de página en el árbol" + (T.errors.length ? ": " + T.errors.join(" | ") : ""));

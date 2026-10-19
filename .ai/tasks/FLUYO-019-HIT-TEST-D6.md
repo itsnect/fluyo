@@ -373,10 +373,32 @@ Precisión del punto 3: las hojas van con el **orden de pintor de la piel** (`sk
 | Suite | Resultado |
 |---|---|
 | `test/fluyo-019-d6.test.cjs` (vm) | **21/21**: contrato de 13 casos, cada nodo una vez, anidado con la `y` invertida, identidad sin contenedores (ejemplos y fixtures), pureza y determinismo, estructura de `render()` y `buildSVGDocument`, `render.js` igual a la base fuera del bucle, alcance y fixtures compartidos con el MCP (aviso: aún no están allí, fase 2). |
-| `test/fluyo-019-d6-browser.cjs` (Chrome real) | **28/28**. Visibilidad ≥ 0,95 de cada hoja y conexión en los 13 casos (lienzo y SVG), y la base `ce8e699` reproduce el 0. Golden SVG del caso D y orden Región, GCP, conexiones, B, A, C. **Plano idéntico a la base en 21/21** (13 casos y 8 ejemplos; hash de píxeles y del SVG). **Con la piel y sin contenedores, idéntico en 9/9.** Present y Viewer reales (caso D): 1 (base: 0). Token de Historia sobre A→B: 11 px (base: 0). Pelota única: 544 px (base: 0). Fotograma con la piel y 100 nodos: +−0,34 ms. 0 errores de página. |
+| `test/fluyo-019-d6-browser.cjs` (Chrome real) | **28/28** en `a000756`; **29/29** tras corregir el criterio de rendimiento (§15.3). Visibilidad ≥ 0,95 de cada hoja y conexión en los 13 casos (lienzo y SVG), y la base `ce8e699` reproduce el 0. Golden SVG del caso D y orden Región, GCP, conexiones, B, A, C. **Plano idéntico a la base en 21/21** (13 casos y 8 ejemplos; hash de píxeles y del SVG). **Con la piel y sin contenedores, idéntico en 9/9.** Present y Viewer reales (caso D): 1 (base: 0). Token de Historia sobre A→B: 11 px (base: 0). Pelota única: 544 px (base: 0). Fotograma con la piel y 100 nodos: +−0,34 ms. 0 errores de página. |
 | `test/fluyo-019-d6-mutations.cjs` | **15/15 mutaciones detectadas** (9 en vm, 6 en Chrome). |
 | Resto de tests vm | Mismos fallos que la base `ce8e699` en un clon limpio (preexistentes: 011-final-fixes 14, 012-1-qa 28, 017-2-qa 1, 018-17 1, 018-25 10, 018-27 3, 019-2 2, scenario-ui-dom 21). Los «idénticos a HEAD» (018-17/18/19/21/23/24, 019-1, 019-2 n.º 13) fallan antes del commit y **pasan en un clon de scratch con el cambio commiteado** (comparado con un clon en `ce8e699`). |
 | Regresión de navegador (las 43 `*-browser.cjs`, en secuencia) | **38 en verde**, entre ellas todas las de la piel, el pintado, la exportación y el Viewer: 019-1/2/3/5, flow-fade, **019-d6**, 019-hit-test, 018-15/16/25/27, share-* y scenario-qa. El smoke del service worker de 019-2 sube de `ce8e699` (v90) a v91. Fallan 5: **011** (12), **018-12** (6, maquetación de la cabecera y el panel), **018-19** (1, «lienzo 87 %»), **018-23** (2, «conexión con puntos 1,06/1,1 pantallas») y **018-5** («HEAD también rechaza 81 caracteres»). Las cinco fallan con **las mismas líneas** en un clon limpio de `ce8e699` (comparación línea a línea): son preexistentes, no de D6. 019-5 llegó a fallar por el fixture de Historia, que estaba en su corpus `*.fluyo.json`; con el fixture renombrado a `.json` pasa 68/68. |
+
+
+### 15.3 Criterio de rendimiento del test de navegador (commit aparte, después de `a000756`)
+
+Tras el commit funcional (`a000756`), la comprobación «un fotograma con la piel y 100 nodos cuesta ≤ 1 ms más que en la base» falló dos veces (+1,91 y +1,02 ms) y en otra pasó (−0,34 ms). **No era coste real**: `containmentPaintOrder` sola cuesta 0,02–0,03 ms con 100 nodos.
+
+**Por qué el criterio anterior era inestable:**
+- medía **una sola vez** cada árbol;
+- siempre en el mismo orden: primero el de trabajo, después la base;
+- en páginas que ya habían pasado por todas las comprobaciones anteriores, con distinta memoria y distinto estado del JIT;
+- y cada fotograma medido copiaba el lienzo entero con `getImageData` (~16 MB), así que el recolector de basura entraba en la medida.
+
+Cada ronda suelta variaba entre −10 y +9 ms.
+
+**Qué mide ahora** (solo cambia el test; el umbral sigue en ≤ 1 ms):
+- dos páginas **limpias** (una por árbol) con el mismo documento y calentadas;
+- **11 rondas intercaladas** que alternan qué árbol va primero;
+- en cada ronda, la media de 30 `render()` sobre un lienzo reutilizado, sin copiar píxeles (una lectura de 1 px al final obliga a volcar lo pendiente);
+- el criterio es la **mediana** de las diferencias;
+- se informa además del coste de `containmentPaintOrder` sola.
+
+Resultado en 4 ejecuciones seguidas: 29/29 cada vez; medianas +0,07, +0,04, −0,02 y −0,01 ms; rondas dentro de ±0,7 ms. El producto (`js/*`, `sw.js`) no cambia en este commit.
 
 ---
 

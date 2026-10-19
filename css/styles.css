@@ -367,6 +367,10 @@ body.presenting #presentBar{display:flex;}
 #presentBar .prGroup{display:flex; align-items:center; gap:6px; flex-wrap:nowrap;}
 #presentBar .prGroup[hidden]{display:none;}
 #presentBar{column-gap:16px;}
+/* FLUYO-019-PRSKIN: el material inverso (system.css) no redefine --active, --active-rule ni --focus, y con la interfaz clara
+   «Construido» heredaba el oliva hondo de :root (texto 1,74:1, foco 2,49:1 sobre la barra). Los valores de la interfaz oscura,
+   solo en este botón: el resto del mando no cambia. */
+#presentBar #prSkin{--active:var(--c-oliva-palido); --active-rule:rgba(195,205,164,.42); --focus:2px solid var(--c-oliva-palido);}
 #presentBar .iconBtn{width:44px; min-width:44px; padding:0;}
 #presentBar .iconBtn .ic, #presentBar #prExit .ic{width:16px; height:16px;}
 #presentBar #psPlay{background:var(--attention); color:#F2EDE3; border-color:transparent; font-weight:500; padding:0 18px; gap:8px;}

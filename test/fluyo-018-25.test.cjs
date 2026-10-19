@@ -426,5 +426,5 @@ test("alcance: solo los archivos del contrato; kernel, model.js, config.js y edg
     assert.equal(read(f), head(f), f + " no se toca");
   const es = (s) => slice(s, "function edgeStroke(", "\n}\n");
   assert.equal(es(read("js/geometry.js")), es(head("js/geometry.js")), "edgeStroke idéntico");
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v91";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v92";/);
 });

@@ -24,7 +24,7 @@ const HOVER = ["  else { const t=hitTarget(p.x,p.y); hoverNode=hitSideArrowHost(
 const DBL = ["  const t=hitTarget(p.x,p.y), tgt=t && t.obj;", "  const tgt=hitNode(p.x,p.y)||hitEdge(p.x,p.y);"];
 /* [nombre, suite, archivo, desde, hasta] */
 const MUTATIONS = [
-  ["U0 CACHE no sube (sigue v90)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v91";', 'const CACHE = "fluyo-static-v90";'],
+  ["U0 CACHE no sube (sigue v90)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v92";', 'const CACHE = "fluyo-static-v90";'],
   ["U1 vuelve «nodo antes que conexión»", UNIT, INT, ...NODE_FIRST],
   ["U2 contenedor = el de más arriba en Z", UNIT, INT, ...TOPMOST],
   ["U3 nadie es contenedor", UNIT, GEO, ...NO_CONT],

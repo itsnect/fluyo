@@ -24,7 +24,7 @@ const CONTEXTUAL = ["  syncSelHead(total, s);\n  /* otra selección", "  syncSel
 const DOUBLE_UNDO = ["  pushUndo(); editEdge(e,patch); scheduleAutosave(); refreshPanel();", "  pushUndo(); pushUndo(); editEdge(e,patch); scheduleAutosave(); refreshPanel();"];
 /* [nombre, suite, archivo, desde, hasta, ONLY del browser test] */
 const MUTATIONS = [
-  ["U1 CACHE no sube (sigue v80)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v91";', 'const CACHE = "fluyo-static-v80";'],
+  ["U1 CACHE no sube (sigue v80)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v92";', 'const CACHE = "fluyo-static-v80";'],
   ["U2 model.js tocado", UNIT, "js/model.js", "function validateEventType(et){", "function validateEventType(et){ /* 018.23 */"],
   ["U3 flowDir superpuesto (nowrap vuelve a ganar)", UNIT, "css/styles.css", ...OVERLAP],
   ["B3 flowDir superpuesto (nowrap vuelve a ganar)", BROWSER, "css/styles.css", ...OVERLAP, "d1440"],

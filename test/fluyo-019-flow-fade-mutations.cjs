@@ -27,7 +27,7 @@ const CLOCK = ["  let f=(t*settings.speed)%1; if(f<0) f+=1;\n  const cache=new M
 const POS = ["      const p=pointAt(seg.pts, s/seg.L);", "      const p=pointAt(seg.pts, clamp(s/seg.L+.01,0,1));"];
 /* [nombre, suite, archivo, desde, hasta] */
 const MUTATIONS = [
-  ["U0 CACHE no sube (sigue v88)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v91";', 'const CACHE = "fluyo-static-v90";'],
+  ["U0 CACHE no sube (sigue v88)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v92";', 'const CACHE = "fluyo-static-v90";'],
   ["U1 vuelve el fade sobre el camino (g.total, D·0,125)", UNIT, REN, ...PATH_FADE],
   ["U2 ventana en px pero sobre el camino", UNIT, REN, ...PATH_PX],
   ["U3 por conexión pero ventana relativa al grupo (D·0,125)", UNIT, REN, ...GROUP_WIN],

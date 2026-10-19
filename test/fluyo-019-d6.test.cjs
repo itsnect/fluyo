@@ -102,16 +102,17 @@ test("export.js: buildSVGDocument pinta contenedores → conexiones → hojas co
 });
 
 /* ───────── alcance ───────── */
-test("alcance: frente a ce8e699 solo cambian geometry.js (+ containmentPaintOrder), render.js, export.js y sw.js (CACHE v91)", () => {
+test("alcance: frente a ce8e699 solo cambian geometry.js (+ containmentPaintOrder), render.js, export.js y sw.js (CACHE)", () => {
+  /* FLUYO-019-PRSKIN sube CACHE a v92 (y solo toca css/styles.css): su alcance lo vigila test/fluyo-019-prskin.test.cjs */
   for (const f of ["js/skin.js", "js/model.js", "js/interaction.js", "js/viewer.js", "js/config.js", "js/ui.js", "js/state.js", "js/selection.js", "js/editor-scenarios.js",
     "js/editor-runtime.js", "js/share-url.js", "js/share-loader.js", "js/deeplink.js", "js/link-codec.js", "index.html", "s/index.html"])
     if (fs.existsSync(path.join(root, f))) assert.equal(read(f), atBase(f), f + " idéntico");
   const g = read("js/geometry.js"), added = between(g, "/* FLUYO-019-HIT-TEST-D6", "function containmentPaintOrder(") + between(g, "function containmentPaintOrder(", "\n}\n") + "\n}\n";
   assert.equal(g.replace(added, ""), atBase("js/geometry.js"), "geometry.js: solo se añade containmentPaintOrder");
-  const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v91";/);
-  /* la anterior se construye (sin su literal): fluyo-019-1 vigila que ningún test fuera de las mutaciones la nombre */
-  assert.equal(sw.replace('"fluyo-static-v91"', '"fluyo-static-v' + (91 - 1) + '"'), atBase("sw.js"), "sw.js: solo cambia CACHE");
+  const sw = read("sw.js"), cur = +/const CACHE = "fluyo-static-v(\d+)";/.exec(sw)[1];
+  assert.ok(cur >= 91, "CACHE ≥ v91");
+  /* la de ce8e699 (v90) se construye sin literal: fluyo-019-1 vigila que ningún test fuera de las mutaciones nombre la anterior */
+  assert.equal(sw.replace('"fluyo-static-v' + cur + '"', '"fluyo-static-v' + 90 + '"'), atBase("sw.js"), "sw.js: solo cambia CACHE");
 });
 
 /* ───────── contrato compartido con fluyo-mcp ───────── */

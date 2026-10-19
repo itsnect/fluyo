@@ -267,9 +267,11 @@ test("alcance: en render.js solo cambia drawFlowBalls (+ FLOW_FADE_PX/flowBallFa
     assert.ok(db.includes(keep), "drawFlowBalls conserva: " + keep);
   /* FLUYO-019-HIT-TEST cambia a propósito geometry.js (isContainerNode), interaction.js, editor-scenarios.js y CACHE (v90): su alcance lo vigila test/fluyo-019-hit-test.test.cjs */
   /* export.js lo cambia a propósito D6 (SVG con capas) */
+  /* FLUYO-019-PRSKIN añade a propósito una regla para #prSkin en styles.css: se deshace aquí; su alcance lo vigila test/fluyo-019-prskin.test.cjs */
+  const undoPrSkin = (s) => s.replace(/\/\* FLUYO-019-PRSKIN[\s\S]*?\*\/\n#presentBar #prSkin\{[^}]*\}\n/, "");
   for (const f of ["js/skin.js", "js/model.js", "js/config.js", "js/viewer.js", "js/share.js", "js/deeplink.js", "js/state.js", "js/ui.js",
     "js/editor-runtime.js", "index.html", "s/index.html", "css/styles.css"])
-    if (fs.existsSync(path.join(root, f))) assert.equal(read(f), before(f), f + " idéntico a " + BEFORE);
+    if (fs.existsSync(path.join(root, f))) assert.equal(f === "css/styles.css" ? undoPrSkin(read(f)) : read(f), before(f), f + " idéntico a " + BEFORE);
   const sw = read("sw.js"), swOld = before("sw.js");
   const cur = +/const CACHE = "fluyo-static-v(\d+)";/.exec(sw)[1];
   assert.ok(cur >= 89, "CACHE ≥ v89");

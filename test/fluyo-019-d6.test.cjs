@@ -19,6 +19,7 @@ const BASE = "ce8e699";
 const read = (f) => fs.readFileSync(path.join(root, f), "utf8").replace(/\r\n/g, "\n");
 const atBase = (f) => execFileSync("git", ["-C", gitRoot, "show", BASE + ":" + f], { encoding: "utf8" }).replace(/\r\n/g, "\n");
 const between = (s, a, b) => { const i = s.indexOf(a); assert.ok(i >= 0, "falta " + a); const j = s.indexOf(b, i + a.length); assert.ok(j >= 0, "falta " + b); return s.slice(i, j); };
+const { undo4a } = require("./fluyo-019-4a-undo.cjs");   /* FLUYO-019.4a cambia a propósito skin.js, render.js y export.js: se deshace aquí; su alcance lo vigila test/fluyo-019-4a.test.cjs */
 const J = (v) => JSON.parse(JSON.stringify(v));
 
 const G = vm.createContext({ TextEncoder, TextDecoder, atob, btoa, URL });
@@ -80,7 +81,7 @@ test("pura: no muta los nodos ni su orden; determinista; empates por orden del d
 
 /* ───────── pintores (estáticos) ───────── */
 test("render.js: las dos ramas pintan contenedores → conexiones → flujo → hojas; las capas solo existen con la piel", () => {
-  const r = read("js/render.js");
+  const r = undo4a("js/render.js", read("js/render.js"));
   const fn = between(r, "function render(c,t,opts={}){", "\n}\n");
   assert.match(fn, /const paintLayers=\(\)=> rs\.skinOn \? containmentPaintOrder\(P\(\)\.nodes, skinPaintOrder\) : \{containers:\[\], leaves:P\(\)\.nodes\};/);
   assert.ok(!/nodesInPaintOrder/.test(fn), "sin el orden antiguo");
@@ -106,7 +107,7 @@ test("alcance: frente a ce8e699 solo cambian geometry.js (+ containmentPaintOrde
   /* FLUYO-019-PRSKIN sube CACHE a v92 (y solo toca css/styles.css): su alcance lo vigila test/fluyo-019-prskin.test.cjs */
   for (const f of ["js/skin.js", "js/model.js", "js/interaction.js", "js/viewer.js", "js/config.js", "js/ui.js", "js/state.js", "js/selection.js", "js/editor-scenarios.js",
     "js/editor-runtime.js", "js/share-url.js", "js/share-loader.js", "js/deeplink.js", "js/link-codec.js", "index.html", "s/index.html"])
-    if (fs.existsSync(path.join(root, f))) assert.equal(read(f), atBase(f), f + " idéntico");
+    if (fs.existsSync(path.join(root, f))) assert.equal(undo4a(f, read(f)), atBase(f), f + " idéntico");
   const g = read("js/geometry.js"), added = between(g, "/* FLUYO-019-HIT-TEST-D6", "function containmentPaintOrder(") + between(g, "function containmentPaintOrder(", "\n}\n") + "\n}\n";
   assert.equal(g.replace(added, ""), atBase("js/geometry.js"), "geometry.js: solo se añade containmentPaintOrder");
   const sw = read("sw.js"), cur = +/const CACHE = "fluyo-static-v(\d+)";/.exec(sw)[1];

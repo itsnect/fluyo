@@ -56,7 +56,11 @@ const docOf = (c, extra) => {
 
 const SETUP = () => {
   if (window.__d6) return; window.__d6 = true;
-  window.__skipN = null; window.__skipE = null; window.__noToken = false; window.__noBalls = false;
+  window.__skipN = null; window.__skipE = null; window.__noToken = false; window.__noBalls = false; window.__noLanding = false;
+  /* FLUYO-019.4a cambia a propósito el aterrizaje (silueta): las comparaciones de ORDEN DE CAPAS con la base lo neutralizan en
+     las dos páginas (__noLanding), para medir solo lo de D6. El aterrizaje lo vigila test/fluyo-019-4a-browser.cjs. */
+  const sl = window.skinEdgeLanding;
+  if (sl) window.skinEdgeLanding = function (p) { return window.__noLanding ? (p || []).map((q) => ({ x: q.x, y: q.y })) : sl.apply(this, arguments); };
   const dn = window.drawNode, de = window.drawEdge, dt = window.drawEventToken, fb = window.drawFlowBalls;
   window.drawNode = function (c, n) { if (n.id === window.__skipN) return; return dn.apply(this, arguments); };
   window.drawEdge = function (c, e) { if (e.id === window.__skipE) return; return de.apply(this, arguments); };
@@ -174,9 +178,11 @@ async function editor(browser, base) {
       check(okF === nF, `plano idéntico en ${okF}/${nF}`);
       console.log("── Con la piel y SIN contenedores: el mismo lienzo y el mismo SVG que la base");
       let okB = 0, nB = 0;
+      for (const P of [T.page, B.page]) await P.evaluate(() => { window.__noLanding = true; });
       for (const [f, d] of EXAMPLES) { nB++; if (await same(d, "built")) okB++; else console.log("    distinto con la piel: " + f); }
       const Z = FIX.cases.find((c) => c.name.startsWith("Z ")); nB++; if (await same(docOf(Z), "built")) okB++;
-      check(okB === nB, `con la piel y sin contenedores, idéntico en ${okB}/${nB}`);
+      for (const P of [T.page, B.page]) await P.evaluate(() => { window.__noLanding = false; });
+      check(okB === nB, `con la piel y sin contenedores (aterrizaje de 019.4a neutralizado en las dos), idéntico en ${okB}/${nB}`);
     }
 
     console.log("── Present del editor y Viewer reales (caso D, la piel en el documento)");

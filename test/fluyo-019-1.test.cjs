@@ -4,7 +4,8 @@
      forma desconocida) y tema (dark, crema, claro, fondo personalizado) = test/fixtures/fluyo-019-1-skin.json.
    · Pureza: la piel no escribe en el nodo ni en la ruta, es determinista y devuelve null para las formas planas.
    · skinActive: solo "built", y solo con ≥ 3 px de canto en pantalla (zoom ≥ 0,375).
-   · Aterrizaje: solo n/e, solo con tramo final ortogonal, nunca en una recta de dos puntos; el penúltimo acompaña.
+   · Aterrizaje (regla de FLUYO-019.4a, decisión 213): la punta retrocede por su último tramo hasta salir de la silueta
+     visible del destino; solo se mueve el último vértice; sin silueta, nada. El detalle lo vigila test/fluyo-019-4a.test.cjs.
    · Paridad lienzo/SVG: las mismas capas recorridas por traceSegments (render.js) y por segmentsToSVGPath (geometry.js)
      dan los mismos vértices, también en los arcos (clip incluido).
    · Alcance (actualizado en FLUYO-019.2): kernel salvo model.js, geometría, Historias y Share idénticos a HEAD; la piel es
@@ -52,14 +53,39 @@ test("golden · fondo personalizado: los tonos se mezclan con ese fondo, no con 
   const tone = got.layers.find((l) => l.k === "top").fill, tema = GOLDEN.themes.crema[1].layers.find((l) => l.k === "top").fill;
   assert.notEqual(tone, tema);
 });
-test("golden · skinExtent y skinEdgeLanding coinciden con el fixture", () => {
-  for (const n of NODES) assert.deepEqual(run(G, "skinExtent(__a)", n), GOLDEN.extent[n.id], n.shape);
-  for (const [k, v] of Object.entries(GOLDEN.landing)) {
-    const [route, side] = k.split("/");
-    const pts = { n3: [{ x: 100, y: 0 }, { x: 100, y: 50 }, { x: 200, y: 50 }, { x: 200, y: 100 }], e3: [{ x: 0, y: 100 }, { x: 50, y: 100 }, { x: 50, y: 200 }, { x: 120, y: 200 }],
-      n2: [{ x: 100, y: 0 }, { x: 100, y: 100 }], diag: [{ x: 0, y: 0 }, { x: 40, y: 40 }, { x: 80, y: 100 }] }[route];
-    assert.deepEqual(run(G, "skinEdgeLanding(__a.p, __a.s)", { p: pts, s: side }), v, k);
+/* FLUYO-019.4a: casos de aterrizaje por pieza del golden. Por cada lado, una ruta con codo que entra perpendicular (último
+   tramo de 80 u); por el norte, además, una recta de dos puntos y una diagonal. La salida la fija el golden (sección
+   `landing`: {in, out}); FLUYO_UPDATE_GOLDEN=1 la regenera. */
+function landingCases(n) {
+  const out = {};
+  const D = { n: [0, -1], s: [0, 1], e: [1, 0], w: [-1, 0] };
+  for (const side of ["n", "e", "s", "w"]) {
+    const a = run(G, "sidePoint(__a.n, __a.s)", { n, s: side }), [dx, dy] = D[side];
+    const q = { x: a.x + dx * 80, y: a.y + dy * 80 };
+    out[n.id + "/" + side + "-codo"] = [{ x: q.x + dy * 60, y: q.y + dx * 60 }, q, a];
   }
+  const a = run(G, "sidePoint(__a.n, \"n\")", { n });
+  out[n.id + "/n-recta"] = [{ x: a.x, y: a.y - 120 }, a];
+  out[n.id + "/n-diag"] = [{ x: a.x - 90, y: a.y - 120 }, a];
+  return out;
+}
+if (process.env.FLUYO_UPDATE_GOLDEN === "1") {
+  const g = JSON.parse(read("test/fixtures/fluyo-019-1-skin.json")), landing = {};
+  for (const n of g.nodes) for (const [k, pts] of Object.entries(landingCases(n))) landing[k] = { in: pts, out: run(G, "skinEdgeLanding(__a.p, __a.n)", { p: pts, n }) };
+  g.landing = landing;
+  fs.writeFileSync(path.join(root, "test/fixtures/fluyo-019-1-skin.json"), JSON.stringify(g, null, 1) + "\n");
+}
+test("golden · skinExtent y skinEdgeLanding (019.4a: con el destino) coinciden con el fixture", () => {
+  for (const n of NODES) assert.deepEqual(run(G, "skinExtent(__a)", n), GOLDEN.extent[n.id], n.shape);
+  let k = 0;
+  for (const n of NODES) for (const [key, pts] of Object.entries(landingCases(n))) {
+    const v = GOLDEN.landing[key];
+    assert.ok(v, "falta en el golden: " + key);
+    assert.deepEqual(v.in, pts, key + ": la entrada del golden es la del caso");
+    assert.deepEqual(run(G, "skinEdgeLanding(__a.p, __a.n)", { p: pts, n }), v.out, key);
+    k++;
+  }
+  assert.equal(Object.keys(GOLDEN.landing).length, k, "el golden no tiene casos de más");
 });
 
 /* ── contrato de las piezas ── */
@@ -107,9 +133,13 @@ test("pureza · determinista y sin efectos: el nodo y la ruta quedan intactos; d
     assert.deepEqual(a, b); assert.deepEqual(n, before);
   }
   G.__p = [{ x: 100, y: 0 }, { x: 100, y: 50 }, { x: 200, y: 50 }, { x: 200, y: 100 }];
-  const out = J(vm.runInContext('skinEdgeLanding(__p, "n")', G));
+  G.__B = { id: 9, shape: "rect", x: 200, y: 135, w: 120, h: 70, color: "#5b8db5" };
+  const B0 = J(G.__B);
+  const out = J(vm.runInContext("skinEdgeLanding(__p, __B)", G));
   assert.deepEqual(J(G.__p), [{ x: 100, y: 0 }, { x: 100, y: 50 }, { x: 200, y: 50 }, { x: 200, y: 100 }], "la ruta de entrada no se toca");
-  assert.deepEqual(out, [{ x: 100, y: 0 }, { x: 100, y: 50 }, { x: 204, y: 50 }, { x: 204, y: 96 }]);
+  assert.deepEqual(J(G.__B), B0, "el destino no se toca");
+  assert.deepEqual(out, [{ x: 100, y: 0 }, { x: 100, y: 50 }, { x: 200, y: 50 }, { x: 200, y: 92 }], "019.4a: solo retrocede la punta, a la silueta de la tapa");
+  assert.deepEqual(J(vm.runInContext("skinEdgeLanding(__p, __B)", G)), out, "determinista");
 });
 test("skinActive · solo \"built\" y solo con canto ≥ 3 px en pantalla (zoom ≥ 0,375); sin bandera, plano", () => {
   const act = (s, z) => run(G, "skinActive(__a.s, __a.z)", { s, z });
@@ -117,17 +147,17 @@ test("skinActive · solo \"built\" y solo con canto ≥ 3 px en pantalla (zoom �
   assert.equal(act("flat", 1), false); assert.equal(act(undefined, 1), false); assert.equal(act(null, 2), false); assert.equal(act("otra", 1), false);
   assert.equal(act("built", undefined), true, "zoom ausente = 1 (exportación)");
 });
-test("aterrizaje · n/e desplazan d/2 y el penúltimo acompaña; s/w, rectas de dos puntos y tramos finales diagonales no cambian", () => {
-  const L = (p, s) => run(G, "skinEdgeLanding(__a.p, __a.s)", { p, s });
-  const n3 = [{ x: 100, y: 0 }, { x: 100, y: 50 }, { x: 200, y: 50 }, { x: 200, y: 100 }];
-  assert.deepEqual(L(n3, "n"), [{ x: 100, y: 0 }, { x: 100, y: 50 }, { x: 204, y: 50 }, { x: 204, y: 96 }]);
-  assert.deepEqual(L(n3, "s"), n3); assert.deepEqual(L(n3, "w"), n3);
-  const e3 = [{ x: 0, y: 100 }, { x: 50, y: 100 }, { x: 50, y: 200 }, { x: 120, y: 200 }];
-  assert.deepEqual(L(e3, "e"), [{ x: 0, y: 100 }, { x: 50, y: 100 }, { x: 50, y: 196 }, { x: 124, y: 196 }]);
-  assert.deepEqual(L([{ x: 100, y: 0 }, { x: 100, y: 100 }], "n"), [{ x: 100, y: 0 }, { x: 100, y: 100 }], "recta de dos puntos: sin vértice que acompañe");
-  const diag = [{ x: 0, y: 0 }, { x: 40, y: 40 }, { x: 80, y: 100 }];
-  assert.deepEqual(L(diag, "n"), diag); assert.deepEqual(L(diag, "e"), diag);
-  assert.deepEqual(L(e3, "n"), e3, "entra por n pero el tramo final es horizontal: no se toca");
+test("aterrizaje (019.4a) · retrocede la punta hasta la silueta (tapa y lateral, 8 u); por s/w y sin silueta no cambia nada", () => {
+  const L = (p, n) => run(G, "skinEdgeLanding(__a.p, __a.n)", { p, n });
+  const B = byId(3);   /* rect 120×50 centrado en (600, 400) */
+  const n3 = [{ x: 500, y: 300 }, { x: 500, y: 340 }, { x: 600, y: 340 }, { x: 600, y: 375 }];
+  assert.deepEqual(L(n3, B), [...n3.slice(0, 3), { x: 600, y: 367 }], "norte: solo el último vértice, 8 u por su tramo");
+  const e3 = [{ x: 760, y: 300 }, { x: 720, y: 300 }, { x: 720, y: 400 }, { x: 660, y: 400 }];
+  assert.deepEqual(L(e3, B), [...e3.slice(0, 3), { x: 668, y: 400 }], "este: el lateral");
+  const s3 = [{ x: 500, y: 500 }, { x: 600, y: 500 }, { x: 600, y: 425 }], w3 = [{ x: 450, y: 300 }, { x: 450, y: 400 }, { x: 540, y: 400 }];
+  assert.deepEqual(L(s3, B), s3, "sur: el frente ya es el contorno visible"); assert.deepEqual(L(w3, B), w3, "oeste: igual");
+  assert.deepEqual(L([{ x: 600, y: 200 }, { x: 600, y: 375 }], B), [{ x: 600, y: 200 }, { x: 600, y: 367 }], "una recta de dos puntos también se para en la tapa (sin vértice que acompañar: no hace falta)");
+  for (const id of [6, 7]) { const n = byId(id), a = run(G, "sidePoint(__a, \"n\")", n), p = [{ x: a.x, y: a.y - 100 }, a]; assert.deepEqual(L(p, n), p, n.shape + ": sin silueta, nada"); }
 });
 test("rótulo · skinLabelFont: Plex Mono 500 solo sin fuente propia y con la global de serie; negrita se respeta", () => {
   const F = (n, g) => run(G, "skinLabelFont(__a.n, __a.g)", { n, g });
@@ -180,7 +210,7 @@ test("alcance · kernel (salvo model.js), geometría, Historias y Share idéntic
   assert.ok(html.indexOf('<script src="js/geometry.js">') < html.indexOf('<script src="js/skin.js">') && html.indexOf('<script src="js/skin.js">') < html.indexOf('<script src="js/render.js">'), "editor: geometry → skin → render");
   assert.ok(viewer.indexOf('<script src="../js/geometry.js">') < viewer.indexOf('<script src="../js/skin.js">') && viewer.indexOf('<script src="../js/skin.js">') < viewer.indexOf('<script src="../js/render.js">'), "Viewer (019.2): geometry → skin → render");
   assert.ok(!/^\s*import\s/m.test(read("js/skin.js")), "script clásico, sin import");
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v92";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v93";/);
   assert.ok(read("sw.js").includes('"./js/skin.js",'), "skin.js precacheado");
   /* skin.js va justo después de geometry.js también en la lista precacheada (el orden de carga del editor) */
   const sw = read("sw.js");

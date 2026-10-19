@@ -28,7 +28,7 @@ const SVG_OLD = ['function svgFillColor(hex, theme){ return nodeTint(hex, theme=
 const ANIM_OLD = ["c.fillStyle=nodeTint(col,.2);", "c.fillStyle=hexA(col,.2);"];                         // la pista de progress vuelve a hexA
 /* [nombre, suite, archivo, desde, hasta] */
 const MUTATIONS = [
-  ["U0 CACHE no sube (sigue v87)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v92";', 'const CACHE = "fluyo-static-v87";'],
+  ["U0 CACHE no sube (sigue v87)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v93";', 'const CACHE = "fluyo-static-v87";'],
   ["U1 #rrggbbaa descarta el alfa", UNIT, GEO, ...DROP_ALPHA],
   ["U2 alfa sin redondear a 4 decimales", UNIT, GEO, ...UNROUNDED],
   ["U3 alfa invertido (1−α)", UNIT, GEO, ...INVERTED],

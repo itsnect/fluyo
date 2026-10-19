@@ -20,10 +20,10 @@ const BIGGEST = ["if(!best || o.w*o.h<best.w*best.h ||", "if(!best || o.w*o.h>be
 const DOC_LEAVES = ["  return {containers, leaves:order(nodes.filter(n=>!isCont.has(n)))};", "  return {containers, leaves:nodes.filter(n=>!isCont.has(n))};"];   // hojas sin el pintor de la piel
 const NO_CONT = ["  const conts=nodes.filter(n=>isContainerNode(n,nodes)),", "  const conts=nodes.filter(n=>false),"];                         // nadie es contenedor
 const SVG_FLAT = ["  const lay=skinOn? containmentPaintOrder(page.nodes||[], skinPaintOrder) : {containers:[], leaves:page.nodes||[]};", "  const lay=skinOn? {containers:[], leaves:skinPaintOrder(page.nodes||[])} : {containers:[], leaves:page.nodes||[]};"];   // SVG sin capas
-const BALLS_LAST = ["  if(!rs.scenarioRuntime) drawFlowBalls(c,t);\n  for(const n of lay.leaves) drawNode(c,n,t,theme,isExport,rs);", "  for(const n of lay.leaves) drawNode(c,n,t,theme,isExport,rs);\n  if(!rs.scenarioRuntime) drawFlowBalls(c,t);"];   // flujo encima de las hojas
+const BALLS_LAST = ["  if(!rs.scenarioRuntime) drawFlowBalls(c,t,rs);\n  for(const n of lay.leaves) drawNode(c,n,t,theme,isExport,rs);", "  for(const n of lay.leaves) drawNode(c,n,t,theme,isExport,rs);\n  if(!rs.scenarioRuntime) drawFlowBalls(c,t,rs);"];   // flujo encima de las hojas
 /* [nombre, suite, archivo, desde, hasta] */
 const MUTATIONS = [
-  ["U0 CACHE no sube (sigue v90)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v92";', 'const CACHE = "fluyo-static-v90";'],
+  ["U0 CACHE no sube (sigue v90)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v93";', 'const CACHE = "fluyo-static-v90";'],
   ["U1 vuelve «conexiones bajo todos los nodos» con la piel", UNIT, REN, ...NO_LAYERS],
   ["U2 capas también en plano", UNIT, REN, ...FLAT_TOO],
   ["U3 contenedores solo por y (sin árbol)", UNIT, GEO, ...BY_Y],

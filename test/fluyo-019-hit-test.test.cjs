@@ -23,6 +23,7 @@ const gitRoot = process.env.FLUYO_GIT_ROOT || root;
 const BASE = "d31703e";
 const read = (f) => fs.readFileSync(path.join(root, f), "utf8").replace(/\r\n/g, "\n");
 const atBase = (f) => execFileSync("git", ["-C", gitRoot, "show", BASE + ":" + f], { encoding: "utf8" }).replace(/\r\n/g, "\n");
+const { undo4a } = require("./fluyo-019-4a-undo.cjs");   /* FLUYO-019.4a cambia a propósito skin.js, render.js y export.js: se deshace aquí; su alcance lo vigila test/fluyo-019-4a.test.cjs */
 const between = (s, a, b) => { const i = s.indexOf(a); assert.ok(i >= 0, "falta " + a); const j = s.indexOf(b, i + a.length); assert.ok(j >= 0, "falta " + b); return s.slice(i, j); };
 const J = (v) => JSON.parse(JSON.stringify(v));
 
@@ -207,7 +208,7 @@ test("alcance: frente a d31703e solo cambian interaction.js, geometry.js (isCont
   /* FLUYO-019-HIT-TEST-D6 cambia a propósito render.js, export.js, geometry.js (containmentPaintOrder) y CACHE (v91):
      su alcance lo vigila test/fluyo-019-d6.test.cjs */
   for (const f of ["js/skin.js", "js/model.js", "js/ui.js", "js/config.js", "js/selection.js", "js/state.js", "js/viewer.js", "js/editor-runtime.js", "index.html", "s/index.html"])
-    assert.equal(read(f), atBase(f), f + " idéntico");
+    assert.equal(undo4a(f, read(f)), atBase(f), f + " idéntico");
   const g = read("js/geometry.js"), gB = atBase("js/geometry.js");
   const added = between(g, "/* FLUYO-019-HIT-TEST (D1)", "function isContainerNode(") + between(g, "function isContainerNode(", "\n}\n") + "\n}\n";
   const addedD6 = g.includes("function containmentPaintOrder(") ? between(g, "/* FLUYO-019-HIT-TEST-D6", "function containmentPaintOrder(") + between(g, "function containmentPaintOrder(", "\n}\n") + "\n}\n" : "";

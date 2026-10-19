@@ -689,8 +689,17 @@ function flowBallFade(s,L){
   const W=Math.min(FLOW_FADE_PX, L/2);
   return clamp(Math.min(s, L-s)/W, 0, 1);
 }
-function drawFlowBalls(c,t){
+/* FLUYO-019.4a: con la piel, la pelota se coloca sobre la línea PINTADA (la aterrizada, skinEdgeLanding), con la s, la L
+   y la D lógicas de siempre: el reloj, la duración, el bucle, la α y el número de pelotas no cambian. Sin piel, o sin
+   aterrizaje, los puntos pintados son los lógicos y el resultado es el mismo bit a bit. */
+function drawFlowBalls(c,t,rs){
   if(!settings.single) return;
+  const landed=rs && rs.skinOn && typeof skinEdgeLanding==="function" ? new Map() : null;
+  const painted=seg=>{
+    if(!landed) return seg.pts;
+    if(!landed.has(seg.e.id)) landed.set(seg.e.id, skinEdgeLanding(seg.pts, nodeById(seg.e.to)));
+    return landed.get(seg.e.id);
+  };
   let f=(t*settings.speed)%1; if(f<0) f+=1;
   const cache=new Map();
   for(const paths of flowGroups()){
@@ -706,7 +715,7 @@ function drawFlowBalls(c,t){
       let seg=g.segs[g.segs.length-1];
       for(const s of g.segs){ if(d<=s.start+s.L){ seg=s; break; } }
       const s=clamp(d-seg.start,0,seg.L);
-      const p=pointAt(seg.pts, s/seg.L);
+      const p=pointAt(painted(seg), s/seg.L);
       /* dos caminos que aún comparten tramo dan el mismo punto: se dibuja una
          vez, si no el halo se sumaría consigo mismo y esa parte del recorrido
          se vería más brillante que el resto */
@@ -880,8 +889,8 @@ function drawEdge(c,e,t,theme,isExport,rs){
   const A=nodeById(e.from), B=nodeById(e.to); if(!A||!B) return;
   const a=Math.min(nodeAlpha(A,t),nodeAlpha(B,t)); if(a<=0) return;
   let pts=edgePoints(e); if(pts.length<2) return;
-  /* FLUYO-019.1: con la piel la punta se posa en la cara visible (copia; la ruta del documento no cambia) */
-  if(rs.skinOn && typeof skinEdgeLanding==="function") pts=skinEdgeLanding(pts, inferSide(B, pts[pts.length-1]));
+  /* FLUYO-019.1/019.4a: con la piel la punta se para en la silueta visible del destino (copia; la ruta del documento no cambia) */
+  if(rs.skinOn && typeof skinEdgeLanding==="function") pts=skinEdgeLanding(pts, B);
   const T=THEMES[theme];
   const seld=!isExport && rs.selection.edges.has(e.id);
   const single=!isExport && (()=>{ const s=rs.selection.single; return s && s.type==="edge" && s.obj && s.obj.id===e.id; })();
@@ -1149,7 +1158,7 @@ function render(c,t,opts={}){
     const lay=paintLayers();
     for(const n of lay.containers) drawNode(c,n,t,theme,isExport,rs);
     for(const e of P().edges) drawEdge(c,e,t,theme,isExport,rs);
-    drawFlowBalls(c,t);
+    drawFlowBalls(c,t,rs);
     for(const n of lay.leaves) drawNode(c,n,t,theme,isExport,rs);
     return;
   }
@@ -1186,7 +1195,7 @@ function render(c,t,opts={}){
   const lay=paintLayers();
   for(const n of lay.containers) drawNode(c,n,t,theme,isExport,rs);
   for(const e of P().edges) drawEdge(c,e,t,theme,isExport,rs);
-  if(!rs.scenarioRuntime) drawFlowBalls(c,t);
+  if(!rs.scenarioRuntime) drawFlowBalls(c,t,rs);
   for(const n of lay.leaves) drawNode(c,n,t,theme,isExport,rs);
   /* Z-order de Scenarios: base → fill/dim/highlight (drawNode) → conexiones y tokens
      → símbolo/mensaje del cue → UI de selección/interacción. */

@@ -204,6 +204,9 @@ async function main() {
       corpus.push([f, JSON.parse(fs.readFileSync(path.join(root, dir, f), "utf8"))]);
     const now = await openEditor(browser, base), was = await openEditor(browser, baseOld);
     await was.page.evaluate(EDITOR_HELPERS);
+    /* FLUYO-019.4a cambia a propósito el aterrizaje con la piel (silueta): esta comprobación es del tinte de 019.5, así que el
+       aterrizaje se neutraliza en las dos páginas (copia de los puntos). Su efecto lo vigila test/fluyo-019-4a-browser.cjs. */
+    for (const pg of [now.page, was.page]) await pg.evaluate(() => { window.skinEdgeLanding = (p) => (p || []).map((q) => ({ x: q.x, y: q.y })); });
     let compared = 0;
     for (const [name, data] of corpus) {
       const colors = data.doc.pages.flatMap((pg) => pg.nodes.map((n) => n.color)).filter((c) => c != null);

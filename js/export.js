@@ -352,8 +352,8 @@ function renderConnectorToSVG(e, theme, skinOn){
   if(!A||!B) return "";
   let pts=edgePoints(e);
   if(pts.length<2) return "";
-  /* FLUYO-019.1: el mismo aterrizaje que el lienzo (copia; edgePoints no cambia) */
-  if(skinOn && typeof skinEdgeLanding==="function") pts=skinEdgeLanding(pts, inferSide(B, pts[pts.length-1]));
+  /* FLUYO-019.1/019.4a: el mismo aterrizaje que el lienzo (silueta del destino; copia; edgePoints no cambia) */
+  if(skinOn && typeof skinEdgeLanding==="function") pts=skinEdgeLanding(pts, B);
   const T=THEMES[theme];
   const lineCol=escapeAttribute(e.lineColor||T.edge);
   const dash=e.dashed? ' stroke-dasharray="8 7"':"";

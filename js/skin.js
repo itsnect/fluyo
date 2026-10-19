@@ -150,21 +150,107 @@ function skinExtent(n){
 function skinPaintOrder(nodes){
   return nodes.slice().sort((a,b)=>(a.y-b.y)||(b.x-a.x));
 }
-/* Aterrizaje en la cara visible: si la conexión entra por el norte o el este, la
-   punta se posa en la tapa o en el lateral (d/2). Se aplica DESPUÉS de edgePoints y
-   ANTES de edgeStroke; el penúltimo vértice acompaña para que el tramo final siga
-   ortogonal. Una recta de dos puntos no se toca (no hay vértice que acompañe), y
-   un tramo final que no sea vertical/horizontal, tampoco. Devuelve una copia. */
-function skinEdgeLanding(pts, toSide){
+/* ---- Aterrizaje por silueta (FLUYO-019.4a, decisión 213) ----
+   La silueta visible de un nodo con piel son las capas CERRADAS Y RELLENAS que pinta
+   skinNode (una capa con `clip` solo se ve dentro de su recorte). No hay lista de
+   formas: lo que cada forma pinta ya lo dice skinNode, y una forma sin piel no tiene
+   silueta propia (su contorno visible es el lógico, donde ya está el ancla).
+   Todas las capas de skinNode son convexas (caras, frente redondeado, cuerpo y tapa
+   del cilindro, peana, LED), así que la recta corta cada una en UN intervalo: el que
+   va del primer al último corte con su borde. Cortes exactos con L, Q y A. */
+const SKIN_EPS=1e-9;
+const SKIN_LANDING_MEMO=4096, SKIN_LANDING_T=new Map();   /* t* por destino y último tramo (ver skinEdgeLanding) */
+function skinSilhouette(n){
+  const sk=skinNode(n, "dark", THEMES.dark.bg);   /* solo la geometría: los tonos no importan */
+  if(!sk) return [];
+  return sk.layers.filter(L=>L.fill && L.segs.length && L.segs[L.segs.length-1].op==="Z").map(L=>({segs:L.segs, clip:L.clip||null}));
+}
+/* Parámetros t (en unidades de |u| = 1) donde la recta P + t·u corta el borde de `segs`. */
+function skinLineCuts(P, u, segs){
+  const ts=[], cross=(ax,ay,bx,by)=>ax*by-ay*bx;
+  let cur=null, start=null;
+  const seg=(a,b)=>{
+    const dx=b.x-a.x, dy=b.y-a.y, den=cross(u.x,u.y,dx,dy), wx=a.x-P.x, wy=a.y-P.y;
+    if(Math.abs(den)<SKIN_EPS){
+      if(Math.abs(cross(wx,wy,u.x,u.y))<1e-7){ ts.push(wx*u.x+wy*u.y, (b.x-P.x)*u.x+(b.y-P.y)*u.y); }   /* colineal: sus extremos */
+      return;
+    }
+    const s=cross(wx,wy,u.x,u.y)/den;
+    if(s>=-1e-9 && s<=1+1e-9) ts.push(cross(wx,wy,dx,dy)/den);
+  };
+  const quad=(a,c,b)=>{
+    /* n·(B(s) − P) = 0 con n ⊥ u y B(s) = a(1−s)² + 2c·s(1−s) + b·s² */
+    const nx=-u.y, ny=u.x;
+    const A=nx*(a.x-2*c.x+b.x)+ny*(a.y-2*c.y+b.y), B=nx*2*(c.x-a.x)+ny*2*(c.y-a.y), C=nx*(a.x-P.x)+ny*(a.y-P.y);
+    const roots=[];
+    if(Math.abs(A)<SKIN_EPS){ if(Math.abs(B)>SKIN_EPS) roots.push(-C/B); }
+    else { const D=B*B-4*A*C; if(D>=0){ const q=Math.sqrt(D); roots.push((-B-q)/(2*A), (-B+q)/(2*A)); } }
+    for(const s of roots) if(s>=-1e-9 && s<=1+1e-9){
+      const x=a.x*(1-s)*(1-s)+2*c.x*s*(1-s)+b.x*s*s, y=a.y*(1-s)*(1-s)+2*c.y*s*(1-s)+b.y*s*s;
+      ts.push((x-P.x)*u.x+(y-P.y)*u.y);
+    }
+  };
+  const arc=(o)=>{
+    /* ((P + t·u − c)/r)² = 1, y el ángulo del corte dentro del barrido (el de c.ellipse: ccw = ángulos decrecientes) */
+    const px=(P.x-o.cx)/o.rx, py=(P.y-o.cy)/o.ry, ux=u.x/o.rx, uy=u.y/o.ry;
+    const A=ux*ux+uy*uy, B=2*(px*ux+py*uy), C=px*px+py*py-1, D=B*B-4*A*C;
+    if(A<SKIN_EPS || D<0) return;
+    const q=Math.sqrt(D), TAU=2*Math.PI, mod=(v)=>((v%TAU)+TAU)%TAU;
+    const sweep=mod(o.ccw? o.a0-o.a1 : o.a1-o.a0) || TAU;
+    for(const t of [(-B-q)/(2*A), (-B+q)/(2*A)]){
+      const th=Math.atan2(py+t*uy, px+t*ux), d=mod(o.ccw? o.a0-th : th-o.a0);
+      if(d<=sweep+1e-9 || d>=TAU-1e-9) ts.push(t);
+    }
+  };
+  for(const s of segs){
+    if(s.op==="M"){ cur={x:s.x,y:s.y}; start=cur; }
+    else if(s.op==="L"){ seg(cur,{x:s.x,y:s.y}); cur={x:s.x,y:s.y}; }
+    else if(s.op==="Q"){ quad(cur,{x:s.cx,y:s.cy},{x:s.x,y:s.y}); cur={x:s.x,y:s.y}; }
+    else if(s.op==="A"){ arc(s); cur={x:s.cx+s.rx*Math.cos(s.a1), y:s.cy+s.ry*Math.sin(s.a1)}; }
+    else if(s.op==="Z" && cur && start){ seg(cur,start); cur=start; }
+  }
+  return ts;
+}
+/* Intervalo [t0, t1] de la recta dentro de una capa convexa (y de su recorte), o null. */
+function skinLayerSpan(P, u, layer){
+  const span=(segs)=>{ const ts=skinLineCuts(P,u,segs); return ts.length? [Math.min(...ts), Math.max(...ts)] : null; };
+  const a=span(layer.segs); if(!a) return null;
+  if(!layer.clip) return a;
+  const b=span(layer.clip); if(!b) return null;
+  const t0=Math.max(a[0],b[0]), t1=Math.min(a[1],b[1]);
+  return t0<=t1? [t0,t1] : null;
+}
+/* Aterrizaje: la punta RETROCEDE por su propio último tramo hasta salir de la silueta
+   visible del destino B, y el trazo deja después su EDGE_GAP de siempre: queda a la
+   misma distancia del contorno que se ve que en plano del contorno lógico. Solo se
+   mueve el último vértice, y sobre su recta: ningún tramo se inclina, el origen y el
+   número de puntos no cambian. No se toca si B no tiene silueta, si el ancla no está
+   dentro de ella (t* = 0), si el último tramo llega desde dentro de la caja de anclaje
+   o si no hay tramo para retroceder (t* > L − 1). Se aplica DESPUÉS de edgePoints y
+   ANTES de edgeStroke. Determinista y sin efectos sobre sus argumentos (la memo solo evita
+   recalcular); devuelve una copia, y aplicada dos veces da lo mismo. */
+function skinEdgeLanding(pts, B){
   const out=(pts||[]).map(p=>({x:p.x,y:p.y}));
-  if(out.length<3 || (toSide!=="n" && toSide!=="e")) return out;
-  const n=out.length, z=out[n-1], p=out[n-2];
-  const vertical=Math.abs(z.x-p.x)<.01, horizontal=Math.abs(z.y-p.y)<.01;
-  if(toSide==="n" && !vertical) return out;
-  if(toSide==="e" && !horizontal) return out;
-  const sx=SKIN_DEPTH/2, sy=-SKIN_DEPTH/2;
-  z.x+=sx; z.y+=sy;
-  if(toSide==="n") p.x+=sx; else p.y+=sy;
+  const n=out.length;
+  if(n<2 || !B) return out;
+  const z=out[n-1], p=out[n-2], L=Math.hypot(p.x-z.x, p.y-z.y);
+  if(L<.01) return out;
+  const a=anchorBox(B);
+  if(Math.abs(p.x-a.x)<a.w/2-SKIN_EPS && Math.abs(p.y-a.y)<a.h/2-SKIN_EPS) return out;   /* llega desde dentro */
+  const u={x:(p.x-z.x)/L, y:(p.y-z.y)/L};   /* hacia fuera, por el último tramo */
+  /* t* solo depende de la geometría del destino (forma y caja: lo único que mira skinSilhouette) y de los dos últimos
+     puntos: se memoiza por esa clave, porque el lienzo lo pide en cada fotograma para cada conexión (y la pelota otra vez) */
+  const key=B.shape+"|"+B.x+"|"+B.y+"|"+B.w+"|"+B.h+"|"+z.x+"|"+z.y+"|"+p.x+"|"+p.y;
+  let t=SKIN_LANDING_T.get(key);
+  if(t===undefined){
+    const spans=skinSilhouette(B).map(l=>skinLayerSpan(z,u,l)).filter(Boolean);
+    let grew=true; t=0;
+    while(grew){ grew=false; for(const [t0,t1] of spans) if(t0<=t+1e-6 && t1>t+1e-6){ t=t1; grew=true; } }
+    if(SKIN_LANDING_T.size>=SKIN_LANDING_MEMO) SKIN_LANDING_T.clear();
+    SKIN_LANDING_T.set(key, t);
+  }
+  if(t<=1e-6 || t>L-1) return out;
+  z.x+=u.x*t; z.y+=u.y*t;
   return out;
 }
 /* Anillo de salida de una conexión: relleno del fondo, borde del color de la línea. No interpreta colores (019.3):

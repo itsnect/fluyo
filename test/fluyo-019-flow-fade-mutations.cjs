@@ -24,10 +24,10 @@ const NO_ARRIVAL = [RET, "  return clamp(s/W, 0, 1);"];                         
 const PX70 = ["const FLOW_FADE_PX=35;", "const FLOW_FADE_PX=70;"];
 const DOTS_PX = ["      const fade=Math.min(1,Math.min(f,1-f)*8);", "      const fade=flowBallFade(f*polyLen(pts), polyLen(pts));"];   // D3 colado en OFF
 const CLOCK = ["  let f=(t*settings.speed)%1; if(f<0) f+=1;\n  const cache=new Map();", "  let f=(t*settings.speed*2)%1; if(f<0) f+=1;\n  const cache=new Map();"];
-const POS = ["      const p=pointAt(seg.pts, s/seg.L);", "      const p=pointAt(seg.pts, clamp(s/seg.L+.01,0,1));"];
+const POS = ["      const p=pointAt(painted(seg), s/seg.L);", "      const p=pointAt(painted(seg), clamp(s/seg.L+.01,0,1));"];
 /* [nombre, suite, archivo, desde, hasta] */
 const MUTATIONS = [
-  ["U0 CACHE no sube (sigue v88)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v92";', 'const CACHE = "fluyo-static-v90";'],
+  ["U0 CACHE no sube (sigue v88)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v93";', 'const CACHE = "fluyo-static-v90";'],
   ["U1 vuelve el fade sobre el camino (g.total, D·0,125)", UNIT, REN, ...PATH_FADE],
   ["U2 ventana en px pero sobre el camino", UNIT, REN, ...PATH_PX],
   ["U3 por conexión pero ventana relativa al grupo (D·0,125)", UNIT, REN, ...GROUP_WIN],

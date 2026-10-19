@@ -201,8 +201,10 @@ test("alcance · skin.js: skinColor es el único lector de color (tonos, LED y r
   assert.ok(/const col=skinColor\(color, base\) \|\| PALETTE\[0\]\.c;/.test(src));
   assert.equal((src.match(/skinColor\(n\.fill, T\.bg\) \|\| T\.front/g) || []).length, 2);
   assert.ok(!/skinHexRGB\(n\.fill\)/.test(src), "el relleno ya no se lee aparte");
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v92";/);
-  /* el resto de skin.js no cambia respecto a 019.2: mismas funciones exportadas */
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v93";/);
+  /* el resto de skin.js no cambia respecto a 019.2: mismas funciones exportadas. FLUYO-019.4a añade a propósito la
+     silueta del aterrizaje (skinSilhouette, skinLineCuts, skinLayerSpan): su alcance lo vigila test/fluyo-019-4a.test.cjs */
   const fns = (s) => [...s.matchAll(/^function (\w+)/gm)].map((m) => m[1]);
-  assert.deepEqual(fns(src).filter((f) => f !== "skinColor"), fns(before("js/skin.js")));
+  const added4a = ["skinColor", "skinSilhouette", "skinLineCuts", "skinLayerSpan"];
+  assert.deepEqual(fns(src).filter((f) => !added4a.includes(f)), fns(before("js/skin.js")));
 });

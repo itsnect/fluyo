@@ -645,3 +645,22 @@ documento: settings.skin ("built" | ausente = plano; model.js SKIN_VALUES, proje
 - **Sin cambios**: el reloj del grupo (`d = f·D`, bucle del GIF), `flowGroups`, `pathGeometry`, `edgePoints`, la posición, el dedupe, el color y el halo. El modo OFF (`drawEdge`, puntos con ventana L/8) es idéntico píxel a píxel. `flowDir` sigue sin aplicarse a la pelota (F3, fuera).
 - `CACHE` v89 (`render.js`; sin archivos nuevos).
 - Pruebas: `test/fluyo-019-flow-fade.test.cjs` (vm contra el `render.js` de `266ac09`: tabla de `flowBallFade`, matriz V0–V7 de la auditoría + cadenas de 1/2/4 conexiones, tramo compartido, anillo, rama corta, conexión < 70 px y `reverse`; posiciones idénticas, α = regla por conexión, llegada/salida, salto, bucle, caso sano bit a bit, OFF y alcance), `test/fluyo-019-flow-fade-browser.cjs` (Chrome real: editor, Present, Viewer y Present del Viewer; OFF idéntico píxel a píxel a `266ac09`; ON medido en α y px Δ al llegar a B; exportación) y `test/fluyo-019-flow-fade-mutations.cjs` (16 mutaciones).
+
+## Acierto hoja → conexión → contenedor, puerto diferido y foco del panel (FLUYO-019-HIT-TEST)
+
+- **Contenedor** (`isContainerNode(n, nodes)`, `geometry.js`, fuera del kernel): contiene el centro de otro nodo de menor área. Se calcula en cada consulta, sin caché ni dato persistido.
+- **Acierto** (`interaction.js`, decisión 209):
+  - `hitTarget(x,y)` → `{kind:"node"|"edge", obj}` en el orden hoja (`hitLeafNode`, la de más arriba) → conexión (`hitEdge`) → contenedor (`hitContainerNode`, el de menor área);
+  - `hitNode` = hoja ‖ contenedor (destinos de conectar, extremos, «Conectar» táctil, modo Flecha y eventos de nodo de Historias);
+  - `hitSideArrowHost` prueba las hojas antes que los contenedores.
+  - El orden del `pointerdown` es: instrumentos de la selección → puerto (diferido) → `hitTarget` → vacío.
+  - El hover fuera de un arrastre es puerto ‖ el nodo de `hitTarget`.
+  - Historias (`editor-scenarios.js`): una conexión solo queda tapada por una hoja (`hitLeafNode`).
+- **Puerto diferido** (decisión 210): `connectPending` en el `pointerdown`; `connectDrag` en `pointermove` tras `CONNECT_MOVE_PX` px de pantalla; en `pointerup` sin movimiento, `portClick` (clic con el orden de `hitTarget`). `cancelGestures` y Escape lo anulan.
+- **Foco** (decisión 211): `releasePanelFocus()` es lo primero del `pointerdown` del lienzo; `closeEditBox` hace `blur`.
+- El pintado no cambia: las conexiones siguen debajo de todos los nodos (decisión 101). Las capas por contenedor (D6) son un slice aparte.
+- `CACHE` v90.
+- Pruebas:
+  - `test/fluyo-019-hit-test.test.cjs` (vm: `isContainerNode`, tabla de la tarea, Z invertido, anidado, puerto de hoja antes que de contenedor, no regresión en rejilla contra `d31703e` en los 8 ejemplos, D3–D5 fijadas, contratos de D2/D7 y alcance);
+  - `test/fluyo-019-hit-test-browser.cjs` (Chrome real con gestos reales; la base `d31703e` debe reproducir cada bug);
+  - `test/fluyo-019-hit-test-mutations.cjs`.

@@ -12,14 +12,34 @@ function normRect(m){
   return { x:Math.min(m.x0,m.x1), y:Math.min(m.y0,m.y1),
            w:Math.abs(m.x1-m.x0), h:Math.abs(m.y1-m.y0) };
 }
-function hitNode(x,y){
+/* ===================== Acierto: hoja → conexión → contenedor (FLUYO-019-HIT-TEST, D1) =====================
+   Una caja que contiene a otros nodos (GCP con sus servicios) es un CONTENEDOR (isContainerNode, js/geometry.js).
+   Antes ganaba siempre el nodo de más arriba por su caja, y los nodos antes que las conexiones: las conexiones entre
+   los hijos de una caja no se podían seleccionar (ganaba la caja) y una caja creada DESPUÉS de sus hijos los tapaba.
+   Ahora gana la hoja de más arriba; si no hay hoja, la conexión; y solo sin ninguna de las dos, el contenedor más
+   interior. Se calcula en cada acierto, sin índice ni caché que puedan quedar desfasados. El acierto no mira el
+   relleno ni la forma (D5): la caja +4 de siempre. */
+function nodeBoxHit(n,x,y){ return Math.abs(x-n.x)<=n.w/2+4 && Math.abs(y-n.y)<=n.h/2+4; }
+function hitLeafNode(x,y){
   const ns=P().nodes;
   for(let i=ns.length-1;i>=0;i--){
     const n=ns[i];
-    if(Math.abs(x-n.x)<=n.w/2+4 && Math.abs(y-n.y)<=n.h/2+4) return n;
+    if(nodeBoxHit(n,x,y) && !isContainerNode(n,ns)) return n;
   }
   return null;
 }
+/* El más interior (menor área); a igual área, el de más arriba. */
+function hitContainerNode(x,y){
+  const ns=P().nodes; let best=null;
+  for(let i=ns.length-1;i>=0;i--){
+    const n=ns[i];
+    if(nodeBoxHit(n,x,y) && isContainerNode(n,ns) && (!best || n.w*n.h<best.w*best.h)) best=n;
+  }
+  return best;
+}
+/* Nodo bajo el punto, para lo que solo puede caer en un nodo: destino de una conexión o de un extremo, «Conectar»
+   táctil, modo Flecha, eventos de nodo de Historias. Una conexión nunca es destino, así que no se interpone. */
+function hitNode(x,y){ return hitLeafNode(x,y) || hitContainerNode(x,y); }
 /* Tolerancia de acierto de una conexión. Era 8 unidades de MUNDO con ratón y con
    dedo: a zoom 0,25 —el encaje de un diagrama en un móvil— son 2 px, y tocar una
    conexión con el dedo era imposible. Ahora se mide en píxeles de pantalla (6 con
@@ -38,6 +58,13 @@ function hitEdge(x,y){
     }
   }
   return null;
+}
+/* Lo que recibe un clic: {kind:"node"|"edge", obj} o null (D1). */
+function hitTarget(x,y){
+  const n=hitLeafNode(x,y); if(n) return {kind:"node", obj:n};
+  const e=hitEdge(x,y);     if(e) return {kind:"edge", obj:e};
+  const c=hitContainerNode(x,y);
+  return c? {kind:"node", obj:c} : null;
 }
 /* Puerto de conectar (FLUYO-018.16): un punto a CONNECT_PORT_OFF px de PANTALLA de
    cada lado, acertado a CONNECT_PORT_HIT px (geometry.js). Se dibuja solo el del lado
@@ -63,8 +90,12 @@ function arrowHitRadius(){ return CONNECT_PORT_HIT/viewZoom; }
    primer acierto, o sea con el nodo del FONDO. Con dos zonas de flecha que se
    rozan, ganaba el de abajo. */
 function hitSideArrowHost(x,y){
-  const ns=P().nodes, rad=arrowHitRadius();
-  for(let i=ns.length-1;i>=0;i--) if(hitSideArrow(ns[i],x,y,rad)) return ns[i];
+  const ns=P().nodes, rad=arrowHitRadius(), leaves=[], conts=[];
+  /* Mismo criterio que el acierto (D1): las hojas antes que los contenedores, y entre contenedores el más interior. */
+  for(let i=ns.length-1;i>=0;i--) (isContainerNode(ns[i],ns)? conts : leaves).push(ns[i]);
+  conts.sort((a,b)=>a.w*a.h-b.w*b.h);
+  for(const n of leaves) if(hitSideArrow(n,x,y,rad)) return n;
+  for(const n of conts) if(hitSideArrow(n,x,y,rad)) return n;
   return null;
 }
 /* Esquinas y codos tenían un radio fijo de 10 unidades de MUNDO: a zoom 0,5 son
@@ -353,6 +384,19 @@ function cancelTouchModes(){ touchMulti=false; touchLink=null; }
    toque sin movimiento es inerte. Como hasta entonces nada se escribe, el Undo que se
    apila al empezar es la foto de antes de agarrar. */
 let routePending=null;   // {edgeId, kind:"seg"|"wp", idx, p0}
+/* Puerto de conectar diferido (FLUYO-019-HIT-TEST, D2). Antes, pulsar en la zona de un puerto arrancaba ya la conexión y
+   al soltar se creaba hacia el nodo que hubiera debajo: un CLIC sobre una conexión, junto a su origen, creaba una conexión
+   nueva hacia el vecino o hacia la caja que lo contiene. Ahora el puerto solo se anota; la conexión empieza cuando el
+   puntero se mueve más de CONNECT_MOVE_PX px de pantalla (el umbral de panDrag), y soltar sin moverse es un clic normal en
+   ese punto (portClick, con el orden de D1). Solo ratón: con el dedo no hay puertos. */
+let connectPending=null; // {fromId, fromSide, p0, cx, cy, add}
+const CONNECT_MOVE_PX=3;
+function portClick(p, add){
+  const t=hitTarget(p.x,p.y);
+  if(!t){ if(!add) clearSel(); return; }
+  if(add) toggleSel(t.kind,t.obj.id);
+  else if(t.kind==="edge" || !selN.has(t.obj.id)) selectOnly(t.kind,t.obj.id);   // un nodo ya seleccionado conserva el grupo, como su clic
+}
 function routeGestureMoves(rp,p){
   const e=edgeById(rp.edgeId); if(!e) return false;
   if(rp.kind==="wp"){ const w=(e.waypoints||[])[rp.idx]; return !!w && (snapV(p.x)!==w.x || snapV(p.y)!==w.y); }
@@ -378,7 +422,7 @@ function startRouteGesture(rp){
   wpDrag={edgeId:e.id, idx:rp.idx};
 }
 function cancelGestures(){
-  drag=null; resizing=null; wpDrag=null; marquee=null; connectDrag=null; panDrag=null; routePending=null;
+  drag=null; resizing=null; wpDrag=null; marquee=null; connectDrag=null; panDrag=null; routePending=null; connectPending=null;
   /* thaw incondicional: si el gesto se cancela a mitad, dejar el mapa congelado
      dejaría las etiquetas clavadas para siempre. */
   endDrag=null; segDrag=null; thawEdgeLabels();
@@ -391,7 +435,18 @@ function startPinch(){
           cx:(a.x+b.x)/2, cy:(a.y+b.y)/2, viewX0:viewX, viewY0:viewY };
 }
 
+/* Foco del panel (FLUYO-019-HIT-TEST, D7). El pointerdown del lienzo cancela la acción por defecto, así que el foco se
+   quedaba en el campo del panel que lo tuviera, y ese campo ya enseña el NUEVO seleccionado: Supr no borraba (los
+   atajos ignoran las teclas dirigidas a un campo) y Retroceso vaciaba su etiqueta o su tamaño. Se suelta al empezar
+   cualquier pulsación en el lienzo y antes de cambiar la selección, así que un change pendiente cae sobre el objeto
+   anterior. #editBox no: lo cierra commitEditBox. */
+function releasePanelFocus(){
+  const a=document.activeElement;
+  if(!a || a===editBox) return;
+  if(a.tagName==="INPUT" || a.tagName==="TEXTAREA" || a.tagName==="SELECT") a.blur();
+}
 cv.addEventListener("pointerdown", ev=>{
+  releasePanelFocus();
   if(typeof scCanvasPlacementPointer === "function" && scCanvasPlacementPointer(ev)) return;
   if(typeof scDrag!=="undefined" && scDrag) return;
   lastPointerType = ev.pointerType || "mouse";
@@ -521,11 +576,14 @@ cv.addEventListener("pointerdown", ev=>{
   const host=arrowHostNode();
   const arrowSide=hitSideArrow(host,p.x,p.y,arrowHitRadius());
   if(arrowSide && host){
-    connectDrag={fromId:host.id, fromSide:arrowSide};
+    connectPending={fromId:host.id, fromSide:arrowSide, p0:{x:p.x,y:p.y}, cx:ev.clientX, cy:ev.clientY, add:ev.shiftKey};
     return;
   }
-  // 4) nodo → seleccionar / arrastrar grupo
-  if(n){
+  // 4) nodo → seleccionar / arrastrar grupo. Hoja → conexión → contenedor (hitTarget, D1): este n es el de hitTarget,
+  //    no el de hitNode de arriba (que es solo destino de «Conectar» y del modo Flecha).
+  const tgt=hitTarget(p.x,p.y);
+  if(tgt && tgt.kind==="node"){
+    const n=tgt.obj;
     if(ev.shiftKey){ toggleSel("node",n.id); return; }
     /* En «Seleccionar varios» tocar suma; quitar se decide al soltar (toggleOff),
        porque el mismo toque puede acabar siendo el arrastre del grupo. */
@@ -565,7 +623,7 @@ cv.addEventListener("pointerdown", ev=>{
     return;
   }
   // 5) flecha
-  const e=hitEdge(p.x,p.y);
+  const e=tgt && tgt.kind==="edge"? tgt.obj : null;
   if(e){
     if(ev.shiftKey || touchMulti) toggleSel("edge",e.id);
     else selectOnly("edge",e.id);
@@ -608,6 +666,12 @@ cv.addEventListener("pointermove", ev=>{
   }
   const p=toWorld(ev); mouse.x=p.x; mouse.y=p.y;
   if(marquee){ marquee.x1=p.x; marquee.y1=p.y; return; }
+  /* D2: el puerto solo se convierte en conexión al moverse de verdad; hasta entonces no se dibuja ni se escribe nada. */
+  if(connectPending){
+    if(Math.hypot(ev.clientX-connectPending.cx, ev.clientY-connectPending.cy)<=CONNECT_MOVE_PX) return;
+    connectDrag={fromId:connectPending.fromId, fromSide:connectPending.fromSide};
+    connectPending=null;
+  }
   if(drag){
     if(drag.snap){
       const mueve=Object.keys(drag.offs).some(id=>{
@@ -664,7 +728,10 @@ cv.addEventListener("pointermove", ev=>{
 
      No aplica mientras se arrastra una conexión ni un extremo: ahí no hay
      flechas dibujadas y hoverNode es el nodo de destino que se va a resaltar. */
-  hoverNode = ((connectDrag||endDrag)? null : hitSideArrowHost(p.x,p.y)) || hitNode(p.x,p.y);
+  /* Fuera de un arrastre de conexión, el hover es lo que recibiría el clic (D1): sobre una conexión dentro de una caja
+     no hay nodo bajo el cursor (ni «agarrar», ni puerto de la caja). Arrastrando, es el nodo destino. */
+  if(connectDrag||endDrag) hoverNode=hitNode(p.x,p.y);
+  else { const t=hitTarget(p.x,p.y); hoverNode=hitSideArrowHost(p.x,p.y) || (t && t.kind==="node"? t.obj : null); }
   const single=singleSel();
   let cur="default";
   if(pendingShape||pendingIcon||pendingAnim||mode==="connect"||connectDrag||endDrag) cur="crosshair";
@@ -718,6 +785,7 @@ cv.addEventListener("pointerup", ev=>{
   if(presenting) return;
   const p=toWorld(ev);
   const hadDrag=!!(drag||resizing||wpDrag||segDrag);
+  if(connectPending){ const cp=connectPending; connectPending=null; portClick(cp.p0, cp.add); }
   if(connectDrag){
     const tgt=hitNode(p.x,p.y);
     if(tgt && tgt.id!==connectDrag.fromId){
@@ -919,7 +987,7 @@ function openEditorAt(p){
     const wi=hitWaypoint(single.obj,p.x,p.y);
     if(wi>=0){ pushUndo(); single.obj.waypoints.splice(wi,1); return; }
   }
-  const tgt=hitNode(p.x,p.y)||hitEdge(p.x,p.y);
+  const t=hitTarget(p.x,p.y), tgt=t && t.obj;
   if(!tgt) return;
   editing=tgt;
   /* El texto se aplica en vivo, así que el valor de partida hay que guardarlo:
@@ -934,7 +1002,7 @@ function openEditorAt(p){
 let editOriginal="";
 function closeEditBox(label){
   const o=editing;
-  editing=null; editBox.style.display="none";
+  editing=null; editBox.style.display="none"; editBox.blur();
   if(!o) return;
   /* Volver SIEMPRE al punto de partida es lo que hace que Escape funcione: el
      texto se aplicó en vivo tecla a tecla, así que cancelar no es «no hacer
@@ -1033,7 +1101,7 @@ document.addEventListener("keydown", ev=>{
      pointerdown se apiló antes de tocar nada, o sea que esto devuelve la arista
      a su ruta automática. */
   if(ev.key==="Escape" && (touchMulti || touchLink!==null)){ cancelTouchModes(); refreshPanel(); }
-  if(ev.key==="Escape"){ routePending=null; if(segDrag){ segDrag=null; undo(); } pendingShape=null; pendingIcon=null; pendingAnim=null; connecting=null; connectDrag=null; endDrag=null; thawEdgeLabels(); marquee=null; $("iconDrawer").style.display="none"; $("animDrawer").style.display="none"; syncRail(); }
+  if(ev.key==="Escape"){ routePending=null; connectPending=null; if(segDrag){ segDrag=null; undo(); } pendingShape=null; pendingIcon=null; pendingAnim=null; connecting=null; connectDrag=null; endDrag=null; thawEdgeLabels(); marquee=null; $("iconDrawer").style.display="none"; $("animDrawer").style.display="none"; syncRail(); }
   if(k==="v") setMode("select");
   if(k==="c"){
     /* FLUYO-018.14b: en modo Historia no se construye (el rail no está): C no arma una herramienta invisible. */

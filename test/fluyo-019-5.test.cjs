@@ -172,7 +172,8 @@ test("alcance · kernel (model, config, motor, playback, integridad, autoría), 
     "js/story-authoring.js", "js/skin.js", "js/viewer.js", "s/index.html", "index.html"]) assert.equal(read(f), before(f), f + " idéntico a " + BEFORE);
   const changed = execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BEFORE, "--", "js", "s", "css", "index.html", "sw.js", "manifest.webmanifest"], { encoding: "utf8" })
     .split("\n").filter(Boolean).sort();
-  assert.deepEqual(changed, ["js/export.js", "js/geometry.js", "js/render.js", "sw.js"]);
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v89";/);
+  /* FLUYO-019-HIT-TEST cambia a propósito editor-scenarios.js e interaction.js (acierto, puerto y foco): su alcance lo vigila test/fluyo-019-hit-test.test.cjs */
+  assert.deepEqual(changed, ["js/editor-scenarios.js", "js/export.js", "js/geometry.js", "js/interaction.js", "js/render.js", "sw.js"]);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v90";/);
   for (const f of ["./js/geometry.js", "./js/render.js", "./js/export.js"]) assert.ok(read("sw.js").includes(`"${f}"`) || read("sw.js").includes(`'${f}'`) || read("sw.js").includes(f.slice(1)), "precacheado: " + f);
 });

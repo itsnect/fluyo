@@ -247,7 +247,7 @@ test("OFF (single:false): drawFlowBalls no pinta y drawEdge es el de 266ac09 car
   for (const name of ["drawEdge", "flowDotCount", "flowGroups", "pathGeometry", "render", "nodeAlpha"]) assert.equal(fn(now, name), fn(old, name), `${name} idéntica a ${BEFORE}`);
 });
 
-test("alcance: en render.js solo cambia drawFlowBalls (+ FLOW_FADE_PX/flowBallFade); el resto del producto idéntico a 266ac09; CACHE v89", () => {
+test("alcance: en render.js solo cambia drawFlowBalls (+ FLOW_FADE_PX/flowBallFade); el resto del producto idéntico a 266ac09 (salvo lo que cambia FLUYO-019-HIT-TEST); CACHE v90", () => {
   const now = read("js/render.js"), old = before("js/render.js");
   const cut = (src) => { const i = src.indexOf("function drawFlowBalls("), j = src.indexOf("/* ===== FLUYO-015: lenguaje visual"); assert.ok(i > 0 && j > i); return src.slice(0, i) + src.slice(j); };
   const helper = now.slice(now.indexOf("/* FLUYO-019-FLOW-FADE:"), now.indexOf("function drawFlowBalls("));
@@ -261,11 +261,12 @@ test("alcance: en render.js solo cambia drawFlowBalls (+ FLOW_FADE_PX/flowBallFa
   for (const keep of ["const D=Math.max(...geos.map(g=>g.total));", "const d=f*D;", "if(d>g.total) continue;", 'c.fillStyle=seg.e.dotColor||A.color||"#d08b5b";',
     "c.globalAlpha=a*fade;", "c.globalAlpha=a*fade*.28;", "c.arc(p.x,p.y,7,0,Math.PI*2)", "c.arc(p.x,p.y,13,0,Math.PI*2)", 'const key=seg.e.id+"|"+Math.round(p.x)+","+Math.round(p.y);'])
     assert.ok(db.includes(keep), "drawFlowBalls conserva: " + keep);
-  for (const f of ["js/geometry.js", "js/skin.js", "js/model.js", "js/config.js", "js/export.js", "js/viewer.js", "js/share.js", "js/deeplink.js", "js/state.js", "js/ui.js",
-    "js/interaction.js", "js/editor-runtime.js", "index.html", "s/index.html", "css/styles.css"])
+  /* FLUYO-019-HIT-TEST cambia a propósito geometry.js (isContainerNode), interaction.js, editor-scenarios.js y CACHE (v90): su alcance lo vigila test/fluyo-019-hit-test.test.cjs */
+  for (const f of ["js/skin.js", "js/model.js", "js/config.js", "js/export.js", "js/viewer.js", "js/share.js", "js/deeplink.js", "js/state.js", "js/ui.js",
+    "js/editor-runtime.js", "index.html", "s/index.html", "css/styles.css"])
     if (fs.existsSync(path.join(root, f))) assert.equal(read(f), before(f), f + " idéntico a " + BEFORE);
   const sw = read("sw.js"), swOld = before("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v89";/);
-  /* la anterior se construye (sin el literal): fluyo-019-1 vigila que ningún test fuera de las mutaciones la nombre */
-  assert.equal(sw.replace('"fluyo-static-v89"', '"fluyo-static-v' + (89 - 1) + '"'), swOld, "sw.js: solo cambia CACHE");
+  assert.match(sw, /const CACHE = "fluyo-static-v90";/);
+  /* la de 266ac09 (v88) se construye (sin el literal de la anterior a la actual): fluyo-019-1 vigila que ningún test fuera de las mutaciones la nombre */
+  assert.equal(sw.replace('"fluyo-static-v90"', '"fluyo-static-v' + (90 - 2) + '"'), swOld, "sw.js: solo cambia CACHE");
 });

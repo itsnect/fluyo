@@ -33,7 +33,7 @@ test("alcance: kernel, story-clock, render, geometría, exportación, Viewer y S
 
 test("release: CACHE v78; nada de lo que carga index.html queda fuera del precache", () => {
   const sw = read("sw.js"), html = read("index.html");
-  assert.match(sw, /const CACHE = "fluyo-static-v89";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v90";/);
   const local = [...html.matchAll(/(?:src|href)="((?!https?:|#|data:)[^"]+\.(?:js|css|woff2))"/g)].map((m) => m[1]);
   for (const u of local) assert.ok(sw.includes('"./' + u.replace(/^\.\//, "") + '"'), "en el precache: " + u);
 });
@@ -50,6 +50,7 @@ function editor() {
   ctx.isSheetLayout = () => false;
   ctx.syncStoryState = () => {};
   ctx.hitNode = () => null;
+  ctx.hitLeafNode = () => null;   // FLUYO-019-HIT-TEST: Historias pregunta por la hoja
   ctx.hitEdge = () => null;
   ensureUI(ctx);
   ctx.run("scSelectStory(P().scenarios[0].id); scRenderPanel();");

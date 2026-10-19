@@ -756,6 +756,15 @@ function colorTint(color,k){
   const a=s.length===8? Math.round(k*parseInt(s.slice(6),16)/255*1e4)/1e4 : k;
   return `rgba(${v>>16&255},${v>>8&255},${v&255},${a})`;
 }
+/* FLUYO-019-HIT-TEST (D1): un nodo es CONTENEDOR si el centro de otro nodo más pequeño cae dentro de su caja: la
+   caja «GCP» que rodea a sus servicios. Geometría pura, sin caché (se mira la página tal como está) y sin dato en el
+   documento. La usa el acierto del editor (hoja → conexión → contenedor, js/interaction.js) y la usará el pintado por
+   capas (D6). Fuera del kernel. */
+function isContainerNode(n,nodes){
+  const a=n.w*n.h;
+  for(const m of nodes) if(m!==n && m.w*m.h<a && Math.abs(m.x-n.x)<n.w/2 && Math.abs(m.y-n.y)<n.h/2) return true;
+  return false;
+}
 function codeColors(n,theme){
   const T=THEMES[theme];
   return {

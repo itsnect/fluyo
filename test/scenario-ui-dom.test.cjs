@@ -470,14 +470,14 @@ test('FLUYO-011: biblioteca → historia → quitar conserva definición',()=>{
  ctx.run('scDeleteStep(scActiveScenario().steps[0].id);');assert.equal(ctx.run('scActiveScenario().steps.length'),0);assert.equal(ctx.run('doc.eventTypes.length'),1);
 });
 test('FLUYO-011: drop vacío no usa selección previa',()=>{
- const {ctx}=composition();ctx.hitEdge=()=>null;ctx.hitNode=()=>null;ctx.run('selE.add(edgeId);selN.add(nodeId);scDropEventTypeAt(et.id,900,900);');assert.equal(ctx.run('scActiveScenario().steps.length'),0);
+ const {ctx}=composition();ctx.hitEdge=()=>null;ctx.hitNode=ctx.hitLeafNode=()=>null;ctx.run('selE.add(edgeId);selN.add(nodeId);scDropEventTypeAt(et.id,900,900);');assert.equal(ctx.run('scActiveScenario().steps.length'),0);
  assert.equal(JSON.stringify(ctx.run('scFindDropTargets("edge",900,900,et.id)')),'[]');
 });
 test('FLUYO-011: incompatibilidad y multiselección limitada al objetivo real',()=>{
- const {ctx}=composition();ctx.hitNode=()=>null;ctx.hitEdge=()=>({id:ctx.edgeId});ctx.run('P().edges.push({id:44,from:producerId,to:nodeId});selE.add(edgeId);selE.add(44);');
+ const {ctx}=composition();ctx.hitNode=ctx.hitLeafNode=()=>null;ctx.hitEdge=()=>({id:ctx.edgeId});ctx.run('P().edges.push({id:44,from:producerId,to:nodeId});selE.add(edgeId);selE.add(44);');
  assert.equal(JSON.stringify(ctx.run('scFindDropTargets("edge",0,0,et.id)')),JSON.stringify([ctx.edgeId,44]));
  ctx.hitEdge=()=>({id:88});assert.equal(JSON.stringify(ctx.run('scFindDropTargets("edge",0,0,et.id)')),'[88]');
- ctx.hitNode=()=>({id:ctx.nodeId});assert.equal(JSON.stringify(ctx.run('scFindDropTargets("edge",0,0,et.id)')),'[]');
+ ctx.hitNode=ctx.hitLeafNode=()=>({id:ctx.nodeId});assert.equal(JSON.stringify(ctx.run('scFindDropTargets("edge",0,0,et.id)')),'[]');
 });
 test('FLUYO-011: editar frase actualiza dos usos sin tocar acciones',()=>{
  const {ctx}=composition();ctx.run('scApplyTargets(et.id,[edgeId]);scApplyTargets(et.id,[edgeId]);before=JSON.stringify(scActiveScenario().steps);updateEventType(et.id,{sentenceTemplate:"{source} abona a {target}"});scRenderStoryboard();');

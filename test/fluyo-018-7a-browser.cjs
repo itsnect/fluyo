@@ -181,9 +181,11 @@ async function script(browser, base, label) {
     return { log: last, nodeOrder: P().nodes.map((n) => "n" + n.id) };
   });
   z.edgesFirst = (() => { const l = z.draw.log; const lastEdge = Math.max(...l.map((x, i) => (x[0] === "e" ? i : -1))); const firstNode = l.findIndex((x) => x[0] === "n"); return lastEdge < firstNode && JSON.stringify(l.filter((x) => x[0] === "n")) === JSON.stringify(z.draw.nodeOrder); })();
-  // el hit-test coincide con lo pintado: dos nodos solapados, gana el de encima
-  await ed.evaluate(() => { const n = newNode("rect", 520, 200, { label: "S" }); n.w = 100; n.h = 60; });
-  const topAt = async () => { const p = await pt(2); await ed.mouse.click(p.x, p.y); return (await sel()).n[0]; };
+  // el hit-test coincide con lo pintado: dos HOJAS solapadas, gana la de encima. FLUYO-019-HIT-TEST (D1): S ya no se pone sobre
+  // el centro de B (eso haría de B su contenedor, y la hoja gana sea cual sea el orden Z): se solapa con la esquina inferior derecha de
+  // B, con su centro fuera de B y lejos de sus puertos (si no, en HEAD el clic en S arrancaría una conexión desde el puerto de B).
+  await ed.evaluate(() => { const b = nodeById(2); const n = newNode("rect", b.x + b.w / 2 + 20, b.y + b.h / 2 + 20, { label: "S" }); n.w = 100; n.h = 60; });
+  const topAt = async () => { const p = await ed.evaluate(() => { const b = nodeById(2), r = cv.getBoundingClientRect(); return { x: r.left + viewX + (b.x + b.w / 2 - 10) * viewZoom, y: r.top + viewY + (b.y + b.h / 2 - 4) * viewZoom }; }); await ed.mouse.click(p.x, p.y); return (await sel()).n[0]; };
   z.hitBefore = await topAt();                                          // el nuevo (id 9) está encima de B
   await clickNode(9); await btn("btnBack").click();
   z.hitAfter = await topAt();

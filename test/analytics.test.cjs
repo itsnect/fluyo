@@ -169,7 +169,7 @@ test('pointerup real no cuenta limpieza de rutas al seleccionar sin mover',()=>{
   let pointerup;
   e.element('cv').addEventListener=(name,cb)=>{pointerup=cb;};
   Object.assign(e.context,{endTouchPointer:()=>false,toWorld:()=>({x:0,y:0}),
-    downPt:null,podarWaypoints:edge=>{edge.waypoints=[];}});
+    downPt:null,connectPending:null,podarWaypoints:edge=>{edge.waypoints=[];}});   // connectPending: FLUYO-019-HIT-TEST (D2)
   // Ejecutar el handler del editor con DOM simulado, no una copia de su lógica.
   const source=fuente('interaction.js');
   const start=source.indexOf('cv.addEventListener("pointerup",');

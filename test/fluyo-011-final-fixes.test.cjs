@@ -840,7 +840,7 @@ test("Auto-crear: empezar/cancelar colocación, drop vacío e incompatible no cr
   assert.equal(scCount(ctx), 0, "iniciar drag no crea");
   ctx.run("scCancelPlacement()");
   assert.equal(ctx.run("JSON.stringify(doc)"), before);
-  ctx.run("hitNode=()=>null; scEdgeCandidates=()=>[]; scBeginPlacement(flowEt.id); scResolveDrop(flowEt.id, 9999, 9999);");
+  ctx.run("hitNode=()=>null; hitLeafNode=()=>null; scEdgeCandidates=()=>[]; scBeginPlacement(flowEt.id); scResolveDrop(flowEt.id, 9999, 9999);");
   assert.equal(scCount(ctx), 0, "drop vacío");
   ctx.run("scApplyTargets(flowEt.id,[nodeId])");
   assert.equal(scCount(ctx), 0, "FLOW sobre nodo no crea");

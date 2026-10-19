@@ -721,7 +721,7 @@ function makeDragContext(){
     cv:{getBoundingClientRect:()=>({left:0,top:0,right:800,bottom:600})},
     viewX:0, viewY:0, viewZoom:1,
     // stubs replaced per test
-    hitEdge:()=>null, hitNode:()=>null,
+    hitEdge:()=>null, hitNode:()=>null, hitLeafNode:()=>null,   // hitLeafNode: FLUYO-019-HIT-TEST (Historias)
     localStorage:{getItem:()=>null,setItem:()=>{},removeItem:()=>{}}
   });
   for(const f of ['js/config.js','js/safe-svg.js','js/model.js','js/scenario-engine.js','js/scenario-playback.js','js/editor-scenarios.js'])
@@ -772,7 +772,7 @@ test('scFindDropTargets filters incompatible primitive for direct hit',()=>{
 
 test('Service Worker cache is v72 and includes new scenario assets',()=>{
   const sw=read('sw.js');
-  assert.ok(sw.includes('fluyo-static-v89'));
+  assert.ok(sw.includes('fluyo-static-v90'));
   assert.ok(sw.includes('"./js/scenario-engine.js"'));
   assert.ok(sw.includes('"./js/scenario-playback.js"'));
   assert.ok(sw.includes('"./js/editor-scenarios.js"'));

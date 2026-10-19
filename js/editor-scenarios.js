@@ -2562,7 +2562,7 @@ function scFindDropTargets(kind, x, y, eventTypeId) {
   const allowed = eventTypeAllowedTargets(eventTypeById(eventTypeId));
   if (!allowed.has(kind)) return [];
   if (kind === "edge") {
-    if (hitNode(x, y)) return [];
+    if (hitLeafNode(x, y)) return [];
     const candidates = scEdgeCandidates(x, y);
     if (candidates.length !== 1) return [];
     const direct = candidates[0];
@@ -2602,7 +2602,7 @@ function scHoverAt(clientX, clientY) {
   let ids = [];
   if (inside) {
     if (kind === "edge") {
-      if (!hitNode(w.x, w.y)) ids = scEdgeCandidates(w.x, w.y).map((e) => e.id);
+      if (!hitLeafNode(w.x, w.y)) ids = scEdgeCandidates(w.x, w.y).map((e) => e.id);
     } else {
       const n = hitNode(w.x, w.y);
       if (n) ids = [n.id];
@@ -2656,7 +2656,7 @@ function scEndDrag(x, y) {
 }
 function scResolveDrop(id, x, y, cx, cy, touch = false) {
   const kind = scPlacement ? scPlacementType() : eventTypeById(id)?.primitive === "FLOW" ? "edge" : "node";
-  if (kind === "edge" && !hitNode(x, y)) {
+  if (kind === "edge" && !hitLeafNode(x, y)) {
     const candidates = scEdgeCandidates(x, y);
     if (candidates.length > 1) {
       const anchor = { getBoundingClientRect: () => ({ left: cx || 100, bottom: cy || 100 }) };

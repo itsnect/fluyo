@@ -16,7 +16,7 @@ const RECOLOR = "  c.strokeStyle=seld? M.ink:lineCol; c.lineWidth=seld?2.6:EDGE_
 const HOST_TOUCH = '  if(typeof isTouch==="function" && isTouch()) return null;\n  const n=hoverNode;';
 const HOST_OLD = '  const s=singleSel(); const n=hoverNode || ((s && s.type==="node") ? s.obj : null);';
 const MUTATIONS = [
-  ["U1 CACHE no sube", UNIT, "sw.js", 'const CACHE = "fluyo-static-v89";', 'const CACHE = "fluyo-static-v74";'],
+  ["U1 CACHE no sube", UNIT, "sw.js", 'const CACHE = "fluyo-static-v90";', 'const CACHE = "fluyo-static-v74";'],
   ["U2 vuelve la punta antigua (12 × 12, pegada al borde)", UNIT, "js/geometry.js", "EDGE_GAP=3, EDGE_HEAD_LEN=11, EDGE_HEAD_HALF=4,", "EDGE_GAP=0, EDGE_HEAD_LEN=12, EDGE_HEAD_HALF=6,"],
   ["U3 vuelve el cian en la funda", UNIT, "js/render.js", 'sleeve:"rgba(195,205,164,.26)"', 'sleeve:"rgba(58,167,232,.26)"'],
   ["U4 la selección vuelve a recolorear la línea", UNIT, "js/render.js", LINE, RECOLOR],
@@ -31,7 +31,8 @@ const MUTATIONS = [
   ["B4 vuelve el cian (funda en lienzo claro y crema)", BROWSER, "js/render.js", 'sleeve:"rgba(78,90,63,.20)"},\n  claro:', 'sleeve:"rgba(58,167,232,.30)"},\n  claro:', "d1440"],
   ["B5 codo invisible con la conexión seleccionada", BROWSER, "js/render.js", "    (e.waypoints||[]).forEach(wp=>{\n      const s=px(7);", "    ([]).forEach(wp=>{\n      const s=px(7);", "d1440"],
   ["B6 la conexión deja de ser seleccionable", BROWSER, "js/interaction.js", "      if(d<tol) return es[i];", "      if(d<0) return es[i];", "t768"],
-  ["B7 conectar con ratón deja de funcionar", BROWSER, "js/interaction.js", "    connectDrag={fromId:host.id, fromSide:arrowSide};", "    connectDrag=null;", "d1440"],
+  /* FLUYO-019-HIT-TEST (D2): el puerto se difiere y la conexión nace en pointermove */
+  ["B7 conectar con ratón deja de funcionar", BROWSER, "js/interaction.js", "    connectDrag={fromId:connectPending.fromId, fromSide:connectPending.fromSide};", "    connectDrag=null;", "d1440"],
   ["B8 «Conectar» táctil deja de funcionar", BROWSER, "js/interaction.js", "        const e=newEdge(touchLink,n.id);", "        const e=null;", "t768"],
   ["B9 instrumentos en unidades de mundo", BROWSER, "js/render.js", "    const px=v=>v/zoom;", "    const px=v=>v;", "d1440"],
   ["B10 la selección vuelve a recolorear la línea", BROWSER, "js/render.js", LINE, RECOLOR, "d1440"],

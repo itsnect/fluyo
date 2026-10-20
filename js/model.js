@@ -472,6 +472,20 @@ function eventTypeAllowedTargets(et){
   return new Set(["node"]); // OCCURRENCE y SET_AVAILABILITY
 }
 
+/* FLUYO-STEP-REVERSE-002 (D1–D3). Un SEND con `reverse:true` recorre su conexión de `to` a `from`. `from`/`to` son siempre de la
+   CONEXIÓN; `source`/`target` son del RECORRIDO (los de `{source}`/`{target}` de la frase y de `source_down`/`target_down`).
+   Esta es la ÚNICA regla del sentido: frase, resultados, mensaje, etiquetas y registro la llaman. El motor no depende de model.js
+   y la repite en una línea (un test ata las dos). Sin `reverse`, el recorrido es el de siempre. */
+function traversalEnds(edge, reverse){
+  const e=edge||{};
+  return reverse===true ? {source:e.to, target:e.from} : {source:e.from, target:e.to};
+}
+/* Forma canónica del sentido: ausente o `true`. Un `reverse:false` escrito a mano en un SEND se quita al cargar (como los
+   Behaviors); cualquier otro valor, o la clave en otra acción, lo rechaza validatePersistedStep. */
+function canonicalizePersistedStep(step){
+  if(projectObject(step) && step.action==="SEND" && projectOwn(step,"reverse") && step.reverse===false) delete step.reverse;
+  return step;
+}
 function validatePersistedStep(step, engineVersion){
   if(!projectObject(step) || !Number.isSafeInteger(step.id) || step.id<1) throw projectDataError();
   if(!Number.isSafeInteger(step.at) || step.at<0) throw projectDataError();
@@ -482,6 +496,11 @@ function validatePersistedStep(step, engineVersion){
   // OCCURRENCE solo existe a partir de engineVersion 2; en v1 se rechaza en normalizeScenarios.
   const allowed=[...baseFields, ...actionFields];
   if(step.eventTypeId!==undefined) allowed.push("eventTypeId");
+  // reverse: solo en SEND y solo `true` (D1). Un lector anterior lo rechaza: nunca lo lee mal (D2).
+  if(projectOwn(step,"reverse")){
+    if(step.action!=="SEND" || step.reverse!==true) throw projectDataError();
+    allowed.push("reverse");
+  }
   const keys=Object.keys(step);
   if(keys.length!==allowed.length || !allowed.every(k=>projectOwn(step,k))) throw projectDataError();
   if(step.action==="SET_STATE"){
@@ -522,7 +541,7 @@ function normalizeScenarios(pg){
     const stepIds=new Set();
     let maxStepId=0;
     for(const step of sc.steps){
-      validatePersistedStep(step, sc.engineVersion);
+      validatePersistedStep(canonicalizePersistedStep(step), sc.engineVersion);
       if(sc.engineVersion<2 && step.action==="OCCURRENCE") throw projectDataError();
       if(stepIds.has(step.id)) throw projectDataError();
       stepIds.add(step.id);
@@ -600,13 +619,17 @@ function eventTypeActionSpec(et){
   if(action==="SET_STATE") spec.state=et.availability;
   return spec;
 }
-/* Definición de Step para colocar `et` sobre `target` (id de conexión si FLOW; de elemento en otro caso). */
-function stepDefinitionForEvent(et,target,at){
+/* Definición de Step para colocar `et` sobre `target` (id de conexión si FLOW; de elemento en otro caso).
+   `reverse` (solo FLOW): el envío recorre la conexión al revés; la clave solo se escribe si es `true` (D8). */
+function stepDefinitionForEvent(et,target,at,reverse){
   const spec=eventTypeActionSpec(et);
   if(!spec) throw projectDataError("event_type_invalid");
+  if(reverse!==undefined && typeof reverse!=="boolean") throw projectDataError();
+  if(reverse===true && spec.action!=="SEND") throw projectDataError();
   const def={at, eventTypeId:et.id, action:spec.action};
   if(spec.action==="SEND") def.edgeId=target; else def.nodeId=target;
   if(spec.action==="SET_STATE") def.state=spec.state;
+  if(reverse===true) def.reverse=true;
   return def;
 }
 /* Tiempo al que entra un Step añadido al final: «espera por defecto» tras el último momento (0 si no hay). */
@@ -638,17 +661,31 @@ function duplicateStep(sc,id){
   sc.steps=r.steps;
   return copy;
 }
-/* Cambiar SÓLO el objetivo de un Step: conserva id, EventType, tiempo, orden y presentación. */
-function retargetStep(pg,sc,stepId,targetId){
+/* Cambiar SÓLO el objetivo de un Step: conserva id, EventType, tiempo, orden y presentación.
+   En un SEND fija el recorrido COMPLETO (D8): la conexión y el sentido (`reverse` ausente o false = normal). Quien quiera
+   conservar el sentido lo pasa (el editor, D10). En un evento de elemento `reverse:true` no tiene sentido y se rechaza. */
+function retargetStep(pg,sc,stepId,targetId,reverse){
   const step=sc.steps.find(s=>s.id===stepId);
   if(!step) throw projectDataError("step_not_found");
+  if(reverse!==undefined && typeof reverse!=="boolean") throw projectDataError();
   if(step.action==="SEND"){
     if(!pg.edges.some(e=>e.id===targetId)) throw projectDataError("target_not_found");
     step.edgeId=targetId;
+    if(reverse===true) step.reverse=true; else delete step.reverse;
   }else{
+    if(reverse===true) throw projectDataError();
     if(!pg.nodes.some(n=>n.id===targetId)) throw projectDataError("target_not_found");
     step.nodeId=targetId;
   }
+  return step;
+}
+/* Dar la vuelta a un SEND en el sitio (D8): solo cambia el sentido; id, at, orden, conexión y EventType no cambian. */
+function setStepReverse(sc,stepId,reverse){
+  if(typeof reverse!=="boolean") throw projectDataError();
+  const step=sc.steps.find(s=>s.id===stepId);
+  if(!step) throw projectDataError("step_not_found");
+  if(step.action!=="SEND") throw projectDataError();
+  if(reverse) step.reverse=true; else delete step.reverse;
   return step;
 }
 /* Disponibilidad INICIAL de un elemento: es de la PÁGINA (Behavior), rige en todas sus Historias.

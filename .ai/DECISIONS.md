@@ -431,3 +431,51 @@
    - **Color**: solo marca el estado de la RUTA (borde oliva / terracota). NO_PATH y los estados de la herramienta son neutros.
    - **Memoización**: la base (Trace visible y reloj de los Steps) se memoiza por reproducción o por firma del documento. El DOM solo se escribe si cambia.
    - **Fuera**: timeline, pintado en el lienzo, Viewer, Present, exportación y autoría MCP (FASE 4 y FASE 5).
+
+## FLUYO-STEP-REVERSE-002 — Un Step FLOW que recorre su conexión al revés (contrato de FLUYO-STEP-REVERSE-001, D1–D12)
+234. **Un Step `SEND` admite `reverse: true`: el envío recorre la conexión de `edge.to` a `edge.from`** (D1, D2, D11). Precisa la decisión 10, sin contradecirla.
+   - **Forma canónica**: la clave falta o vale `true`. Al cargar, un `reverse:false` en un SEND se quita (`canonicalizePersistedStep`, que llaman `normalizeScenarios` y el diagnóstico de `FluyoIntegrity`). Cualquier otro valor (`"true"`, `1`, `null`), o la clave en `SET_STATE`/`OCCURRENCE` (también `false`), se rechaza: `validatePersistedStep` → `invalid_document`/`invalid_step`, y el motor → `invalid_scenario`. Nadie escribe `false`: `createStep` lo rechaza.
+   - **Versiones**: `engineVersion` sigue en 2 y `version` en 5. No se crea v3. Una extensión de v2 es válida si cumple tres condiciones:
+     - (a) todo documento válido de antes da el mismo Trace;
+     - (b) la clave es opcional y su ausencia significa lo de antes;
+     - (c) todo lector anterior la rechaza en vez de interpretarla.
+     `reverse` cumple las tres, medido frente a `544fd4b`: el lector anterior no abre el documento, ni en la carga, ni en el motor, ni en la integridad. v3 queda reservada para un cambio que no las cumpla. No hay migración.
+   - Como `eventTypeId`, la clave vale en un SEND de cualquier versión del motor (v1 incluida). El editor y la autoría solo editan v2, como siempre.
+   - **Lectores antiguos**: un documento con `reverse` no abre en clientes con caché ≤ v96, ni en un MCP con el kernel sin sincronizar. Lo rechazan con `invalid_document`: nunca lo leen mal. El MCP no debe escribir `reverse` hasta tener el kernel nuevo (`sync:kernel` + `check:kernel`).
+235. **Una sola regla del sentido: `traversalEnds(edge, reverse) → {source, target}` (`model.js`)** (D3, D4, D5).
+   - `from`/`to` son siempre de la CONEXIÓN; `source`/`target` son del RECORRIDO: los de `{source}`/`{target}` de la frase y los de `source_down`/`target_down`.
+   - El motor no depende de `model.js` y repite la regla en una línea: `states.get(reverse ? edge.to : edge.from)`. Un test las ata en los cuatro casos.
+   - **Trace**: los tres eventos del envío (`send_started`, `send_succeeded`, `send_failed`) llevan `reverse:true` detrás de `edgeId` (y antes de `reason`). Sin `reverse` no hay clave: el Trace de cualquier documento anterior es idéntico byte a byte (corpus de `ejemplos/data` y `test/fixtures` frente a `544fd4b`). El Trace se describe solo.
+   - **El sentido sigue a la conexión**: reconectar un extremo cambia los nodos del recorrido y nunca invalida la Historia. Una conexión en bucle acepta `reverse` sin regla especial.
+236. **Playback, texto y token leen el sentido del Trace** (D6, D7).
+   - `scenario-playback` lleva `reverse:true` de `send_started` a `activeSends`, `completedSends` y `logEvents`. Sin la clave en el evento, los objetos son los de siempre.
+   - `FluyoStory.outcomes` añade `reverse:true` y saca `reasonNodeId` del recorrido que dice el evento. `sentence` usa `traversalEnds`. `caption` lee `ev.reverse`. La firma de `edgeEnds` no cambia, así que Viewer, Present y `story-clock.js` no cambian de código.
+   - **Token**: `drawScenarioEdgeOverlay` pinta los envíos inversos sobre una COPIA invertida de `pts`; la ruta no se muta. `drawFlowOverlay` y `drawEventToken` no cambian: la llegada y la marca de `source_down` caen solas en el extremo del recorrido. Una conexión puede llevar a la vez envíos en los dos sentidos.
+   - Con la piel, el retorno sale del punto aterrizado en `e.to` (decisión 213, sin tocar): medido en Chrome a 0,5 u del punto pintado, con el ancla lógica a 8 u.
+   - La vista previa del diálogo de Evento sigue en sentido normal.
+237. **Autoría con el sentido** (D8, D9).
+   - **Kernel**:
+     - `stepDefinitionForEvent(et, target, at, reverse)` escribe la clave solo si es `true`;
+     - `retargetStep(pg, sc, id, targetId, reverse)` fija el recorrido COMPLETO: sin `reverse`, el sentido normal;
+     - `setStepReverse(sc, id, bool)` da la vuelta a un SEND sin tocar `id`, `at`, el orden, la conexión ni el EventType;
+     - `duplicateStep` y `duplicateScenario` lo heredan.
+     Un evento de elemento con `reverse:true`, o un valor no booleano, se rechaza.
+   - **Lote** (`story-authoring.js`): `target` admite `{edgeId, reverse?}` y `{ref, reverse?}`, con `reverse` booleano.
+     - `{from, to}` resuelve primero la conexión directa. Si no hay ninguna, la inversa, con `reverse:true`. Si hay varias en el nivel que decide, `AMBIGUOUS_TARGET` (en el inverso, con `edgeIds` y `reverse:true`). Si no hay ninguna, `TARGET_NOT_FOUND`: el mensaje dice que también se buscó la inversa; el código y los datos son los de siempre.
+     - Con `{from, to}` no se acepta `reverse` explícito (`INVALID_OPERATION`). `reverse` sobre un elemento da `TARGET_INCOMPATIBLE`.
+     - Lo que funcionaba antes no cambia (la directa gana): los mismos lotes dan el mismo documento y los mismos resultados que `544fd4b`.
+   - **Resultados**:
+     - `retarget_step` añade `reverse` y `previousReverse` solo cuando alguno de los dos es `true`. Así da la vuelta en el sitio con `{edgeId: el mismo, reverse:true}`; no hay operación nueva.
+     - `add_step` y `duplicate_step` añaden `reverse:true` cuando aplica.
+238. **El editor lee el sentido en todas sus superficies; «Invertir sentido» es de STEP-REVERSE-003** (D10, en parte).
+   - Usan `traversalEnds` y dicen «B → A»:
+     - la etiqueta, la frase, «Dónde» y el motivo del panel (`scEdgeLabel(id, reverse)` y `scSendFailText`);
+     - el registro (con `ev.reverse`);
+     - el orden de «Esperar a que llegue…»;
+     - la confirmación de borrado (`selection.js`).
+   - «Cambiar dónde ocurre» conserva el sentido del Step: el clic solo elige la conexión.
+   - «Esta misma acción en otras conexiones» compara lo que ya existe por (conexión, sentido), y las copias heredan `reverse`.
+   - Sin bandera labs: es dato de la Historia.
+   - El control del menú, su texto y un posible atajo «Añadir la respuesta» se deciden en STEP-REVERSE-003.
+239. **Semantic Scenarios no lee el sentido** (D12). FLOWS_TO, la alcanzabilidad, la procedencia y `observedFlow` no leen Steps (T2), y `reverse` no altera G. FASE 3 no se toca. Un aviso del tipo de W5 («la respuesta va contra el flujo declarado») queda fuera.
+   - **Tests de alcance de slices anteriores**: `test/fluyo-step-reverse-002-undo.cjs` (`undoReverse`) deshace 002 sobre `544fd4b` antes que `undo3`, como en la decisión 218.

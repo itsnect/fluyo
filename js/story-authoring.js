@@ -127,18 +127,25 @@ var FluyoAuthoring = (function(){
     return et;
   }
 
-  /* Objetivo: {edgeId} | {nodeId} | {from, to} (la conexión entre dos elementos). Debe ser del tipo
-     que exige la acción (conexión para SEND; elemento para el resto) y existir en la página. */
+  /* Objetivo: {ref, reverse?} | {edgeId, reverse?} | {nodeId} | {from, to} (el recorrido entre dos elementos). Debe ser del tipo
+     que exige la acción (conexión para SEND; elemento para el resto) y existir en la página. Devuelve {id, reverse}: el
+     recorrido COMPLETO (FLUYO-STEP-REVERSE-002, D9). `reverse` (booleano) solo existe para una conexión. {from, to} ya dice el
+     sentido: primero la conexión directa from→to; solo si no hay ninguna, la inversa to→from con reverse:true; varias en el
+     nivel que decide = AMBIGUOUS_TARGET. Lo que funcionaba antes no cambia: la directa gana. */
   function targetOf(ctx, op, pg, kind, target){
-    if(!isRecord(target)) throw reject("INVALID_OPERATION", "target debe ser {ref} | {edgeId} | {nodeId} | {from, to}.", {field:"target"});
+    if(!isRecord(target)) throw reject("INVALID_OPERATION", "target debe ser {ref, reverse?} | {edgeId, reverse?} | {nodeId} | {from, to}.", {field:"target"});
+    const reverse = target.reverse;
+    if(reverse!==undefined && typeof reverse!=="boolean") throw reject("INVALID_OPERATION", "target.reverse debe ser true o false.", {field:"target.reverse"});
+    const noSense = () => reject("TARGET_INCOMPATIBLE", "reverse solo se usa con una conexión: un evento de elemento no recorre nada.", {target});
     if(target.ref!==undefined){
       // {ref}: la conexión o el elemento creado antes en el lote; el tipo lo decide la acción del evento.
-      onlyKeys(target, ["ref"], "target");
-      const id = entityOf(ctx, op, target, "target", kind==="connection" ? "edges" : "nodes");
+      onlyKeys(target, ["ref","reverse"], "target");
+      if(reverse!==undefined && kind!=="connection") throw noSense();
+      const id = entityOf(ctx, op, {ref:target.ref}, "target", kind==="connection" ? "edges" : "nodes");
       if(!(kind==="connection" ? pg.edges : pg.nodes).some(x=>x.id===id)) throw reject("TARGET_NOT_FOUND", `La referencia «${target.ref}» (target) ya no existe en la página${deletedNote(ctx, op.pageIndex, kind==="connection" ? "connection" : "node", id)}.`, {target});
-      return id;
+      return {id, reverse:reverse===true};
     }
-    onlyKeys(target, ["edgeId","nodeId","from","to"], "target");
+    onlyKeys(target, ["edgeId","nodeId","from","to","reverse"], "target");
     const forms = ["edgeId","nodeId"].filter(k=>target[k]!==undefined).length + (target.from!==undefined || target.to!==undefined ? 1 : 0);
     if(forms!==1) throw reject("INVALID_OPERATION", "target debe tener exactamente una forma: {edgeId} | {nodeId} | {from, to}.", {field:"target"});
     const need = kind==="connection" ? "una conexión (edgeId o from/to)" : "un elemento (nodeId)";
@@ -147,18 +154,23 @@ var FluyoAuthoring = (function(){
       if(target.edgeId!==undefined){
         const edgeId = stepEntityId(ctx, op, target.edgeId, "target.edgeId", "edges");
         if(!pg.edges.some(e=>e.id===edgeId)) throw reject("TARGET_NOT_FOUND", `No existe la conexión edgeId=${edgeId} en la página${deletedNote(ctx, op.pageIndex, "connection", edgeId)}.`, {target});
-        return edgeId;
+        return {id:edgeId, reverse:reverse===true};
       }
+      if(reverse!==undefined) throw reject("INVALID_OPERATION", "Con {from, to} el sentido ya lo dice la forma: quita reverse (o usa {edgeId, reverse}).", {field:"target.reverse"});
       const from = stepEntityId(ctx, op, target.from, "target.from", "nodes"), to = stepEntityId(ctx, op, target.to, "target.to", "nodes");
       const hits = pg.edges.filter(e=>e.from===from && e.to===to);
-      if(!hits.length) throw reject("TARGET_NOT_FOUND", `No existe una conexión de ${from} a ${to}.`, {target});
       if(hits.length>1) throw reject("AMBIGUOUS_TARGET", `Hay ${hits.length} conexiones de ${from} a ${to} (${hits.map(e=>e.id).join(", ")}): usa edgeId.`, {target, edgeIds:hits.map(e=>e.id)});
-      return hits[0].id;
+      if(hits.length) return {id:hits[0].id, reverse:false};
+      const back = pg.edges.filter(e=>e.from===to && e.to===from);
+      if(back.length>1) throw reject("AMBIGUOUS_TARGET", `No hay conexión de ${from} a ${to} y hay ${back.length} de ${to} a ${from} (${back.map(e=>e.id).join(", ")}) que podrían recorrerse al revés: usa {edgeId, reverse:true}.`, {target, edgeIds:back.map(e=>e.id), reverse:true});
+      if(back.length) return {id:back[0].id, reverse:true};
+      throw reject("TARGET_NOT_FOUND", `No existe una conexión de ${from} a ${to} (ni de ${to} a ${from} para recorrerla al revés).`, {target});
     }
     if(kind!=="element") throw reject("TARGET_INCOMPATIBLE", `Esta acción necesita ${need}, no un elemento.`, {target});
+    if(reverse!==undefined) throw noSense();
     const nodeId = stepEntityId(ctx, op, target.nodeId, "target.nodeId", "nodes");
     if(!pg.nodes.some(n=>n.id===nodeId)) throw reject("TARGET_NOT_FOUND", `No existe el elemento nodeId=${nodeId} en la página${deletedNote(ctx, op.pageIndex, "node", nodeId)}.`, {target});
-    return nodeId;
+    return {id:nodeId, reverse:false};
   }
 
   /* ───────── diferencias de una Historia (qué Steps cambiaron de tiempo, orden o existencia) ───────── */
@@ -801,13 +813,13 @@ var FluyoAuthoring = (function(){
       const et = eventTypeOf(ctx, op.eventTypeId);
       const spec = eventTypeActionSpec(et);
       if(!spec) throw reject("EVENT_TYPE_NOT_FOUND", `El evento ${et.id} no tiene una primitiva válida.`, {eventTypeId:et.id});
-      const targetId = targetOf(ctx, op, pg, spec.target, op.target);
+      const tgt = targetOf(ctx, op, pg, spec.target, op.target);
       const before = clone(sc.steps);
       let step;
       if(op.placement===undefined){
         // Al final de la Historia, tras una espera (por defecto la del editor); el primero entra en 0.
         const wait = op.waitMs===undefined ? DEFAULT_STEP_DELAY_MS : waitOf(op.waitMs, "waitMs");
-        step = createStep(sc, stepDefinitionForEvent(et, targetId, defaultStepTime(sc, wait)));
+        step = createStep(sc, stepDefinitionForEvent(et, tgt.id, defaultStepTime(sc, wait), tgt.reverse));
         if(sc.steps.length>1 && step.at>FluyoScenarios.MAX_VIRTUAL_TIME_MS) throw reject("WAIT_OUT_OF_RANGE", "El tiempo resultante supera el máximo de 24 h.", {storyId:sc.id});
       }else{
         if(op.waitMs!==undefined) throw reject("INVALID_OPERATION", "waitMs sólo se usa al añadir al final; con placement la espera es la del momento elegido.", {field:"waitMs"});
@@ -817,7 +829,7 @@ var FluyoAuthoring = (function(){
         const pos = op.placement.position;
         if(pos!==undefined && pos!=="before" && pos!=="after") throw reject("INVALID_OPERATION", "position debe ser \"before\" o \"after\".", {field:"placement.position"});
         // Sin position: igual que «Añadir al mismo tiempo» del editor (mismo momento, resuelve después de los existentes).
-        step = createStep(sc, stepDefinitionForEvent(et, targetId, anchor.at));
+        step = createStep(sc, stepDefinitionForEvent(et, tgt.id, anchor.at, tgt.reverse));
         if(pos!==undefined){
           const r = storyboardMoveStep(sc.steps, step.id, {kind:"join", anchorId:anchor.id, after:pos==="after"});
           if(!r) throw reject("MOVE_UNSUPPORTED", "No se pudo colocar el paso junto al elegido.", {storyId:sc.id});
@@ -830,7 +842,7 @@ var FluyoAuthoring = (function(){
       if(op.ref!==undefined) ctx.refs.steps.set(String(op.ref), {id:step.id, pageIndex:op.pageIndex, storyId:sc.id});
       touch(ctx, op.pageIndex, sc);
       const d = stepDelta(before, sc.steps);
-      return Object.assign({entityKind:"step", entityId:step.id, storyId:sc.id, created:true, at:step.at, action:step.action}, waits.length ? {waitsForArrivalOf:waits} : {},
+      return Object.assign({entityKind:"step", entityId:step.id, storyId:sc.id, created:true, at:step.at, action:step.action}, step.reverse ? {reverse:true} : {}, waits.length ? {waitsForArrivalOf:waits} : {},
         {affects:storyAffect(op.pageIndex, sc, d)});
     },
     remove_step(ctx, op, pg){
@@ -883,18 +895,20 @@ var FluyoAuthoring = (function(){
       const waits = arrivalStepWaits(sc, copy.id);
       if(op.ref!==undefined) ctx.refs.steps.set(String(op.ref), {id:copy.id, pageIndex:op.pageIndex, storyId:sc.id});
       touch(ctx, op.pageIndex, sc);
-      return Object.assign({entityKind:"step", entityId:copy.id, storyId:sc.id, created:true, duplicatedFrom:st.id}, waits.length ? {waitsForArrivalOf:waits} : {},
+      return Object.assign({entityKind:"step", entityId:copy.id, storyId:sc.id, created:true, duplicatedFrom:st.id}, copy.reverse ? {reverse:true} : {}, waits.length ? {waitsForArrivalOf:waits} : {},
         {affects:storyAffect(op.pageIndex, sc, stepDelta(before, sc.steps))});
     },
     retarget_step(ctx, op, pg){
       const sc = storyOf(ctx, op, pg, true);
       const st = stepOf(ctx, sc, op.stepId, "stepId", op.pageIndex);
       const kind = st.action==="SEND" ? "connection" : "element";
-      const targetId = targetOf(ctx, op, pg, kind, op.target);
-      const from = st.action==="SEND" ? st.edgeId : st.nodeId;
-      retargetStep(pg, sc, st.id, targetId);
+      // El target describe el recorrido COMPLETO (D9): sin reverse, el sentido normal. {edgeId: el mismo, reverse:true} da la vuelta en el sitio.
+      const tgt = targetOf(ctx, op, pg, kind, op.target);
+      const from = st.action==="SEND" ? st.edgeId : st.nodeId, previousReverse = st.reverse===true;
+      retargetStep(pg, sc, st.id, tgt.id, st.action==="SEND" ? tgt.reverse : undefined);
       touch(ctx, op.pageIndex, sc);
-      return {entityKind:"step", entityId:st.id, storyId:sc.id, from, to:targetId, affects:storyAffect(op.pageIndex, sc, {stepIds:[st.id]})};
+      return Object.assign({entityKind:"step", entityId:st.id, storyId:sc.id, from, to:tgt.id}, previousReverse || tgt.reverse ? {reverse:tgt.reverse, previousReverse} : {},
+        {affects:storyAffect(op.pageIndex, sc, {stepIds:[st.id]})});
     },
     set_wait(ctx, op, pg){
       const sc = storyOf(ctx, op, pg, true);

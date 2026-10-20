@@ -878,6 +878,9 @@ function drawFlowOverlay(c,pts,active,completed,T){
     c.restore();
   }
 }
+/* FLUYO-STEP-REVERSE-002 (D6): un envío con `reverse` recorre la MISMA ruta al revés. Se pinta sobre una copia invertida de
+   `pts` (nunca se muta la ruta): el token sale de `e.to`, y la llegada y la marca de `source_down` caen solas en el extremo
+   del recorrido. Una conexión puede llevar a la vez envíos en los dos sentidos. Sin `reverse`, la llamada de siempre. */
 function drawScenarioEdgeOverlay(c,e,pts,active,completed,theme,rs){
   if(pts.length<2) return;
   const T=THEMES[theme];
@@ -888,7 +891,11 @@ function drawScenarioEdgeOverlay(c,e,pts,active,completed,theme,rs){
     const et = step && step.eventTypeId ? eventTypeById(step.eventTypeId) : null;
     return Object.assign({}, send, {token: et && et.visual.value ? et.visual.value : ""});
   });
-  drawFlowOverlay(c,pts,withToken,completed,T);
+  const back = s => s.reverse===true;
+  const revActive = withToken.filter(back), revCompleted = completed.filter(back);
+  if(!revActive.length && !revCompleted.length){ drawFlowOverlay(c,pts,withToken,completed,T); return; }
+  drawFlowOverlay(c,pts,withToken.filter(s=>!back(s)),completed.filter(s=>!back(s)),T);
+  drawFlowOverlay(c,pts.slice().reverse(),revActive,revCompleted,T);
 }
 
 /* Pinta las marcas de semántica con el color de la línea (Requisito: anillo relleno del fondo, así la línea no lo cruza). */

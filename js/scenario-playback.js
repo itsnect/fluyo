@@ -53,8 +53,8 @@ var FluyoScenarioPlayback = (function(){
       cursorVirtual: 0,
       nextEventIndex: 0,
       nodeStates: {},   // nodeId -> "UP"|"DOWN"
-      activeSends: [],  // {stepId, edgeId, virtualAt, terminal:{type,reason}|null, startedReal, duration, token}
-      completedSends: [], // {stepId, edgeId, virtualAt, terminalType, terminalReason, doneReal, token}
+      activeSends: [],  // {stepId, edgeId, reverse?, virtualAt, terminal:{type,reason}|null, startedReal, duration, token}
+      completedSends: [], // {stepId, edgeId, reverse?, virtualAt, terminalType, terminalReason, doneReal, token}
       activeOccurrences: [], // {stepId, nodeId, virtualAt, startedReal, token}
       completedOccurrences: [], // {stepId, nodeId, virtualAt, doneReal, token}
       activeNodeEffects: [], // {stepId, nodeId, virtualAt, startedReal, duration, effects, token}
@@ -63,6 +63,9 @@ var FluyoScenarioPlayback = (function(){
     };
   }
 
+  /* FLUYO-STEP-REVERSE-002 (D6): el sentido viaja del Trace a los envíos y al registro. Sin `reverse` no hay clave:
+     un documento antiguo da exactamente los mismos objetos que antes. */
+  const dirOf = o => o && o.reverse===true ? {reverse:true} : {};
   function processEvent(pb, ev, nowReal){
     switch(ev.type){
       case "state_changed":
@@ -78,8 +81,8 @@ var FluyoScenarioPlayback = (function(){
       case "send_started":
         // El tiempo real de inicio de la partícula deriva del tiempo virtual,
         // para que saltos del cursor conserven la duración visual correcta.
-        pb.activeSends.push({stepId:ev.stepId, edgeId:ev.edgeId, virtualAt:ev.at, terminal:null, startedReal:pb.startedAtReal + ev.at, duration:sendDuration(pb.stepMeta, ev.stepId), token:sendToken(pb.stepMeta, ev.stepId), connection:sendConnection(pb.stepMeta, ev.stepId)});
-        pb.logEvents.push({at:ev.at, type:"send_started", edgeId:ev.edgeId, stepId:ev.stepId});
+        pb.activeSends.push({stepId:ev.stepId, edgeId:ev.edgeId, ...dirOf(ev), virtualAt:ev.at, terminal:null, startedReal:pb.startedAtReal + ev.at, duration:sendDuration(pb.stepMeta, ev.stepId), token:sendToken(pb.stepMeta, ev.stepId), connection:sendConnection(pb.stepMeta, ev.stepId)});
+        pb.logEvents.push({at:ev.at, type:"send_started", edgeId:ev.edgeId, ...dirOf(ev), stepId:ev.stepId});
         break;
       case "send_succeeded":
       case "send_failed":{
@@ -88,9 +91,9 @@ var FluyoScenarioPlayback = (function(){
           send.terminal = {type:ev.type, reason:ev.reason};
         } else {
           // Terminal sin started previo (no debería ocurrir en v1): mostrar como completado inmediato
-          pb.completedSends.push({stepId:ev.stepId, edgeId:ev.edgeId, virtualAt:ev.at, terminalType:ev.type, terminalReason:ev.reason, doneReal:nowReal, token:sendToken(pb.stepMeta, ev.stepId), connection:sendConnection(pb.stepMeta, ev.stepId)});
+          pb.completedSends.push({stepId:ev.stepId, edgeId:ev.edgeId, ...dirOf(ev), virtualAt:ev.at, terminalType:ev.type, terminalReason:ev.reason, doneReal:nowReal, token:sendToken(pb.stepMeta, ev.stepId), connection:sendConnection(pb.stepMeta, ev.stepId)});
         }
-        pb.logEvents.push({at:ev.at, type:ev.type, edgeId:ev.edgeId, stepId:ev.stepId, reason:ev.reason});
+        pb.logEvents.push({at:ev.at, type:ev.type, edgeId:ev.edgeId, ...dirOf(ev), stepId:ev.stepId, reason:ev.reason});
         break;
       }
     }
@@ -115,6 +118,7 @@ var FluyoScenarioPlayback = (function(){
         pb.completedSends.push({
           stepId: send.stepId,
           edgeId: send.edgeId,
+          ...dirOf(send),
           virtualAt: send.virtualAt,
           terminalType: send.terminal.type,
           terminalReason: send.terminal.reason,
@@ -172,6 +176,7 @@ var FluyoScenarioPlayback = (function(){
       activeSends: pb.activeSends.map(send => ({
         stepId: send.stepId,
         edgeId: send.edgeId,
+        ...dirOf(send),
         progress: Math.min(1, (nowReal - send.startedReal) / send.duration),
         duration: send.duration,
         token: send.token,

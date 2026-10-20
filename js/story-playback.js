@@ -117,6 +117,7 @@ var FluyoStory = (function(){
       if(step.eventTypeId!==undefined) out.eventTypeId = step.eventTypeId;
       if(step.action==="SEND"){
         out.edgeId = step.edgeId;
+        if(step.reverse===true) out.reverse = true;
         const end = evs.find(e=>e.type==="send_succeeded" || e.type==="send_failed");
         if(!end) out.status = "not_executed";
         else if(end.type==="send_succeeded") out.status = "completed";
@@ -124,7 +125,8 @@ var FluyoStory = (function(){
           const e = edgeOf(step.edgeId);
           out.status = "not_completed";
           out.reason = end.reason;
-          if(e) out.reasonNodeId = end.reason==="source_down" ? e.from : e.to;
+          // El nodo del motivo es del RECORRIDO que dice el Trace (FLUYO-STEP-REVERSE-002, D7).
+          if(e){ const t = traversalEnds(e, end.reverse); out.reasonNodeId = end.reason==="source_down" ? t.source : t.target; }
         }
       }else if(step.action==="SET_STATE"){
         out.nodeId = step.nodeId; out.state = step.state;
@@ -146,7 +148,7 @@ var FluyoStory = (function(){
   }
 
   /* Frase humana de un Step (misma regla que el panel de Historia): FLOW usa origen y destino
-     de la conexión; los eventos de elemento sólo el elemento. `et` puede ser null. */
+     del RECORRIDO (traversalEnds: con reverse, de `to` a `from`); los eventos de elemento sólo el elemento. `et` puede ser null. */
   function nodeText(page, id){
     const n = page.nodes.find(x=>x.id===id);
     return n ? ((n.label || "").split("\n")[0].trim() || "Elemento sin nombre") : "Elemento sin nombre";
@@ -154,8 +156,8 @@ var FluyoStory = (function(){
   function sentence(page, step, et){
     if(!et) return "";
     if(step.action==="SEND"){
-      const e = page.edges.find(x=>x.id===step.edgeId);
-      return renderEventSentence(et, e ? nodeText(page,e.from) : "?", e ? nodeText(page,e.to) : "?");
+      const e = page.edges.find(x=>x.id===step.edgeId), t = traversalEnds(e, step.reverse);
+      return renderEventSentence(et, e ? nodeText(page,t.source) : "?", e ? nodeText(page,t.target) : "?");
     }
     return renderEventSentence(et, null, nodeText(page, step.nodeId));
   }
@@ -208,14 +210,15 @@ var FluyoStory = (function(){
     return idx;
   }
   /* Mensaje de consecuencia vigente, en lenguaje humano. Nunca expone razones
-     internas: «target_down» → «Kafka no está disponible». */
+     internas: «target_down» → «Kafka no está disponible». El nodo es del recorrido que dice el
+     propio evento (`ev.reverse`); `edgeEnds` sigue devolviendo los extremos de la conexión. */
   function caption(logEvents, virtualTime, nodeName, edgeEnds){
     let found=null;
     for(const ev of (logEvents||[])){
       if(ev.at>virtualTime || virtualTime-ev.at>=CAPTION_MS) continue;
       if(ev.type==="send_failed"){
-        const e=edgeEnds(ev.edgeId)||{};
-        const who=nodeName(ev.reason==="source_down"?e.from:e.to);
+        const t=traversalEnds(edgeEnds(ev.edgeId), ev.reverse);
+        const who=nodeName(ev.reason==="source_down"?t.source:t.target);
         found="No se completó · "+who+" no está disponible";
       } else if(ev.type==="state_changed"){
         const who=nodeName(ev.nodeId);

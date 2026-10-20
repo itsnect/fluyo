@@ -88,11 +88,13 @@ function scNodeFallback(id) {
   return scNodeLabel(id) || "Elemento sin nombre";
 }
 
-function scEdgeLabel(id) {
+/* «A → B» en el sentido del RECORRIDO (FLUYO-STEP-REVERSE-002): con `reverse`, «B → A». Una sola regla: traversalEnds. */
+function scEdgeLabel(id, reverse) {
   const e = edgeById(id);
   if (!e) return null;
-  const a = scNodeLabel(e.from),
-    b = scNodeLabel(e.to);
+  const t = traversalEnds(e, reverse);
+  const a = scNodeLabel(t.source),
+    b = scNodeLabel(t.target);
   return (a || "?") + " → " + (b || "?");
 }
 
@@ -104,7 +106,7 @@ function scEdgeSecondary(id) {
 
 function scTargetLabel(step) {
   if (step.action === "SET_STATE") return scNodeFallback(step.nodeId);
-  return scEdgeLabel(step.edgeId) || "Conexión sin nombre";
+  return scEdgeLabel(step.edgeId, step.reverse) || "Conexión sin nombre";
 }
 
 function scIsTargetMissing(step) {
@@ -166,12 +168,13 @@ function describeScenarioStep(step) {
   }
 
   // SEND
-  const primary = scEdgeLabel(step.edgeId);
+  const primary = scEdgeLabel(step.edgeId, step.reverse);
   const secondary = scEdgeSecondary(step.edgeId);
   if (et) {
-    const e = edgeById(step.edgeId);
-    const source = e ? scNodeFallback(e.from) : "?";
-    const target = e ? scNodeFallback(e.to) : "?";
+    const e = edgeById(step.edgeId),
+      t = traversalEnds(e, step.reverse);
+    const source = e ? scNodeFallback(t.source) : "?";
+    const target = e ? scNodeFallback(t.target) : "?";
     const sentence = renderEventSentence(et, source, target);
     return {
       primary: missing ? "⚠ " + sentence : sentence,
@@ -213,6 +216,14 @@ function escapeHtml(s) {
   return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+/* Motivo de un envío que no llegó, con el nodo del recorrido: el origen o el destino según el sentido del Step. */
+function scSendFailText(step, reason) {
+  const t = traversalEnds(edgeById(step.edgeId), step.reverse);
+  return reason === "source_down"
+    ? (scNodeLabel(t.source) || "El origen") + " no está disponible"
+    : (scNodeLabel(t.target) || "El destino") + " no está disponible";
+}
+
 function scRuntimeStateForStep(step) {
   if (!scPlayback || !isScenarioPlaybackActive()) return { status: "pending", detail: null };
   // Para SEND respetamos la duración visual del cue antes de mostrar el resultado.
@@ -221,11 +232,7 @@ function scRuntimeStateForStep(step) {
     const completed = scPlayback.completedSends.find((s) => s.stepId === step.id);
     if (completed) {
       if (completed.terminalType === "send_failed") {
-        const reasonText =
-          completed.terminalReason === "source_down"
-            ? (scNodeLabel(edgeById(step.edgeId)?.from) || "El origen") + " no está disponible"
-            : (scNodeLabel(edgeById(step.edgeId)?.to) || "El destino") + " no está disponible";
-        return { status: "failed", detail: reasonText };
+        return { status: "failed", detail: scSendFailText(step, completed.terminalReason) };
       }
       return { status: "success", detail: null };
     }
@@ -245,11 +252,7 @@ function scRuntimeStateForStep(step) {
     return { status: "completed", detail: null };
   if (last.type === "send_succeeded") return { status: "success", detail: null };
   if (last.type === "send_failed") {
-    const reasonText =
-      last.reason === "source_down"
-        ? (scNodeLabel(edgeById(step.edgeId)?.from) || "El origen") + " no está disponible"
-        : (scNodeLabel(edgeById(step.edgeId)?.to) || "El destino") + " no está disponible";
-    return { status: "failed", detail: reasonText };
+    return { status: "failed", detail: scSendFailText(step, last.reason) };
   }
   if (last.type === "send_started") return { status: "active", detail: null };
   return { status: "pending", detail: null };
@@ -312,11 +315,11 @@ function scRenderTraceLog() {
       mark.textContent = "●";
       body.textContent = time + "  " + escapeHtml(lbl) + "  Ocurre";
     } else if (ev.type === "send_started") {
-      const lbl = scEdgeLabel(ev.edgeId) || "Conexión #" + ev.edgeId;
+      const lbl = scEdgeLabel(ev.edgeId, ev.reverse) || "Conexión #" + ev.edgeId;
       mark.textContent = "→";
       body.textContent = time + "  " + escapeHtml(lbl) + "  Sale";
     } else if (ev.type === "send_succeeded") {
-      const lbl = scEdgeLabel(ev.edgeId) || "Conexión #" + ev.edgeId;
+      const lbl = scEdgeLabel(ev.edgeId, ev.reverse) || "Conexión #" + ev.edgeId;
       mark.textContent = "✓";
       line.classList.add("success");
       const result = document.createElement("span");
@@ -325,7 +328,7 @@ function scRenderTraceLog() {
       body.appendChild(document.createTextNode(time + "  " + escapeHtml(lbl) + "  "));
       body.appendChild(result);
     } else if (ev.type === "send_failed") {
-      const lbl = scEdgeLabel(ev.edgeId) || "Conexión #" + ev.edgeId;
+      const lbl = scEdgeLabel(ev.edgeId, ev.reverse) || "Conexión #" + ev.edgeId;
       mark.textContent = "✕";
       line.classList.add("fail");
       const reasonText =
@@ -1635,8 +1638,9 @@ function scStepTitle(step) {
 function scWhereLabel(step) {
   if (step.edgeId) {
     const e = edgeById(step.edgeId),
-      a = e && nodeById(e.from),
-      b = e && nodeById(e.to);
+      t = traversalEnds(e, step.reverse),
+      a = e && nodeById(t.source),
+      b = e && nodeById(t.target);
     return a && b ? scNodeFallback(a.id) + " → " + scNodeFallback(b.id) : "";
   }
   return step.nodeId && nodeById(step.nodeId) ? scNodeFallback(step.nodeId) : "";
@@ -1770,8 +1774,9 @@ function scArrivalMenuItem(step) {
     mine = FluyoStoryClock.stepWaits(sc, step.id),
     together = sc.steps.filter((x) => x.at === step.at).length;
   /* primero los envíos que llegan a donde ocurre este evento (o, si es un envío, a donde sale) */
-  const here = step.edgeId ? edgeById(step.edgeId)?.from : step.nodeId;
-  const ordered = [...cands.filter((x) => edgeById(x.edgeId)?.to === here), ...cands.filter((x) => edgeById(x.edgeId)?.to !== here)];
+  const here = step.edgeId ? traversalEnds(edgeById(step.edgeId), step.reverse).source : step.nodeId;
+  const arrives = (x) => traversalEnds(edgeById(x.edgeId), x.reverse).target === here;
+  const ordered = [...cands.filter(arrives), ...cands.filter((x) => !arrives(x))];
   const items = ordered.map((x) => {
     const on = mine.includes(x.id);
     return { label: (on ? "✓ " : "") + scStepTitle(x), hint: scWhereLabel(x), fn: () => scToggleArrivalWait(step.id, x.id, !on) };
@@ -2628,7 +2633,7 @@ function scBeginMulti(id) {
   if (!scPlacement) return;
   scPlacement.existing = new Set(
     scActiveScenario()
-      .steps.filter((x) => x.at === s.at && x.eventTypeId === s.eventTypeId && x.action === "SEND")
+      .steps.filter((x) => x.at === s.at && x.eventTypeId === s.eventTypeId && x.action === "SEND" && (x.reverse === true) === (s.reverse === true))
       .map((x) => x.edgeId),
   );
   scPlacement.targets = new Set();
@@ -2888,7 +2893,8 @@ function scUseTarget(id, multiSelection = true) {
     const s = scActiveScenario().steps.find((s) => s.id === p.stepId);
     if (!s) return;
     pushUndo();
-    retargetStep(P(), scActiveScenario(), s.id, id);
+    // «Cambiar dónde ocurre» solo elige la conexión: el Step conserva su sentido (FLUYO-STEP-REVERSE-001, D10).
+    retargetStep(P(), scActiveScenario(), s.id, id, s.action === "SEND" ? s.reverse === true : undefined);
     scCancelPlacement();
     scCommit();
     return;
@@ -2945,7 +2951,8 @@ function scConfirmMulti() {
   const ids = [...p.targets].filter((id) => edgeById(id));
   if (!ids.length) return;
   pushUndo();
-  for (const id of ids) createStep(sc, { at: s.at, action: "SEND", edgeId: id, eventTypeId: s.eventTypeId });
+  // Las copias recorren sus conexiones en el mismo sentido que el original (D10).
+  for (const id of ids) createStep(sc, Object.assign({ at: s.at, action: "SEND", edgeId: id, eventTypeId: s.eventTypeId }, s.reverse === true ? { reverse: true } : {}));
   scCancelPlacement();
   scCommit();
 }

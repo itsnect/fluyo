@@ -117,7 +117,8 @@ var FluyoIntegrity = (function(){
             const stepIds = new Set();
             sc.steps.forEach((step, i)=>{
               const where = {pageIndex, storyId:sc.id, stepId:isRecord(step)?step.id:undefined};
-              if(!tryRule(()=>validatePersistedStep(clone(step), sc.engineVersion)))
+              // Como normalizeScenarios: un SEND con reverse:false se canonicaliza antes de validar (FLUYO-STEP-REVERSE-002, D1).
+              if(!tryRule(()=>validatePersistedStep(canonicalizePersistedStep(clone(step)), sc.engineVersion)))
                 errors.push(makeError("invalid_step","step",where,{path:`scenarios.steps[${i}]`}));
               else if(stepIds.has(step.id)) errors.push(makeError("duplicate_step_id","step",where,{path:`scenarios.steps[${i}]`}));
               else stepIds.add(step.id);

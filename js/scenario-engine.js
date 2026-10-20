@@ -94,9 +94,12 @@ var FluyoScenarios = (function(){
           if(!allowedActions.has(step.action)){ add(shape,"unknown_action",path,extra); continue; }
           const allowed=step.action==="SET_STATE"?[ "id","at","action","nodeId","state"]:(step.action==="OCCURRENCE"?[ "id","at","action","nodeId"]:[ "id","at","action","edgeId"]);
           // eventTypeId es metadata de presentación, opcional en cualquier versión.
-          const keys=Object.keys(step).filter(k=>k!=="eventTypeId");
+          // reverse (FLUYO-STEP-REVERSE-002): opcional y solo en SEND; su único valor es `true`. En otra acción es un campo de más.
+          const keys=Object.keys(step).filter(k=>k!=="eventTypeId" && !(k==="reverse" && step.action==="SEND"));
           if(keys.length!==allowed.length || !allowed.every(k=>Object.prototype.hasOwnProperty.call(step,k)))
             add(shape,"invalid_scenario",path,{...extra,reason:"extra_fields"});
+          if(step.action==="SEND" && Object.prototype.hasOwnProperty.call(step,"reverse") && step.reverse!==true)
+            add(shape,"invalid_scenario",path,extra);
           if(step.action==="SET_STATE"){
             if(!isPosInt(step.nodeId) || !VALID_STATES.has(step.state)) add(shape,"invalid_state",path,extra);
             if(before===shape.length) pending.push({kind:"node",id:step.nodeId,code:"missing_node",path,extra:{...extra,nodeId:step.nodeId}});
@@ -178,11 +181,14 @@ var FluyoScenarios = (function(){
       } else { // SEND
         if(events.length >= MAX_TRACE_EVENTS)
           return err("guard_exceeded", {path:"trace.events", limit:MAX_TRACE_EVENTS});
-        events.push({at:virtualTime, type:"send_started", stepId:step.id, edgeId:step.edgeId});
+        // Un SEND con reverse recorre la conexión de `to` a `from` (misma regla que traversalEnds de model.js).
+        const reverse = step.reverse === true;
+        const dir = reverse ? {reverse:true} : {};
+        events.push({at:virtualTime, type:"send_started", stepId:step.id, edgeId:step.edgeId, ...dir});
 
         const edge = edgeMap.get(step.edgeId);
-        const sourceState = states.get(edge.from);
-        const targetState = states.get(edge.to);
+        const sourceState = states.get(reverse ? edge.to : edge.from);
+        const targetState = states.get(reverse ? edge.from : edge.to);
         let result;
         if(sourceState === "DOWN") result = {type:"send_failed", reason:"source_down"};
         else if(targetState === "DOWN") result = {type:"send_failed", reason:"target_down"};
@@ -190,7 +196,7 @@ var FluyoScenarios = (function(){
 
         if(events.length >= MAX_TRACE_EVENTS)
           return err("guard_exceeded", {path:"trace.events", limit:MAX_TRACE_EVENTS});
-        const terminal = {at:virtualTime, type:result.type, stepId:step.id, edgeId:step.edgeId};
+        const terminal = {at:virtualTime, type:result.type, stepId:step.id, edgeId:step.edgeId, ...dir};
         if(result.reason) terminal.reason = result.reason;
         events.push(terminal);
       }

@@ -82,7 +82,7 @@ function deleteImpact(nodeIds, edgeIds){
   const r=FluyoIntegrity.removalImpact(slim, {pageIndex:0, nodeIds, edgeIds});
   const label=id=>{ const n=nodeById(id); return (n && String(n.label||"").split("\n")[0].trim()) || "Elemento sin nombre"; };
   const targetOf=st=>{
-    if(st.action==="SEND"){ const e=edgeById(st.edgeId); return e ? label(e.from)+" → "+label(e.to) : "Conexión"; }
+    if(st.action==="SEND"){ const e=edgeById(st.edgeId), t=traversalEnds(e, st.reverse); return e ? label(t.source)+" → "+label(t.target) : "Conexión"; }
     return label(st.nodeId);
   };
   const stories=r.affectedStories.map(a=>{

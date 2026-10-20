@@ -16,7 +16,9 @@ const read = (f) => fs.readFileSync(path.join(root, f), "utf8").replace(/\r\n/g,
 const gitRoot = process.env.FLUYO_GIT_ROOT || root;
 const MAIN = "0409f4d";   // main al reintegrar; FASE 1 de referencia: 59588a9 (sobre ce8e699; la histórica es 4fb5872)
 const { undo4b } = require("./fluyo-019-4b-undo.cjs");   /* FLUYO-019.4b cambia a propósito render.js, interaction.js, geometry.js, editor-runtime.js, state.js e index.html: se deshace aquí (antes que 019.4a y FASE 1); su alcance lo vigila test/fluyo-019-4b.test.cjs */
-const { undo3 } = require("./fluyo-scenarios-semantics-3-undo.cjs");   /* SCENARIOS-SEMANTICS-001 FASE 3 cambia a propósito model.js, document-integrity.js, story-authoring.js, flow-semantics.js, editor-scenarios.js, index.html, styles.css y sw.js (precache): se deshace aquí, antes que todo lo demás; su alcance lo vigila test/fluyo-scenarios-semantics-3.test.cjs */
+const { undo3: undo3only } = require("./fluyo-scenarios-semantics-3-undo.cjs");   /* SCENARIOS-SEMANTICS-001 FASE 3 cambia a propósito model.js, document-integrity.js, story-authoring.js, flow-semantics.js, editor-scenarios.js, index.html, styles.css y sw.js (precache): se deshace aquí, antes que todo lo demás; su alcance lo vigila test/fluyo-scenarios-semantics-3.test.cjs */
+const { undoReverse } = require("./fluyo-step-reverse-002-undo.cjs");   /* FLUYO-STEP-REVERSE-002 cambia a propósito model.js, scenario-engine.js, story-playback.js, scenario-playback.js, story-authoring.js, document-integrity.js, render.js, editor-scenarios.js y selection.js: se deshace aquí, antes que FASE 3; su alcance lo vigila test/fluyo-step-reverse-002.test.cjs */
+const undo3 = (f, src) => undo3only(f, undoReverse(f, src));
 const J = (v) => JSON.parse(JSON.stringify(v));
 
 const G = vm.createContext({ console });
@@ -292,7 +294,10 @@ test("alcance · FASE 2 solo añade js/flow-semantics.js: ningún archivo servid
      (index.html y el precache): deshechos, son los de MAIN */
   const ONLY3 = ["js/document-integrity.js", "js/editor-scenarios.js", "js/story-authoring.js"];
   for (const f of ONLY3) assert.equal(undo3(f, read(f)), execFileSync("git", ["-C", gitRoot, "show", MAIN + ":" + f], { encoding: "utf8" }).replace(/\r\n/g, "\n"), f + " = " + MAIN + " fuera de FASE 3");
-  assert.deepEqual([...new Set([...changed, ...untracked])].filter((f) => !FASE1.includes(f) && !ONLY4B.includes(f) && !ONLY3.includes(f)).sort(), ["js/flow-semantics.js"]);
+  /* FLUYO-STEP-REVERSE-002 añade scenario-engine.js, scenario-playback.js, story-playback.js y selection.js: deshechos (undoReverse, dentro de undo3), son los de MAIN */
+  const ONLY_REV = ["js/scenario-engine.js", "js/scenario-playback.js", "js/selection.js", "js/story-playback.js"];
+  for (const f of ONLY_REV) assert.equal(undo3(f, read(f)), execFileSync("git", ["-C", gitRoot, "show", MAIN + ":" + f], { encoding: "utf8" }).replace(/\r\n/g, "\n"), f + " = " + MAIN + " fuera de STEP-REVERSE-002");
+  assert.deepEqual([...new Set([...changed, ...untracked])].filter((f) => !FASE1.includes(f) && !ONLY4B.includes(f) && !ONLY3.includes(f) && !ONLY_REV.includes(f)).sort(), ["js/flow-semantics.js"]);
   for (const f of ["index.html", "s/index.html", "sw.js"]) assert.ok(!undo3(f, read(f)).includes("flow-semantics"), f + " no carga ni precachea el módulo (fuera de FASE 3)");
   const lines = (args, f) => execFileSync("git", ["-C", gitRoot, "diff", "-U0", ...args, "--", f], { encoding: "utf8" }).replace(/\r\n/g, "\n").split("\n")
     .filter((l) => /^[-+]/.test(l) && !/^(---|\+\+\+) /.test(l) && !/const CACHE = /.test(l));

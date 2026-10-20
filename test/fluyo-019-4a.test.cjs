@@ -23,7 +23,9 @@ const fs = require("node:fs"), path = require("node:path"), vm = require("node:v
 const { execFileSync } = require("node:child_process");
 const { undo4a, BASE4A } = require("./fluyo-019-4a-undo.cjs");
 const { undo4b } = require("./fluyo-019-4b-undo.cjs");   /* FLUYO-019.4b cambia a propósito render.js, interaction.js, geometry.js, editor-runtime.js, state.js e index.html: se deshace aquí (antes que 019.4a y FASE 1); su alcance lo vigila test/fluyo-019-4b.test.cjs */
-const { undo3 } = require("./fluyo-scenarios-semantics-3-undo.cjs");   /* SCENARIOS-SEMANTICS-001 FASE 3 cambia a propósito model.js, document-integrity.js, story-authoring.js, flow-semantics.js, editor-scenarios.js, index.html, styles.css y sw.js (precache): se deshace aquí, antes que todo lo demás; su alcance lo vigila test/fluyo-scenarios-semantics-3.test.cjs */
+const { undo3: undo3only } = require("./fluyo-scenarios-semantics-3-undo.cjs");   /* SCENARIOS-SEMANTICS-001 FASE 3 cambia a propósito model.js, document-integrity.js, story-authoring.js, flow-semantics.js, editor-scenarios.js, index.html, styles.css y sw.js (precache): se deshace aquí, antes que todo lo demás; su alcance lo vigila test/fluyo-scenarios-semantics-3.test.cjs */
+const { undoReverse } = require("./fluyo-step-reverse-002-undo.cjs");   /* FLUYO-STEP-REVERSE-002 cambia a propósito model.js, scenario-engine.js, story-playback.js, scenario-playback.js, story-authoring.js, document-integrity.js, render.js, editor-scenarios.js y selection.js: se deshace aquí, antes que FASE 3; su alcance lo vigila test/fluyo-step-reverse-002.test.cjs */
+const undo3 = (f, src) => undo3only(f, undoReverse(f, src));
 const { undoSemantics } = require("./fluyo-scenarios-semantics-undo.cjs");   /* SCENARIOS-SEMANTICS-001 (FASE 1) cambia a propósito model.js, geometry.js, render.js, ui.js, index.html y styles.css: se deshace aquí; su alcance lo vigila test/fluyo-scenarios-semantics-1.test.cjs */
 const root = path.resolve(__dirname, "..");
 const read = (f) => fs.readFileSync(path.join(root, f), "utf8").replace(/\r\n/g, "\n");
@@ -388,8 +390,8 @@ test("alcance · frente a 22f82eb solo cambian skin.js (aterrizaje), render.js (
     "js/editor-scenarios.js", "js/present-story.js", "js/share-url.js", "js/deeplink.js", "index.html", "s/index.html", "css/styles.css", "css/system.css"])
     if (fs.existsSync(path.join(root, f))) assert.equal(undoSemantics(f, undo4b(f, undo3(f, read(f)))), atBase(f), f + " idéntico");
   const sw = undo3("sw.js", read("sw.js"));
-  assert.match(sw, /const CACHE = "fluyo-static-v96";/);
-  assert.equal(sw.replace('"fluyo-static-v96"', '"fluyo-static-v' + (93 - 1) + '"'), atBase("sw.js"), "sw.js: solo cambia CACHE");
+  assert.match(sw, /const CACHE = "fluyo-static-v97";/);
+  assert.equal(sw.replace('"fluyo-static-v97"', '"fluyo-static-v' + (93 - 1) + '"'), atBase("sw.js"), "sw.js: solo cambia CACHE");
   /* la piel en sí no cambia: mismas capas, extensión, orden, voz y anillo */
   const fn = (src, name) => { const i = src.indexOf("function " + name + "("); assert.ok(i >= 0, name); const j = src.indexOf("\n}\n", i); return src.slice(i, j); };
   for (const name of ["skinNode", "skinExtent", "skinPaintOrder", "skinLabelFont", "skinEdgePort", "skinTones", "skinColor", "skinFaces", "skinHasSkin", "skinActive"])

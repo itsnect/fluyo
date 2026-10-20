@@ -22,7 +22,9 @@ const gitRoot = process.env.FLUYO_GIT_ROOT || root;
 const BASE = "0409f4d";   // main al reintegrar (la línea congelada medía contra ce8e699)
 const before = (f) => execFileSync("git", ["-C", gitRoot, "show", BASE + ":" + f], { encoding: "utf8" }).replace(/\r\n/g, "\n");
 const { undo4b } = require("./fluyo-019-4b-undo.cjs");   /* FLUYO-019.4b cambia a propósito render.js, interaction.js, geometry.js, editor-runtime.js, state.js e index.html: se deshace aquí (antes que 019.4a y FASE 1); su alcance lo vigila test/fluyo-019-4b.test.cjs */
-const { undo3 } = require("./fluyo-scenarios-semantics-3-undo.cjs");   /* SCENARIOS-SEMANTICS-001 FASE 3 cambia a propósito model.js, document-integrity.js, story-authoring.js, flow-semantics.js, editor-scenarios.js, index.html, styles.css y sw.js (precache): se deshace aquí, antes que todo lo demás; su alcance lo vigila test/fluyo-scenarios-semantics-3.test.cjs */
+const { undo3: undo3only } = require("./fluyo-scenarios-semantics-3-undo.cjs");   /* SCENARIOS-SEMANTICS-001 FASE 3 cambia a propósito model.js, document-integrity.js, story-authoring.js, flow-semantics.js, editor-scenarios.js, index.html, styles.css y sw.js (precache): se deshace aquí, antes que todo lo demás; su alcance lo vigila test/fluyo-scenarios-semantics-3.test.cjs */
+const { undoReverse } = require("./fluyo-step-reverse-002-undo.cjs");   /* FLUYO-STEP-REVERSE-002 cambia a propósito model.js, scenario-engine.js, story-playback.js, scenario-playback.js, story-authoring.js, document-integrity.js, render.js, editor-scenarios.js y selection.js: se deshace aquí, antes que FASE 3; su alcance lo vigila test/fluyo-step-reverse-002.test.cjs */
+const undo3 = (f, src) => undo3only(f, undoReverse(f, src));
 const J = (v) => JSON.parse(JSON.stringify(v));
 
 function context(src, files) {
@@ -290,13 +292,16 @@ test("alcance · entre los archivos servidos solo cambian model.js, geometry.js,
   /* SCENARIOS-SEMANTICS-001 FASE 3 añade document-integrity.js, story-authoring.js y editor-scenarios.js: deshechos, son los de BASE */
   const ONLY3 = ["js/document-integrity.js", "js/editor-scenarios.js", "js/story-authoring.js"];
   for (const f of ONLY3) assert.equal(undo3(f, read(f)), before(f), f + " = " + BASE + " fuera de FASE 3");
-  changed.splice(0, changed.length, ...changed.filter((f) => !ONLY4B.includes(f) && !ONLY3.includes(f)));
+  /* FLUYO-STEP-REVERSE-002 añade scenario-engine.js, scenario-playback.js, story-playback.js y selection.js: deshechos (undoReverse, dentro de undo3), son los de BASE */
+  const ONLY_REV = ["js/scenario-engine.js", "js/scenario-playback.js", "js/selection.js", "js/story-playback.js"];
+  for (const f of ONLY_REV) assert.equal(undo3(f, read(f)), before(f), f + " = " + BASE + " fuera de STEP-REVERSE-002");
+  changed.splice(0, changed.length, ...changed.filter((f) => !ONLY4B.includes(f) && !ONLY3.includes(f) && !ONLY_REV.includes(f)));
   assert.deepEqual(changed, ["css/styles.css", "index.html", "js/geometry.js", "js/model.js", "js/render.js", "js/ui.js", "sw.js"]);
   for (const f of ["js/config.js", "js/safe-svg.js", "js/scenario-engine.js", "js/scenario-playback.js", "js/story-playback.js", "js/document-integrity.js", "js/story-authoring.js",
     "js/story-clock.js", "js/skin.js", "js/viewer.js", "js/export.js", "js/state.js", "js/selection.js", "js/editor-scenarios.js", "s/index.html"]) assert.equal(undo4b(f, undo3(f, read(f))), before(f), f);
   const sw = undo3("sw.js", read("sw.js"));
-  assert.match(sw, /const CACHE = "fluyo-static-v96";/);
-  assert.equal(sw.replace('"fluyo-static-v96"', '"fluyo-static-v' + (94 - 1) + '"'), before("sw.js"), "sw.js: solo sube CACHE (sin archivos nuevos)");
+  assert.match(sw, /const CACHE = "fluyo-static-v97";/);
+  assert.equal(sw.replace('"fluyo-static-v97"', '"fluyo-static-v' + (94 - 1) + '"'), before("sw.js"), "sw.js: solo sube CACHE (sin archivos nuevos)");
   /* UNKNOWN sigue fuera (D3): el kernel solo admite UP/DOWN */
   assert.match(read("js/model.js"), /const SCENARIO_STATES=new Set\(\["UP","DOWN"\]\);/);
   assert.match(read("js/scenario-engine.js"), /const VALID_STATES = new Set\(\["UP", "DOWN"\]\);/);

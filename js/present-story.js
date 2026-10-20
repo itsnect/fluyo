@@ -101,6 +101,7 @@ function presentStoryRefresh(){
     psSet("psDots","hidden",true);
     psSet("psCaption","text","");
     psSet("psSummary","text","");
+    psSet("psFlow","hidden",true);
     return;
   }
   /* FLUYO-018.21: el momento en curso según su instante VISIBLE (dependencias de llegada, story-clock.js) */
@@ -136,6 +137,11 @@ function presentStoryRefresh(){
   if(phase==="paused") cap=cap ? "En pausa · "+cap : "En pausa";
   psSet("psCaption","text",cap);
   psSet("psSummary","text",sum);
+  /* SCENARIOS-SEMANTICS-001 FASE 5 (D8, decisión 246): la línea de estado de la ruta observada, en el rótulo (la fila de controles no
+     cambia). La MISMA línea que la herramienta del editor (labs), solo reproduciendo (también en pausa y terminada) y con par. */
+  const route=dphase!=="ready" && typeof scFlowPresentLine==="function" ? scFlowPresentLine() : null;
+  psSet("psFlow","hidden",!route);
+  if(route){ psSet("psFlow","text",route.text); psSet("psFlow","className","psFlow is"+route.status); }
 }
 
 /* Encaja el diagrama en el espacio libre de la escena: deja aire alrededor y

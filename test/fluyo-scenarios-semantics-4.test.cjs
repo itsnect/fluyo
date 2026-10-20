@@ -265,13 +265,14 @@ function editor({ labs = true } = {}) {
   return { ctx, R, $, load, view, pick, play, tick, seek, overlay, frame, undo: () => R("undo()"), undos: () => R("undoStack.length"), doc: () => J(R("P()")) };
 }
 
-test("B1 · el lienzo solo recibe la ruta reproduciendo, con labs, con par y con ruta; nunca en Present; sin reproducir, nada", () => {
+test("B1 · el lienzo solo recibe la ruta reproduciendo, con labs, con par y con ruta; en Present, lo mismo (FASE 5, D8); sin reproducir, nada", () => {
   const off = editor({ labs: false }); off.load(project([workersPage()])); off.play(100);
   assert.equal(off.overlay(), null, "labs apagado"); assert.equal(off.frame(), null, "labs apagado: el renderState no lleva `flow`");
   const e = editor(); e.load(project([workersPage()]));
   assert.equal(e.overlay(), null, "sin reproducir (edición): el lienzo es el de siempre");
   e.play(100); assert.ok(e.overlay(), "reproduciendo"); assert.ok(e.frame() && e.frame().edges, "buildScenarioRenderState lo entrega en scenarioRuntime.flow");
-  e.R("presenting = true"); assert.equal(e.overlay(), null, "Present: FASE 5 (D8)"); assert.equal(e.frame(), null);
+  /* SCENARIOS-SEMANTICS-001 FASE 5 (D8, decisión 245): Present pinta la MISMA ruta (antes, FASE 4, nada en Present) */
+  const outside = e.overlay(); e.R("presenting = true"); assert.deepEqual(e.overlay(), outside, "Present: lo mismo que el editor (FASE 5)"); assert.deepEqual(e.frame(), outside);
   e.R("presenting = false"); e.R('scStatus = "completed"'); assert.ok(e.overlay(), "terminada: el último fotograma sigue");
   const cut = workersPage({ observedFlow: { from: CLI, to: BD } }); cut.edges = cut.edges.filter((x) => x.id !== 12);
   e.load(project([cut])); e.play(100); assert.equal(e.overlay(), null, "NO_PATH: el lienzo no pinta fundas (D-Ruta)");
@@ -586,13 +587,15 @@ test("D6 · Requisito estable: su trazo es idéntico con y sin ruta y en cualqui
   assert.deepEqual(drawEdgeOps(R, 18, { flow: FLOW_AT(all("UNAVAILABLE")) }), drawEdgeOps(R, 18), "Conexión, igual");
 });
 
-test("D7 · N3: con la piel, donde se pinta el anillo de Requisito no se pinta el anillo de salida; al exportar (sin marcas) sale como en " + BASE, () => {
+test("D7 · N3: con la piel, donde se pinta el anillo de Requisito no se pinta el anillo de salida; FASE 5: también al exportar (con las marcas)", () => {
   const R = renderCtx(), OLD = renderCtx(atBase); setDoc(R, canvasPage()); setDoc(OLD, canvasPage());
   const rings = (log) => log.filter((x) => x[0] === "@stroke" && x[3] === 1.5 && x[2] === "#F3EEE3").length;   /* el anillo de salida: relleno del fondo, trazo 1,5 */
   assert.equal(rings(drawEdgeOps(OLD, 17, { skin: true })), 1, "premisa: en " + BASE + " el Requisito con piel lleva el anillo de salida");
   assert.equal(rings(drawEdgeOps(R, 17, { skin: true })), 0, "FASE 4: no");
   assert.equal(drawEdgeOps(R, 17, { skin: true }).filter((x) => x[0] === "arc").length, 1, "queda un solo anillo: el de Requisito");
-  sameOps(drawEdgeOps(R, 17, { skin: true, isExport: true }), drawEdgeOps(OLD, 17, { skin: true, isExport: true }), "exportar: igual que antes (SVG y MCP coinciden)");
+  /* SCENARIOS-SEMANTICS-001 FASE 5 (§ Export, decisión 247): las marcas salen al exportar y N3 con ellas (raster = SVG = MCP) */
+  assert.equal(rings(drawEdgeOps(R, 17, { skin: true, isExport: true })), 0, "exportar (FASE 5): sin anillo de salida donde va el de Requisito");
+  assert.equal(drawEdgeOps(R, 17, { skin: true, isExport: true }).filter((x) => x[0] === "arc").length, 1, "exportar (FASE 5): el anillo de Requisito");
   for (const id of [11, 18]) assert.equal(rings(drawEdgeOps(R, id, { skin: true })), 1, "Flujo y Conexión conservan su anillo de salida");
   sameOps(drawEdgeOps(R, 17), drawEdgeOps(OLD, 17), "en plano nada cambia");
 });
@@ -632,32 +635,37 @@ test("E1 · markup estático dentro de #scFlow, oculto por defecto; textos del p
   assert.ok(!/breath|Math\.sin|performance\.now/.test(block.slice(block.indexOf("ROUTE_MARK"))), "el halo no «respira» (§ Pintado: TUNE)");
 });
 
+/* SCENARIOS-SEMANTICS-001 FASE 5 va encima (6701261 → árbol): se deshace con undo5 antes de comparar con la base de FASE 4. */
+const { undo5, PIECES: PIECES5 } = require("./fluyo-scenarios-semantics-5-undo.cjs");
+const read4 = (f) => undo5(f, read(f));
 test("E2 · alcance frente a " + BASE + ": solo cambian render.js, editor-scenarios.js, flow-semantics.js, index.html, styles.css y sw.js (CACHE v99)", () => {
   const SERVED = ["js", "s", "css", "index.html", "sw.js", "manifest.webmanifest", "docs", "ejemplos", "privacidad", "privacy", "soporte", "support", "terminos", "terms"];
   const changed = execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean);
   const untracked = execFileSync("git", ["-C", gitRoot, "ls-files", "--others", "--exclude-standard", "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean);
-  assert.deepEqual([...new Set([...changed, ...untracked])].sort(), ["css/styles.css", "index.html", "js/editor-scenarios.js", "js/flow-semantics.js", "js/render.js", "sw.js"]);
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v99";/);
-  assert.equal(read("sw.js").replace('"fluyo-static-v99"', '"fluyo-static-v' + (99 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante (el precache no cambia)");
+  /* lo que solo cambia FASE 5 no cuenta aquí (su alcance lo vigila test/fluyo-scenarios-semantics-5.test.cjs) */
+  const mine = [...new Set([...changed, ...untracked])].filter((f) => !(Object.keys(PIECES5).includes(f) && read4(f) === atBase(f)));
+  assert.deepEqual(mine.sort(), ["css/styles.css", "index.html", "js/editor-scenarios.js", "js/flow-semantics.js", "js/render.js", "sw.js"]);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v100";/);
+  assert.equal(read("sw.js").replace('"fluyo-static-v100"', '"fluyo-static-v' + (99 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante (el precache no cambia)");
   for (const f of ["js/model.js", "js/scenario-engine.js", "js/scenario-playback.js", "js/story-playback.js", "js/story-clock.js", "js/document-integrity.js", "js/story-authoring.js",
     "js/viewer.js", "js/present-story.js", "js/export.js", "js/geometry.js", "js/skin.js", "js/interaction.js", "js/ui.js", "s/index.html"])
-    assert.equal(read(f), atBase(f), f + " intacto (kernel del MCP, Viewer, Present y exportación)");
+    assert.equal(read4(f), atBase(f), f + " intacto (kernel del MCP, Viewer, Present y exportación)");
   /* las funciones de FASE 2 y FASE 3 no cambian: FASE 4 solo añade */
-  const fs4 = read("js/flow-semantics.js"), fsb = atBase("js/flow-semantics.js");
+  const fs4 = read4("js/flow-semantics.js"), fsb = atBase("js/flow-semantics.js");
   const cut = (s) => s.slice(s.indexOf("var FluyoFlow"), s.indexOf("  /* ─────────── FASE 4"));
   assert.equal(cut(fs4), fsb.slice(fsb.indexOf("var FluyoFlow"), fsb.indexOf("  return {AVAILABLE")), "FASE 2 y FASE 3 intactas");
 });
 
 test("E3 · undo4 (para los alcances de slices anteriores) deshace EXACTAMENTE FASE 4: cada archivo servido vuelve a " + BASE, () => {
   const { undo4, PIECES } = require("./fluyo-scenarios-semantics-4-undo.cjs");
-  for (const f of Object.keys(PIECES)) assert.equal(undo4(f, read(f)), atBase(f), f);
+  for (const f of Object.keys(PIECES)) assert.equal(undo4(f, read4(f)), atBase(f), f);
   assert.deepEqual(Object.keys(PIECES).sort(), ["css/styles.css", "index.html", "js/editor-scenarios.js", "js/flow-semantics.js", "js/render.js"]);
 });
 
 test("E4 · B7: sin restos del prototipo; flow-semantics.js sigue fuera del kernel del MCP y el Viewer no lo carga", () => {
   for (const f of ["index.html", "js/editor-scenarios.js", "js/flow-semantics.js", "js/render.js", "css/styles.css"])
     assert.ok(!/PROTO_|prototipo=|protoSemantic|proto-semantic/.test(read(f)), f);
-  assert.ok(!read("s/index.html").includes("flow-semantics"));
+  assert.ok(!read4("s/index.html").includes("flow-semantics"), "en FASE 4 el Viewer no lo carga (FASE 5 sí: D7)");
   const mcp = path.join(root, "..", "fluyo-mcp", "src", "generated", "kernel-sources.ts");
   if (fs.existsSync(mcp)) assert.ok(!/name: "(flow-semantics|render|editor-scenarios)\.js"/.test(fs.readFileSync(mcp, "utf8")), "ningún archivo de FASE 4 es kernel: el MCP no se toca");
 });

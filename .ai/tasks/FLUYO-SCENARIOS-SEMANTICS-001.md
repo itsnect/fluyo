@@ -1,6 +1,7 @@
 # FLUYO-SCENARIOS-SEMANTICS-001 — Productización de Semantic Scenarios
 
-Estado: **FASE 4 READY FOR PUSH** (2026-10-20; commit en `main` con el OK del PO, tras la QA y sus 2 ajustes; ver § «Ajustes post-QA» de FASE 4) · FASE 1 + FASE 2 publicadas (`eff5129`, v94) · FASE 3 publicada (`544fd4b`, v96) ·
+Estado: **FASE 5 READY FOR PUSH** (2026-10-20): revisión del PO aprobada; commit en fluyo y en fluyo-mcp, sin push ni deploy (§ «FASE 5 — Implementación»); CACHE v100,
+decisiones 245–249, sin commit, push ni deploy. **FASE 4 CERRADA** (2026-10-20): `6701261` con push y deploy (fluyo.space sirve v99, smoke en producción 24/24). Ver § «Publicación» de FASE 4 · FASE 1 + FASE 2 publicadas (`eff5129`, v94) · FASE 3 publicada (`544fd4b`, v96) ·
 FASE 4 (Scenario Experience) implementada sobre `main` `ae0d619` (producción v98), sin commit, push ni deploy · `CACHE` v99 · decisiones
 241–244 · MCP: sin cambios · siguiente: revisión del PO. Ver § «FASE 4» y § Handoff.
 Referencias históricas: línea congelada `59588a9` + `ca08fc1` + `2f9f418` (base `ce8e699`); `feat/scenario-semantics`
@@ -1162,14 +1163,313 @@ Docs: decisiones 243 (texto del recuento no exacto) y 244 (colores del halo por 
 - halo de claro `rgba(195,205,164,.55)` (244);
 - comportamiento de lienzo y timeline (241, 242 y 244).
 
+### Publicación (2026-10-20) — CERRADA
+
+- Push `ae0d619..6701261` a `origin/main`. Los dos `.md` ajenos (`FLUYO-STEP-REVERSE-003.md` y `FLUYO-019.4.md`) se quedan fuera, sin commit.
+- Vercel sirve **v99** unos 6 s después del push. 12 archivos servidos coinciden byte a byte con `6701261`: `sw.js`, `index.html`, `render.js`,
+  `editor-scenarios.js`, `flow-semantics.js`, `styles.css`, `model.js`, `story-clock.js`, `viewer.js`, `s/index.html`, `geometry.js` y `skin.js`.
+- Smoke en producción con Chrome real (perfil limpio, terceros bloqueados, service worker activo), a 1440 y 390: **24/24**.
+  - SW v99 activo y el código de FASE 4 cargado.
+  - Timeline, extremos y filas en edición.
+  - Lienzo: oliva → cae A (rama A terracota, sin barrido) → cae B (barrido); Requisito y Conexión sin funda.
+  - Cursor y ⏮ correctos; halo de claro `rgba(195,205,164,.55)`.
+  - Present sin fundas; labs apagado sin herramienta ni ruta.
+  - Sin errores de consola.
+- fluyo-mcp sin cambios. Siguiente CACHE libre: **v100**. FASE 5 no se empieza sin autorización.
+
+## FASE 5 — Paridad de superficies · Auditoría (2026-10-20) · BLOCKED → resuelta por el PO (ver § «Implementación»)
+
+Base: fluyo `6701261` (= `origin/main`, producción v99) y fluyo-mcp `497c81e`. El PO autorizó FASE 5 (Viewer, Present, Share,
+exportación y MCP; § 9, D7, D8, D9, § Export). La auditoría se hizo antes de implementar. **No queda código**: un primer paso sobre
+`flow-semantics.js` y `editor-scenarios.js` se revirtió al encontrar el bloqueo. El árbol es `6701261` más las notas `.md` previas. Sin
+commit, push ni deploy. Ni CACHE ni decisiones nuevas.
+
+### Qué existe ya y qué falta, por superficie
+
+| Superficie | Ya existe (FASE 1–4) | Falta según el contrato de FASE 5 |
+|---|---|---|
+| Viewer (D7) | marcas estáticas de Flujo/Requisito sin bandera; N3 con la piel | no carga `flow-semantics.js`; `FluyoStory.renderState` sin `flow` (sin fundas, barrido ni marcas de nodo de la ruta); no hay línea de estado |
+| Present (D8) | marcas estáticas | `scFlowOverlay` devuelve `null` en Present (FASE 4, mutación U12); `#psGroup` sin línea de estado |
+| Share / `#d=` | `kind` y `observedFlow` viajan sin código nuevo (passthrough; «Compartir historia» pone la Historia elegida primero) | solo pruebas de superficie (§ 10) |
+| Exportación (§ Export) | sin marcas en ninguna salida: `drawEdge` las salta con `isExport` y `renderConnectorToSVG` no las conoce (decisión 217) | marcas en SVG/PNG/JPG/GIF, N3 también al exportar, sin `kind` el byte a byte de hoy, overlays nunca |
+| MCP (D9) | kernel sincronizado: conserva `kind` y `observedFlow` (passthrough) y la cascada de `delete_node` | zod: `ConnectionSpec`/`ConnectionPatch` rechazan `kind` (`strictObject`) y `EdgeSpec` de `create_diagram` lo quita; `describe_document` no expone `kind` ni `observedFlow`; no hay operación de ruta observada; `svg.ts` sin marcas; no hay test de deriva de disponibilidad (enums `UP|DOWN` en `authoring.ts`) |
+| Integridad (§ V) | `removalImpact.observedFlows` | W2 (extremo perdido) y W3 (`kind` desconocido) como avisos de `FluyoIntegrity` (pendiente desde FASE 3) |
+| `docs/index.html` | nada de Flujo, Requisito ni `observedFlow` | el contrato lo nombra en el alcance, pero no fija el contenido |
+
+### Bloqueo: la línea de estado de la ruta no cabe donde la ponen D7 y D8 (medido en Chrome real)
+
+D7 pone la línea de estado del Viewer «en la banda de la Historia». D8 la pone en el mando de Present (`#psGroup`).
+
+FLUYO-018.18 fijó cómo son esos dos contenedores:
+- **banda**: SOLO el transporte, en una fila de alto fijo («el lienzo no salta»);
+- **mando**: grupos que nunca se parten.
+
+Se midió con Chrome 155, el fixture de dos workers y `observedFlow`. El guion vive fuera del repo; el árbol no cambia.
+
+Ancho de los textos aprobados (mono, `--fs-label`):
+
+| Texto | Ancho |
+|---|---|
+| «Ruta disponible» | 99 px |
+| «Sin ruta de flujo» | 112 px |
+| «Ruta no disponible» | 119 px |
+| «Ruta disponible · incluye estados por defecto» | 297 px |
+| «Al inicio · Ruta disponible · incluye estados por defecto» | 376 px |
+
+Espacio disponible en cada contenedor:
+
+| Contenedor | 1440 px | 390 px |
+|---|---|---|
+| Banda del Viewer, reproduciendo (transporte de 339 px) | 1069 px libres | **19 px libres** |
+| `#psGroup` de Present, reproduciendo | 315 px + texto, sobra sitio | 315 px; el mando ya está en su tope (374 px) y en dos filas: **no cabe** |
+| `#psGroup` de Present, sin reproducir | 129 px + texto, sobra sitio | 129 + 376 = 505 px frente a 374: **no cabe** |
+
+A 1440 cabe en los dos sitios; a 390, en ninguno. El contrato no dice qué hacer en ese caso. Cualquier solución cambia el diseño aprobado de
+018.18 o la ubicación de D7/D8. El Viewer va **sin bandera**, así que es interfaz pública. Por eso no se elige aquí.
+
+**Decisiones que necesita el PO**
+
+1. **(Bloqueante) Dónde va la línea en pantallas estrechas.**
+   - **(a) Una fila propia dentro del mismo contenedor**, solo en Historias con par resuelto:
+     - la banda del Viewer pasa de 64 px a unos 84 px desde la carga, para que el lienzo no salte al reproducir;
+     - en `#psGroup`, la línea va en otra fila bajo los botones.
+     - Cumple D7 y D8 al pie de la letra; cambia el «alto fijo» de 018.18 en esas Historias.
+   - **(b) En el rótulo sobre el lienzo**, donde ya se cuenta qué Historia y qué momento:
+     - en el Viewer, `#stNow`, como línea propia; el rótulo pasa de dos líneas de alto fijo a tres en esas Historias;
+     - en Present, `#presentStory`.
+     - Una sola ubicación vale para el Viewer, el Present del Viewer (allí la banda se oculta y el transporte se muda al mando) y el Present
+       del editor.
+     - Cabe a 390: 297 px como mucho, frente a 366 y 359 px de tope. Contradice la ubicación literal de D7 y D8.
+   - **(c) Seguir en la fila y recortar**:
+     - a ≤ 480 px, Pausar y Detener solo con icono;
+     - la línea con elipsis y el texto entero en `title`.
+     - Cambia los rótulos del transporte de 018.18 y corta «incluye estados por defecto».
+   - **Recomendación: (b)**. Está donde ya se lee la narrativa en las tres superficies, cabe a 390 sin tocar el transporte y es una sola
+     ubicación.
+2. **(Ligada a la 1) Present antes de reproducir.**
+   - D8 solo dice «solo si hay par resuelto». Leído al pie de la letra, sin reproducir diría «Al inicio · …».
+   - D7 limita el Viewer a «reproduciendo».
+   - **Recomendación**: solo reproduciendo (también en pausa y terminada), como el Viewer y como las fundas, que solo existen reproduciendo.
+     Así «mismo estado en el mismo instante» vale en las tres superficies.
+
+**Decisiones menores que se tomarán así salvo indicación** (dentro del contrato; irían numeradas desde la 245):
+- **Una receta.** Lo que se pinta de la ruta pasa de `scFlowOverlay` a una función pura `FluyoFlow.routeOverlay`, que usan el editor,
+  Present y el Viewer. Lo mismo la línea, con `FluyoFlow.routeLine` y los textos de `SC_FLOW_WORDS`, con un test de igualdad. FASE 4 no
+  cambia: sus pruebas se reapuntan; U12 y U27 se sustituyen por las de FASE 5.
+- **Viewer.**
+  - Carga `flow-semantics.js` entre `story-clock.js` y `viewer.js`, con guardas `typeof`.
+  - Tiene la misma regla de existencia que la herramienta (D6: Flujo en la página y Historia con pasos).
+  - ENDPOINT_MISSING y sin par: nada.
+  - NO_PATH: solo la línea «Sin ruta de flujo», sin fundas.
+- **Present**: los overlays siguen tras la bandera labs (D10); el Viewer no depende de ella (D7).
+- **Exportación**:
+  - las marcas van en SVG/PNG/JPG/GIF, en el mismo orden que el lienzo (línea → puntas → marcas → anillo de salida → rótulo);
+  - N3 también al exportar (raster = SVG = MCP);
+  - sin `kind`, el SVG y el raster de hoy byte a byte.
+- **Integridad**: `validateProject` añade `warnings` solo si hay alguno, así un documento antiguo da la salida de hoy:
+  - W2: `observed_flow_endpoint_missing`;
+  - W3: `unknown_connection_kind`.
+- **MCP**:
+  - `kind: "FLOWS_TO" | "REQUIRES" | null` en `ConnectionSpec`, `ConnectionPatch` y `EdgeSpec`.
+  - `describe_document`:
+    - `connectionKind` solo en las conexiones que lo tienen (ausente = Conexión, D2);
+    - `observedFlow: {source, target, sourceLabel, targetLabel}` solo si está guardado;
+    - `warnings` solo si hay.
+  - Operación `set_observed_flow` (alcance `story`): `{pageIndex, storyId, source, target}`, con id o `{ref}` del lote; `source:null,
+    target:null` = «Automática». Es kernel, con `setObservedFlowIn`; obliga a resincronizar el kernel.
+  - `svg.ts`: port literal de `edgeSemanticMarks` con un golden compartido generado por el SVG del editor en Chrome.
+  - Test de deriva: los enums de disponibilidad de zod = `SCENARIO_STATES` y `EVENT_TYPE_AVAILABILITY` del kernel.
+- **`docs/index.html`**, solo lo factual:
+  - `kind` y `observedFlow` en el formato;
+  - las marcas en la exportación;
+  - `connectionKind`, `observedFlow` y `set_observed_flow` en el MCP.
+  - Sin mencionar la bandera labs, que no tiene interruptor visible hasta FASE 6.
+- **Operativo**: CACHE v99 → v100; `undo5` encadenado antes de `undo4` en los alcances antiguos; MCP: `sync:kernel` y `check:kernel`.
+
+## FASE 5 — Paridad de superficies · Implementación · APROBADA · READY FOR PUSH (2026-10-20)
+
+**Contexto**:
+- Base: fluyo `6701261` (producción v99) y fluyo-mcp `497c81e`. Sin commit, push ni deploy. CACHE v99 → **v100**.
+- Decisiones **245–249**.
+- El PO cerró el bloqueo de la auditoría:
+  1. **(b)**: la línea de estado va en el rótulo sobre el lienzo, y la fila de controles no cambia.
+  2. En Present, la línea sale solo reproduciendo, en pausa o terminada.
+  - Aceptó también las decisiones menores.
+- No cambian: D5, D-Ruta, `observedFlow`, AVAILABLE / UNAVAILABLE / NO_PATH, la derivación y el pintado de FASE 3/4, STEP-REVERSE y la bandera labs.
+- Las dos `.md` ajenas no se tocan.
+
+**Lectura de la decisión 1**: la opción (b) se describía como «una sola ubicación» para el Viewer, su Present y el Present del editor. Por eso el rótulo se usa a cualquier ancho y no solo en pantallas estrechas: la banda y el mando son los de `6701261` a 1440 y a 390 (medido).
+
+### Qué se implementó
+
+| Superficie | Cambio |
+|---|---|
+| Receta compartida | `FluyoFlow.routeOverlay` (lo que pintaba `scFlowOverlay`, movido sin cambios) y `FluyoFlow.routeLine` (`flow-semantics.js`). El editor delega en ellas (decisión 245) |
+| Present (labs) | `scFlowOverlay` ya no excluye Present: la misma ruta en el lienzo. `#psFlow` en `#presentStory`, solo reproduciendo y con par (`scFlowPresentLine`, `present-story.js`) |
+| Viewer (sin bandera) | Carga `flow-semantics.js`. Funciones `storyFlowData`, `storyFlowOverlay` y `storyFlowLine` (`viewer.js`): la ruta en el lienzo y `#stFlow` en `#stNow`, solo reproduciendo. Misma regla de existencia que la herramienta. NO_PATH: solo la línea |
+| Share | Sin código: `kind` y `observedFlow` viajan con «Compartir historia»; «Sólo el diagrama» lleva `kind` y ninguna Historia (medido) |
+| Exportación | Marcas en PNG/JPG/GIF (`drawEdge` con `isExport`) y en SVG (`semanticMarksToSVG`, `export.js`), con N3; overlays nunca; sin `kind`, idéntico a `6701261` (decisión 247) |
+| Integridad | `validateProject.warnings` (W2 `observed_flow_endpoint_missing`, W3 `unknown_connection_kind`), solo si hay (decisión 248) |
+| Autoría (kernel) | `set_observed_flow` en `FluyoAuthoring` (`story-authoring.js`), con `setObservedFlowIn` (decisión 249) |
+| MCP | Ver la lista de abajo (decisión 249) |
+| Docs | `docs/index.html`, solo lo factual: `kind`/`observedFlow` en el formato, las marcas en la exportación, `connectionKind`/`observedFlow`/`set_observed_flow` en el MCP; sin la bandera labs |
+
+Cambios en el MCP:
+- `kind` en zod (`ConnectionSpec`, `ConnectionPatch`, `EdgeSpec`);
+- `describe_document`: `connectionKind`, `observedFlow` y `warnings`, cada uno solo si lo hay;
+- `set_observed_flow` en el schema;
+- `svg.ts`: port de las marcas con N3 y golden compartido;
+- test de deriva;
+- `sync:kernel`;
+- README y descripciones de las tools.
+
+### Archivos
+
+- **fluyo, producto**: `js/flow-semantics.js`, `js/editor-scenarios.js`, `js/present-story.js`, `js/viewer.js`, `js/render.js`, `js/export.js`,
+  `js/document-integrity.js`, `js/story-authoring.js`, `index.html`, `s/index.html`, `css/styles.css`, `css/share.css`, `docs/index.html`, `sw.js` (v100).
+- **fluyo, tests nuevos**:
+  - `test/fluyo-scenarios-semantics-5.test.cjs`;
+  - `-5-mutations.cjs`;
+  - `-5-browser.cjs`;
+  - `-5-undo.cjs` (`undo5`);
+  - `test/fixtures/fluyo-scenarios-semantics-5-marcas-svg.json`, el golden.
+- **fluyo, tests adaptados**:
+  - Literal de CACHE v99 → v100 en 62 archivos.
+  - `undo5` encadenado antes de `undo4` en los alcances antiguos.
+  - Las listas de archivos de los alcances de FASE 1, 2 y 3 y de STEP-REVERSE-002/003 descuentan lo que solo cambia FASE 5.
+  - `viewer-harness.cjs` carga `flow-semantics.js`, como el Viewer real.
+  - En `fluyo-019-4a.test.cjs`, el harness carga `edgeKind` (las marcas ya se exportan).
+  - FASE 4:
+    - B1 y D7 (Present y N3 al exportar, por contrato de FASE 5) y E2–E4 (con `undo5`);
+    - las mutaciones U12–U16 y U27, reapuntadas a la receta o invertidas;
+    - el V5 de navegador.
+  - FASE 1: la mutación U17, invertida («las marcas también se exportan» es ahora lo correcto).
+- **fluyo, docs**:
+  - `.ai/DECISIONS.md`: 245–249, más notas en 217 y 244;
+  - `.ai/ARCHITECTURE.md`;
+  - `.ai/architecture/SCENARIO-SEMANTICS-001.md`: notas en D7 y D8;
+  - esta tarea.
+- **fluyo-mcp**:
+  - `src/authoring.ts`, `src/model.ts`, `src/stories.ts`, `src/svg.ts`, `src/server.ts`, `src/generated/kernel-sources.ts`, `README.md`;
+  - tests: `test/fluyo-scenarios-semantics-5.test.ts` (nuevo), `scripts/mutate-scenarios-semantics-5.ts` (nuevo) y `test/fixtures/fluyo-scenarios-semantics-5-marcas-svg.json` (copia del golden);
+  - `test/fluyo-mcp-step-reverse-001.test.ts`: la cabecera del kernel ya no fija la revisión 702f269, porque cualquier resincronización la cambia; el test sigue vigilando el contenido de STEP-REVERSE.
+
+### Pruebas
+
+**vm de FASE 5** (`-5.test.cjs`): **19/19**.
+- La receta es la de `6701261` instante a instante en 150 Historias.
+- Paridad Viewer = editor en 200 Historias y con dependencia de llegada.
+- Present: rótulo, fases y labs.
+- Viewer: existencia, NO_PATH, ENDPOINT_MISSING, sin par, SW anterior, memoización y `renderViewerFrame`.
+- Raster y SVG: sin `kind`, iguales a `6701261` en los 8 ejemplos (plano y piel); con `kind`, marcas, orden y N3.
+- El golden.
+- W2/W3: los ejemplos y los fixtures dan la misma salida.
+- `set_observed_flow`.
+- Markup, vocabulario, alcance, `undo5` y docs.
+
+**Mutaciones**:
+- fluyo: **30/30**;
+- MCP: **30/30**, entre ellas la deriva de disponibilidad y de `kind` y las del kernel copiado.
+
+**Chrome real 155** (`-5-browser.cjs`): **85/85**.
+- Viewer a 1440 y 390 (dedo):
+  - sin línea antes de reproducir;
+  - la línea en el rótulo a 0,8 · 2,3 · 4,2 s;
+  - la ruta y la línea son las del editor en el mismo instante;
+  - la línea cabe entera (327 de 357 px a 390);
+  - la banda mide lo mismo que en `6701261`;
+  - en el lienzo, rama A terracota y rama B oliva;
+  - su Present: la línea en el rótulo y el mando igual.
+- Present del editor a 1440 y 390:
+  - sin línea antes de reproducir;
+  - la línea en el rótulo, el mando igual que en `6701261` y la ruta en el lienzo;
+  - labs apagado: nada.
+- Share: las dos variantes; el Viewer de `6701261` abre el enlace sin errores.
+- Exportación:
+  - golden;
+  - N3 en el SVG;
+  - el PNG con `kind` cambia solo por las marcas;
+  - los 8 ejemplos: SVG (plano y construido) y PNG idénticos a `6701261`;
+  - el Viewer con ejemplos, igual.
+- SW v99 → v100, con el Viewer nuevo en caché.
+- 0 errores de consola.
+
+**Regresión dirigida** en un clon con commit desechable (fluyo y fluyo-mcp hermanos):
+- vm: FASE 1–5, STEP-REVERSE-002/003, 019.4b, 019.4a, D6, FLOW-FADE, HIT-TEST y PRSKIN: **301/301**.
+- Mutaciones antiguas: FASE 1 26/26, FASE 2 18/18, FASE 3 25/25, FASE 4 36/36, STEP-REVERSE-003 16/16.
+- Navegador: FASE 4 114/114, FASE 3 47/47, 019.2 85/85 (SW y Viewer), 019.4b 49/49. No se lanzaron las 46 suites.
+
+**vm completa, una vez**: base `6701261` **1530/83**; árbol **1549/83**, **el mismo conjunto: 0 nuevos, 0 arreglados**.
+- La primera pasada encontró un fallo causado por esta tarea: el harness del Viewer no cargaba `flow-semantics.js`. Corregido y vuelto a medir.
+
+**MCP**:
+- `sync:kernel` y `check:kernel` OK;
+- `npm test` **823/823** (base 809, más 14 nuevos);
+- catálogo de tools: 69 073 → 71 102 caracteres, por debajo del tope de 72 000.
+
+### Deuda y riesgos
+
+1. **Intermitencia del arnés de FASE 4 en el navegador** (V4, «labs apagado = `ae0d619`», a 1440).
+   - El lienzo medido en segundo lugar a veces queda con otro encuadre (`viewX`/`viewY` +48 px con el mismo zoom), sea la base o el árbol.
+   - Se reprodujo invirtiendo el orden, así que no es de FASE 5. Pasó 114/114 dos veces seguidas.
+   - Es previa y no se toca: es un fallo histórico de la suite.
+2. **La línea del Viewer va en el rótulo**:
+   - el rótulo crece una línea mientras se reproduce una Historia con ruta;
+   - la banda y el mando no cambian;
+   - el rótulo sigue bajando al pie si tapa el destino del momento (`storyPlace`).
+3. **Present solo con labs** (D10): el Viewer, sin bandera, muestra más que el Present del editor con labs apagado. Es lo que dicen D7, D8 y D10; se retira con la bandera (FASE 6).
+4. Sin cambios, de antes:
+   - el recorte de «Automática · nombre»;
+   - B9 (fixture de FASE 6);
+   - la densidad a 390 con 3 filas.
+
+### Próximo paso
+
+Revisión del PO de FASE 5. Con su OK:
+- commit en fluyo, sin `.ai/tasks/FLUYO-019.4.md` ni `.ai/tasks/FLUYO-STEP-REVERSE-003.md`;
+- después, commit en fluyo-mcp (opcional: `npm run sync:kernel` desde el commit de fluyo, para que la cabecera nombre la revisión);
+- push y deploy, primero fluyo; comprobar que fluyo.space sirve v100;
+- desplegar el MCP.
+
+Siguiente CACHE libre después del push: v101. FASE 6 no se empieza sin autorización.
+
 ## Handoff
+
+### Estado tras FASE 5 (2026-10-20)
+
+```
+SEMANTIC SCENARIOS — FASE 5 (paridad de superficies)
+BASE:      fluyo 6701261 (= origin/main, producción v99) · fluyo-mcp 497c81e
+ESTADO:    READY FOR PUSH · revisión del PO aprobada · commit en fluyo y fluyo-mcp · sin push ni deploy
+CACHE:     v100 · DECISIONES: 245–249
+FASE 5:    vm 19/19 · mutaciones 30/30 (fluyo) + 30/30 (MCP) · Chrome 85/85 (1440 y 390)
+DIRIGIDAS: 301/301 · mutaciones antiguas 26 + 18 + 25 + 36 + 16 · navegador FASE 4 114/114, FASE 3 47/47, 019.2 85/85, 019.4b 49/49
+SUITE:     1549 / 83 fallos (base 1530 / 83) · 0 nuevos
+MCP:       sync:kernel · check:kernel OK · 823/823 · catálogo 71 102 (< 72 000)
+```
+
+### Estado tras la auditoría de FASE 5 (2026-10-20; histórico)
+
+```
+SEMANTIC SCENARIOS — FASE 5 (paridad de superficies)
+BASE:      fluyo 6701261 (= origin/main, producción v99) · fluyo-mcp 497c81e
+ESTADO:    BLOCKED · auditoría hecha · sin código (revertido) · sin commit, push ni deploy
+BLOQUEO:   la línea de estado de la ruta no cabe a 390 px en la banda del Viewer (19 px libres) ni en #psGroup (mando en su tope de 374 px)
+DECIDIR:   1) ubicación en pantallas estrechas (a / b / c; recomendada b) · 2) Present antes de reproducir (recomendado: solo reproduciendo)
+```
+
+### Próximo paso concreto (FASE 5; histórico: el PO eligió (b) y «solo reproduciendo»)
+
+1. El PO responde las decisiones 1 y 2 de § «FASE 5 — Auditoría» (y, si quiere, corrige alguna de las menores).
+2. Con eso se implementa FASE 5 completa, como dice esa sección: código, pruebas vm, mutaciones, Chrome a 1440 y 390, MCP. CACHE v100.
+   Termina en READY FOR REVIEW, sin commit.
 
 ### Estado tras FASE 4 (2026-10-20)
 
 ```
 SEMANTIC SCENARIOS — FASE 4 (Scenario Experience)
 BASE:      fluyo ae0d619 (= origin/main, producción v98) · fluyo-mcp 497c81e (sin cambios)
-ESTADO:    READY FOR PUSH · commit en main (1 por delante de origin) · sin push · sin deploy
+ESTADO:    CERRADA · 6701261 en origin/main · fluyo.space sirve v99 · smoke de producción 24/24
 CACHE:     v99 · DECISIONES: 241–244 (cerradas)
 FASE 4:    vm 35/35 · mutaciones 36/36 · Chrome 114/114 (1440 y 390, claro/crema/oscuro con y sin piel, recuento, labs off = v98, Present, reducir movimiento, SW v98 → v99)
 DIRIGIDAS: 282/282 · mutaciones antiguas 26 + 18 + 25 + 16 · navegador FASE 3 47/47, 019.4b 49/49, 019.2 85/85
@@ -1179,7 +1479,7 @@ SUITE:     1530 / 83 fallos (base 1495 / 83 en el mismo entorno) · 0 nuevos
 ### Próximo paso concreto
 
 1. Commit hecho (sin `.ai/tasks/FLUYO-019.4.md` ni `.ai/tasks/FLUYO-STEP-REVERSE-003.md`); fluyo-mcp no cambia.
-2. Con el OK del PO: push y comprobar que fluyo.space sirve v99. Siguiente CACHE libre: v100.
+2. Push y deploy hechos: fluyo.space sirve v99 (§ «Publicación»). Siguiente CACHE libre: v100.
 3. FASE 5 y FASE 6 no se empiezan sin autorización.
 
 ### Estado tras FASE 3 (2026-10-20; histórico)

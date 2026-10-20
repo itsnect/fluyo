@@ -12,7 +12,7 @@
    Cargar tras model.js, scenario-engine.js y story-playback.js. Ejecutable en Node (vm).
    Lo usan fluyo-mcp (author_document, describe_document) y el editor (FLUYO-018.4: deleteSel consulta removalImpact antes de borrar).
 
-   Resultado: {valid, schemaVersion, engineVersion, errors, stories}
+   Resultado: {valid, schemaVersion, engineVersion, errors, stories, warnings?}  (warnings solo si hay: SCENARIOS-SEMANTICS-001 FASE 5)
      error = {code, message, scope, pageIndex?, storyId?, stepId?, entityId?, entityKind?, …}
      scope: "document" | "page" | "story" | "step".
      Las páginas no tienen id propio en el modelo: se identifican por su posición (pageIndex).
@@ -176,6 +176,33 @@ var FluyoIntegrity = (function(){
       }
     });
     out.valid = out.errors.length===0;
+    const warnings = semanticWarnings(doc);
+    if(warnings.length) out.warnings = warnings;
+    return out;
+  }
+  /* SCENARIOS-SEMANTICS-001 FASE 5 (§ V, decisión 248): AVISOS, nunca errores (no cambian `valid` ni la ejecución). Solo existen si
+     hay alguno: un documento sin `kind` ni `observedFlow` da la salida de siempre.
+       W2 observed_flow_endpoint_missing: un extremo de la ruta observada de una Historia ya no existe (ENDPOINT_MISSING; la Historia
+          se reproduce igual y el editor lo recupera).
+       W3 unknown_connection_kind: un `kind` de texto que esta versión no conoce (se conserva y se lee como Conexión, D1). */
+  const WARNING_MESSAGES = {
+    observed_flow_endpoint_missing: "Un extremo de la ruta observada de una historia ya no existe.",
+    unknown_connection_kind: "Una conexión tiene un tipo que esta versión no conoce: se lee como conexión."
+  };
+  function semanticWarnings(doc){
+    const out = [];
+    doc.pages.forEach((pg, pageIndex)=>{
+      for(const e of pg.edges)
+        if(typeof e.kind==="string" && edgeKind(e)===EDGE_KIND_GENERIC && e.kind!==EDGE_KIND_GENERIC)
+          out.push({code:"unknown_connection_kind", message:WARNING_MESSAGES.unknown_connection_kind, scope:"page", pageIndex, entityKind:"connection", entityId:e.id, kind:e.kind});
+      const ids = new Set(pg.nodes.map(n=>n.id));
+      for(const sc of pg.scenarios){
+        const f = sc.observedFlow;
+        if(!isRecord(f)) continue;
+        const missing = ["from","to"].filter(k=>!ids.has(f[k]));
+        if(missing.length) out.push({code:"observed_flow_endpoint_missing", message:WARNING_MESSAGES.observed_flow_endpoint_missing, scope:"story", pageIndex, storyId:sc.id, missing});
+      }
+    });
     return out;
   }
 

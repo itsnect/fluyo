@@ -24,7 +24,7 @@ var FluyoAuthoring = (function(){
   const OPERATION_SCOPE = {
     create_story:"story", rename_story:"story", duplicate_story:"story", delete_story:"story",
     add_step:"story", remove_step:"story", move_step:"story", duplicate_step:"story", retarget_step:"story", set_wait:"story",
-    set_arrival_dependencies:"story",
+    set_arrival_dependencies:"story", set_observed_flow:"story",
     set_initial_availability:"page", create_node:"page", create_connection:"page",
     update_node:"page", update_connection:"page", delete_node:"page", delete_connection:"page",
     create_page:"document", rename_page:"document", delete_page:"document", set_theme:"document",
@@ -45,6 +45,7 @@ var FluyoAuthoring = (function(){
     move_step:["storyId","stepId","direction","to"], duplicate_step:["storyId","stepId","ref"],
     retarget_step:["storyId","stepId","target"], set_wait:["storyId","stepId","waitMs"],
     set_arrival_dependencies:["storyId","stepId","waitsForArrivalOf"],
+    set_observed_flow:["storyId","source","target"],
     set_initial_availability:["nodeId","state"],
     create_node:["spec","ref"], create_connection:["source","target","spec","ref"],
     update_node:["node","spec"], update_connection:["connection","source","target","spec"],
@@ -942,6 +943,26 @@ var FluyoAuthoring = (function(){
       // La disponibilidad inicial es de la PÁGINA: la ven todas sus Historias, no sólo la que se está escribiendo.
       return {entityKind:"element", entityId:nodeId, pageLevel:true, state:op.state,
               affects:{stories:pg.scenarios.map(s=>({pageIndex:op.pageIndex, storyId:s.id, name:s.name})), note:"La disponibilidad inicial pertenece a la página: rige en todas sus Historias."}};
+    },
+    /* SCENARIOS-SEMANTICS-001 FASE 5 (D9, decisión 249): la ruta observada de la Historia, con la MISMA autoridad que el editor
+       (setObservedFlowIn). source/target = id o {ref} de un elemento de la página; los dos null = «Automática» (quita la clave).
+       Dos elementos distintos que existen; elegir lo que ya hay no cambia nada. Es un dato de la Historia: no toca Steps ni el Trace. */
+    set_observed_flow(ctx, op, pg){
+      const sc = storyOf(ctx, op, pg, false);
+      let flow = null;
+      if(op.source!==null || op.target!==null){
+        if(op.source===undefined || op.target===undefined || op.source===null || op.target===null)
+          throw reject("INVALID_OPERATION", "set_observed_flow necesita «source» y «target» (dos elementos distintos de la página), o los dos null para volver a la ruta automática.", {field:op.source==null ? "source" : "target"});
+        const source = stepEntityId(ctx, op, op.source, "source", "nodes"), target = stepEntityId(ctx, op, op.target, "target", "nodes");
+        for(const [field, id] of [["source", source], ["target", target]])
+          if(!pg.nodes.some(n=>n.id===id)) throw reject("TARGET_NOT_FOUND", `No existe el elemento ${field}=${id} en la página${deletedNote(ctx, op.pageIndex, "node", id)}.`, {field, nodeId:id});
+        if(source===target) throw reject("INVALID_OPERATION", "El origen y el destino de la ruta observada deben ser elementos distintos.", {field:"target"});
+        flow = {from:source, to:target};
+      }
+      const r = setObservedFlowIn(pg, sc.id, flow);
+      touch(ctx, op.pageIndex, sc);
+      const view = f => f ? {source:f.from, target:f.to} : null;
+      return {entityKind:"story", entityId:sc.id, from:view(r.before), to:view(r.after), changed:r.changed, affects:storyAffect(op.pageIndex, sc)};
     },
     /* ── EventTypes (scope eventType: globales al documento; las Historias sólo los referencian por id) ── */
     create_event_type(ctx, op){

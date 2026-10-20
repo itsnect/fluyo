@@ -64,6 +64,9 @@
   <div id="stNow" class="stNow" hidden>
     <div id="stKicker" class="stKicker">Historia</div>
     <div class="stLine"><span id="stTitle" class="stTitle"></span><span id="stCaption" class="stCaption" role="status"></span><span id="stSummary" class="stSummary"></span><span id="stProgress" class="stProgress"></span></div>
+    <!-- SCENARIOS-SEMANTICS-001 FASE 5 (D7, decisión 246): la línea de estado de la ruta observada, en el rótulo (la banda sigue siendo
+         solo el transporte). Solo reproduciendo y con par resuelto; sin bandera. -->
+    <div id="stFlow" class="stFlow" role="status" hidden></div>
   </div>
   <!-- Presentación: la Historia y las páginas son dos grupos, y la salida es una (FLUYO-018.18, D8). El transporte de la
        banda (#stActions) se muda aquí mientras se presenta: mismos botones, misma lógica. -->
@@ -114,6 +117,8 @@
 <script src="../js/scenario-playback.js"></script>
 <script src="../js/story-playback.js"></script>
 <script src="../js/story-clock.js"></script>
+<!-- SCENARIOS-SEMANTICS-001 FASE 5 (D7): el módulo puro de la ruta observada (no es kernel), la misma receta que el editor y Present. -->
+<script src="../js/flow-semantics.js"></script>
 <!-- Transporte de telemetría puro (sin instrumentación de edición). -->
 <script src="../js/analytics.js"></script>
 <!-- Viewer: loader del share, viewport y runtime read-only. -->

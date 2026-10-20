@@ -19,7 +19,9 @@ const { undo4b } = require("./fluyo-019-4b-undo.cjs");   /* FLUYO-019.4b cambia 
 const { undo3: undo3only } = require("./fluyo-scenarios-semantics-3-undo.cjs");   /* SCENARIOS-SEMANTICS-001 FASE 3 cambia a propósito model.js, document-integrity.js, story-authoring.js, flow-semantics.js, editor-scenarios.js, index.html, styles.css y sw.js (precache): se deshace aquí, antes que todo lo demás; su alcance lo vigila test/fluyo-scenarios-semantics-3.test.cjs */
 const { undoReverse } = require("./fluyo-step-reverse-002-undo.cjs");   /* FLUYO-STEP-REVERSE-002 cambia a propósito model.js, scenario-engine.js, story-playback.js, scenario-playback.js, story-authoring.js, document-integrity.js, render.js, editor-scenarios.js y selection.js: se deshace aquí, antes que FASE 3; su alcance lo vigila test/fluyo-step-reverse-002.test.cjs */
 const { undoReverseUi } = require("./fluyo-step-reverse-003-undo.cjs");   /* FLUYO-STEP-REVERSE-003 añade «Invertir sentido» a editor-scenarios.js: se deshace aquí, antes que 002; su alcance lo vigila test/fluyo-step-reverse-003.test.cjs */
-const { undo4 } = require("./fluyo-scenarios-semantics-4-undo.cjs");   /* SCENARIOS-SEMANTICS-001 FASE 4 va encima de STEP-REVERSE-003: se deshace antes; su alcance lo vigila test/fluyo-scenarios-semantics-4.test.cjs */
+const { undo4: undo4only } = require("./fluyo-scenarios-semantics-4-undo.cjs");   /* SCENARIOS-SEMANTICS-001 FASE 4 va encima de STEP-REVERSE-003: se deshace antes; su alcance lo vigila test/fluyo-scenarios-semantics-4.test.cjs */
+const { undo5 } = require("./fluyo-scenarios-semantics-5-undo.cjs");   /* SCENARIOS-SEMANTICS-001 FASE 5 va encima de FASE 4: se deshace antes; su alcance lo vigila test/fluyo-scenarios-semantics-5.test.cjs */
+const undo4 = (f, src) => undo4only(f, undo5(f, src));
 const undo3 = (f, src) => undo3only(f, undoReverse(f, undoReverseUi(f, undo4(f, src))));
 const J = (v) => JSON.parse(JSON.stringify(v));
 
@@ -299,7 +301,9 @@ test("alcance · FASE 2 solo añade js/flow-semantics.js: ningún archivo servid
   /* FLUYO-STEP-REVERSE-002 añade scenario-engine.js, scenario-playback.js, story-playback.js y selection.js: deshechos (undoReverse, dentro de undo3), son los de MAIN */
   const ONLY_REV = ["js/scenario-engine.js", "js/scenario-playback.js", "js/selection.js", "js/story-playback.js"];
   for (const f of ONLY_REV) assert.equal(undo3(f, read(f)), execFileSync("git", ["-C", gitRoot, "show", MAIN + ":" + f], { encoding: "utf8" }).replace(/\r\n/g, "\n"), f + " = " + MAIN + " fuera de STEP-REVERSE-002");
-  assert.deepEqual([...new Set([...changed, ...untracked])].filter((f) => !FASE1.includes(f) && !ONLY4B.includes(f) && !ONLY3.includes(f) && !ONLY_REV.includes(f)).sort(), ["js/flow-semantics.js"]);
+  /* SCENARIOS-SEMANTICS-001 FASE 5 añade el Viewer, Present, la exportación SVG, share.css y docs: su alcance lo vigila test/fluyo-scenarios-semantics-5.test.cjs */
+  const ONLY5 = ["css/share.css", "docs/index.html", "js/export.js", "js/present-story.js", "js/viewer.js", "s/index.html"];
+  assert.deepEqual([...new Set([...changed, ...untracked])].filter((f) => !FASE1.includes(f) && !ONLY4B.includes(f) && !ONLY3.includes(f) && !ONLY_REV.includes(f) && !ONLY5.includes(f)).sort(), ["js/flow-semantics.js"]);
   for (const f of ["index.html", "s/index.html", "sw.js"]) assert.ok(!undo3(f, read(f)).includes("flow-semantics"), f + " no carga ni precachea el módulo (fuera de FASE 3)");
   const lines = (args, f) => execFileSync("git", ["-C", gitRoot, "diff", "-U0", ...args, "--", f], { encoding: "utf8" }).replace(/\r\n/g, "\n").split("\n")
     .filter((l) => /^[-+]/.test(l) && !/^(---|\+\+\+) /.test(l) && !/const CACHE = /.test(l));

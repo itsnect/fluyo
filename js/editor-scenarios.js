@@ -601,7 +601,7 @@ function scTick() {
 function buildScenarioRenderState() {
   if (!scPlayback) return null;
   const rs = FluyoStory.renderState(scPlayback, scActiveScenario(), scNow());
-  /* SCENARIOS-SEMANTICS-001 FASE 4: lo que el lienzo pinta de la ruta observada (null sin labs, sin ruta o en Present) */
+  /* SCENARIOS-SEMANTICS-001 FASE 4: lo que el lienzo pinta de la ruta observada (null sin labs o sin ruta; FASE 5: también en Present) */
   const flow = scFlowOverlay();
   if (flow) rs.flow = flow;
   return rs;
@@ -1124,7 +1124,7 @@ function scFlowVisibleEnd(events, meta) {
 /* ─────────── FASE 4 — Experiencia de la ruta (D6, § Pintado, § 3.1; decisiones 241–244) ───────────
    Sobre la MISMA base que el estado (Trace visible y fin visible): la ruta estructural, la línea de tiempo y las filas
    (flow-semantics.js). Se memoiza por base, página y par; nada se escribe en el documento ni en la pila de Undo. */
-const SC_FLOW_ROWS = 3, SC_FLOW_FADE_MS = 450, SC_FLOW_SWEEP_MS = 900, SC_FLOW_PULSE_MS = 1100;
+const SC_FLOW_ROWS = 3;
 let scFlowRouteMemo = { base: null, value: null };
 function scFlowRouteData(pg, sc) {
   const pair = FluyoFlow.resolveObservedFlow(pg, sc);
@@ -1135,9 +1135,7 @@ function scFlowRouteData(pg, sc) {
   if (m.base === base && m.page === pg && m.source === pair.source && m.target === pair.target && m.edges === pg.edges.length && m.nodes === pg.nodes.length) return m.value;
   const route = FluyoFlow.flowRoute(pg, pair.source, pair.target);
   const tl = FluyoFlow.routeTimeline(pg, route, base.events, base.end);
-  const depth = {};
-  for (const e of route.edges) depth[e.id] = e.depth;
-  const value = { route, tl, depth, paths: tl ? FluyoFlow.routePaths(route, SC_FLOW_ROWS) : null };
+  const value = { route, tl, paths: tl ? FluyoFlow.routePaths(route, SC_FLOW_ROWS) : null };
   scFlowRouteMemo = { base, page: pg, source: pair.source, target: pair.target, edges: pg.edges.length, nodes: pg.nodes.length, value };
   return value;
 }
@@ -1166,23 +1164,25 @@ function scFlowTrackView(d, t, playing) {
   return { track, rows };
 }
 /* Lo que el lienzo pinta de la ruta en este fotograma (render.js lo recibe en scenarioRuntime.flow). Solo reproduciendo, con la
-   herramienta (labs, Flujo, eventos), con par y con ruta (NO_PATH no pinta fundas, D-Ruta), y nunca en Present (FASE 5, D8).
-   Todo sale del cursor VIRTUAL: en pausa el dibujo queda quieto y un salto da el de una reproducción continua (§ T1). */
+   herramienta (labs, Flujo, eventos), con par y con ruta (NO_PATH no pinta fundas, D-Ruta). FASE 5 (D8, decisión 245): también en
+   Present, con la misma receta que el Viewer (FluyoFlow.routeOverlay). Todo sale del cursor VIRTUAL: en pausa el dibujo queda
+   quieto y un salto da el de una reproducción continua (§ T1). */
 function scFlowOverlay() {
-  if (!scPlayback || !isScenarioPlaybackActive() || (typeof presenting !== "undefined" && presenting)) return null;
+  if (!scPlayback || !isScenarioPlaybackActive()) return null;
   const pg = P(), sc = scActiveScenario();
   if (!scFlowShown(pg, sc)) return null;
   let d = null;
   try { d = scFlowRouteData(pg, sc); } catch (err) { if (err && typeof err.code === "string") return null; throw err; }
   if (!d || !d.tl) return null;
-  const t = scPlayback.cursorVirtual || 0, inst = d.tl.instants, i = FluyoFlow.routeInstantAt(d.tl, t), now = inst[i];
-  const k = i > 0 ? Math.min(1, Math.max(0, (t - now.at) / SC_FLOW_FADE_MS)) : 1;
-  const edges = {};
-  for (const id of Object.keys(now.edges)) edges[id] = { cls: now.edges[id], prev: i > 0 ? inst[i - 1].edges[id] : now.edges[id], k };
-  const sweep = now.frontier && t - now.at < SC_FLOW_SWEEP_MS ? { status: now.status, p: (t - now.at) / SC_FLOW_SWEEP_MS, depth: d.depth, layers: d.route.maxDepth } : null;
-  const pulses = {};
-  for (let j = i; j >= 0 && t - inst[j].at < SC_FLOW_PULSE_MS; j--) for (const c of inst[j].changes) if (!(c.nodeId in pulses)) pulses[c.nodeId] = { to: c.to, k: (t - inst[j].at) / SC_FLOW_PULSE_MS };
-  return { edges, sweep, pips: pg.nodes.filter((n) => now.states[n.id] === "DOWN").map((n) => n.id), pulses };
+  return FluyoFlow.routeOverlay(pg, d.route, d.tl, scPlayback.cursorVirtual || 0);
+}
+/* FASE 5 (D8, decisión 246): la línea de estado de la ruta en el rótulo de Present (#psFlow, present-story.js; solo la pide
+   reproduciendo). Es la MISMA línea que la herramienta (texto, procedencia y estado), solo con par resuelto: sin par o con un
+   extremo perdido, nada. */
+function scFlowPresentLine() {
+  const m = scFlowModel();
+  if (!m || !m.status) return null;
+  return { status: m.status, text: m.word + (m.why ? " · " + m.why : "") };
 }
 /* Modelo de la herramienta (sin DOM): qué se ve, con qué valores y qué texto. null = la herramienta no existe. */
 function scFlowModel() {

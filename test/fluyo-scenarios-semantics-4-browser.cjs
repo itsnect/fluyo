@@ -8,7 +8,7 @@
    · V3  Piel «construido»: las fundas siguen la línea pintada; N3: el Requisito no lleva anillo de salida (7 de 8 conexiones).
    · V4  labs apagado = producción: lienzo (editando y reproduciendo, en pausa en el mismo instante) y cabecera de Historias
          idénticos píxel a píxel a ae0d619.
-   · V5  Present: nada de la ruta en el lienzo (FASE 5).
+   · V5  Present: la misma ruta en el lienzo (FASE 5, D8; en FASE 4, nada).
    · V6  «Reducir movimiento»: sin barrido.
    · V7  (QA del PO) Claro, crema y oscuro, con y sin piel, a 1440 y a 390: en claro el halo disponible se lee oliva (tono y saturación
          medidos). Recuento: «+1 ruta», «+2 rutas» y, por encima del tope, «Más de 10 000 rutas».
@@ -286,7 +286,7 @@ async function labsOff(browser, now, old, vp, label, touch) {
 }
 
 async function present(browser, base) {
-  console.log("\n── V5 · Present con labs: nada de la ruta en el lienzo (FASE 5)");
+  console.log("\n── V5 · Present con labs: la MISMA ruta en el lienzo (FASE 5, D8; en FASE 4, nada)");
   const T = await open(browser, base, { width: 1440, height: 900 }, "?labs=escenarios");
   try {
     await T.load(DOC());
@@ -297,7 +297,8 @@ async function present(browser, base) {
       const spec = scFlowOverlay(), rs = buildScenarioRenderState();
       window.drawRouteSleeve = o; return { n, spec, flow: !!(rs && rs.flow), presenting, playing: scStatus };
     });
-    check(r.presenting && r.playing === "running" && r.n === 0 && r.spec === null && !r.flow, `Present reproduciendo: 0 fundas, sin \`flow\` en el renderState (${r.playing})`);
+    /* SCENARIOS-SEMANTICS-001 FASE 5 (decisión 245): Present pinta la ruta con la misma receta (en FASE 4: 0 fundas) */
+    check(r.presenting && r.playing === "running" && r.n > 0 && r.spec !== null && r.flow, `Present reproduciendo (FASE 5): ${r.n} fundas, \`flow\` en el renderState (${r.playing})`);
     check(T.errors.length === 0, "sin errores de consola" + (T.errors.length ? ": " + T.errors.join(" | ") : ""));
   } finally { await T.ctx.close(); }
 }

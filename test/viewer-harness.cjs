@@ -8,6 +8,8 @@ const read=p=>fs.readFileSync(path.join(__dirname,'..',p),'utf8');
 
 const VIEWER_SCRIPTS=[
   'js/config.js','js/safe-svg.js','js/model.js','js/link-codec.js','js/geometry.js','js/skin.js','js/render.js','js/scenario-engine.js','js/scenario-playback.js','js/story-playback.js','js/story-clock.js',
+  /* SCENARIOS-SEMANTICS-001 FASE 5 (D7): el módulo puro de la ruta observada, entre story-clock.js y viewer.js */
+  'js/flow-semantics.js',
   'js/analytics.js','js/share-loader.js','js/viewer-viewport.js','js/viewer.js'
 ];
 const FORBIDDEN_SCRIPTS=['editor-scenarios.js','present-story.js','state.js','editor-runtime.js','selection.js','interaction.js','ui.js','export.js','deeplink.js','examples.js','editor-analytics.js'];

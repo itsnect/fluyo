@@ -823,5 +823,38 @@ render.js                drawRouteSleeve (bajo la línea pintada, en drawEdge) �
 
 - Todo derivado de estructura + Behaviors + Trace VISIBLE (la base de FASE 3); nada se persiste ni apila Undo (N3/B6). Decisiones 241–244.
 - La línea de tiempo y las filas viven en `#scFlow`, bajo el estado (orden de D6). Edición: completa y sin cursor. Reproduciendo: cursor = `cursorVirtual / fin visible`; pausa, ⏮/⏭ y terminada lo mueven. No es un control de salto.
-- El lienzo solo pinta la ruta reproduciendo, con labs, con par y con ruta (NO_PATH no pinta fundas), y nunca en Present, en el Viewer ni al exportar (FASE 5). Sin `scenarioRuntime.flow`, `render()` es el de v98 operación a operación.
+- El lienzo solo pinta la ruta reproduciendo, con labs, con par y con ruta (NO_PATH no pinta fundas), y nunca al exportar. (En FASE 4, tampoco en Present ni en el Viewer: lo añade FASE 5, más abajo.) Sin `scenarioRuntime.flow`, `render()` es el de v98 operación a operación.
 - Pruebas: `test/fluyo-scenarios-semantics-4.test.cjs` (vm: derivación con oráculos, herramienta y lienzo del editor, pintor con un lienzo que registra operaciones frente a `ae0d619`, estático y alcance), `-mutations.cjs` (36), `-browser.cjs` (Chrome real a 1440 y 390, claro/crema/oscuro con y sin piel, recuento de rutas, labs apagado = v98, Present, reducir movimiento, SW v98 → v99). Los alcances de slices anteriores descuentan FASE 4 con `test/fluyo-scenarios-semantics-4-undo.cjs`.
+
+## Paridad de superficies de la ruta observada (SCENARIOS-SEMANTICS-001, FASE 5)
+Decisiones 245–249. Sin cambios de contrato: D5, D-Ruta, `observedFlow`, AVAILABLE / UNAVAILABLE / NO_PATH, la derivación y el pintado de FASE 4 siguen igual.
+
+```
+  flow-semantics.js ── routeOverlay(page, route, timeline, t) ──► scenarioRuntime.flow ──► render.js (drawRouteSleeve, drawRouteNodeMarks)
+                   └── routeLine(page, scenario, events, t, timeOf) ──► línea de estado
+     editor (labs) · Present (labs): scFlowOverlay / scFlowPresentLine (editor-scenarios.js) → #psFlow en #presentStory (present-story.js)
+     Viewer (sin bandera): storyFlowOverlay / storyFlowLine (viewer.js) → #stFlow en #stNow; carga flow-semantics.js tras story-clock.js
+  exportación: drawEdge con isExport (PNG/JPG/GIF) y renderConnectorToSVG + semanticMarksToSVG (SVG): marcas + N3; overlays nunca
+  kernel: FluyoIntegrity.validateProject → warnings (W2, W3) solo si hay · FluyoAuthoring set_observed_flow (setObservedFlowIn)
+  fluyo-mcp: kind en zod · describe_document: connectionKind / observedFlow / warnings · svg.ts: port de edgeSemanticMarks (golden)
+```
+
+- La línea de estado va en el rótulo sobre el lienzo (decisión del PO tras la auditoría), nunca en la banda ni en el mando: a 390 px no cabían y las dos filas miden lo mismo que en `6701261`.
+- La línea aparece solo reproduciendo (también en pausa y terminada) y solo con par resuelto. Viewer y editor dicen lo mismo en el mismo instante.
+- Sin `kind`, la exportación (SVG, PNG, `export_diagram`) es la de antes byte a byte.
+- Pruebas:
+  - `test/fluyo-scenarios-semantics-5.test.cjs` (vm):
+    - la receta frente a `6701261` en 150 Historias aleatorias;
+    - la paridad Viewer = editor en 200 Historias aleatorias y con dependencias de llegada;
+    - Present;
+    - la exportación raster y SVG frente a `6701261` en los ejemplos;
+    - el golden;
+    - los avisos y `set_observed_flow`;
+    - el alcance.
+  - `-mutations.cjs`: 30 mutaciones.
+  - `-browser.cjs` (Chrome real a 1440 y 390):
+    - el Viewer y su Present, Present del editor, Share, la exportación y los ejemplos frente a `6701261`;
+    - genera el golden con `FLUYO_UPDATE_GOLDEN=1`;
+    - SW v99 → v100.
+  - En fluyo-mcp: `test/fluyo-scenarios-semantics-5.test.ts` y `scripts/mutate-scenarios-semantics-5.ts` (30).
+  - Los alcances de slices anteriores descuentan FASE 5 con `test/fluyo-scenarios-semantics-5-undo.cjs` (`undo5`, antes que `undo4`).

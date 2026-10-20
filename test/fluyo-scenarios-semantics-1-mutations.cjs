@@ -11,7 +11,7 @@ const UNIT = ["--test", "test/fluyo-scenarios-semantics-1.test.cjs"];
 const MOD = "js/model.js", GEO = "js/geometry.js", REN = "js/render.js", UI = "js/ui.js", HTML = "index.html";
 /* [nombre, archivo, desde, hasta] */
 const MUTATIONS = [
-  ["U0 CACHE no sube (sigue v93)", "sw.js", 'const CACHE = "fluyo-static-v99";', 'const CACHE = "fluyo-static-v93";'],
+  ["U0 CACHE no sube (sigue v93)", "sw.js", 'const CACHE = "fluyo-static-v100";', 'const CACHE = "fluyo-static-v93";'],
   ["U1 la carga rellena kind ausente con GENERIC (migra documentos)", MOD,
     '  if(e.kind===null || (e.kind!==undefined && typeof e.kind!=="string")) delete e.kind;',
     '  if(e.kind===undefined) e.kind="GENERIC";\n  if(e.kind===null || (e.kind!==undefined && typeof e.kind!=="string")) delete e.kind;'],
@@ -39,7 +39,8 @@ const MUTATIONS = [
     "        if(Math.abs(dx*ey-dy*ex)>1e-6 || dx*ex+dy*ey<0) break;", "        break;"],
   ["U15 el anillo ignora la punta de inicio", GEO, "  const behindHead=e.startArrow ? EDGE_GAP + EDGE_HEAD_LEN*edgeArrowSize(e) : 0;", "  const behindHead=0;"],
   ["U16 la conexión desconocida pinta marcas", GEO, "  if(kind===EDGE_KIND_GENERIC || !pts || pts.length<2) return null;", "  if(!e.kind || !pts || pts.length<2) return null;"],
-  ["U17 las marcas también se exportan", REN, "  const sem=!isExport && typeof edgeSemanticMarks===", "  const sem=typeof edgeSemanticMarks==="],
+  /* SCENARIOS-SEMANTICS-001 FASE 5 (decisión 247): las marcas salen al exportar; U17 es ahora la vuelta a «sin marcas al exportar» */
+  ["U17 al exportar vuelven a faltar las marcas", REN, "  const sem=typeof edgeSemanticMarks===", "  const sem=!isExport && typeof edgeSemanticMarks==="],
   ["U18 el Requisito se pinta discontinuo", REN, '  c.strokeStyle=lineCol; c.lineWidth=1.6; c.lineCap="round"; c.lineJoin="round"; c.setLineDash([]);',
     '  c.strokeStyle=lineCol; c.lineWidth=1.6; c.lineCap="round"; c.lineJoin="round"; c.setLineDash(sem.ring?[4,4]:[]);'],
   /* W5 (C3 de la revisión del PO) */

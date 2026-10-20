@@ -88,6 +88,7 @@ python -m http.server 8000</code></pre>
 <h3>Conexiones</h3>
 <p>Pasa el ratón sobre un nodo y arrastra el punto que aparece en el lado más cercano; con el dedo, selecciona el nodo, pulsa «Conectar» y toca el destino. La flecha queda anclada a ese lado, así que se mantiene coherente cuando muevas los nodos. Se puede elegir ruta recta u ortogonal, fijar por qué lado sale y entra, y poner o quitar punta en cada extremo.</p>
 <p>Con una flecha seleccionada aparecen <strong>puntos huecos</strong>: arrástralos para doblarla; doble clic en un codo lo elimina.</p>
+<p>Una conexión puede declarar qué significa. Un <strong>Flujo</strong> se dibuja con dos pequeñas cuñas en el centro de su tramo más largo, en el sentido de origen a destino, aunque la punta visible apunte al revés. Un <strong>Requisito</strong> se dibuja con un anillo cerca del origen. Las marcas no cambian durante una Historia y salen también al exportar. Una conexión sin tipo es una conexión de siempre.</p>
 
 <h3>Animación y GIF</h3>
 <p>Esto es el diferenciador del producto:</p>
@@ -116,6 +117,7 @@ python -m http.server 8000</code></pre>
   <tr><td>SVG</td><td>Seguir editando en otra herramienta</td><td>Vectorial. El fotograma es estático.</td></tr>
 </table>
 <p>La escala va de 0,5× a 2×. El recorte se calcula sobre el contenido real, no sobre el lienzo completo.</p>
+<p>Los cuatro formatos llevan las marcas de Flujo y Requisito de las conexiones. Nunca llevan lo que se ve solo al reproducir una Historia.</p>
 
 <h3>Autoguardado</h3>
 <p>La sesión se guarda sola en el <code>localStorage</code> de tu navegador. Al volver, Fluyo pregunta si quieres restaurarla. Es un archivo local en tu equipo: no se sube a ninguna parte.</p>
@@ -160,6 +162,8 @@ python -m http.server 8000</code></pre>
   <li><code>doc.pages</code> es un array: un documento son varias páginas independientes.</li>
   <li>Los <code>id</code> son únicos <em>por página</em> y <code>nextId</code> es el siguiente a repartir. Nodos y flechas comparten el mismo contador.</li>
   <li>Las flechas referencian nodos por <code>from</code> y <code>to</code>. Si apuntan a un id inexistente, simplemente no se dibujan.</li>
+  <li>Una flecha puede llevar <code>kind</code>: <code>"FLOWS_TO"</code> (Flujo) o <code>"REQUIRES"</code> (Requisito). Sin <code>kind</code> es una conexión de siempre. Un valor que tu versión de Fluyo no conoce se conserva al guardar y se lee como conexión.</li>
+  <li>Cada Historia puede guardar su ruta observada en <code>observedFlow</code>: <code>{"from": 1, "to": 6}</code>, dos ids de nodo de la misma página. Si un extremo ya no existe, la Historia se reproduce igual y no se muestra ninguna ruta.</li>
   <li><code>x</code> e <code>y</code> son el <strong>centro</strong> del nodo, no su esquina.</li>
   <li><code>shape</code> puede ser <code>rect</code>, <code>cylinder</code>, <code>diamond</code>, <code>circle</code>, <code>hex</code>, <code>text</code>, <code>icon</code>, <code>image</code>, <code>anim</code> o <code>code</code>. <code>icon</code>, <code>image</code> y <code>anim</code> usan además <code>icon</code>, <code>img</code> o <code>anim</code> como clave.</li>
   <li>En <code>shape:"code"</code> el <code>label</code> es el código, con <code>
@@ -212,14 +216,14 @@ npm run build</code></pre>
   <tr><td><code>create_diagram</code></td><td>Crea un diagrama completo a partir de una lista de nodos y aristas. Si no le das coordenadas, aplica un auto-layout por capas. Devuelve el documento del editor y un enlace que lo abre ya animado.</td></tr>
   <tr><td><code>list_templates</code></td><td>Lista los patrones de arquitectura predefinidos: Kafka, RAG y microservicios.</td></tr>
   <tr><td><code>create_from_template</code></td><td>Instancia una de esas plantillas, sustituyendo las etiquetas por las tuyas.</td></tr>
-  <tr><td><code>describe_document</code></td><td>Lee un documento (cualquier versión que abra el editor) y lo resume: páginas, elementos, conexiones, eventos e Historias. Valida su integridad y da su <code>revision</code>, que pide <code>author_document</code>.</td></tr>
-  <tr><td><code>author_document</code></td><td>Modifica el documento en un lote atómico, con las mismas reglas que el editor: elementos y conexiones, páginas, tema, orden de capas, duplicados, Historias y eventos. Devuelve el documento nuevo y un enlace que lo abre en el editor.</td></tr>
+  <tr><td><code>describe_document</code></td><td>Lee un documento (cualquier versión que abra el editor) y lo resume: páginas, elementos, conexiones, eventos e Historias. Valida su integridad y da su <code>revision</code>, que pide <code>author_document</code>. Muestra el tipo de cada conexión (<code>connectionKind</code>) y la ruta observada de cada Historia (<code>observedFlow</code>), y avisa de un extremo perdido o de un tipo desconocido.</td></tr>
+  <tr><td><code>author_document</code></td><td>Modifica el documento en un lote atómico, con las mismas reglas que el editor: elementos y conexiones (con su <code>kind</code>), páginas, tema, orden de capas, duplicados, Historias (también su ruta observada, con <code>set_observed_flow</code>) y eventos. Devuelve el documento nuevo y un enlace que lo abre en el editor.</td></tr>
   <tr><td><code>set_theme</code></td><td>Cambia el tema y el fondo. Atajo de una sola operación de <code>author_document</code>.</td></tr>
   <tr><td><code>reorder_nodes</code></td><td>Lleva elementos al frente, al fondo o una capa arriba o abajo. Atajo de una sola operación.</td></tr>
   <tr><td><code>duplicate_node</code></td><td>Duplica uno o varios elementos con las conexiones entre ellos. Atajo de una sola operación.</td></tr>
   <tr><td><code>propose_layout</code></td><td>Calcula posiciones por capas para una página <strong>sin modificar nada</strong> y las devuelve como lotes listos para <code>author_document</code>.</td></tr>
   <tr><td><code>run_story</code></td><td>Reproduce una Historia con el mismo motor que el editor y devuelve qué pasó en cada paso.</td></tr>
-  <tr><td><code>export_diagram</code></td><td>Exporta una página a <strong>SVG estático</strong>, con el mismo renderer que usa el editor.</td></tr>
+  <tr><td><code>export_diagram</code></td><td>Exporta una página a <strong>SVG estático</strong>, con el mismo renderer que usa el editor, incluidas las marcas de Flujo y Requisito.</td></tr>
   <tr><td><code>list_icons</code></td><td>Devuelve las claves de icono válidas, para que el asistente no tenga que adivinarlas.</td></tr>
   <tr><td><code>list_colors</code></td><td>Devuelve la paleta semántica con sus nombres (<em>Servicio</em>, <em>Eventos / Kafka</em>, <em>Datos</em>…).</td></tr>
   <tr><td><code>list_anims</code></td><td>Devuelve las claves de los ocho GIFs animados, para nodos <code>shape="anim"</code>.</td></tr>

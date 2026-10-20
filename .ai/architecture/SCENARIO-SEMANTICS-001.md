@@ -233,6 +233,7 @@ NO_PATH; su estado es el del nodo). `s(n)` = disponibilidad visible del nodo en 
 - Sin selectores, sin filas de evidencia, sin línea de tiempo, sin panel de edición (V3 descartado).
 - Carga el módulo puro de ruta (no kernel) entre `story-clock.js` y `viewer.js`; un Viewer con el service worker anterior
   abre el documento como hoy (las marcas se pintan con guardas `typeof`, como la piel).
+- **FASE 5 (PO, tras la auditoría; decisión 246)**: la línea de estado no va en la banda, que 018.18 dejó como una sola fila de alto fijo (a 390 px quedaban 19 px libres). Va en el rótulo sobre el lienzo (`#stNow`), solo reproduciendo, también en pausa y terminada.
 
 ## D8 — Present · ACEPTADO
 
@@ -241,6 +242,7 @@ NO_PATH; su estado es el del nodo). `s(n)` = disponibilidad visible del nodo en 
 - **No**: selectores origen/destino, evidencia, línea de tiempo. Present es narrativa visual y read-only (FLUYO-013).
 - Se pinta con el mismo `renderState` que el editor (una receta), respetando la piel «construido» (las fundas siguen el
   trazo con el aterrizaje de `skinEdgeLanding`) y «reducir movimiento» (sin barrido).
+- **FASE 5 (PO, tras la auditoría; decisión 246)**: la línea va en el rótulo de Present (`#presentStory`), no en `#psGroup`: a 390 px el mando ya está en su tope de 374 px. Solo reproduciendo, también en pausa y terminada; nunca antes de empezar.
 
 ## D9 — Paridad MCP · ACEPTADO
 

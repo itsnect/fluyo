@@ -33,11 +33,13 @@ const MUTATIONS = [
   ["U10 dos conexiones paralelas cuentan como dos filas", FS, "      if(!l.includes(e.to)) l.push(e.to);", "      l.push(e.to);"],
   /* editor (editor-scenarios.js) */
   ["U11 el lienzo recibe la ruta sin la bandera labs", ED, "  if (!scFlowShown(pg, sc)) return null;\n  let d = null;", "  let d = null;"],
-  ["U12 el lienzo pinta la ruta en Present (FASE 5)", ED, `if (!scPlayback || !isScenarioPlaybackActive() || (typeof presenting !== "undefined" && presenting)) return null;`, "if (!scPlayback || !isScenarioPlaybackActive()) return null;"],
-  ["U13 barrido también sin frontera", ED, "const sweep = now.frontier && t - now.at < SC_FLOW_SWEEP_MS", "const sweep = (now.frontier || now.onRoute) && t - now.at < SC_FLOW_SWEEP_MS"],
-  ["U14 sin fundido (la clase anterior se pierde)", ED, "prev: i > 0 ? inst[i - 1].edges[id] : now.edges[id]", "prev: now.edges[id]"],
-  ["U15 el fundido no avanza con el cursor", ED, "const k = i > 0 ? Math.min(1, Math.max(0, (t - now.at) / SC_FLOW_FADE_MS)) : 1;", "const k = 1;"],
-  ["U16 pastilla en todos los nodos de la ruta (no solo los no disponibles)", ED, `pips: pg.nodes.filter((n) => now.states[n.id] === "DOWN").map((n) => n.id)`, "pips: d.route.nodes.slice()"],
+  /* SCENARIOS-SEMANTICS-001 FASE 5 (decisión 245): Present pinta la ruta (U12 es ahora la vuelta a FASE 4) y lo que se pinta se calcula en
+     FluyoFlow.routeOverlay (U13–U16 siguen al código a flow-semantics.js) */
+  ["U12 Present vuelve a no recibir la ruta (FASE 4; D8 lo pide en FASE 5)", ED, "if (!scPlayback || !isScenarioPlaybackActive()) return null;", `if (!scPlayback || !isScenarioPlaybackActive() || (typeof presenting !== "undefined" && presenting)) return null;`],
+  ["U13 barrido también sin frontera", FS, "const sweep = now.frontier && t - now.at < ROUTE_SWEEP_MS", "const sweep = (now.frontier || now.onRoute) && t - now.at < ROUTE_SWEEP_MS"],
+  ["U14 sin fundido (la clase anterior se pierde)", FS, "prev: i > 0 ? inst[i - 1].edges[id] : now.edges[id]", "prev: now.edges[id]"],
+  ["U15 el fundido no avanza con el cursor", FS, "const k = i > 0 ? Math.min(1, Math.max(0, (t - now.at) / ROUTE_FADE_MS)) : 1;", "const k = 1;"],
+  ["U16 pastilla en todos los nodos de la ruta (no solo los no disponibles)", FS, "pips: page.nodes.filter(n => now.states[n.id] === DOWN).map(n => n.id)", "pips: route.nodes.slice()"],
   ["U17 el fin visible olvida la señal breve de llegada", ED, "FluyoStoryClock.travelMs(meta, ev.stepId) + PB.TERMINAL_MS", "FluyoStoryClock.travelMs(meta, ev.stepId)"],
   ["U18 filas con un solo camino", ED, "if (d.paths && d.paths.total >= 2)", "if (d.paths && d.paths.total >= 1)"],
   ["U19 «+N» mal contado", ED, "const more = d.paths.total - d.paths.paths.length;", "const more = d.paths.total - d.paths.paths.length + 1;"],
@@ -52,7 +54,8 @@ const MUTATIONS = [
   ["U24 la funda va ENCIMA de la línea", RD, "  if(flow) drawRouteSleeve(c,e,stroke.line,flow,theme,zoom);\n" + LINE, LINE + "  if(flow) drawRouteSleeve(c,e,stroke.line,flow,theme,zoom);\n"],
   ["U25 el barrido ignora «reducir movimiento»", RD, "if(!s || !(e.id in s.depth) || prefersReducedMotion()) return;", "if(!s || !(e.id in s.depth)) return;"],
   ["U26 sin N3 (dos anillos en el Requisito con la piel)", RD, "if(rs.skinOn && !e.startArrow && !(sem && sem.ring) && typeof skinEdgePort", "if(rs.skinOn && !e.startArrow && typeof skinEdgePort"],
-  ["U27 N3 también al exportar (raster ≠ SVG/MCP)", RD, "!(sem && sem.ring) && typeof skinEdgePort", `!(edgeKind(e)==="REQUIRES") && typeof skinEdgePort`],
+  /* FASE 5 (§ Export): N3 al exportar es lo correcto; U27 es ahora la vuelta a «sin marcas al exportar» */
+  ["U27 al exportar vuelven a faltar las marcas (y el anillo de salida reaparece)", RD, `const sem=typeof edgeSemanticMarks==="function" ? edgeSemanticMarks(e,pts) : null;`, `const sem=!isExport && typeof edgeSemanticMarks==="function" ? edgeSemanticMarks(e,pts) : null;`],
   ["U28 el halo «respira»", RD, `if(cls==="AVAILABLE"){ c.strokeStyle=K.halo; c.lineWidth=9/zoom+3; }`, `if(cls==="AVAILABLE"){ c.strokeStyle=K.halo; c.lineWidth=9/zoom+3; c.globalAlpha*=0.85+0.15*Math.sin(performance.now()/520); }`],
   ["U29 cualquier conexión recibe funda (Requisito y Conexión incluidas)", RD, "const r=flow.edges && flow.edges[e.id]; if(!r) return;", `const r=(flow.edges && flow.edges[e.id]) || {cls:"AVAILABLE", prev:"AVAILABLE", k:1};`],
   ["U30 la pastilla ignora la piel (caja lógica)", RD, "K=routeMark(theme), X=nodeSkinExtent(n, rs.skinOn);", "K=routeMark(theme), X=null;"],

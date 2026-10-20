@@ -6,7 +6,8 @@
    FASE 3 (decisiones 230 y 232) lo cablea en el editor (index.html y precache; el Viewer no lo carga) y añade la ruta observada
    de una Historia: resolveObservedFlow (qué par se observa) y observedFlowAt (su estado en un instante). Las funciones de
    FASE 2 no cambian. FASE 4 (decisiones 241–244) añade lo que se pinta y se cuenta de la ruta: flowRoute, routeEdgeStates,
-   routeTimeline y routePaths; tampoco cambian el estado.
+   routeTimeline y routePaths; tampoco cambian el estado. FASE 5 (decisiones 245–246) lo carga también el Viewer (entre
+   story-clock.js y viewer.js) y pone aquí la receta única de lo que se pinta (routeOverlay) y de la línea de estado (routeLine).
 
      estructura: G = conexiones con edgeKind(e) === "FLOWS_TO", de from a to (Conexión y Requisito no existen aquí;
                  las puntas visibles y flowDir no cuentan)
@@ -384,8 +385,42 @@ var FluyoFlow = (function(){
     return {paths, total, exact, mustPass};
   }
 
+  /* ─────────── FASE 5 — La misma ruta en el editor, Present y el Viewer (D7, D8; decisión 245) ───────────
+     Una sola receta para lo que el lienzo pinta de la ruta en el instante t (antes vivía en scFlowOverlay del editor, sin cambiar
+     nada): `route` = flowRoute, `timeline` = routeTimeline con el Trace VISIBLE de la reproducción, t = su cursor virtual. Sin
+     timeline (NO_PATH) → null: no hay fundas (D-Ruta). Duraciones de § Pintado (decisión 244): fundido de clase, barrido de
+     frontera y transición local de nodo. Todo sale del cursor: en pausa queda quieto y un salto da lo de una reproducción
+     continua (§ T1). */
+  const ROUTE_FADE_MS = 450, ROUTE_SWEEP_MS = 900, ROUTE_PULSE_MS = 1100;
+  function routeOverlay(page, route, timeline, t){
+    checkPage(page); checkRoute(route); checkTime(t);
+    if(!timeline) return null;
+    const inst = timeline.instants, i = routeInstantAt(timeline, t), now = inst[i];
+    const k = i > 0 ? Math.min(1, Math.max(0, (t - now.at) / ROUTE_FADE_MS)) : 1;
+    const edges = {};
+    for(const id of Object.keys(now.edges)) edges[id] = {cls: now.edges[id], prev: i > 0 ? inst[i - 1].edges[id] : now.edges[id], k};
+    const depth = {};
+    for(const e of route.edges) depth[e.id] = e.depth;
+    const sweep = now.frontier && t - now.at < ROUTE_SWEEP_MS ? {status: now.status, p: (t - now.at) / ROUTE_SWEEP_MS, depth, layers: route.maxDepth} : null;
+    const pulses = {};
+    for(let j = i; j >= 0 && t - inst[j].at < ROUTE_PULSE_MS; j--) for(const c of inst[j].changes) if(!(c.nodeId in pulses)) pulses[c.nodeId] = {to: c.to, k: (t - inst[j].at) / ROUTE_PULSE_MS};
+    return {edges, sweep, pips: page.nodes.filter(n => now.states[n.id] === DOWN).map(n => n.id), pulses};
+  }
+  /* La línea de estado de la ruta (textos aprobados: D-Ruta, decisión 219, y « · incluye estados por defecto», D4) para el
+     Viewer. El editor y Present dicen lo mismo con SC_FLOW_WORDS (mismo texto, test). Solo con PAIR; ENDPOINT_MISSING y sin par
+     → null (D5: fuera del editor, nada de ruta). */
+  const ROUTE_WORDS = Object.freeze({AVAILABLE: "Ruta disponible", UNAVAILABLE: "Ruta no disponible", NO_PATH: "Sin ruta de flujo", byDefault: "incluye estados por defecto"});
+  function routeLine(page, scenario, events, t, timeOf){
+    const r = observedFlowAt(page, scenario, events, t, timeOf);
+    if(r.pair.state !== PAIR) return null;
+    const byDefault = r.status === AVAILABLE && r.explicitPath === false;
+    return {status: r.status, text: ROUTE_WORDS[r.status] + (byDefault ? " · " + ROUTE_WORDS.byDefault : "")};
+  }
+
   return {AVAILABLE, UNAVAILABLE, NO_PATH, UNKNOWN, EXPLICIT, DEFAULT, PAIR, ENDPOINT_MISSING, NO_PAIR, ROUTE, PATH_BUDGET,
+          ROUTE_FADE_MS, ROUTE_SWEEP_MS, ROUTE_PULSE_MS, ROUTE_WORDS,
           availabilityAt, flowStatus, flowAvailability, availabilityProvenance,
           flowNodes, resolveObservedFlow, observedFlowAt,
-          flowRoute, routeEdgeStates, routeTimeline, routeInstantAt, routePaths};
+          flowRoute, routeEdgeStates, routeTimeline, routeInstantAt, routePaths,
+          routeOverlay, routeLine};
 })();

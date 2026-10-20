@@ -116,7 +116,12 @@ function renderViewerFrame(){
   const rs=viewerRenderState();
   /* La Historia se pinta con el mismo runtime que el editor (story-playback.js), con el reloj de story-clock.js: en pausa,
      la proyección se queda quieta. */
-  if(story) rs.scenarioRuntime=FluyoStory.renderState(story.playback, story.scenario, storyNow());
+  if(story){
+    rs.scenarioRuntime=FluyoStory.renderState(story.playback, story.scenario, storyNow());
+    /* SCENARIOS-SEMANTICS-001 FASE 5 (D7): lo que el lienzo pinta de la ruta observada, la misma receta que el editor y Present */
+    const flow=storyFlowOverlay();
+    if(flow) rs.scenarioRuntime.flow=flow;
+  }
   render(sctx, now(), {renderState:rs, emptyHint:"Esta página no contiene elementos."});
   if(story && story.status==="running" && !FluyoStoryClock.isPaused(story.clock) && FluyoStory.isFinished(story.playback)) story.status="completed";
   storyRefresh();
@@ -231,6 +236,12 @@ function storyRefresh(){
   storySet("stCaption","text",storyError || (paused ? (d.caption ? "En pausa · "+d.caption : "En pausa") : d.caption));
   storySet("stSummary","text",d.summary);
   storySet("stProgress","text",phase!=="ready" && d.moments.length>1 ? Math.max(0,d.idx+1)+" / "+d.moments.length : "");
+  /* SCENARIOS-SEMANTICS-001 FASE 5 (D7, decisión 246): la línea de estado de la ruta, solo reproduciendo (también en pausa y terminada) */
+  if($("stFlow")){
+    const route=phase!=="ready" ? storyFlowLine() : null;
+    storySet("stFlow","hidden",!route);
+    if(route){ storySet("stFlow","text",route.text); storySet("stFlow","className","stFlow is"+route.status); }
+  }
   storySet("stPlay","hidden",phase==="playing");
   if(phase==="finished") storyGlyph("stPlay","↻","g-replay","Repetir");
   else storyGlyph("stPlay","▶","g-play","Reproducir historia");
@@ -271,6 +282,42 @@ function storyPlace(){
   storyPlaceKey=key;
   card.style.top=Math.round(y)+"px";
   card.classList.toggle("atBottom", y!==top);
+}
+/* ─────────────────────── Ruta observada (SCENARIOS-SEMANTICS-001 FASE 5; D7, decisiones 245–246) ───────────────────────
+   El Viewer pinta lo que diga el documento, sin bandera: reproduciendo la Historia (también en pausa y terminada) y con un par
+   resuelto (FluyoFlow.resolveObservedFlow), las fundas, el barrido y las marcas de nodo de la ruta en el lienzo, y una línea de
+   estado en el rótulo (#stFlow; la banda sigue siendo solo el transporte). Misma regla de existencia que la herramienta del editor
+   (D6): la página tiene alguna conexión Flujo. Sin selectores, filas ni línea de tiempo. Lee el Trace VISIBLE de la reproducción y
+   su cursor: lo mismo que el editor y Present en el mismo instante. ENDPOINT_MISSING y sin par: nada; NO_PATH: solo la línea.
+   Con el service worker anterior (sin flow-semantics.js) nada de esto existe y el documento se ve como antes. */
+let storyFlowMemo={playback:null, page:null, value:null};
+function storyFlowData(){
+  if(!story || typeof FluyoFlow==="undefined") return null;
+  const pg=P(), pb=story.playback;
+  if(storyFlowMemo.playback===pb && storyFlowMemo.page===pg) return storyFlowMemo.value;
+  let value=null;
+  try{
+    if(pg.edges.some(e=>edgeKind(e)==="FLOWS_TO")){
+      const pair=FluyoFlow.resolveObservedFlow(pg, story.scenario);
+      if(pair.state===FluyoFlow.PAIR){
+        const events=pb.trace.events, route=FluyoFlow.flowRoute(pg, pair.source, pair.target);
+        /* sin línea de tiempo en el Viewer: el fin solo da sus tramos, que no se pintan (lo pintado sale de los instantes) */
+        value={events, timeOf:st=>FluyoStoryClock.visibleAt(pb, st), route, tl:FluyoFlow.routeTimeline(pg, route, events, 0)};
+      }
+    }
+  }catch(err){ if(!err || typeof err.code!=="string") throw err; }
+  storyFlowMemo={playback:pb, page:pg, value};
+  return value;
+}
+function storyFlowOverlay(){
+  const d=storyFlowData();
+  return d && d.tl ? FluyoFlow.routeOverlay(P(), d.route, d.tl, story.playback.cursorVirtual||0) : null;
+}
+function storyFlowLine(){
+  const d=storyFlowData();
+  if(!d) return null;
+  try{ return FluyoFlow.routeLine(P(), story.scenario, d.events, story.playback.cursorVirtual||0, d.timeOf); }
+  catch(err){ if(!err || typeof err.code!=="string") throw err; return null; }
 }
 /* El transporte vive en la banda y, presentando, se muda al mando (mismos nodos, mismos ids). */
 function storyHome(){ const a=$("stActions"); if(a && a.parentNode && a.parentNode!==$("story")) $("story").appendChild(a); }

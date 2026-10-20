@@ -347,6 +347,14 @@ function renderNodeToSVG(n, theme, syms, skinOn){
   parts.push("</g>");
   return parts.filter(Boolean).join("\n");
 }
+/* Las marcas de semántica como SVG, con el trazo del lienzo (drawEdgeSemanticMarks, render.js): cuñas de 1,6 de línea redondeada y
+   el anillo de Requisito relleno del fondo, para que la línea no lo cruce. Una entrada por elemento. */
+function semanticMarksToSVG(sem, lineCol, bg){
+  const st=`stroke="${lineCol}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"`;
+  const out=(sem.chevrons||[]).map(ch=>`<path d="${segmentsToSVGPath(ch)}" fill="none" ${st}/>`);
+  if(sem.ring) out.push(`<circle cx="${sem.ring.x.toFixed(2)}" cy="${sem.ring.y.toFixed(2)}" r="${sem.ring.r}" fill="${bg}" ${st}/>`);
+  return out;
+}
 function renderConnectorToSVG(e, theme, skinOn){
   const A=nodeById(e.from), B=nodeById(e.to);
   if(!A||!B) return "";
@@ -360,7 +368,12 @@ function renderConnectorToSVG(e, theme, skinOn){
   const stroke=edgeStroke(e,pts);
   const parts=[`<path d="${segmentsToSVGPath(stroke.line)}" fill="none" stroke="${lineCol}" stroke-width="${EDGE_W}" stroke-linejoin="round"${dash}/>`];
   for(const h of stroke.heads) parts.push(`<path d="${segmentsToSVGPath(h)}" fill="${lineCol}"/>`);
-  if(skinOn && !e.startArrow && typeof skinEdgePort==="function"){
+  /* SCENARIOS-SEMANTICS-001 FASE 5 (§ Export, decisión 247): las marcas de Flujo/Requisito del lienzo (edgeSemanticMarks), en el
+     mismo orden (línea → puntas → marcas → anillo de salida → rótulo). N3: donde va el anillo de Requisito no va el de salida. Sin
+     `kind`, el SVG de siempre byte a byte. El MCP (svg.ts) lo porta literalmente. */
+  const sem=typeof edgeSemanticMarks==="function" ? edgeSemanticMarks(e,pts) : null;
+  if(sem) parts.push(...semanticMarksToSVG(sem, lineCol, escapeAttribute(doc.customBg||T.bg)));
+  if(skinOn && !e.startArrow && !(sem && sem.ring) && typeof skinEdgePort==="function"){
     const port=skinEdgePort(pts[0], e.lineColor||T.edge, doc.customBg||T.bg);
     parts.push(`<path d="${segmentsToSVGPath(port.segs)}" fill="${escapeAttribute(port.fill)}" stroke="${escapeAttribute(port.stroke)}" stroke-width="${port.sw}"/>`);
   }

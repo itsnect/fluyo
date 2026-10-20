@@ -455,8 +455,8 @@ function drawScenarioNodeOverlay(c,n,t,state,theme,rs){
 }
 
 /* ===================== Ruta observada en el lienzo (SCENARIOS-SEMANTICS-001 FASE 4; § Pintado, § T, decisión 244) =====================
-   Pinta lo que dice scenarioRuntime.flow (editor-scenarios.js, scFlowOverlay); sin ese dato no pinta nada. Solo reproduciendo en
-   el editor con la bandera labs: nunca en Present ni en el Viewer (FASE 5) ni al exportar. Requisito y Conexión no tienen
+   Pinta lo que dice scenarioRuntime.flow (FluyoFlow.routeOverlay: el editor y Present con la bandera labs, el Viewer sin ella,
+   FASE 5); sin ese dato no pinta nada. Solo reproduciendo, y nunca al exportar. Requisito y Conexión no tienen
    funda: su trazo es estable en todo instante (§ Requisito). Oliva = disponible, terracota apagada = no disponible. */
 const ROUTE_MARK={
   dark :{AVAILABLE:"#C3CDA4", UNAVAILABLE:"#D9825F", halo:"rgba(195,205,164,.30)", haloOff:"rgba(217,130,95,.42)"},
@@ -475,7 +475,7 @@ function routeSleeve(c,line,cls,alpha,K,zoom){
   c.restore();
 }
 /* Bajo la línea (como la funda de selección), sobre la línea PINTADA (con la piel, la aterrizada). Desde el instante del cambio
-   la conexión lleva ya la funda de su clase nueva y la anterior se desvanece debajo en SC_FLOW_FADE_MS: en pausa justo en ese
+   la conexión lleva ya la funda de su clase nueva y la anterior se desvanece debajo en FluyoFlow.ROUTE_FADE_MS: en pausa justo en ese
    instante (un salto) el lienzo ya dice lo mismo que el panel. Si cambia la RUTA, además un barrido único del origen al destino en
    el color del estado nuevo (nunca con «reducir movimiento»). */
 function drawRouteSleeve(c,e,line,flow,theme,zoom){
@@ -1004,13 +1004,13 @@ function drawEdge(c,e,t,theme,isExport,rs){
   c.fillStyle=lineCol;
   for(const h of stroke.heads){ c.beginPath(); traceSegments(c,h); c.fill(); }
   /* SCENARIOS-SEMANTICS-001: marcas de Flujo/Requisito (edgeSemanticMarks, geometry.js), sin bandera: lo que dice el documento
-     se ve en el editor, Present y el Viewer. Estables: no dependen de la Historia. Fuera de la exportación hasta que el SVG y
-     export_diagram del MCP las porten (FASE 5), para que raster, SVG y MCP no difieran. Sin `kind`, nada cambia. */
-  const sem=!isExport && typeof edgeSemanticMarks==="function" ? edgeSemanticMarks(e,pts) : null;
+     se ve en el editor, Present y el Viewer. Estables: no dependen de la Historia. FASE 5 (§ Export, decisión 247): también al
+     exportar (PNG/JPG/GIF), como el SVG (renderConnectorToSVG) y export_diagram del MCP. Sin `kind`, nada cambia. */
+  const sem=typeof edgeSemanticMarks==="function" ? edgeSemanticMarks(e,pts) : null;
   if(sem) drawEdgeSemanticMarks(c,sem,lineCol,(typeof doc!=="undefined" && doc.customBg)||T.bg);
   /* FLUYO-019.1: anillo de salida (no si hay punta de inicio: ya ocupa ese sitio). SCENARIOS-SEMANTICS-001 FASE 4 (N3, decisión
-     244): tampoco donde se pinta el anillo de Requisito, para que una conexión no lleve nunca dos anillos casi iguales a 10 px; al
-     exportar no hay marcas (FASE 5) y el anillo de salida sale como en el SVG y en el MCP. */
+     244): tampoco donde se pinta el anillo de Requisito, para que una conexión no lleve nunca dos anillos casi iguales a 10 px.
+     FASE 5: con las marcas en la exportación, la regla vale también ahí (raster = SVG = MCP). */
   if(rs.skinOn && !e.startArrow && !(sem && sem.ring) && typeof skinEdgePort==="function"){
     const port=skinEdgePort(pts[0], lineCol, rs.skinBg);
     c.beginPath(); traceSegments(c,port.segs);

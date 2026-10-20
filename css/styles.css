@@ -398,6 +398,13 @@ body.presenting #presentStory:not([hidden]){display:flex;}
 #presentStory .psCaption{font-size:var(--fs-body); min-height:0; overflow-wrap:anywhere;}
 #presentStory .psCaption:empty, #presentStory .psSummary:empty{display:none;}
 #presentStory .psSummary{font-size:var(--fs-label); color:var(--ink-3);}
+/* SCENARIOS-SEMANTICS-001 FASE 5 (D8, decisión 246): la línea de estado de la ruta observada, en el rótulo (la fila de controles no
+   cambia). Solo el borde dice el estado de la RUTA (oliva pálido / terracota clara, los de la interfaz oscura: el rótulo es material
+   inverso); «Sin ruta de flujo» es neutra. Mismo estilo que #stFlow del Viewer (share.css). */
+#presentStory .psFlow{font:500 var(--fs-label)/1.3 var(--font-mono); color:var(--ink-2); padding:1px 0 1px 8px; border-left:3px solid var(--rule-2); overflow-wrap:anywhere;}
+#presentStory .psFlow[hidden]{display:none;}
+#presentStory .psFlow.isAVAILABLE{border-left-color:var(--c-oliva-palido);}
+#presentStory .psFlow.isUNAVAILABLE{border-left-color:#DE8B71;}
 @media (max-width: 480px){
   #presentStory{top:8px; padding:6px 12px;}
   #presentStory .psTitle{font-size:15px;}

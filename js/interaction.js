@@ -19,9 +19,20 @@ function normRect(m){
    Ahora gana la hoja de más arriba; si no hay hoja, la conexión; y solo sin ninguna de las dos, el contenedor más
    interior. Se calcula en cada acierto, sin índice ni caché que puedan quedar desfasados. El acierto no mira el
    relleno ni la forma (D5): la caja +4 de siempre. */
-function nodeBoxHit(n,x,y){ return Math.abs(x-n.x)<=n.w/2+4 && Math.abs(y-n.y)<=n.h/2+4; }
+function nodeBoxHit(n,x,y){
+  if(Math.abs(x-n.x)<=n.w/2+4 && Math.abs(y-n.y)<=n.h/2+4) return true;
+  /* FLUYO-019.4b (P3): con la piel, la tapa y el lateral que se ven también son del nodo: caja + 4 ∪ skinExtent */
+  const X=skinHitOn() && nodeSkinExtent(n,true);
+  return !!X && x>=X.x0 && x<=X.x1 && y>=X.y0 && y<=X.y1;
+}
+/* FLUYO-019.4b: ¿pinta el editor con la piel? El mismo predicado que render() (editorSkinOn, editor-runtime.js); sin el
+   runtime del editor (tests en vm), plano. */
+function skinHitOn(){ return typeof editorSkinOn==="function" && editorSkinOn(); }
 function hitLeafNode(x,y){
   const ns=P().nodes;
+  /* FLUYO-019.4b (P2): con la piel, del que se PINTA encima hacia abajo (nodePaintLayers, el orden de render()). «Traer al
+     frente» y «Enviar atrás» no cambian lo que se ve entre hojas con piel, y por eso tampoco lo que se acierta. */
+  if(skinHitOn()){ const L=nodePaintLayers(ns,true).leaves; for(let i=L.length-1;i>=0;i--) if(nodeBoxHit(L[i],x,y)) return L[i]; return null; }
   for(let i=ns.length-1;i>=0;i--){
     const n=ns[i];
     if(nodeBoxHit(n,x,y) && !isContainerNode(n,ns)) return n;
@@ -31,6 +42,8 @@ function hitLeafNode(x,y){
 /* El más interior (menor área); a igual área, el de más arriba. */
 function hitContainerNode(x,y){
   const ns=P().nodes; let best=null;
+  /* FLUYO-019.4b (P2): con la piel, el último contenedor pintado (de fuera adentro: el más interior gana, como en plano) */
+  if(skinHitOn()){ const C=nodePaintLayers(ns,true).containers; for(let i=C.length-1;i>=0;i--) if(nodeBoxHit(C[i],x,y)) return C[i]; return null; }
   for(let i=ns.length-1;i>=0;i--){
     const n=ns[i];
     if(nodeBoxHit(n,x,y) && isContainerNode(n,ns) && (!best || n.w*n.h<best.w*best.h)) best=n;
@@ -76,7 +89,7 @@ function hitSideArrow(n,x,y,r){
   if(!n || isTouch()) return null;
   const rad=r||arrowHitRadius();
   for(const s of SIDES){
-    const q=connectPortPoint(n,s,viewZoom);
+    const q=connectPortPoint(n,s,viewZoom, skinHitOn()? connectPortLift(n,s,true) : 0);   /* FLUYO-019.4b (F7): el puerto que se pinta */
     if(Math.hypot(x-q.x, y-q.y)<rad) return s;
   }
   return null;
@@ -92,8 +105,12 @@ function arrowHitRadius(){ return CONNECT_PORT_HIT/viewZoom; }
 function hitSideArrowHost(x,y){
   const ns=P().nodes, rad=arrowHitRadius(), leaves=[], conts=[];
   /* Mismo criterio que el acierto (D1): las hojas antes que los contenedores, y entre contenedores el más interior. */
-  for(let i=ns.length-1;i>=0;i--) (isContainerNode(ns[i],ns)? conts : leaves).push(ns[i]);
-  conts.sort((a,b)=>a.w*a.h-b.w*b.h);
+  /* FLUYO-019.4b (P2): con la piel, en el orden de pintado al revés, como hitLeafNode/hitContainerNode */
+  if(skinHitOn()){ const L=nodePaintLayers(ns,true); leaves.push(...L.leaves.slice().reverse()); conts.push(...L.containers.slice().reverse()); }
+  else {
+    for(let i=ns.length-1;i>=0;i--) (isContainerNode(ns[i],ns)? conts : leaves).push(ns[i]);
+    conts.sort((a,b)=>a.w*a.h-b.w*b.h);
+  }
   for(const n of leaves) if(hitSideArrow(n,x,y,rad)) return n;
   for(const n of conts) if(hitSideArrow(n,x,y,rad)) return n;
   return null;
@@ -135,6 +152,10 @@ function hitEdgeEnd(e,x,y){
   if(Math.hypot(x-pts[0].x, y-pts[0].y)<r) return "from";
   const q=pts[pts.length-1];
   if(Math.hypot(x-q.x, y-q.y)<r) return "to";
+  /* FLUYO-019.4b (N1/N2): con la piel, el tirador del destino se pinta en la punta ATERRIZADA (edgePaintedPoints, drawEdgeHandles),
+     hasta 16 u por fuera del ancla lógica (un icono por el este): también se acierta ahí. El ancla lógica sigue valiendo. */
+  const v=skinHitOn() ? edgePaintedPoints(e,true) : null;
+  if(v && v.length>=2 && Math.hypot(x-v[v.length-1].x, y-v[v.length-1].y)<r) return "to";
   return null;
 }
 /* Devuelve el índice del TRAMO bajo el cursor, o -1. Qué tramos ofrecen
@@ -932,8 +953,8 @@ cv.addEventListener("dblclick", ev=>{ if(!presenting) openEditorAt(toWorld(ev));
    maquetación que usa el renderer. Es la única función que sabe convertir un
    objeto editable en una caja de texto; nodos y aristas difieren solo aquí. */
 function editBoxGeometry(o){
-  const fam=o.font||settings.font||DEFAULT_FONT;
-  const peso=o.bold?"bold":"normal";
+  let fam=o.font||settings.font||DEFAULT_FONT;
+  let peso=o.bold?"bold":"normal";
   if(o.from!==undefined){
     /* Una arista no tiene caja de la que derivar nada: su etiqueta flota sobre la
        línea, centrada en el punto que eligió placeEdgeLabels. El ancho es holgura
@@ -947,7 +968,11 @@ function editBoxGeometry(o){
             x:m.x-w/2, y:m.y-lh/2, w, h:nLines*lh,
             color:THEMES[doc.theme].edgeLbl};
   }
-  const L=labelLayout(o, measureNodeLabel(ctx,o));
+  /* FLUYO-019.4b (F9): con la piel, la voz del rótulo pintado (nodeLabelVoice = la de drawNode): familia, peso y la medida
+     de labelLayout. Si no, al confirmar el texto saltaba de Georgia 400 a Plex Mono 500, con otro tamaño y otros saltos. */
+  const fo=skinHitOn() ? nodeLabelVoice(o,true) : null;
+  if(fo){ fam=fo.family; peso=o.bold? "bold" : fo.weight; }
+  const L=labelLayout(o, measureNodeLabel(ctx,o,fo));
   const color=o.textColor || ((o.shape==="text"||o.shape==="anim")? o.color : THEMES[doc.theme].text);
   return {fs:L.fs, lh:L.lh, fam, peso, align:L.align,
           x:L.boxX, y:L.boxY, w:L.boxW, h:L.boxH, color};
@@ -977,7 +1002,7 @@ function syncEditBox(){
 let editSig="";
 function syncEditBoxIfMoved(){
   if(!editing) return;
-  const sig=viewX+"|"+viewY+"|"+viewZoom+"|"+editing.x+"|"+editing.y+"|"+editing.w+"|"+editing.h;
+  const sig=viewX+"|"+viewY+"|"+viewZoom+"|"+editing.x+"|"+editing.y+"|"+editing.w+"|"+editing.h+"|"+skinHitOn();   /* la piel cambia la voz (F9) */
   if(sig===editSig) return;
   editSig=sig; syncEditBox();
 }

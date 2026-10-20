@@ -20,6 +20,7 @@ const read = (f) => fs.readFileSync(path.join(root, f), "utf8").replace(/\r\n/g,
 const atBase = (f) => execFileSync("git", ["-C", gitRoot, "show", BASE + ":" + f], { encoding: "utf8" }).replace(/\r\n/g, "\n");
 const between = (s, a, b) => { const i = s.indexOf(a); assert.ok(i >= 0, "falta " + a); const j = s.indexOf(b, i + a.length); assert.ok(j >= 0, "falta " + b); return s.slice(i, j); };
 const { undo4a } = require("./fluyo-019-4a-undo.cjs");   /* FLUYO-019.4a cambia a propósito skin.js, render.js y export.js: se deshace aquí; su alcance lo vigila test/fluyo-019-4a.test.cjs */
+const { undo4b } = require("./fluyo-019-4b-undo.cjs");   /* FLUYO-019.4b cambia a propósito render.js, interaction.js, geometry.js, editor-runtime.js, state.js e index.html: se deshace aquí (antes que 019.4a y FASE 1); su alcance lo vigila test/fluyo-019-4b.test.cjs */
 const { undoSemantics } = require("./fluyo-scenarios-semantics-undo.cjs");   /* SCENARIOS-SEMANTICS-001 (FASE 1) cambia a propósito model.js, geometry.js, render.js, ui.js, index.html y styles.css: se deshace aquí; su alcance lo vigila test/fluyo-scenarios-semantics-1.test.cjs */
 const J = (v) => JSON.parse(JSON.stringify(v));
 
@@ -82,8 +83,12 @@ test("pura: no muta los nodos ni su orden; determinista; empates por orden del d
 
 /* ───────── pintores (estáticos) ───────── */
 test("render.js: las dos ramas pintan contenedores → conexiones → flujo → hojas; las capas solo existen con la piel", () => {
-  const r = undoSemantics("js/render.js", undo4a("js/render.js", read("js/render.js")));
+  const r = undoSemantics("js/render.js", undo4a("js/render.js", undo4b("js/render.js", read("js/render.js"))));
   const fn = between(r, "function render(c,t,opts={}){", "\n}\n");
+  /* FLUYO-019.4b: la regla vive ahora en nodePaintLayers (la comparten render() y el acierto); se mira en el árbol tal cual */
+  const cur = read("js/render.js");
+  assert.match(cur, /function nodePaintLayers\(nodes, skinOn\)\{\n  return skinOn \? containmentPaintOrder\(nodes, skinPaintOrder\) : \{containers:\[\], leaves:nodes\};\n\}/);
+  assert.match(between(cur, "function render(c,t,opts={}){", "\n}\n"), /const paintLayers=\(\)=> nodePaintLayers\(P\(\)\.nodes, rs\.skinOn\);/);
   assert.match(fn, /const paintLayers=\(\)=> rs\.skinOn \? containmentPaintOrder\(P\(\)\.nodes, skinPaintOrder\) : \{containers:\[\], leaves:P\(\)\.nodes\};/);
   assert.ok(!/nodesInPaintOrder/.test(fn), "sin el orden antiguo");
   const exp = between(fn, "if(isExport){", "\n    return;\n  }");
@@ -108,8 +113,8 @@ test("alcance: frente a ce8e699 solo cambian geometry.js (+ containmentPaintOrde
   /* FLUYO-019-PRSKIN sube CACHE a v92 (y solo toca css/styles.css): su alcance lo vigila test/fluyo-019-prskin.test.cjs */
   for (const f of ["js/skin.js", "js/model.js", "js/interaction.js", "js/viewer.js", "js/config.js", "js/ui.js", "js/state.js", "js/selection.js", "js/editor-scenarios.js",
     "js/editor-runtime.js", "js/share-url.js", "js/share-loader.js", "js/deeplink.js", "js/link-codec.js", "index.html", "s/index.html"])
-    if (fs.existsSync(path.join(root, f))) assert.equal(undoSemantics(f, undo4a(f, read(f))), atBase(f), f + " idéntico");
-  const g = undoSemantics("js/geometry.js", read("js/geometry.js")), added = between(g, "/* FLUYO-019-HIT-TEST-D6", "function containmentPaintOrder(") + between(g, "function containmentPaintOrder(", "\n}\n") + "\n}\n";
+    if (fs.existsSync(path.join(root, f))) assert.equal(undoSemantics(f, undo4a(f, undo4b(f, read(f)))), atBase(f), f + " idéntico");
+  const g = undoSemantics("js/geometry.js", undo4b("js/geometry.js", read("js/geometry.js"))), added = between(g, "/* FLUYO-019-HIT-TEST-D6", "function containmentPaintOrder(") + between(g, "function containmentPaintOrder(", "\n}\n") + "\n}\n";
   assert.equal(g.replace(added, ""), atBase("js/geometry.js"), "geometry.js: solo se añade containmentPaintOrder");
   const sw = read("sw.js"), cur = +/const CACHE = "fluyo-static-v(\d+)";/.exec(sw)[1];
   assert.ok(cur >= 91, "CACHE ≥ v91");

@@ -20,7 +20,8 @@ const READ_LOOSE = ['const projectSkin=st=>(st && st.skin==="built")? "built" : 
 const VIEWER_IGNORES = ["    skin: projectSkin(settings)\n", '    skin: "flat"\n'];
 const VIEWER_ALWAYS = ["    skin: projectSkin(settings)\n", '    skin: "built"\n'];
 const SHELL_DROPS = ['<script src="../js/skin.js"></script>\n', ""];
-const EDITOR_PAINTS = ['      skin: presenting ? projectSkin(settings) : "flat"},', "      skin: projectSkin(settings)},"];
+/* FLUYO-019.4b (decisión 226): el editor ya pinta la piel del documento; la mutación es ahora volver a dejarlo plano */
+const EDITOR_PAINTS = ["      skin: editorSkin()},", '      skin: presenting ? editorSkin() : "flat"},'];
 const UI_WRITES_FLAT = ['    if(next==="built") settings.skin="built"; else delete settings.skin;', '    settings.skin=next;'];
 const UI_NO_SAVE = ['    if(next==="built") settings.skin="built"; else delete settings.skin;\n    scheduleAutosave();', '    if(next==="built") settings.skin="built"; else delete settings.skin;'];
 const UI_UNDO = ['    if(next==="built") settings.skin="built"; else delete settings.skin;', '    pushUndo(); if(next==="built") settings.skin="built"; else delete settings.skin;'];
@@ -29,7 +30,7 @@ const EXPORT_IGNORES_DOC = ['  $("exSkin").value = projectSkin(settings);', '  $
 const EXPORT_WRITES_DOC = ['  const fmt=$("exFmt").value, scale=+$("exRes").value, skin=$("exSkin").value==="built"? "built" : "flat";', '  const fmt=$("exFmt").value, scale=+$("exRes").value, skin=$("exSkin").value==="built"? "built" : "flat"; if(skin==="built") settings.skin="built"; else delete settings.skin;'];
 /* [nombre, suite, archivo, desde, hasta] */
 const MUTATIONS = [
-  ["U0 CACHE no sube (sigue v85)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v94";', 'const CACHE = "fluyo-static-v85";'],
+  ["U0 CACHE no sube (sigue v85)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v95";', 'const CACHE = "fluyo-static-v85";'],
   ["U1 la carga persiste \"flat\" (los documentos antiguos cambian al guardarse)", UNIT, MODEL, ...PERSIST_FLAT],
   ["U2 la carga acepta cualquier string (lista abierta)", UNIT, MODEL, ...ANY_STRING],
   ["U3 la carga acepta \"BUILT\" (lista no exacta)", UNIT, MODEL, ...CASE_INSENSITIVE],
@@ -38,7 +39,7 @@ const MUTATIONS = [
   ["U6 el Viewer ignora el documento (siempre plano)", UNIT, VIEWER, ...VIEWER_IGNORES],
   ["U7 el Viewer pinta siempre construido", UNIT, VIEWER, ...VIEWER_ALWAYS],
   ["U8 el Viewer no carga skin.js", UNIT, SHELL, ...SHELL_DROPS],
-  ["U9 el lienzo del editor pinta la piel", UNIT, RT, ...EDITOR_PAINTS],
+  ["U9 el lienzo del editor vuelve a ser plano (revisa la 226)", UNIT, RT, ...EDITOR_PAINTS],
   ["U10 el editor escribe \"flat\" en el documento", UNIT, UI, ...UI_WRITES_FLAT],
   ["U11 cambiar el aspecto no autoguarda", UNIT, UI, ...UI_NO_SAVE],
   ["U12 cambiar el aspecto crea una entrada de Undo", UNIT, UI, ...UI_UNDO],
@@ -46,7 +47,7 @@ const MUTATIONS = [
   ["U14 el diálogo de exportar ignora el aspecto del documento", UNIT, EXP, ...EXPORT_IGNORES_DOC],
   ["U15 exportar escribe el documento", UNIT, EXP, ...EXPORT_WRITES_DOC],
   ["B1 el Viewer ignora el documento (siempre plano)", BROWSER, VIEWER, ...VIEWER_IGNORES],
-  ["B2 el lienzo del editor pinta la piel", BROWSER, RT, ...EDITOR_PAINTS],
+  ["B2 el lienzo del editor vuelve a ser plano (revisa la 226)", BROWSER, RT, ...EDITOR_PAINTS],
   ["B3 exportar escribe el documento", BROWSER, EXP, ...EXPORT_WRITES_DOC],
   ["B4 la carga persiste \"flat\" (el corpus deja de ser byte a byte HEAD)", BROWSER, MODEL, ...PERSIST_FLAT],
 ];

@@ -142,11 +142,14 @@ async function main() {
     const tp = await topFacePoint(page, ids.w1), sp = await sidePoint(page, ids.w1);
     const tones = await page.evaluate((id) => skinTones(nodeById(id).color, doc.theme, __t.bg()), ids.w1);
     const bgRGB = await page.evaluate(() => __t.hex(__t.bg()));
-    /* editor: plano aunque settings.skin sea "built" (019.2: la piel es un ajuste del documento; aquí se fija para la validación) */
+    /* editor (FLUYO-019.4b, decisión 226, revisa la 202): sigue a settings.skin; con la piel activa a este zoom, tapa y lateral
+       tienen su tono (antes: plano siempre). Por debajo de 0,375 seguiría plano. */
     {
-      const r = await page.evaluate(([tp, sp]) => { settings.skin = "built"; return { skin: projectSkin(settings), top: __t.px(tp), side: __t.px(sp) }; }, [tp, sp]);
+      const r0 = await page.evaluate(() => { settings.skin = "built"; return { skin: projectSkin(settings), on: editorSkinOn() }; });
       await frame(page);
-      check(r.skin === "built" && JSON.stringify(r.top) === JSON.stringify(bgRGB) && JSON.stringify(r.side) === JSON.stringify(bgRGB), `editor: plano (tapa y lateral = fondo) con settings.skin=${r.skin}`);
+      const r = Object.assign(r0, await page.evaluate(([tp, sp]) => ({ top: __t.px(tp), side: __t.px(sp) }), [tp, sp]));
+      const flat = JSON.stringify(r.top) === JSON.stringify(bgRGB) && JSON.stringify(r.side) === JSON.stringify(bgRGB);
+      check(r.skin === "built" && (r.on ? !flat : flat), `editor: sigue al documento con settings.skin=${r.skin} (piel activa a este zoom: ${r.on}; tapa ${r.top})`);
     }
     await shot(page, "01-editor-plano");
     /* Present: construido */
@@ -226,8 +229,9 @@ async function main() {
       check(r.start === "built", `diálogo: «Aspecto» arranca con el del documento (${r.start})`);
       check(r.n === 2 && r.built && r.flat, "exGo: SVG con piel con «Construido» y sin ella con «Plano»");
       check(r.skinAfter === "built", "elegir «Plano» en el diálogo no cambia el aspecto del documento");
-      const r2 = await page.evaluate(([tp]) => ({ top: __t.px(tp), json: JSON.stringify(serializeProject()).includes('"skin":"built"') }), [tp]);
-      check(JSON.stringify(r2.top) === JSON.stringify(bgRGB) && r2.json, "tras salir de Present: editor plano; el documento lleva skin:\"built\" (019.2)");
+      const r2 = await page.evaluate(([tp]) => ({ top: __t.px(tp), on: editorSkinOn(), json: JSON.stringify(serializeProject()).includes('"skin":"built"') }), [tp]);
+      /* FLUYO-019.4b (decisión 226): al salir de Present el editor sigue al documento */
+      check((r2.on ? JSON.stringify(r2.top) !== JSON.stringify(bgRGB) : JSON.stringify(r2.top) === JSON.stringify(bgRGB)) && r2.json, `tras salir de Present: el editor sigue al documento (piel activa: ${r2.on}); el documento lleva skin:"built" (019.2)`);
     }
     check(t.errors.length === 0, `escena: 0 errores (${t.errors.join(" | ")})`);
     await t.ctx.close();

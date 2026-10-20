@@ -23,6 +23,7 @@ const { execFileSync } = require("node:child_process");
 const root = path.resolve(__dirname, "..");
 const read = (f) => fs.readFileSync(path.join(root, f), "utf8").replace(/\r\n/g, "\n");
 const { undo4a } = require("./fluyo-019-4a-undo.cjs");   /* FLUYO-019.4a cambia a propósito skin.js, render.js y export.js: se deshace aquí; su alcance lo vigila test/fluyo-019-4a.test.cjs */
+const { undo4b } = require("./fluyo-019-4b-undo.cjs");   /* FLUYO-019.4b cambia a propósito render.js, interaction.js, geometry.js, editor-runtime.js, state.js e index.html: se deshace aquí (antes que 019.4a y FASE 1); su alcance lo vigila test/fluyo-019-4b.test.cjs */
 const { undoSemantics } = require("./fluyo-scenarios-semantics-undo.cjs");   /* SCENARIOS-SEMANTICS-001 (FASE 1) cambia a propósito model.js, geometry.js, render.js, ui.js, index.html y styles.css: se deshace aquí; su alcance lo vigila test/fluyo-scenarios-semantics-1.test.cjs */
 const gitRoot = process.env.FLUYO_GIT_ROOT || root;
 const BEFORE = "266ac09";
@@ -245,7 +246,7 @@ test("OFF (single:false): drawFlowBalls no pinta y drawEdge es el de 266ac09 car
   for (let k = 0; k < 50; k++) assert.deepEqual(run(NOW, "__balls(__a)", k * 0.04), []);
   const fn = (src, name) => { const i = src.indexOf("function " + name + "("); assert.ok(i >= 0, name); let d = 0, j = src.indexOf("{", i);
     for (; j < src.length; j++) { if (src[j] === "{") d++; else if (src[j] === "}" && --d === 0) break; } return src.slice(i, j + 1); };
-  const now = undoSemantics("js/render.js", undo4a("js/render.js", read("js/render.js"))), old = before("js/render.js");
+  const now = undoSemantics("js/render.js", undo4a("js/render.js", undo4b("js/render.js", read("js/render.js")))), old = before("js/render.js");
   for (const name of ["drawEdge", "flowDotCount", "flowGroups", "pathGeometry", "render", "nodeAlpha"]) assert.equal(fn(now, name), fn(old, name), `${name} idéntica a ${BEFORE}`);
 });
 
@@ -254,7 +255,7 @@ test("alcance: en render.js solo cambia drawFlowBalls (+ FLOW_FADE_PX/flowBallFa
      el resto; su alcance lo vigila test/fluyo-019-d6.test.cjs */
   const undoD6 = (s) => s.replace(/\n  \/\* FLUYO-019-HIT-TEST-D6[\s\S]*?\*\/\n  const paintLayers=[^\n]*/, "\n  const nodesInPaintOrder=()=> rs.skinOn ? skinPaintOrder(P().nodes) : P().nodes;")
     .replace(/\n\s*const lay=paintLayers\(\);\n\s*for\(const n of lay\.containers\) drawNode\(c,n,t,theme,isExport,rs\);/g, "").replace(/for\(const n of lay\.leaves\)/g, "for(const n of nodesInPaintOrder())");
-  const now = undoD6(undoSemantics("js/render.js", undo4a("js/render.js", read("js/render.js")))), old = before("js/render.js");
+  const now = undoD6(undoSemantics("js/render.js", undo4a("js/render.js", undo4b("js/render.js", read("js/render.js"))))), old = before("js/render.js");
   const cut = (src) => { const i = src.indexOf("function drawFlowBalls("), j = src.indexOf("/* ===== FLUYO-015: lenguaje visual"); assert.ok(i > 0 && j > i); return src.slice(0, i) + src.slice(j); };
   const helper = now.slice(now.indexOf("/* FLUYO-019-FLOW-FADE:"), now.indexOf("function drawFlowBalls("));
   assert.ok(helper.includes("const FLOW_FADE_PX=35;") && helper.includes("function flowBallFade(s,L)"));
@@ -273,7 +274,7 @@ test("alcance: en render.js solo cambia drawFlowBalls (+ FLOW_FADE_PX/flowBallFa
   const undoPrSkin = (s) => s.replace(/\/\* FLUYO-019-PRSKIN[\s\S]*?\*\/\n#presentBar #prSkin\{[^}]*\}\n/, "");
   for (const f of ["js/skin.js", "js/model.js", "js/config.js", "js/viewer.js", "js/share.js", "js/deeplink.js", "js/state.js", "js/ui.js",
     "js/editor-runtime.js", "index.html", "s/index.html", "css/styles.css"])
-    if (fs.existsSync(path.join(root, f))) assert.equal(f === "css/styles.css" ? undoPrSkin(undoSemantics(f, read(f))) : undoSemantics(f, undo4a(f, read(f))), before(f), f + " idéntico a " + BEFORE);
+    if (fs.existsSync(path.join(root, f))) assert.equal(f === "css/styles.css" ? undoPrSkin(undoSemantics(f, undo4b(f, read(f)))) : undoSemantics(f, undo4a(f, undo4b(f, read(f)))), before(f), f + " idéntico a " + BEFORE);
   const sw = read("sw.js"), swOld = before("sw.js");
   const cur = +/const CACHE = "fluyo-static-v(\d+)";/.exec(sw)[1];
   assert.ok(cur >= 89, "CACHE ≥ v89");

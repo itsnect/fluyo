@@ -38,7 +38,7 @@ const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
 let viewX=0, viewY=0, viewZoom=0.8;
 let presenting=false;         // modo presentación: el lienzo ocupa la pantalla y las páginas son diapositivas
 /* El aspecto de Present y de la exportación ("built" = piel 2.5D, "flat" = plano) es del DOCUMENTO desde
-   FLUYO-019.2: settings.skin (model.js, projectSkin). Aquí no hay estado de runtime para él. El editor pinta plano siempre. */
+   FLUYO-019.2: settings.skin (model.js, projectSkin). Aquí no hay estado de runtime para él. Desde FLUYO-019.4b el lienzo del editor también lo sigue. */
 let panDrag=null;
 
 /* ===================== Interacción del editor ===================== */

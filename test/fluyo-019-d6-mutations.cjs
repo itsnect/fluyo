@@ -12,9 +12,10 @@ const NL = "\n", CRLF = "\r\n";
 const UNIT = ["--test", "test/fluyo-019-d6.test.cjs"];
 const BROWSER = ["test/fluyo-019-d6-browser.cjs"];
 const REN = "js/render.js", GEO = "js/geometry.js", EXP = "js/export.js";
-const LAYERS = "  const paintLayers=()=> rs.skinOn ? containmentPaintOrder(P().nodes, skinPaintOrder) : {containers:[], leaves:P().nodes};";
-const NO_LAYERS = [LAYERS, "  const paintLayers=()=> rs.skinOn ? {containers:[], leaves:skinPaintOrder(P().nodes)} : {containers:[], leaves:P().nodes};"];     // vuelve «conexiones bajo todos los nodos» (el bug)
-const FLAT_TOO = [LAYERS, "  const paintLayers=()=> containmentPaintOrder(P().nodes, rs.skinOn ? skinPaintOrder : (ns=>ns.slice()));"];                       // capas también en plano
+/* FLUYO-019.4b: la regla vive en nodePaintLayers (render.js), que comparten render() y el acierto */
+const LAYERS = "  return skinOn ? containmentPaintOrder(nodes, skinPaintOrder) : {containers:[], leaves:nodes};";
+const NO_LAYERS = [LAYERS, "  return skinOn ? {containers:[], leaves:skinPaintOrder(nodes)} : {containers:[], leaves:nodes};"];     // vuelve «conexiones bajo todos los nodos» (el bug)
+const FLAT_TOO = [LAYERS, "  return containmentPaintOrder(nodes, skinOn ? skinPaintOrder : (ns=>ns.slice()));"];                       // capas también en plano
 const BY_Y = ["  const walk=c=>{ containers.push(c); for(const k of order(conts.filter(k=>parent.get(k)===c))) walk(k); };\n  for(const r of order(conts.filter(c=>parent.get(c)===null))) walk(r);", "  containers.push(...order(conts));"];   // contenedores solo por y, sin árbol
 const BIGGEST = ["if(!best || o.w*o.h<best.w*best.h ||", "if(!best || o.w*o.h>best.w*best.h ||"];                                  // padre = el mayor, no el más interior
 const DOC_LEAVES = ["  return {containers, leaves:order(nodes.filter(n=>!isCont.has(n)))};", "  return {containers, leaves:nodes.filter(n=>!isCont.has(n))};"];   // hojas sin el pintor de la piel
@@ -23,7 +24,7 @@ const SVG_FLAT = ["  const lay=skinOn? containmentPaintOrder(page.nodes||[], ski
 const BALLS_LAST = ["  if(!rs.scenarioRuntime) drawFlowBalls(c,t,rs);\n  for(const n of lay.leaves) drawNode(c,n,t,theme,isExport,rs);", "  for(const n of lay.leaves) drawNode(c,n,t,theme,isExport,rs);\n  if(!rs.scenarioRuntime) drawFlowBalls(c,t,rs);"];   // flujo encima de las hojas
 /* [nombre, suite, archivo, desde, hasta] */
 const MUTATIONS = [
-  ["U0 CACHE no sube (sigue v90)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v94";', 'const CACHE = "fluyo-static-v90";'],
+  ["U0 CACHE no sube (sigue v90)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v95";', 'const CACHE = "fluyo-static-v90";'],
   ["U1 vuelve «conexiones bajo todos los nodos» con la piel", UNIT, REN, ...NO_LAYERS],
   ["U2 capas también en plano", UNIT, REN, ...FLAT_TOO],
   ["U3 contenedores solo por y (sin árbol)", UNIT, GEO, ...BY_Y],

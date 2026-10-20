@@ -110,7 +110,9 @@ test("render.js: el trazo sale de edgeStroke; la selección no recolorea la lín
 });
 
 test("render.js: instrumentos de edición de tamaño constante en pantalla, una forma por operación", () => {
-  const de = code(slice(read("js/render.js"), "if(single){", "if(!isExport && typeof scHighlight"));
+  /* FLUYO-019.4b (F6): los tiradores salieron de drawEdge a drawEdgeHandles (en plano se llama donde siempre) */
+  assert.match(code(read("js/render.js")), /if\(single && !rs\.skinOn\) drawEdgeHandles\(c,e,pts,M,zoom\);/);
+  const de = code(slice(read("js/render.js"), "function drawEdgeHandles(", "\n}\n"));
   assert.match(de, /const px=v=>v\/zoom;/);
   assert.match(de, /c\.rect\(wp\.x-s\/2,wp\.y-s\/2,s,s\)/, "codo = cuadrado");
   assert.match(de, /c\.arc\(q\.x,q\.y,px\(4\.5\)/, "extremo = círculo r 4,5 px");
@@ -123,7 +125,7 @@ test("render.js: puerto único en el lado que mira al cursor; marco discontinuo 
   const r = read("js/render.js");
   const p = code(slice(r, "function drawConnectPort(", "\n}"));
   assert.match(p, /const side=inferSide\(n, mouse\)/);
-  assert.match(p, /connectPortPoint\(n,side,zoom\)/);
+  assert.match(p, /connectPortPoint\(n,side,zoom,lift\)/);   /* FLUYO-019.4b (F7): lift = connectPortLift, 0 en plano */
   assert.equal((p.match(/c\.arc\(/g) || []).length, 1, "un solo punto");
   assert.match(code(r), /if\(host\) drawConnectPort\(c,host,rs\);/);
   assert.match(code(r), /if\(I\.linkFrom!==null && I\.linkFrom!==undefined\)\{[\s\S]*?drawLinkOrigin\(c, A, theme, vp\.zoom\)/);
@@ -145,7 +147,7 @@ test("interaction.js: aciertos en px de pantalla, nunca menores que antes; puert
   assert.match(i, /function edgeHitTol\(\)\{ return Math\.max\(8, \(isTouch\(\)\? 16 : 6\)\/viewZoom\); \}/);
   assert.match(i, /if\(d<tol\) return es\[i\];/);
   assert.match(i, /function hitSideArrow\(n,x,y,r\)\{\s*if\(!n \|\| isTouch\(\)\) return null;/);
-  assert.match(i, /connectPortPoint\(n,s,viewZoom\)/);
+  assert.match(i, /connectPortPoint\(n,s,viewZoom, skinHitOn\(\)\? connectPortLift\(n,s,true\) : 0\)/);   /* FLUYO-019.4b (F7) */
   assert.match(i, /function arrowHitRadius\(\)\{ return CONNECT_PORT_HIT\/viewZoom; \}/);
   assert.match(i, /function endHitRadius\(\)\{ return isTouch\(\)\? Math\.max\(16, 22\/viewZoom\) : Math\.max\(9, 7\/viewZoom\); \}/);
   assert.match(i, /isTouch\(\)\? Math\.max\(10, 18\/viewZoom\) : Math\.max\(10, 7\/viewZoom\)/, "codos");
@@ -202,7 +204,7 @@ test("fixtures compartidos con fluyo-mcp (si está al lado)", () => {
 
 test("sw.js: CACHE v75 (cambian geometry, render, interaction, selection, export, editor-runtime, index y docs; ya precacheados)", () => {
   const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v94";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v95";/);
   for (const f of ["./js/geometry.js", "./js/render.js", "./js/interaction.js", "./js/selection.js", "./js/export.js", "./js/editor-runtime.js", "./docs/"]) assert.ok(sw.includes(f), f);
   assert.match(LF(head("sw.js")), /fluyo-static-v\d+/);
 });

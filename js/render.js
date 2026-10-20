@@ -488,7 +488,7 @@ function drawNode(c,n,t,theme,isExport,rs){
      pintan por capas; el glifo del icono y el rótulo siguen siendo los de siempre. */
   const sk=rs.skinOn && typeof skinNode==="function" ? skinNode(n,theme,rs.skinBg) : null;
   if(sk){
-    const fo=skinLabelFont(n, settings.font);
+    const fo=nodeLabelVoice(n, rs.skinOn);   /* la misma voz que el textarea de edición (FLUYO-019.4b, F9) */
     drawSkinLayers(c,sk.layers,n,glow);
     if(n.shape==="icon"){
       const im=getImg(iconURLFor(n.icon, nodeIconTint(n)));
@@ -561,7 +561,13 @@ function drawNode(c,n,t,theme,isExport,rs){
     const highlight=scHighlight("node",n.id);
     if(highlight){const M=editorMark(theme);c.save();c.strokeStyle=highlight===2?M.ink:M.arrow;c.globalAlpha=highlight===2?1:.45;c.lineWidth=highlight===2?5:2;c.setLineDash(highlight===2?[]:[6,4]);shapePath(c,n);c.stroke();c.restore();}
   }
-  if(!isExport && rs.selection.nodes.has(n.id)){
+  /* FLUYO-019.4b (F6): con la piel, el marco y los tiradores van en la pasada final (drawEditorMarks); en plano, aquí, como siempre */
+  if(!isExport && !rs.skinOn) drawNodeSelection(c,n,theme,rs);
+}
+/* Marco y tiradores de un nodo seleccionado (FLUYO-018.13), sobre la caja LÓGICA ±6 (P4 de 019.4b): es lo que se mueve y
+   se redimensiona, y donde acierta hitCorner. No se envuelven las caras de la piel. */
+function drawNodeSelection(c,n,theme,rs){
+  if(rs.selection.nodes.has(n.id)){
     const M=editorMark(theme);
     c.save();
     /* marco fino y continuo: la selección es un estado, no un aviso */
@@ -969,7 +975,24 @@ function drawEdge(c,e,t,theme,isExport,rs){
     c.fillStyle=T.lblBg; c.fillRect(m.x-w/2-6,m.y-efs*.85,w+12,efs*1.7);
     if(rs.interaction.editing!==e){ c.fillStyle=T.edgeLbl; c.fillText(e.label,m.x,m.y); }
   }
-  if(single){
+  /* FLUYO-019.4b (F6): con la piel, los tiradores van en la pasada final (drawEditorMarks), sobre la línea pintada */
+  if(single && !rs.skinOn) drawEdgeHandles(c,e,pts,M,zoom);
+  if(!isExport && typeof scHighlight==="function"){
+    const highlight=scHighlight("edge",e.id);
+    if(highlight){const M=editorMark(theme);c.save();c.strokeStyle=highlight===2?M.ink:M.arrow;c.globalAlpha=highlight===2?1:.45;c.lineWidth=highlight===2?6:3;c.setLineDash(highlight===2?[]:[8,6]);c.lineJoin="round";c.beginPath();traceSegments(c,stroke.line);c.stroke();c.restore();}
+  }
+  if(rs.scenarioRuntime && !isExport){
+    const active = rs.scenarioRuntime.activeSends.filter(s => s.edgeId === e.id);
+    const completed = rs.scenarioRuntime.completedSends.filter(s => s.edgeId === e.id);
+    if(active.length || completed.length) drawScenarioEdgeOverlay(c,e,pts,active,completed,theme,rs);
+  }
+  c.restore();
+}
+/* Tiradores de la conexión seleccionada sobre `pts`, los puntos PINTADOS (con la piel, la ruta aterrizada: edgePaintedPoints).
+   Los codos y las barras salen de la geometría lógica (waypoints, edgeHandlePts): el aterrizaje solo mueve el último
+   vértice sobre su propio tramo, que nunca lleva barra, así que caen sobre la línea que se ve. */
+function drawEdgeHandles(c,e,pts,M,zoom){
+  {
     /* FLUYO-018.16: instrumentos de edición, no parte del diagrama. Tamaño constante
        en PANTALLA (antes eran unidades de mundo: 1,5 px a zoom 0,25) y una forma por
        operación: círculo = extremo, cuadrado = codo, barra = deslizar tramo, anillo =
@@ -1024,15 +1047,51 @@ function drawEdge(c,e,t,theme,isExport,rs){
       c.lineCap="butt"; c.lineWidth=px(1.25);
     }
   }
-  if(!isExport && typeof scHighlight==="function"){
-    const highlight=scHighlight("edge",e.id);
-    if(highlight){const M=editorMark(theme);c.save();c.strokeStyle=highlight===2?M.ink:M.arrow;c.globalAlpha=highlight===2?1:.45;c.lineWidth=highlight===2?6:3;c.setLineDash(highlight===2?[]:[8,6]);c.lineJoin="round";c.beginPath();traceSegments(c,stroke.line);c.stroke();c.restore();}
-  }
-  if(rs.scenarioRuntime && !isExport){
-    const active = rs.scenarioRuntime.activeSends.filter(s => s.edgeId === e.id);
-    const completed = rs.scenarioRuntime.completedSends.filter(s => s.edgeId === e.id);
-    if(active.length || completed.length) drawScenarioEdgeOverlay(c,e,pts,active,completed,theme,rs);
-  }
+}
+/* ===================== Contratos compartidos del editor con la piel (FLUYO-019.4b) =====================
+   Lo que se pinta y lo que se acierta sale de las MISMAS funciones: el pintor las llama con rs.skinOn y el acierto
+   (interaction.js) con editorSkinOn(), que es skinActive sobre los mismos datos que buildEditorRenderState pasa a render()
+   (viewport.skin, que es la del documento, y el zoom). En plano todas devuelven lo de siempre. */
+/* Capas de pintado de los nodos (D6, decisión 212): con la piel, contenedores → (conexiones) → hojas; sin ella, el orden
+   del documento. El acierto de hojas y contenedores recorre estas mismas listas al revés (P2). */
+function nodePaintLayers(nodes, skinOn){
+  return skinOn ? containmentPaintOrder(nodes, skinPaintOrder) : {containers:[], leaves:nodes};
+}
+/* Puntos pintados de una conexión: con la piel, los aterrizados (skinEdgeLanding, decisión 213), como en drawEdge. */
+function edgePaintedPoints(e, skinOn){
+  const pts=edgePoints(e);
+  return skinOn && pts.length>=2 && typeof skinEdgeLanding==="function" ? skinEdgeLanding(pts, nodeById(e.to)) : pts;
+}
+/* Envolvente visible de un nodo (skinExtent: caja + tapa + lateral), o null en plano y en formas sin piel (P3). */
+function nodeSkinExtent(n, skinOn){
+  return skinOn && typeof skinExtent==="function" ? skinExtent(n) : null;
+}
+/* Voz del rótulo de un nodo (skinLabelFont) solo en las formas que pinta la piel: la comparten drawNode y el textarea (F9). */
+function nodeLabelVoice(n, skinOn){
+  return skinOn && typeof skinHasSkin==="function" && skinHasSkin(n) ? skinLabelFont(n, settings.font) : null;
+}
+/* Cuánto sobresale la silueta visible del nodo por un lado, sobre la recta que sale de su ancla (F7, D5): lo que retrocedería
+   una punta que llegara por ahí (skinEdgeLanding sobre una recta de prueba). El puerto de conectar se aparta eso más
+   CONNECT_PORT_OFF px, así que su área de acierto nunca pisa la tapa ni el lateral. 0 en plano y sin silueta. */
+const PORT_PROBE=1000;
+function connectPortLift(n, side, skinOn){
+  if(!skinOn || typeof skinEdgeLanding!=="function" || !skinHasSkin(n)) return 0;
+  const p=sidePoint(n,side), d=DIR[side];
+  const q=skinEdgeLanding([{x:p.x+d.x*PORT_PROBE, y:p.y+d.y*PORT_PROBE}, p], n)[1];
+  return Math.hypot(q.x-p.x, q.y-p.y);
+}
+/* Pasada final de las marcas del editor con la piel (F6): por encima de nodos, caras y cues, para que ninguna cara las
+   tape. Marco y tiradores de nodos en la caja lógica (P4); tiradores de la conexión seleccionada sobre su línea pintada. */
+function drawEditorMarks(c,t,theme,rs){
+  const S=rs.selection, zoom=(rs.viewport && rs.viewport.zoom) || 1;
+  for(const n of P().nodes) if(S.nodes.has(n.id) && nodeAlpha(n,t)>0) drawNodeSelection(c,n,theme,rs);
+  const s=S.single;
+  const e=s && s.type==="edge" && s.obj ? P().edges.find(x=>x.id===s.obj.id) : null;
+  const A=e && nodeById(e.from), B=e && nodeById(e.to); if(!A||!B) return;
+  const a=Math.min(nodeAlpha(A,t),nodeAlpha(B,t)); if(a<=0) return;
+  const pts=edgePaintedPoints(e, rs.skinOn); if(pts.length<2) return;
+  c.save(); c.globalAlpha=a;
+  drawEdgeHandles(c,e,pts,editorMark(theme),zoom);
   c.restore();
 }
 /* Vista previa de «suelta aquí», compartida por el arrastre que CREA una arista
@@ -1080,10 +1139,11 @@ function drawDropPreview(c, theme, desde, excluirId, rs){
 function drawConnectPort(c, n, rs){
   const {mouse} = rs.interaction, zoom = rs.viewport.zoom || 1;
   const M=editorMark(doc.theme);
-  const side=inferSide(n, mouse), p=sidePoint(n,side), d=DIR[side], q=connectPortPoint(n,side,zoom);
+  /* FLUYO-019.4b (F7): con la piel, el puerto y el filete arrancan fuera de la silueta (connectPortLift; 0 en plano) */
+  const side=inferSide(n, mouse), p=sidePoint(n,side), d=DIR[side], lift=connectPortLift(n,side,rs.skinOn), q=connectPortPoint(n,side,zoom,lift);
   c.save();
   c.strokeStyle=M.ink; c.lineWidth=1/zoom; c.globalAlpha=.55;
-  c.beginPath(); c.moveTo(p.x+d.x*4/zoom, p.y+d.y*4/zoom); c.lineTo(q.x-d.x*(CONNECT_PORT_R+.5)/zoom, q.y-d.y*(CONNECT_PORT_R+.5)/zoom); c.stroke();
+  c.beginPath(); c.moveTo(p.x+d.x*(lift+4/zoom), p.y+d.y*(lift+4/zoom)); c.lineTo(q.x-d.x*(CONNECT_PORT_R+.5)/zoom, q.y-d.y*(CONNECT_PORT_R+.5)/zoom); c.stroke();
   c.globalAlpha=1;
   c.beginPath(); c.arc(q.x,q.y,CONNECT_PORT_R/zoom,0,Math.PI*2);
   c.fillStyle=M.ink; c.fill(); c.strokeStyle=M.knob; c.lineWidth=1.5/zoom; c.stroke();
@@ -1155,7 +1215,7 @@ function render(c,t,opts={}){
   /* FLUYO-019-HIT-TEST-D6: con la piel, capas contenedores → conexiones (+ flujo, tokens) → hojas (containmentPaintOrder,
      geometry.js); la `y` solo ordena DENTRO de cada capa. En plano no hay capa de contenedores y los nodos van en el orden
      del documento, como siempre: el lienzo 2D no cambia. */
-  const paintLayers=()=> rs.skinOn ? containmentPaintOrder(P().nodes, skinPaintOrder) : {containers:[], leaves:P().nodes};
+  const paintLayers=()=> nodePaintLayers(P().nodes, rs.skinOn);
 
   if(isExport){
     const b = opts.bounds || getBounds();
@@ -1216,6 +1276,8 @@ function render(c,t,opts={}){
   /* Z-order de Scenarios: base → fill/dim/highlight (drawNode) → conexiones y tokens
      → símbolo/mensaje del cue → UI de selección/interacción. */
   if(rs.scenarioRuntime) for(const n of P().nodes) drawScenarioNodeCue(c,n,t,rs);
+  /* FLUYO-019.4b (F6): con la piel, las marcas de selección del editor van aquí, encima de nodos, caras y cues */
+  if(rs.skinOn) drawEditorMarks(c,t,theme,rs);
 
   const I=rs.interaction, S=rs.selection;
   if(!vp.presenting && I.mode==="select" && !I.drag && !I.resizing && !I.wpDrag && !I.connectDrag && !I.endDrag && !I.marquee && !I.pendingShape && !I.pendingIcon && !I.pendingAnim){

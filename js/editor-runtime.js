@@ -5,14 +5,21 @@ let t0=performance.now(), playing=true, pausedAt=0;
 
 function now(){ return playing? (performance.now()-t0)/1000 : pausedAt; }
 
+/* FLUYO-019.4b (P1, decisión 226): el editor sigue a settings.skin, como Present, el Viewer y la exportación («lo que diseñas
+   es lo que presentas»); no hay mando propio. editorSkinOn() es el ÚNICO predicado de «el editor pinta con la piel»: el mismo
+   skinActive (umbral SKIN_MIN_PX) sobre los mismos datos que render() recibe aquí (viewport.skin y zoom). Lo usan el acierto,
+   el puerto y el textarea (interaction.js). */
+function editorSkin(){ return projectSkin(settings); }
+function editorSkinOn(){ return typeof skinActive==="function" && skinActive(editorSkin(), viewZoom); }
+
 function buildEditorRenderState(){
   const single=singleSel();
   const rs={
     /* width/height en px CSS: el respaldo del lienzo puede ser mayor (pantallas de alta densidad, FLUYO-018.12)
        y render() escala una sola vez con `dpr`. Todo lo demás —gestos, vista, textarea— sigue en px CSS. */
     viewport:{x:viewX,y:viewY,zoom:viewZoom,width:cv.width/(cv.fluyoDpr||1),height:cv.height/(cv.fluyoDpr||1),dpr:cv.fluyoDpr||1,presenting:!!presenting,
-      /* FLUYO-019.1/019.2: la piel solo en Present y la decide el documento (settings.skin); el editor es plano */
-      skin: presenting ? projectSkin(settings) : "flat"},
+      /* FLUYO-019.1/019.2/019.4b: la piel la decide el documento (settings.skin), en el editor y en Present */
+      skin: editorSkin()},
     interaction:{
       mode,
       pendingShape:!!pendingShape,

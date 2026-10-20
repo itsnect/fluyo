@@ -153,8 +153,9 @@ test("Viewer · «Abrir en Fluyo» conserva el payload (y con él settings.skin)
 });
 
 /* ── editor ── */
-test("editor-runtime · viewport.skin: \"flat\" en el editor; en Present, lo que diga el documento", () => {
-  const states = [[false, { skin: "built" }, "flat"], [true, { skin: "built" }, "built"], [true, {}, "flat"], [true, { skin: "flat" }, "flat"]];
+/* FLUYO-019.4b (decisión 226, revisa la 202): el editor sigue a settings.skin, igual que Present */
+test("editor-runtime · viewport.skin: lo que diga el documento, en el editor y en Present (019.4b)", () => {
+  const states = [[false, { skin: "built" }, "built"], [false, {}, "flat"], [false, { skin: "flat" }, "flat"], [true, { skin: "built" }, "built"], [true, {}, "flat"], [true, { skin: "flat" }, "flat"]];
   for (const [presenting, settings, want] of states) {
     const renders = [];
     const ctx = vm.createContext({ performance: { now: () => 1 }, requestAnimationFrame: () => 1, resizeCanvas() {}, render: (...a) => renders.push(a), syncEditBoxIfMoved() {},
@@ -252,7 +253,7 @@ test("alcance · editor: presentSkin ya no existe; #skinSel vive en «Lienzo» (
   assert.match(tools, /<select id="skinSel"[^>]*>\s*<option value="flat">Plano<\/option>\s*<option value="built">Construido \(2\.5D\)<\/option>\s*<\/select>/, "control «Aspecto» con la lista cerrada, dentro de «Lienzo»");
   assert.ok(html.indexOf('id="fontGlobalSel"') < html.indexOf('id="skinSel"'), "junto a «Tipografía»");
   assert.match(html, /<button id="prSkin" type="button" aria-pressed="false"[^>]*>Plano<\/button>/, "la barra de Present arranca en plano (ausente = plano)");
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v94";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v95";/);
   assert.ok(read("sw.js").includes('"./js/skin.js",'), "skin.js precacheado (también lo usa el Viewer)");
   for (const f of ["js/editor-runtime.js", "js/ui.js", "js/export.js", "js/viewer.js", "js/state.js"]) assert.ok(read(f).includes("projectSkin(settings)"), f + " lee el aspecto por projectSkin");
   assert.ok(!/skin/.test(read("js/analytics.js")), "sin telemetría de la piel");

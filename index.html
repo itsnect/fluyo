@@ -223,9 +223,9 @@ try{ if(localStorage.getItem("fluyo.ui.props")==="folded") document.documentElem
       <label class="fieldRow" for="fontGlobalSel"><span class="lbl">Tipografía</span>
         <select id="fontGlobalSel" title="Tipografía global — cambia la fuente de todo el diagrama" aria-label="Tipografía global"></select>
       </label>
-      <!-- FLUYO-019.2: aspecto del DOCUMENTO (settings.skin) en Present, exportación y Viewer; el lienzo del editor sigue plano. -->
+      <!-- FLUYO-019.2/019.4b: aspecto del DOCUMENTO (settings.skin): lienzo del editor, Present, exportación y Viewer. -->
       <label class="fieldRow" for="skinSel"><span class="lbl">Aspecto</span>
-        <select id="skinSel" title="Aspecto en Present, exportación y Viewer — el lienzo del editor sigue plano" aria-label="Aspecto del documento">
+        <select id="skinSel" title="Aspecto del documento: lienzo, Present, exportación y Viewer" aria-label="Aspecto del documento">
           <option value="flat">Plano</option>
           <option value="built">Construido (2.5D)</option>
         </select>

@@ -16,7 +16,7 @@ const HL = "      c.shadowColor = M.ink; c.shadowBlur = 14;\n      c.strokeStyle
 const HL_CYAN = '      c.shadowColor = "#3aa7e8"; c.shadowBlur = 14;\n      c.strokeStyle = "rgba(58,167,232,.9)"; c.lineWidth = 2.5;';
 /* [nombre, suite, archivo, desde, hasta, ONLY del browser test] */
 const MUTATIONS = [
-  ["U1 CACHE no sube (sigue v73)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v94";', 'const CACHE = "fluyo-static-v74";'],
+  ["U1 CACHE no sube (sigue v73)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v95";', 'const CACHE = "fluyo-static-v74";'],
   ["U2 vuelve #6a9fb5 como color con el que nace un nodo", UNIT, "js/config.js", DEF, 'const DEFAULT_NODE_COLOR="#6a9fb5";'],
   ["U3 createNodeIn vuelve a PALETTE[0]", UNIT, "js/model.js", "color:DEFAULT_NODE_COLOR, fill:null", "color:PALETTE[0].c, fill:null"],
   ["U4 migración accidental: un nodo sin color se lee con el default nuevo", UNIT, "js/model.js", NORM, "  if(n.color==null) n.color=DEFAULT_NODE_COLOR;"],

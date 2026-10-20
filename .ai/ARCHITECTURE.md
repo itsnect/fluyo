@@ -610,9 +610,9 @@ documento: settings.skin ("built" | ausente = plano; model.js SKIN_VALUES, proje
       → js/skin.js (puro, sin DOM): skinNode(n, theme, bg) → capas {k, segs M/L/Q/A/Z, fill, stroke, sw, dash?, clip?}
                                     skinEdgeLanding(pts, B) → copia de la ruta con la punta retirada hasta la silueta visible de B (019.4a)
                                     skinEdgePort(p, lineColor, bg) → anillo de salida · skinExtent(n) · skinPaintOrder(nodes) · skinLabelFont(n, globalFont)
-      → render.js: drawSkinLayers (traceSegments) ← Present (viewport.skin = projectSkin(settings)) · Viewer (viewport.skin, siempre) · exportación raster (opts.skin)
+      → render.js: drawSkinLayers (traceSegments) ← editor y Present (viewport.skin = editorSkin() = projectSkin(settings), 019.4b) · Viewer (viewport.skin, siempre) · exportación raster (opts.skin)
       → export.js: skinLayersToSVG (segmentsToSVGPath) ← buildSVGDocument(scale, skin)
-   editor: render() sin bandera → plano, como siempre      Share: el payload lleva settings entero → el Viewer pinta lo que diga el documento
+   editor (019.4b): la misma piel que Present; marcas en pasada final; acierto = lo que se ve      Share: el payload lleva settings entero → el Viewer pinta lo que diga el documento
    fluyo-mcp (019.3): kernel con la normalización · SkinSchema (documenta flat|built, no rechaza) · src/skin.ts = port literal de skin.js
                       → svg.ts pageToSVG(page, theme, {skin, customBg}) ← export_diagram (skin: projectSkin(settings), customBg del documento)
 ```
@@ -623,7 +623,7 @@ documento: settings.skin ("built" | ausente = plano; model.js SKIN_VALUES, proje
 - **Viewer**: `s/index.html` carga `../js/skin.js` entre `geometry.js` y `render.js` (CSP intacta); `viewerRenderState` pasa `skin: projectSkin(settings)` al viewport, en la vista normal y en Present, sin conmutador. Un Viewer con el service worker anterior (sin `skin.js`) abre un share construido plano y sin errores (los `typeof` de `render.js`).
 - **Sistema** (medidas en `skin.js` y en `.ai/tasks/FLUYO-019.md` §4): vector de profundidad constante d = (+8, −8); la cara frontal es exactamente la caja semántica (anclas, rutas, acierto y selección no cambian); tres tonos planos por cara mezclando el color del nodo con el fondo real del lienzo (tema o `customBg`); línea de tinta de 1 px; línea de contacto; LED del color del nodo. `rect` (y formas desconocidas) = bloque; `cylinder` = la geometría de 018.14a con tapa clara y banda lateral; `icon` = glifo plano sobre una peana; `hex`, `diamond`, `circle`, `text`, `code`, `image`, `anim` = planos. Rótulo: `labelLayout` de siempre; la voz pasa a IBM Plex Mono 500 solo si el nodo no trae fuente y la global es la de serie.
 - **Conexiones**: la ruta (`edgePoints`, `laneLayout`, `placeEdgeLabels`) no cambia; el aterrizaje mueve una COPIA del último vértice, solo sobre su propio tramo, hasta la silueta visible del destino (FLUYO-019.4a, decisión 213; ver su sección). Antes desplazaba el último vértice (+4, −4) y el penúltimo lo acompañaba, cuando entraba por n/e con tramo final ortogonal. Un anillo de salida en el origen (no con `startArrow`). Los overlays de Historia recortan a `skinExtent` y los cues se apilan sobre la tapa; el Trace no cambia.
-- **Orden de pintor** con la piel: derivado (y ascendente, x descendente), solo para dibujar; el orden Z del documento manda en el acierto. Desde FLUYO-019-HIT-TEST-D6 se aplica **dentro** de cada capa (contenedores → conexiones → hojas, decisión 212).
+- **Orden de pintor** con la piel: derivado (y ascendente, x descendente). Desde FLUYO-019-HIT-TEST-D6 se aplica **dentro** de cada capa (contenedores → conexiones → hojas, decisión 212). Desde FLUYO-019.4b el acierto del editor con la piel recorre esas mismas capas al revés (`nodePaintLayers`, decisión 227); en plano manda el orden Z del documento, como siempre.
 - **UI**: `#prSkin` en la barra de Present («Construido» / «Plano», tecla B) y la fila «Aspecto» (`#exSkin`) del diálogo de exportar, que arranca con el de Present y se aplica a los cuatro formatos (todos pasan por `render(..., {export:true})` / `buildSVGDocument`).
 - **Color (019.3, decisión 205)**: `skinColor(c, base)` es el único lector de los colores que la piel interpreta: el color del nodo (tonos y LED) y el relleno de los frentes. `#rgb`/`#rrggbb` → el mismo string; `#rrggbbaa` (válido en el dominio, `HEX_COLOR`) → el color opaco compuesto sobre el fondo de la piel, `skinMix(base, rgb, aa/255)`, con `base` = `customBg` `#rgb`/`#rrggbb` o el del tema; cualquier otro valor → `null`, y entonces color = `PALETTE[0]` (respaldo histórico, como `normalizeProjectNode`/`colHex`) y relleno = tono de cara. Total y determinista: no depende de `render.js`. El anillo de salida no interpreta colores. Antes de 019.3 un `#rrggbbaa` hacía lanzar a la piel (exportación, Present y Viewer en fase `error`).
 - **MCP (019.3, decisión 206)**: `export_diagram` pinta la misma piel que «Exportar → SVG», verificado contra los goldens de fluyo (`fluyo-019-1-skin.json`, `fluyo-019-2-skin-svg.json`, `fluyo-019-3-colores.json`) y contra el `skin.js` real en `vm` (`visual-regression.test.ts`). Desde FLUYO-019.4a el aterrizaje del MCP es el anterior hasta su port (brecha declarada, ver la sección de 019.4a). Sin la clave, el SVG de siempre, byte a byte. `create_diagram` acepta `skin` (`"flat"` = ausencia).
@@ -697,7 +697,7 @@ documento: settings.skin ("built" | ausente = plano; model.js SKIN_VALUES, proje
   - cilindro y las 7 formas planas: nada en ningún lado;
   - icono: por el este se para en la peana; por el oeste la roza (0,52 u con el tamaño de serie);
   - rectas diagonales que cruzan una tapa: también (casos de D6).
-- **Superficies**: `drawEdge` (Present, Viewer, GIF/PNG/JPG) y `renderConnectorToSVG` llaman a `skinEdgeLanding(pts, B)`; el editor sigue plano (decisión 202).
+- **Superficies**: `drawEdge` (Present, Viewer, GIF/PNG/JPG y, desde 019.4b, el editor) y `renderConnectorToSVG` llaman a `skinEdgeLanding(pts, B)`.
 - **Pelota única (F13)**: `drawFlowBalls(c, t, rs)` coloca la pelota con `pointAt(puntos pintados, s/L)`, con la `s`, la `L` y la `D` lógicas de `pathGeometry`. El reloj, la duración, el bucle del GIF, la α y el número de pelotas no cambian; sin piel o sin aterrizaje, es la de antes bit a bit. Los puntos (modo OFF) y los tokens de Historia ya usaban la línea pintada.
 - **No cambia**: el plano, `skinNode` y el resto de `skin.js`, `geometry.js`, las rutas, las anclas, las etiquetas, el acierto, D6, el kernel, Share y la punta de inicio (`startArrow`).
 - **MCP**: pendiente del port (`src/skin.ts`, `svg.ts`), junto con la fase 2 de D6. Hasta entonces las copias del MCP de `fluyo-019-1-skin.json` y `fluyo-019-2-skin-svg.json` son las de `22f82eb`. `fluyo-019-2.test.cjs` lo comprueba como brecha declarada.
@@ -720,6 +720,35 @@ documento: settings.skin ("built" | ausente = plano; model.js SKIN_VALUES, proje
   - `test/fluyo-019-4a-mutations.cjs`.
   - `test/fluyo-019-4a-undo.cjs`: deshace 019.4a en los tests de alcance de slices anteriores.
   - Goldens: la sección `landing` de `fluyo-019-1-skin.json` (ahora con el destino: `{in, out}` por pieza y caso), `fluyo-019-2-skin-svg.json` y `fluyo-019-d6-capas-svg.json`.
+
+## Piel «construido» en el editor (FLUYO-019.4b)
+
+```
+editor-runtime.js   editorSkin() = projectSkin(settings) ──→ buildEditorRenderState: viewport.skin ──→ render(): rs.skinOn = skinActive(skin, zoom)
+                    editorSkinOn() = skinActive(editorSkin(), viewZoom)  ← ÚNICO predicado del editor (interaction.js: skinHitOn)
+render.js (contratos compartidos: el pintor los llama con rs.skinOn, el acierto con editorSkinOn)
+  nodePaintLayers(nodes, skinOn)  capas D6 (212) · edgePaintedPoints(e, skinOn) punta aterrizada (213) · nodeSkinExtent(n, skinOn)
+  nodeLabelVoice(n, skinOn)       voz del rótulo  · connectPortLift(n, side, skinOn) lo que sobresale la silueta por ese lado
+fotograma con la piel: fondo · rejilla → contenedores → conexiones (+ funda, flujo, tokens) → pelota → hojas (+ overlays) → cues de Scenario
+                       → drawEditorMarks (drawNodeSelection · drawEdgeHandles)  ← pasada final (en plano: dentro de drawNode/drawEdge)
+                       → puerto · «Conectar» · vista previa de soltar · goma · marco rectangular · pista
+acierto con la piel:   hoja (al revés de nodePaintLayers, caja + 4 ∪ skinExtent) → conexión (lógica) → contenedor (al revés)
+                       extremos: ancla lógica ∪ punta pintada · puerto: connectPortPoint(n, side, zoom, connectPortLift(…))
+```
+
+- **Activación (P1, decisión 226)**: el editor sigue a `settings.skin`; `#skinSel` («Aspecto») es el único mando del aspecto y no hay otro. Present y el editor son el mismo `render()`: con el mismo viewport y sin selección, 0 px de diferencia. Con el documento plano, o «built» a zoom < 0,375, el editor es el de `eff5129` (lienzo, acierto y textarea).
+- **Capas (212) y aterrizaje (213)**: no cambian. El editor los recibe tal cual. Lo único nuevo en el fotograma es la pasada final de marcas (F6, decisión 228).
+- **Contrato de acierto (P2/P3, decisión 227)**: lo que se ve encima es lo que se acierta. Hoja → conexión → contenedor (209), con hojas y contenedores en el orden de pintado al revés, y área de una forma con piel = caja + 4 ∪ `skinExtent` (la tapa y el lateral son del nodo; una conexión bajo una cara pierde ahí la prioridad). «Traer al frente/Enviar atrás» no cambian lo que se ve entre hojas con piel (aceptado). Lo consumen el clic, el arrastre, el hover, el doble clic, los destinos de soltar, «Conectar», el puerto y la autoría de Historias.
+- **Marcas (F6/P4, N1/N2, decisión 228)**: marco y esquinas en la caja lógica ±6. Los tiradores de la conexión, sobre los puntos pintados. `hitEdgeEnd` acierta también la punta pintada (N1: icono por el este; N2: el círculo entero en los bloques).
+- **Puerto (F7) y textarea (F9), decisión 229**: `connectPortLift` aparta el puerto lo que sobresale la silueta, y lo comparten el dibujo y el acierto. `editBoxGeometry` usa `nodeLabelVoice`, la voz de `drawNode`, con la misma medida de `labelLayout`.
+- **Semantic Scenarios**: sin cambios de contrato (Connection / FLOWS_TO / REQUIRES, AVAILABLE / UNAVAILABLE / NO_PATH). Las marcas de semántica se pintan en `drawEdge` como antes, ahora también con la piel en el editor (como ya pasaba en Present). N3 (el anillo de Requisito junto al anillo de salida de la piel) es de FASE 4.
+- **No cambian**: `skin.js`, `export.js`, el Viewer, Share, el formato, el kernel y el MCP. Present y la exportación no pintan marcas del editor.
+- `CACHE` v95 (`render.js`, `interaction.js`, `geometry.js`, `editor-runtime.js`, `state.js`, `index.html`; sin archivos nuevos).
+- Pruebas:
+  - `test/fluyo-019-4b.test.cjs` (vm, 12): predicado único y umbral; plano = `eff5129` (registro completo de operaciones del lienzo y rejilla de acierto y textarea); caras; rejilla Q6; orden de pintado y «Traer al frente»; extremos N1/N2; puerto; voz; pasada final; alcance.
+  - `test/fluyo-019-4b-browser.cjs` (Chrome real, 49): Q1–Q9, Q11 y el service worker v94 → v95.
+  - `test/fluyo-019-4b-mutations.cjs` (20 U + 9 B).
+  - `test/fluyo-019-4b-undo.cjs`: deshace 019.4b en los alcances de slices anteriores (decisión 218).
 
 ## Semántica de conexiones (SCENARIOS-SEMANTICS-001, FASE 1)
 

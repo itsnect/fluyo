@@ -22,6 +22,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs"), path = require("node:path"), vm = require("node:vm");
 const { execFileSync } = require("node:child_process");
 const { undo4a, BASE4A } = require("./fluyo-019-4a-undo.cjs");
+const { undo4b } = require("./fluyo-019-4b-undo.cjs");   /* FLUYO-019.4b cambia a propósito render.js, interaction.js, geometry.js, editor-runtime.js, state.js e index.html: se deshace aquí (antes que 019.4a y FASE 1); su alcance lo vigila test/fluyo-019-4b.test.cjs */
 const { undoSemantics } = require("./fluyo-scenarios-semantics-undo.cjs");   /* SCENARIOS-SEMANTICS-001 (FASE 1) cambia a propósito model.js, geometry.js, render.js, ui.js, index.html y styles.css: se deshace aquí; su alcance lo vigila test/fluyo-scenarios-semantics-1.test.cjs */
 const root = path.resolve(__dirname, "..");
 const read = (f) => fs.readFileSync(path.join(root, f), "utf8").replace(/\r\n/g, "\n");
@@ -368,7 +369,7 @@ test("memo · plano no la usa; la pelota (F13), su reloj y su bucle son los mism
   for (let i = 0; i < 30; i++) balls(NOW, i / 15, "undefined");
   for (let i = 0; i < 30; i++) balls(NOW, i / 15, "{skinOn:false}");
   assert.equal(run(NOW, "SKIN_LANDING_T.size"), 0, "sin piel, la pelota no consulta la memo");
-  const calls = read("js/render.js").split("\n").filter((l) => l.includes("skinEdgeLanding") && !/^\s*(\/\*|\*)/.test(l));
+  const calls = undo4b("js/render.js", read("js/render.js")).split("\n").filter((l) => l.includes("skinEdgeLanding") && !/^\s*(\/\*|\*)/.test(l));
   assert.deepEqual(calls.filter((l) => !/rs\.skinOn|landed\.set\(/.test(l)), [], "render.js solo la llama con la piel: " + calls.length + " usos");
   const ts = Array.from({ length: 40 }, (_, i) => i / 20);
   run(NOW, "SKIN_LANDING_T.clear(); 0");
@@ -381,18 +382,18 @@ test("memo · plano no la usa; la pelota (F13), su reloj y su bucle son los mism
 
 /* ───────── alcance ───────── */
 test("alcance · frente a 22f82eb solo cambian skin.js (aterrizaje), render.js (llamada y pelota), export.js (llamada) y sw.js (CACHE v93)", () => {
-  for (const f of ["js/skin.js", "js/render.js", "js/export.js"]) assert.equal(undoSemantics(f, undo4a(f, read(f))), atBase(f), f + ": fuera de lo de 019.4a, idéntico");
+  for (const f of ["js/skin.js", "js/render.js", "js/export.js"]) assert.equal(undoSemantics(f, undo4a(f, undo4b(f, read(f)))), atBase(f), f + ": fuera de lo de 019.4a, idéntico");
   for (const f of ["js/geometry.js", "js/model.js", "js/config.js", "js/interaction.js", "js/selection.js", "js/state.js", "js/ui.js", "js/viewer.js", "js/editor-runtime.js",
     "js/editor-scenarios.js", "js/present-story.js", "js/share-url.js", "js/deeplink.js", "index.html", "s/index.html", "css/styles.css", "css/system.css"])
-    if (fs.existsSync(path.join(root, f))) assert.equal(undoSemantics(f, read(f)), atBase(f), f + " idéntico");
+    if (fs.existsSync(path.join(root, f))) assert.equal(undoSemantics(f, undo4b(f, read(f))), atBase(f), f + " idéntico");
   const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v94";/);
-  assert.equal(sw.replace('"fluyo-static-v94"', '"fluyo-static-v' + (93 - 1) + '"'), atBase("sw.js"), "sw.js: solo cambia CACHE");
+  assert.match(sw, /const CACHE = "fluyo-static-v95";/);
+  assert.equal(sw.replace('"fluyo-static-v95"', '"fluyo-static-v' + (93 - 1) + '"'), atBase("sw.js"), "sw.js: solo cambia CACHE");
   /* la piel en sí no cambia: mismas capas, extensión, orden, voz y anillo */
   const fn = (src, name) => { const i = src.indexOf("function " + name + "("); assert.ok(i >= 0, name); const j = src.indexOf("\n}\n", i); return src.slice(i, j); };
   for (const name of ["skinNode", "skinExtent", "skinPaintOrder", "skinLabelFont", "skinEdgePort", "skinTones", "skinColor", "skinFaces", "skinHasSkin", "skinActive"])
     assert.equal(fn(read("js/skin.js"), name), fn(atBase("js/skin.js"), name), name + " idéntica");
   /* las dos superficies llaman igual: el lienzo y el SVG con el destino */
-  assert.ok(read("js/render.js").includes("pts=skinEdgeLanding(pts, B);") && read("js/export.js").includes("pts=skinEdgeLanding(pts, B);"), "render y export: misma llamada");
+  assert.ok(undo4b("js/render.js", read("js/render.js")).includes("pts=skinEdgeLanding(pts, B);") && read("js/export.js").includes("pts=skinEdgeLanding(pts, B);"), "render y export: misma llamada");
   assert.ok(!/inferSide\(B, pts\[pts\.length-1\]\)/.test(read("js/render.js") + read("js/export.js")), "el aterrizaje ya no depende del lado");
 });

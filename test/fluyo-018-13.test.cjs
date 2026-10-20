@@ -35,7 +35,7 @@ test("tipografías: woff2 locales, licencia OFL incluida y @font-face sin tercer
 
 test("sw.js: CACHE v72, system.css y las tres fuentes precacheadas; nada de index.html queda fuera", () => {
   const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v94";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v95";/);
   const core = sw.slice(sw.indexOf("const ASSETS"), sw.indexOf("const PAGE_ASSETS"));
   for (const a of ["./css/system.css", ...FONTS.map((f) => "./assets/fonts/" + f)]) assert.ok(core.includes('"' + a + '"'), a + " en ASSETS (núcleo)");
   const html = read("index.html");
@@ -122,7 +122,9 @@ test("render.js: las marcas del editor son oliva por tema y solo se piden con se
   assert.match(marks, /dark\s*:\{ink:"#C3CDA4"/); assert.match(marks, /crema:\{ink:"#4E5A3F"/); assert.match(marks, /claro:\{ink:"#4E5A3F"/);
   assert.ok(!/3aa7e8|58,167,232/.test(marks));
   assert.match(r, /const M=\(seld\|\|single\)\? editorMark\(theme\) : null;/, "drawEdge solo calcula marcas con selección");
-  const sel = r.slice(r.indexOf("if(!isExport && rs.selection.nodes.has(n.id)){"), r.indexOf("/* Medidor de etiquetas"));
+  /* FLUYO-019.4b (F6): el marco y los tiradores salieron de drawNode a drawNodeSelection (en plano se llama donde siempre) */
+  assert.match(r, /if\(!isExport && !rs\.skinOn\) drawNodeSelection\(c,n,theme,rs\);/);
+  const sel = r.slice(r.indexOf("function drawNodeSelection("), r.indexOf("/* Medidor de etiquetas"));
   assert.ok(sel.includes("editorMark(theme)") && !/3aa7e8/.test(sel), "selección de nodo con la marca del sistema");
   /* el dibujo del diagrama no cambia: radio 10 de las cajas y trazo 2.5 siguen siendo los de SVG/Viewer */
   assert.match(r, /default: roundRect\(c,x-w\/2,y-h\/2,w,h,10\);/);

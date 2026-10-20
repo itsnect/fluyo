@@ -705,10 +705,11 @@ function edgeSemanticMarks(e, pts){
    del borde; el acierto también va en píxeles de pantalla, así que a ningún zoom se
    mete dentro del nodo (18 − 11 = 7 px libres). En táctil no hay puerto: se conecta
    con «Conectar» (js/ui.js). Lo comparten el dibujo (render.js) y el acierto
-   (interaction.js). */
+   (interaction.js). `lift` (FLUYO-019.4b, D5): lo que sobresale la silueta de la piel por ese lado (connectPortLift,
+   render.js), en unidades de mundo; 0 en plano. */
 const CONNECT_PORT_OFF=18, CONNECT_PORT_HIT=11, CONNECT_PORT_R=4.5;
-function connectPortPoint(n, side, zoom){
-  const p=sidePoint(n,side), d=DIR[side], off=CONNECT_PORT_OFF/(zoom||1);
+function connectPortPoint(n, side, zoom, lift=0){
+  const p=sidePoint(n,side), d=DIR[side], off=lift+CONNECT_PORT_OFF/(zoom||1);
   return {x:p.x+d.x*off, y:p.y+d.y*off};
 }
 /* ===================== Bloques de código =====================

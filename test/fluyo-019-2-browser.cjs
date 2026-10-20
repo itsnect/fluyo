@@ -10,7 +10,7 @@
      normal y en Present; un share plano da en el Viewer el mismo lienzo que el Viewer de HEAD; el Viewer de HEAD (sin skin.js)
      abre un share construido plano y sin errores; «Abrir en Fluyo» entra con la piel.
    · Historia con la piel en Present y en el Viewer: mismo Trace, 0 errores.
-   · Service worker: con la versión anterior instalada (0409f4d, v93), el árbol nuevo activa la siguiente (v94) (skipWaiting + claim) y el Viewer pasa a pintar construido.
+   · Service worker: con la versión anterior instalada (0409f4d, v93), el árbol nuevo activa la actual (v95) (skipWaiting + claim) y el Viewer pasa a pintar construido.
    Capturas: FLUYO_SHOTS=<dir>. FLUYO_QUICK=1 (mutaciones): corpus corto, sin móvil, sin Historia, sin service worker.
    Uso: node test/fluyo-019-2-browser.cjs   (Playwright vía NODE_PATH; FLUYO_BROWSER=chrome) */
 let chromium;
@@ -197,10 +197,13 @@ async function main() {
     await page.locator("#prSkin").click(); await frame(page);
     check(await page.evaluate(() => settings.skin === undefined && $("prSkin").textContent === "Plano"), "botón de la barra: plano = sin clave");
     await page.keyboard.press("b"); await frame(page);
-    /* salir: «Lienzo» refleja el documento; el editor sigue plano */
+    /* salir: «Lienzo» refleja el documento; el editor sigue al documento (FLUYO-019.4b, decisión 226; antes: plano) */
     await page.keyboard.press("Escape"); await page.waitForFunction(() => presenting === false); await frame(page); await frame(page);
     check(await page.evaluate(() => $("skinSel").value === "built" && settings.skin === "built"), "al salir de Present, «Aspecto» muestra «Construido»");
-    check(same(await page.evaluate((tp) => __t.px(tp), tp), bgRGB), "el lienzo del editor sigue plano con settings.skin = \"built\"");
+    {
+      const on = await page.evaluate(() => editorSkinOn()), px = await page.evaluate((tp) => __t.px(tp), tp);
+      check(on ? await near(px, topRGB) : same(px, bgRGB), `el lienzo del editor sigue al documento con settings.skin = "built" (piel activa a este zoom: ${on}; tapa ${px})`);
+    }
     {
       const a = await page.evaluate(() => ({ svg: buildSVGDocument(1, "flat"), png: __t.raster("flat") }));
       const o = await openEditor(browser, baseOld, vp); await o.page.evaluate(() => __t.reset("crema")); await o.page.evaluate(SCENE); await frame(o.page);
@@ -341,7 +344,7 @@ async function main() {
       check(st.story && st.skin === "built" && st.vp === "built" && sv.errors.length === 0, `Historia en el Viewer con la piel: transporte visible, reproduce, 0 errores (${sv.errors.join(" | ")})`);
       await sv.ctx.close();
 
-      console.log(`\n── Service worker: de v93 (0409f4d) a v94 — el Viewer pasa a pintar construido`);
+      console.log(`\n── Service worker: de v93 (0409f4d) a v95 — el Viewer pasa a pintar construido`);
       const sw = await serve(swPrev);
       const ctx = await browser.newContext({ viewport: { width: vp.width, height: vp.height }, deviceScaleFactor: 1 });
       await ctx.route((u) => !u.href.startsWith(sw.base), (r) => r.fulfill({ status: 200, contentType: "application/javascript", body: "" }));
@@ -364,19 +367,19 @@ async function main() {
         check(true, "0409f4d servido: caché fluyo-static-v93 instalada y worker activado");
         sw.state.dir = root;
         await pg.evaluate(async () => { const r = await navigator.serviceWorker.getRegistration(); await r.update(); });
-        await installed("fluyo-static-v94"); await activated();
+        await installed("fluyo-static-v95"); await activated();
         await until(async () => !(await caches.keys()).includes("fluyo-static-v93"), null, "v93 borrada");
-        const after = await pg.evaluate(async () => { const r = await navigator.serviceWorker.getRegistration(); const c = await caches.open("fluyo-static-v94"); return { state: r.active.state, entries: (await c.keys()).length, keys: await caches.keys() }; });
-        check(after.state === "activated" && after.entries >= 50 && after.keys.join() === "fluyo-static-v94", `árbol nuevo: v94 instalada (${after.entries} entradas) y activada (skipWaiting + claim), v93 borrada`);
+        const after = await pg.evaluate(async () => { const r = await navigator.serviceWorker.getRegistration(); const c = await caches.open("fluyo-static-v95"); return { state: r.active.state, entries: (await c.keys()).length, keys: await caches.keys() }; });
+        check(after.state === "activated" && after.entries >= 50 && after.keys.join() === "fluyo-static-v95", `árbol nuevo: v95 instalada (${after.entries} entradas) y activada (skipWaiting + claim), v93 borrada`);
         await pg.close();
         const vw = await ctx.newPage(), errs = [];
         vw.on("pageerror", (e) => errs.push(e.message));
         await vw.goto(sw.base + "/s/#d=" + payloads.crema.built); await vw.waitForFunction(() => window.__viewer && window.__viewer.phase === "ready");
         await vw.evaluate(VIEWER_HELPERS); await vw.evaluate(() => __v.frame());
-        const fromSW = await vw.evaluate(async () => { const c = await caches.open("fluyo-static-v94"); return !!(await c.match(location.origin + "/js/skin.js")); });
+        const fromSW = await vw.evaluate(async () => { const c = await caches.open("fluyo-static-v95"); return !!(await c.match(location.origin + "/js/skin.js")); });
         const vtp = await vw.evaluate((id) => __v.top(id), ids.w1);
         const tone = await vw.evaluate((id) => __v.hex(skinTones(nodeById(id).color, doc.theme, __v.bg()).top), ids.w1);
-        check(fromSW && (await vw.evaluate(() => typeof skinNode)) === "function" && await vw.evaluate(([p, c]) => __v.near(__v.px(p), c), [vtp, tone]) && errs.length === 0, "tras el upgrade, el Viewer sirve skin.js desde la caché v94 y pinta construido");
+        check(fromSW && (await vw.evaluate(() => typeof skinNode)) === "function" && await vw.evaluate(([p, c]) => __v.near(__v.px(p), c), [vtp, tone]) && errs.length === 0, "tras el upgrade, el Viewer sirve skin.js desde la caché v95 y pinta construido");
       } finally { await ctx.close(); sw.server.close(); }
     }
 

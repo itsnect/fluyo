@@ -210,7 +210,7 @@ test("alcance · kernel (salvo model.js), geometría, Historias y Share idéntic
   assert.ok(html.indexOf('<script src="js/geometry.js">') < html.indexOf('<script src="js/skin.js">') && html.indexOf('<script src="js/skin.js">') < html.indexOf('<script src="js/render.js">'), "editor: geometry → skin → render");
   assert.ok(viewer.indexOf('<script src="../js/geometry.js">') < viewer.indexOf('<script src="../js/skin.js">') && viewer.indexOf('<script src="../js/skin.js">') < viewer.indexOf('<script src="../js/render.js">'), "Viewer (019.2): geometry → skin → render");
   assert.ok(!/^\s*import\s/m.test(read("js/skin.js")), "script clásico, sin import");
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v94";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v95";/);
   assert.ok(read("sw.js").includes('"./js/skin.js",'), "skin.js precacheado");
   /* skin.js va justo después de geometry.js también en la lista precacheada (el orden de carga del editor) */
   const sw = read("sw.js");
@@ -225,8 +225,9 @@ test("alcance (019.2) · la piel es un ajuste del documento: DEFAULT_SETTINGS si
   assert.ok(!("skin" in run(M, 'settingsFromProjectData({skin:"flat"})')), "\"flat\" se representa por ausencia");
   for (const f of ["js/state.js", "js/ui.js", "js/editor-runtime.js", "js/export.js", "js/interaction.js", "js/model.js", "js/share-url.js", "index.html"]) assert.ok(!/presentSkin/.test(read(f)), f + ": sin presentSkin");
   assert.ok(!/localStorage/.test(read("js/skin.js")) && !read("js/ui.js").slice(read("js/ui.js").indexOf("function setDocumentSkin"), read("js/ui.js").indexOf("function updatePresentBar")).includes("localStorage"), "sin localStorage");
-  /* el editor-runtime solo pasa la piel al viewport en Present, y la decide el documento */
-  assert.match(read("js/editor-runtime.js"), /skin: presenting \? projectSkin\(settings\) : "flat"/);
+  /* FLUYO-019.4b (decisión 226, revisa la 202): el editor-runtime pasa al viewport la piel del documento, en el editor y en Present */
+  assert.match(read("js/editor-runtime.js"), /function editorSkin\(\)\{ return projectSkin\(settings\); \}/);
+  assert.match(read("js/editor-runtime.js"), /skin: editorSkin\(\)\},/);
 });
 test("alcance · render.js y export.js: la piel es un argumento (opts.skin / viewport.skin) y todo queda bajo typeof-guard para el Viewer", () => {
   const r = read("js/render.js"), e = read("js/export.js");

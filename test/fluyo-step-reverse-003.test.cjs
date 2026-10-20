@@ -185,7 +185,8 @@ test("B4 · reutiliza el contrato de 002: la acción llama a setStepReverse y no
   const src = read("js/editor-scenarios.js");
   const fn = extract(src, "scToggleStepReverse");
   assert.match(fn, /pushUndo\(\);\n\s*setStepReverse\(sc, id, s\.reverse !== true\);\n\s*scCommit\(\);/);
-  for (const f of ["js/model.js", "js/story-authoring.js", "js/scenario-engine.js", "js/flow-semantics.js"]) assert.equal(read(f), atBase(f), f + " sin cambios");
+  const { undo4, PIECES: PIECES4 } = require("./fluyo-scenarios-semantics-4-undo.cjs");   /* SCENARIOS-SEMANTICS-001 FASE 4 va encima: se deshace antes */
+  for (const f of ["js/model.js", "js/story-authoring.js", "js/scenario-engine.js", "js/flow-semantics.js"]) assert.equal(undo4(f, read(f)), atBase(f), f + " sin cambios");
 });
 
 /* ═══════════════ C. Después de invertir: texto, Trace, playback, duplicar, retarget ═══════════════ */
@@ -273,10 +274,12 @@ test("E1 · alcance: solo cambian js/editor-scenarios.js y sw.js (CACHE v98); un
   const SERVED = ["index.html", "s", "css", "js", "sw.js", "manifest.webmanifest"];
   const changed = execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean);
   const untracked = execFileSync("git", ["-C", gitRoot, "ls-files", "--others", "--exclude-standard", "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean);
-  assert.deepEqual([...new Set([...changed, ...untracked])].sort(), ["js/editor-scenarios.js", "sw.js"]);
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v98";/);
-  assert.equal(read("sw.js").replace('"fluyo-static-v98"', '"fluyo-static-v' + (98 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante");
+  const { undo4, PIECES: PIECES4 } = require("./fluyo-scenarios-semantics-4-undo.cjs");   /* SCENARIOS-SEMANTICS-001 FASE 4 va encima: se deshace antes */
+  assert.deepEqual([...new Set([...changed, ...untracked])].filter((f) => f === "js/editor-scenarios.js" || !Object.keys(PIECES4).includes(f)).sort(), ["js/editor-scenarios.js", "sw.js"]);
+  for (const f of Object.keys(PIECES4)) if (f !== "js/editor-scenarios.js") assert.equal(undo4(f, read(f)), atBase(f), f + ": solo FASE 4");
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v99";/);
+  assert.equal(read("sw.js").replace('"fluyo-static-v99"', '"fluyo-static-v' + (98 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante");
   const { undoReverseUi } = require("./fluyo-step-reverse-003-undo.cjs");
-  assert.equal(undoReverseUi("js/editor-scenarios.js", read("js/editor-scenarios.js")), atBase("js/editor-scenarios.js"));
+  assert.equal(undoReverseUi("js/editor-scenarios.js", undo4("js/editor-scenarios.js", read("js/editor-scenarios.js"))), atBase("js/editor-scenarios.js"));
   assert.equal((read("js/editor-scenarios.js").match(/Invertir sentido/g) || []).length, 2, "el rótulo, una vez (más el comentario)");
 });

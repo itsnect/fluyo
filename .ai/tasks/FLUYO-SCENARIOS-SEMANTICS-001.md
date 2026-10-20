@@ -1,8 +1,8 @@
 # FLUYO-SCENARIOS-SEMANTICS-001 — Productización de Semantic Scenarios
 
-Estado: **FASE 3 READY FOR COMMIT** (2026-10-20, QA del PO: PASS) · FASE 1 + FASE 2 integradas y publicadas (`eff5129`, v94) · FASE 3 (ruta
-observada) implementada sobre `main` `16ee642`, sin commit, merge, push ni deploy · `CACHE` v96 · decisiones 214–233 · MCP:
-solo `sync:kernel` (sin commit) · FASE 3 aprobada por el PO; siguiente: commit con el OK. Ver § «FASE 3» y § Handoff.
+Estado: **FASE 4 READY FOR PUSH** (2026-10-20; commit en `main` con el OK del PO, tras la QA y sus 2 ajustes; ver § «Ajustes post-QA» de FASE 4) · FASE 1 + FASE 2 publicadas (`eff5129`, v94) · FASE 3 publicada (`544fd4b`, v96) ·
+FASE 4 (Scenario Experience) implementada sobre `main` `ae0d619` (producción v98), sin commit, push ni deploy · `CACHE` v99 · decisiones
+241–244 · MCP: sin cambios · siguiente: revisión del PO. Ver § «FASE 4» y § Handoff.
 Referencias históricas: línea congelada `59588a9` + `ca08fc1` + `2f9f418` (base `ce8e699`); `feat/scenario-semantics`
 (`4fb5872`, `e47500f`, `94e50fa`).
 Owner/agente actual: (libre)
@@ -1003,9 +1003,186 @@ Corrige lo que decía el informe de implementación: «legible en escritorio» e
 5. **Coste por fotograma**: reproduciendo, se evalúa la derivación en cada fotograma, O(V + E + eventos), y el DOM solo se toca si cambia. No se midió con 300 nodos.
 6. **La deuda general de tests no se tocó**: 81 fallos de base, CACHE escritos a mano (58 archivos subidos a v96) y alcances contra HEAD.
 
+## FASE 4 — Scenario Experience · READY FOR REVIEW (2026-10-20)
+
+Base: `main` `ae0d619` (= `origin/main`, producción v98; FASE 3 en `544fd4b`, STEP-REVERSE-002/003) y fluyo-mcp `497c81e`. Sin commit, sin
+push y sin deploy. CACHE v98 → **v99**. Decisiones **241–244**. Alcance pedido por el PO: solo FASE 4 sobre el contrato cerrado de FASE 3; ni
+FASE 5 ni FASE 6. **No cambian**: D5, D-Ruta, el contrato de `observedFlow`, AVAILABLE / UNAVAILABLE / NO_PATH, la derivación del estado
+(funciones de FASE 2 y FASE 3 idénticas, test E2), STEP-REVERSE, la bandera labs ni fluyo-mcp.
+
+### Auditoría previa (cómo dejó FASE 3 cada pieza)
+
+| Pieza | Estado al empezar | Qué hace FASE 4 con ella |
+|---|---|---|
+| `observedFlow` / `resolveObservedFlow` | dato de la Historia; resolución PAIR (story/structural) · ENDPOINT_MISSING · NO_PAIR | solo lee el par resuelto |
+| `observedFlowAt` | estado + procedencia con el Trace visible | sin cambios; la línea de estado sigue saliendo de aquí |
+| `FluyoStoryClock` | horario visible (dependencias de llegada), pausa, saltos por momento | sin cambios; la timeline usa el mismo Trace visible y el cursor virtual |
+| Herramienta (`#scFlow`) | selectores + línea de estado; base memoizada (reproducción o firma) | añade línea de tiempo, extremos y filas bajo el estado, sobre la MISMA base |
+| Renderer | marcas estáticas Flujo/Requisito (sin bandera); overlays de Scenario (oscurecido DOWN, cues) desde `scenarioRuntime` | añade `scenarioRuntime.flow` (solo editor + labs + reproducción) y lo pinta en `drawEdge` y en `drawScenarioNodeOverlay` |
+| Piel «construido» | capas de 019.4b: contenedores → conexiones → hojas → cues → marcas del editor; aterrizaje de la 213 | las fundas van con su conexión (bajo la línea pintada, aterrizada) y las marcas de nodo con su nodo: el orden de capas no cambia. N3 resuelto |
+| Present | mismo `render()`, `presenting`; sin marcas de comportamiento de ruta | sigue igual (FASE 5): `scFlowOverlay` devuelve null en Present (medido en Chrome) |
+| Viewer | no carga `flow-semantics.js`; `FluyoStory.renderState` sin `flow` | sin cambios (`viewer.js` y `s/index.html` idénticos) |
+
+«Route overlays (W2)»: en el repositorio W2 solo nombra el aviso de ENDPOINT_MISSING (§ V); aquí se lee como las fundas y el barrido de la
+ruta en el lienzo, verificados con el caso de aceptación de dos workers.
+
+### Qué se implementó
+
+| # | Pieza | Cómo |
+|---|---|---|
+| 1 | Semantic edge rendering | las marcas estáticas de FASE 1 no cambian; las fundas de comportamiento solo van en conexiones Flujo de la ruta (decisión 241) |
+| 2 | Route overlays en el lienzo | `scFlowOverlay` (editor) → `scenarioRuntime.flow` → `drawRouteSleeve` (`render.js`): halo oliva estático, fundido de clase, barrido único en frontera (decisión 244) |
+| 3 | UNAVAILABLE | funda terracota apagada fina y discontinua (señal propia) + pastilla «—» en el nodo no disponible + tramo terracota en la timeline + borde terracota de la herramienta (FASE 3) |
+| 4 | Route rows | `routePaths`: ≥ 2 caminos, ≤ 3 filas «vía …» + «+N rutas», estado por fila en el instante (decisión 243) |
+| 5 | Behavioral timeline | `routeTimeline` + `scFlowVisibleEnd`: tramos, punto (cambio de un nodo de la ruta) y barra (frontera), extremos «Inicio · Cambios de la ruta · Final», cursor solo reproduciendo (decisión 242) |
+| 6 | Requirement estable | Requisito (y Conexión) nunca reciben funda; su trazo es idéntico en todo instante (vm y Chrome) |
+| 7 | Piel «construido» | fundas sobre la línea aterrizada; pastilla y transición local sobre `skinExtent`; **N3**: sin anillo de salida donde se pinta el de Requisito (decisión 244) |
+| 8 | N3 de la tarea: timeline derivada | nada se persiste ni apila Undo; se recalcula de estructura + Behaviors + Trace visible (A9, B5) |
+
+**Textos.** Los del prototipo validado por el PO (§ 3.1 y D6): «disponible», «no disponible», «ninguno», «vía …», «+N rutas», y las etiquetas
+«Inicio», «Cambios de la ruta», «Final». Dos variantes nuevas, **pendientes del PO**: «+1 ruta» (singular) y «+N rutas o más» (solo con ciclos
+y más de 10 000 caminos; inalcanzable en diagramas reales).
+
+### Archivos modificados
+
+- Producto: `js/flow-semantics.js` (bloque FASE 4), `js/editor-scenarios.js` (bloque «Ruta observada» y `buildScenarioRenderState`),
+  `js/render.js` (pintor de la ruta, gancho en `drawEdge` y `drawScenarioNodeOverlay`, N3), `index.html` (markup estático dentro de `#scFlow`),
+  `css/styles.css` y `sw.js` (CACHE v99; el precache no cambia).
+- Tests nuevos: `test/fluyo-scenarios-semantics-4.test.cjs`, `-4-mutations.cjs`, `-4-browser.cjs`, `-4-undo.cjs` (`undo4`).
+- Tests adaptados: literal de CACHE v98 → v99 en 61 archivos; `undo4` encadenado antes de `undoReverseUi` en los alcances de FASE 1, FASE 2,
+  FASE 3, STEP-REVERSE-002/003, 019.4b, 019.4a, D6, FLOW-FADE, HIT-TEST y PRSKIN; arnés vm de FASE 3 (`style`/`dataset` en los elementos
+  falsos); `fluyo-018-18.test.cjs` (la proyección de `buildScenarioRenderState` se busca dentro de la función: ahora es `const rs = …`).
+- Docs: `.ai/DECISIONS.md` (241–244), `.ai/ARCHITECTURE.md` (sección FASE 4) y esta tarea.
+- Fuera: `.ai/tasks/FLUYO-019.4.md` (sin seguimiento) y `.ai/tasks/FLUYO-STEP-REVERSE-003.md` (cambio previo ajeno). fluyo-mcp: ninguno
+  (ningún archivo de FASE 4 es kernel; test E4).
+
+### Pruebas
+
+- **`test/fluyo-scenarios-semantics-4.test.cjs`, vm, 34/34**:
+  - **A (derivación)**: ruta y capas; NO_PATH ⇔ `flowStatus` y toda conexión de un camino simple está en la ruta (600 grafos); estado de las
+    conexiones frente a un oráculo de caminos simples (400 grafos, con ciclos); timeline de aceptación; ruido, mismo instante, 0, vuelta del
+    extremo, un solo estado, NO_PATH; horario visible con dependencia de llegada; filas (paralelas, 128 caminos sin enumerar, ciclos, 300 grafos
+    frente al oráculo, `mustPass`); determinismo y B6.
+  - **B (lienzo del editor)**: solo con labs, reproduciendo, con par y ruta, nunca en Present; aceptación instante a instante (clases, fundido,
+    barrido, pastillas, transición local); pausa y saltos = reproducción continua; Requisito/Conexión nunca; Undo intacto.
+  - **C (herramienta)**: edición sin cursor; cursor, filas y Detener; NO_PATH / sin par / ENDPOINT_MISSING / ruta lineal / «ninguno»;
+    «+N»/«+1 ruta»; escrituras de DOM; Undo de lo persistido; memoización; fin visible = `isFinished` en 200 Historias aleatorias.
+  - **D (pintor, lienzo que registra operaciones)**: funda bajo la línea, colores y discontinuo; fundido; barrido por capas, nunca con «reducir
+    movimiento» ni al exportar; con la piel sobre la línea aterrizada; pastilla y transición local (y sobre `skinExtent`); Requisito idéntico en
+    todo instante; N3; **sin `flow`, `drawEdge`, el pintor de nodo y un fotograma completo de los ejemplos (plano y piel, también reproduciendo)
+    son los de `ae0d619` operación a operación**.
+  - **E (estático)**: markup y orden de D6, textos, sin UNKNOWN ni vocabulario de salud, halo sin «respiración», alcance frente a `ae0d619`,
+    `undo4` exacto, B7, fuera del kernel del MCP.
+- **Mutaciones** `-4-mutations.cjs` (grupos A–D; el alcance mataría todas): **33/33 detectadas** — derivación (10), editor (13), pintor (10).
+- **Suites dirigidas** con FASE 4 en el árbol: FASE 1/2/3, STEP-REVERSE-002/003, 019.4b, 019.4a, D6, FLOW-FADE, HIT-TEST, PRSKIN + FASE 4:
+  **281/281**. Mutaciones antiguas: FASE 1 26/26, FASE 2 18/18, FASE 3 25/25, STEP-REVERSE-003 16/16.
+- **Chrome real 155** (`-4-browser.cjs`, perfil limpio, terceros bloqueados): **76/76**.
+  - 1440 (ratón) y 390 (dedo, hoja): timeline y filas en edición; reproducción muestreada (todo oliva → cae A: rama A terracota y B oliva, sin
+    barrido → cae B: todo terracota con un barrido); píxeles en pausa en 0,8 · 2,3 · 4,2 s; Requisito idéntico píxel a píxel; pausa quieta;
+    ⏮/⏭ reales; a 390 la herramienta entera en la hoja también reproduciendo; sin Undo; sin errores de consola.
+  - Temas: crema + piel, oscuro, oscuro + piel, claro: cae A se distingue; N3 medido (7 anillos de salida de 8 conexiones por fotograma).
+  - **labs apagado frente a `ae0d619`**, 1440 y 390: lienzo editando y reproduciendo (pausa en 0,8 · 2,3 · 3,3 s) y cabecera de Historias
+    idénticos píxel a píxel.
+  - Present con labs: 0 fundas, sin `flow`. «Reducir movimiento»: sin barrido. SW v98 (`ae0d619`) → v99: instalada, activada y la anterior borrada.
+- **Navegador de slices anteriores (dirigido)**: FASE 3 47/47, 019.4b 49/49, 019.2 85/85 (SW y Viewer). No se lanzaron las 46 suites.
+- **Regresión vm completa, una vez**, en clones desechables (fluyo y fluyo-mcp hermanos): base `ae0d619` **1495/83**; árbol con FASE 4 en un
+  commit desechable **1529/83, el mismo conjunto: 0 nuevos, 0 arreglados**. La primera pasada encontró 2 fallos causados por esta tarea (un
+  literal v98 en el test E2, que vigila 019-1, y la aserción textual de 018-18): corregidos y vueltos a medir.
+- En el árbol de trabajo (sin commit), los alcances «contra HEAD» (018-18, 019-1, 019-2…) fallan: es el artefacto conocido; pasan con commit.
+
+### Deuda y riesgos
+
+1. ~~**Claro**: el halo oliva se leía gris sobre blanco.~~ **Resuelto** en los ajustes post-QA: oliva pálido `rgba(195,205,164,.55)`.
+2. ~~**Textos nuevos pendientes**~~ **Resuelto**: «+1 ruta» aceptado; el caso no exacto dice «Más de 10 000 rutas».
+3. **N3 sin bandera**: un documento con Requisito y la piel pierde el anillo de salida en esa conexión también con labs apagada, en Present y en
+   el Viewer (regla de marca estática, D10). Hoy solo se crean Requisitos con labs. El SVG y el MCP no cambian hasta FASE 5.
+4. **Ciclo interior** de una ruta: se pinta como parte de ella aunque ningún camino simple lo use (decisión 241).
+5. **Densidad en la hoja a 390**: la herramienta mide 190 px con dos filas; con 3 filas + «+N» crece ~30 px. No se midió con 300 nodos.
+6. **B9** (SEND + SET_STATE en la misma ventana) sigue para el fixture de FASE 6; ahora el barrido y las fundas lo hacen más visible.
+7. Arrastrada de FASE 3: el recorte de «Automática · nombre» (antes de retirar la bandera) y W2 en `FluyoIntegrity` (FASE 5).
+
+### QA del PO (2026-10-20) — CHANGES REQUESTED: 2 ajustes menores, ningún bloqueo de contrato
+
+Chrome real 155 con `?labs=escenarios` y el fixture de dos workers de `-4-browser.cjs`, a 1440 (ratón) y 390 (dedo, hoja), en claro, crema
+y oscuro, con y sin la piel «construido». Edición, reproducción, pausa, ⏮/⏭, cae A y después cae B. El guion de QA vive fuera del repo y el
+árbol no se tocó durante la revisión. Resultado: 46 de 49 comprobaciones automáticas en verde. Las 3 rojas eran un error del guion (dos ⏮
+desde «cae B» llevan al inicio, no a «cae A»); vuelto a medir con un solo ⏮: cursor 33,333 % y filas correctas.
+
+| # | Revisión | Resultado |
+|---|---|---|
+| 1 | **Halo en claro** | **Requiere ajuste.** Medido junto a la rama disponible: fondo (240, 240, 240) → halo (209, 211, 207), saturación ≈ 2 %. Se distingue de la terracota (Δ 25, igual que en crema 27 y en oscuro 27) y del fondo (Δ 55), pero se lee como una **banda gris neutra**, no como oliva: en claro «disponible» parece «sin estado». En crema (saturación 9 %) y en oscuro se lee como oliva. Probado en la página, solo en tiempo de ejecución: subir el alfa del mismo oliva (`rgba(78,90,63,.32)`) solo oscurece el gris (4 %); el oliva pálido del sistema (`--c-oliva-palido` `#C3CDA4` al 55 %) da (210, 215, 195), 9 %: se lee como oliva y sigue separado de la terracota |
+| 2a | **«+1 ruta»** | **Aceptado.** Natural en singular; con 4 caminos se lee «vía Worker A · disponible / vía Worker B / vía Worker C / +1 ruta», también a 390 en la hoja. Con 5 caminos («+2 rutas») las filas pasan a «vía Cola → Worker A…», porque Cola deja de estar en todos los caminos. Es correcto |
+| 2b | **«+N rutas o más»** | **Requiere ajuste.** Con una malla con ciclos (109 601 caminos simples reales) se ve «**+9997 rutas o más**»: el número sale del tope interno de enumeración (10 000 − 3), aparenta una precisión que no existe y el «+» con «o más» es redundante. Es inalcanzable en diagramas reales, pero el texto no debe exponer el tope |
+| 3 | **N3** (Requisito + piel) | **Aceptado y cerrado.** Por fotograma se cuentan 7 anillos de salida para 8 conexiones (el Requisito, sin él) en el editor con labs, en el editor con labs apagado, en Present y en el Viewer (Share → `s/`). La conexión API → Auth lleva un solo anillo, el de Requisito, y no se confunde con el estado. La exportación (SVG/PNG) sigue como en v98: sin marcas (FASE 5). Coherente en todas las superficies |
+| 4 | **Comportamiento principal** | **PASS** a 1440, 1440 + piel y 390: disponible → halo oliva en las dos ramas; cae A → anillo en Worker A, rama A terracota y rama B oliva, **sin** barrido; cae B (cambio real de ruta) → un barrido único y anillo en Worker B; Requisito y Conexión nunca reciben funda; la timeline sigue la reproducción (0 → 100 %), queda quieta en pausa (44,444 % un segundo después) y ⏭/⏮ la llevan a 66,667 % / 33,333 %; Present reproduciendo: 0 fundas; Viewer reproduciendo: 0 fundas y no carga `flow-semantics.js`; exportar PNG/SVG en plena reproducción: sin fundas ni colores de la ruta; sin Undo y sin errores de consola |
+
+**Cambios exactos que se piden** (sin contrato nuevo; los dos caben en las decisiones 243–244):
+1. `js/render.js`, `ROUTE_MARK.claro.halo`: `"rgba(78,90,63,.20)"` → `"rgba(195,205,164,.55)"` (oliva pálido del sistema). Crema, oscuro y la
+   terracota de los tres temas no cambian. Hay que actualizar: la nota de la decisión 244, el umbral de «claro» en `-4-browser.cjs` (el oliva
+   tiene que medirse como oliva, no solo distinto) y una comprobación vm del color de claro en D1.
+2. `js/editor-scenarios.js`, `scFlowTrackView`: si `d.paths.exact` es falso, la última fila dice «**Más de 10 000 rutas**» (el total, con el
+   tope formateado y sin «+N»). El caso exacto sigue igual: «+N rutas» / «+1 ruta». Hay que actualizar: el texto de la decisión 243, un caso en
+   C4 (malla con ciclos por encima del tope) y una mutación que lo vigile.
+
+Después del ajuste: repetir solo `-4.test.cjs`, `-4-mutations.cjs` y `-4-browser.cjs` (y regenerar `undo4`), y pasar a READY FOR COMMIT.
+
+**Decisiones cerradas por esta QA**: N3 (decisión 244, regla de marca estática sin bandera); «+1 ruta» (decisión 243); el comportamiento de
+lienzo y timeline de las decisiones 241, 242 y 244 (oliva / terracota / barrido solo en frontera / anillo local / Requisito y Conexión
+estables / nada en Present, Viewer ni exportación). **Quedan abiertas hasta el ajuste**: el color del halo en claro y el texto del recuento
+inexacto.
+
+### Ajustes post-QA (2026-10-20) — aplicados · READY FOR COMMIT
+
+Solo los dos cambios pedidos. La semántica de FASE 4, D5, D-Ruta, AVAILABLE / UNAVAILABLE / NO_PATH, `observedFlow` y N3 no cambian.
+
+| # | Ajuste | Cambio | Cobertura nueva |
+|---|---|---|---|
+| 1 | Halo en claro | `js/render.js`: `ROUTE_MARK.claro.halo` pasa de `"rgba(78,90,63,.20)"` a `"rgba(195,205,164,.55)"` (oliva pálido del sistema). Crema, oscuro y las tres terracotas, iguales | vm D1: el trazo del halo en claro es `rgba(195,205,164,.55)`, mismo grosor y sin discontinuo; la terracota de claro y el halo de crema no cambian. Chrome: en claro (plano y piel, 1440 y 390) el halo mide (212, 218, 197), tono 77°, saturación 10 % (antes 2 %), Δ 21 con la terracota. Mutación U36 |
+| 2 | Recuento no exacto | `js/editor-scenarios.js`, `scFlowTrackView`: si el recuento no es exacto, la última fila es exactamente «Más de 10 000 rutas» (`SC_FLOW_WORDS.tooMany`). Exacto: «+1 ruta» / «+N rutas», como antes. Desaparece «o más» | vm C4b: malla con ciclos (109 601 caminos) → «Más de 10 000 rutas», sin «+N», sin «o más» y sin el tope menos las filas; E1: el texto existe y «o más» ya no. Chrome (1440 y 390): «+1 ruta», «+2 rutas» y «Más de 10 000 rutas», filas enteras a la vista. Mutaciones U34 (vuelve «+N … o más») y U35 (lo no exacto como exacto) |
+
+Docs: decisiones 243 (texto del recuento no exacto) y 244 (colores del halo por tema) y `.ai/ARCHITECTURE.md`. `undo4` regenerado
+(devuelve los cinco archivos exactos a `ae0d619`).
+
+**Resultados finales**:
+- vm de FASE 4: **35/35**. Mutaciones: **36/36**.
+- Suites dirigidas: FASE 1/2/3, STEP-REVERSE-002/003, 019.4b, 019.4a, D6, FLOW-FADE, HIT-TEST, PRSKIN + FASE 4: **282/282**.
+- Chrome real (`-4-browser.cjs`): **114/114**:
+  - 1440 y 390;
+  - claro, crema y oscuro, con y sin piel;
+  - halo claro;
+  - recuento;
+  - edición, reproducción, pausa y saltos;
+  - labs apagado = `ae0d619` píxel a píxel (lienzo y cabecera);
+  - Present, reducir movimiento y SW v98 → v99.
+- vm completa en el clon con commit desechable: **1530 / 83 fallos = el mismo conjunto de la base** (1495/83). 0 nuevos, 0 arreglados. No se lanzaron las 46 suites de navegador.
+
+**Decisiones cerradas** (QA del PO + ajustes):
+- N3 (244);
+- «+1 ruta» y «Más de 10 000 rutas» (243);
+- halo de claro `rgba(195,205,164,.55)` (244);
+- comportamiento de lienzo y timeline (241, 242 y 244).
+
 ## Handoff
 
-### Estado tras FASE 3 (2026-10-20)
+### Estado tras FASE 4 (2026-10-20)
+
+```
+SEMANTIC SCENARIOS — FASE 4 (Scenario Experience)
+BASE:      fluyo ae0d619 (= origin/main, producción v98) · fluyo-mcp 497c81e (sin cambios)
+ESTADO:    READY FOR PUSH · commit en main (1 por delante de origin) · sin push · sin deploy
+CACHE:     v99 · DECISIONES: 241–244 (cerradas)
+FASE 4:    vm 35/35 · mutaciones 36/36 · Chrome 114/114 (1440 y 390, claro/crema/oscuro con y sin piel, recuento, labs off = v98, Present, reducir movimiento, SW v98 → v99)
+DIRIGIDAS: 282/282 · mutaciones antiguas 26 + 18 + 25 + 16 · navegador FASE 3 47/47, 019.4b 49/49, 019.2 85/85
+SUITE:     1530 / 83 fallos (base 1495 / 83 en el mismo entorno) · 0 nuevos
+```
+
+### Próximo paso concreto
+
+1. Commit hecho (sin `.ai/tasks/FLUYO-019.4.md` ni `.ai/tasks/FLUYO-STEP-REVERSE-003.md`); fluyo-mcp no cambia.
+2. Con el OK del PO: push y comprobar que fluyo.space sirve v99. Siguiente CACHE libre: v100.
+3. FASE 5 y FASE 6 no se empiezan sin autorización.
+
+### Estado tras FASE 3 (2026-10-20; histórico)
 
 ```
 SEMANTIC SCENARIOS — FASE 3 (Story Observed Flow)
@@ -1019,7 +1196,7 @@ NAVEGADOR: 019-2 85/85 · 019.4b 49/49 (dirigido; no las 46 suites)
 MCP:       sync:kernel · check:kernel OK · 757/757 (sin commit)
 ```
 
-### Próximo paso concreto
+### Próximo paso tras FASE 3 (histórico; cumplido en `544fd4b`, publicado en v96)
 
 FASE 3 está **aprobada por el PO** (QA del 2026-10-20, § FASE 3 · QA del PO).
 

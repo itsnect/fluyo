@@ -807,3 +807,21 @@ editor-scenarios.js      bloque «Ruta observada»: scFlowModel (sin DOM) → sc
 - Elegir o quitar la ruta: una entrada de Undo (`pushUndo` + `setObservedFlowIn`); borrar un extremo, la misma entrada que el borrado (cascada del dominio).
 - No pinta nada en el lienzo, no hay timeline y no toca Viewer, Present, exportación ni la autoría del MCP (FASE 4 y FASE 5). El MCP solo sincroniza el kernel: passthrough y `delete_node` informa `cascade.observedFlows`.
 - Decisiones 230–233. Pruebas: `test/fluyo-scenarios-semantics-3.test.cjs` (vm: kernel, derivación con el reloj visible, editor con `state.js` y `selection.js` reales, estático y alcance), `-mutations.cjs` (25), `-browser.cjs` (Chrome real a 1440 y 390, labs apagado frente a v95, SW v95 → v96). Los alcances de slices anteriores descuentan FASE 3 con `test/fluyo-scenarios-semantics-3-undo.cjs`.
+
+## Experiencia de la ruta observada (SCENARIOS-SEMANTICS-001, FASE 4)
+
+```
+flow-semantics.js        flowRoute(page, s, t) → {status: ROUTE|NO_PATH, nodes, edges:[{id, from, to, depth}], maxDepth}
+                         routeEdgeStates(route, states) → {edgeId: AVAILABLE|UNAVAILABLE}
+                         routeTimeline(page, route, events, end) → {start, final, frontiers, end, instants, segments, marks} | null
+                         routePaths(route, limit) → {paths, total, exact, mustPass}            (nada cambia el estado de la ruta)
+editor-scenarios.js      scFlowVisibleEnd (fin visible = FluyoStory.isFinished) · scFlowRouteData (memo por base, página y par)
+                         scFlowTrackView → #scFlowTrack / #scFlowEnds / #scFlowRows   ·   scFlowOverlay → scenarioRuntime.flow
+render.js                drawRouteSleeve (bajo la línea pintada, en drawEdge) · drawRouteNodeMarks (en drawScenarioNodeOverlay)
+                         N3: con la piel, sin anillo de salida donde se pinta el anillo de Requisito (no al exportar)
+```
+
+- Todo derivado de estructura + Behaviors + Trace VISIBLE (la base de FASE 3); nada se persiste ni apila Undo (N3/B6). Decisiones 241–244.
+- La línea de tiempo y las filas viven en `#scFlow`, bajo el estado (orden de D6). Edición: completa y sin cursor. Reproduciendo: cursor = `cursorVirtual / fin visible`; pausa, ⏮/⏭ y terminada lo mueven. No es un control de salto.
+- El lienzo solo pinta la ruta reproduciendo, con labs, con par y con ruta (NO_PATH no pinta fundas), y nunca en Present, en el Viewer ni al exportar (FASE 5). Sin `scenarioRuntime.flow`, `render()` es el de v98 operación a operación.
+- Pruebas: `test/fluyo-scenarios-semantics-4.test.cjs` (vm: derivación con oráculos, herramienta y lienzo del editor, pintor con un lienzo que registra operaciones frente a `ae0d619`, estático y alcance), `-mutations.cjs` (36), `-browser.cjs` (Chrome real a 1440 y 390, claro/crema/oscuro con y sin piel, recuento de rutas, labs apagado = v98, Present, reducir movimiento, SW v98 → v99). Los alcances de slices anteriores descuentan FASE 4 con `test/fluyo-scenarios-semantics-4-undo.cjs`.

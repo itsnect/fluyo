@@ -600,7 +600,11 @@ function scTick() {
 
 function buildScenarioRenderState() {
   if (!scPlayback) return null;
-  return FluyoStory.renderState(scPlayback, scActiveScenario(), scNow());
+  const rs = FluyoStory.renderState(scPlayback, scActiveScenario(), scNow());
+  /* SCENARIOS-SEMANTICS-001 FASE 4: lo que el lienzo pinta de la ruta observada (null sin labs, sin ruta o en Present) */
+  const flow = scFlowOverlay();
+  if (flow) rs.flow = flow;
+  return rs;
 }
 
 /* ─────────── FLUYO-018.18: pausar, reanudar y saltar entre momentos ───────────
@@ -1062,6 +1066,13 @@ const SC_FLOW_WORDS = {
   noPair: "Elige origen y destino",
   missing: "Un extremo de la ruta ya no existe",
   gone: "—",
+  /* FASE 4: línea de tiempo y filas (los del prototipo validado por el PO; § 3.1 y D6) */
+  short: { AVAILABLE: "disponible", UNAVAILABLE: "no disponible" },
+  none: "ninguno",
+  via: "vía ",
+  more: " rutas",
+  oneMore: " ruta",
+  tooMany: "Más de 10 000 rutas",   // recuento no exacto (QA del PO): nunca un número derivado del tope interno
 };
 let scFlowBase = { key: null, value: null }, scFlowLast = null, scFlowPending = null;
 function scFlowLabs() {
@@ -1075,7 +1086,7 @@ function scFlowTimeline(pg, sc) {
   if (scPlayback && isScenarioPlaybackActive()) {
     if (scFlowBase.key !== scPlayback) {
       const pb = scPlayback;
-      scFlowBase = { key: pb, value: { ok: true, events: pb.trace.events, timeOf: (st) => FluyoStoryClock.visibleAt(pb, st) } };
+      scFlowBase = { key: pb, value: { ok: true, events: pb.trace.events, timeOf: (st) => FluyoStoryClock.visibleAt(pb, st), end: scFlowVisibleEnd(pb.trace.events, pb.stepMeta) } };
     }
     return scFlowBase.value;
   }
@@ -1087,11 +1098,91 @@ function scFlowTimeline(pg, sc) {
     if (run.ok) {
       const sch = FluyoStoryClock.schedule(sc, meta);
       const events = sch.shifted ? FluyoStoryClock.visibleTrace(run.trace, sch.byStep).events : run.trace.events;
-      value = { ok: true, events, timeOf: (st) => (sch.byStep[st.id] !== undefined ? sch.byStep[st.id] : st.at) };
+      value = { ok: true, events, timeOf: (st) => (sch.byStep[st.id] !== undefined ? sch.byStep[st.id] : st.at), end: scFlowVisibleEnd(events, meta) };
     }
     scFlowBase = { key, value };
   }
   return scFlowBase.value;
+}
+/* FASE 4 (D6): fin VISIBLE de la Historia = el instante en que la reproducción queda «terminada» (FluyoStory.isFinished): el
+   último envío llega y su señal breve se apaga (viaje + TERMINAL_MS) y el último efecto de elemento acaba. Las mismas
+   duraciones que el Playback (travelMs es la de story-clock.js; el efecto, visualDurationMs del Step). */
+function scFlowVisibleEnd(events, meta) {
+  const PB = FluyoScenarioPlayback;
+  let end = 0;
+  for (const ev of events) {
+    let d = 0;
+    if (ev.type === "send_started") d = FluyoStoryClock.travelMs(meta, ev.stepId) + PB.TERMINAL_MS;
+    else if (ev.type === "state_changed" || ev.type === "event_occurred") {
+      const fx = meta && meta[ev.stepId] && meta[ev.stepId].nodeEffects, ms = fx && fx.visualDurationMs;
+      d = typeof ms === "number" && Number.isFinite(ms) && ms > 0 ? ms : PB.NODE_EFFECT_CUE_MS;
+    }
+    end = Math.max(end, ev.at + d);
+  }
+  return end;
+}
+/* ─────────── FASE 4 — Experiencia de la ruta (D6, § Pintado, § 3.1; decisiones 241–244) ───────────
+   Sobre la MISMA base que el estado (Trace visible y fin visible): la ruta estructural, la línea de tiempo y las filas
+   (flow-semantics.js). Se memoiza por base, página y par; nada se escribe en el documento ni en la pila de Undo. */
+const SC_FLOW_ROWS = 3, SC_FLOW_FADE_MS = 450, SC_FLOW_SWEEP_MS = 900, SC_FLOW_PULSE_MS = 1100;
+let scFlowRouteMemo = { base: null, value: null };
+function scFlowRouteData(pg, sc) {
+  const pair = FluyoFlow.resolveObservedFlow(pg, sc);
+  if (pair.state !== FluyoFlow.PAIR) return null;
+  const base = scFlowTimeline(pg, sc);
+  if (!base.ok) return null;
+  const m = scFlowRouteMemo;
+  if (m.base === base && m.page === pg && m.source === pair.source && m.target === pair.target && m.edges === pg.edges.length && m.nodes === pg.nodes.length) return m.value;
+  const route = FluyoFlow.flowRoute(pg, pair.source, pair.target);
+  const tl = FluyoFlow.routeTimeline(pg, route, base.events, base.end);
+  const depth = {};
+  for (const e of route.edges) depth[e.id] = e.depth;
+  const value = { route, tl, depth, paths: tl ? FluyoFlow.routePaths(route, SC_FLOW_ROWS) : null };
+  scFlowRouteMemo = { base, page: pg, source: pair.source, target: pair.target, edges: pg.edges.length, nodes: pg.nodes.length, value };
+  return value;
+}
+/* Vista de la línea de tiempo y de las filas en el instante t (sin DOM). Sin timeline (NO_PATH, sin par): null. */
+function scFlowTrackView(d, t, playing) {
+  if (!d || !d.tl) return { track: null, rows: [] };
+  const tl = d.tl, pct = (v) => (Math.min(1, Math.max(0, v / tl.end)) * 100).toFixed(3);
+  const W = SC_FLOW_WORDS, now = tl.instants[FluyoFlow.routeInstantAt(tl, t)];
+  const track = {
+    segments: tl.segments.map((s) => ({ left: pct(s.from), width: (pct(s.to) - pct(s.from)).toFixed(3), state: s.status })),
+    marks: tl.marks.map((k) => ({ left: pct(k.at), frontier: k.frontier })),
+    start: W.short[tl.start], count: tl.frontiers ? String(tl.frontiers) : W.none, final: W.short[tl.final],
+    cursor: playing ? pct(t) : null,
+  };
+  const rows = [];
+  if (d.paths && d.paths.total >= 2) {
+    const must = new Set(d.paths.mustPass), name = (ids) => ids.map((id) => scNodeFallback(id)).join(" → ");
+    for (const p of d.paths.paths) {
+      const via = p.filter((id) => !must.has(id)), state = p.every((id) => now.states[id] === "UP") ? FluyoFlow.AVAILABLE : FluyoFlow.UNAVAILABLE;
+      rows.push({ state, text: (via.length ? W.via + name(via) : name(p)) + " · " + W.short[state], title: name(p) });
+    }
+    const more = d.paths.total - d.paths.paths.length;
+    if (!d.paths.exact) rows.push({ state: "", text: W.tooMany, title: "" });
+    else if (more > 0) rows.push({ state: "", text: "+" + more + (more === 1 ? W.oneMore : W.more), title: "" });
+  }
+  return { track, rows };
+}
+/* Lo que el lienzo pinta de la ruta en este fotograma (render.js lo recibe en scenarioRuntime.flow). Solo reproduciendo, con la
+   herramienta (labs, Flujo, eventos), con par y con ruta (NO_PATH no pinta fundas, D-Ruta), y nunca en Present (FASE 5, D8).
+   Todo sale del cursor VIRTUAL: en pausa el dibujo queda quieto y un salto da el de una reproducción continua (§ T1). */
+function scFlowOverlay() {
+  if (!scPlayback || !isScenarioPlaybackActive() || (typeof presenting !== "undefined" && presenting)) return null;
+  const pg = P(), sc = scActiveScenario();
+  if (!scFlowShown(pg, sc)) return null;
+  let d = null;
+  try { d = scFlowRouteData(pg, sc); } catch (err) { if (err && typeof err.code === "string") return null; throw err; }
+  if (!d || !d.tl) return null;
+  const t = scPlayback.cursorVirtual || 0, inst = d.tl.instants, i = FluyoFlow.routeInstantAt(d.tl, t), now = inst[i];
+  const k = i > 0 ? Math.min(1, Math.max(0, (t - now.at) / SC_FLOW_FADE_MS)) : 1;
+  const edges = {};
+  for (const id of Object.keys(now.edges)) edges[id] = { cls: now.edges[id], prev: i > 0 ? inst[i - 1].edges[id] : now.edges[id], k };
+  const sweep = now.frontier && t - now.at < SC_FLOW_SWEEP_MS ? { status: now.status, p: (t - now.at) / SC_FLOW_SWEEP_MS, depth: d.depth, layers: d.route.maxDepth } : null;
+  const pulses = {};
+  for (let j = i; j >= 0 && t - inst[j].at < SC_FLOW_PULSE_MS; j--) for (const c of inst[j].changes) if (!(c.nodeId in pulses)) pulses[c.nodeId] = { to: c.to, k: (t - inst[j].at) / SC_FLOW_PULSE_MS };
+  return { edges, sweep, pips: pg.nodes.filter((n) => now.states[n.id] === "DOWN").map((n) => n.id), pulses };
 }
 /* Modelo de la herramienta (sin DOM): qué se ve, con qué valores y qué texto. null = la herramienta no existe. */
 function scFlowModel() {
@@ -1143,15 +1234,21 @@ function scFlowModel() {
     m.word = (playing ? "" : SC_FLOW_WORDS.atStart) + SC_FLOW_WORDS[m.status];
     m.why = m.status === FluyoFlow.AVAILABLE && m.explicitPath === false ? SC_FLOW_WORDS.byDefault : "";
   }
+  /* FASE 4: línea de tiempo (edición: completa y sin cursor; reproduciendo: con el cursor) y filas de la ruta */
+  let d = null;
+  try { d = m.status && m.status !== FluyoFlow.NO_PATH ? scFlowRouteData(pg, sc) : null; } catch (err) { if (!err || typeof err.code !== "string") throw err; }
+  Object.assign(m, scFlowTrackView(d, playing ? scPlayback.cursorVirtual || 0 : 0, playing));
   return m;
 }
 function scRenderFlow() {
   const box = $("scFlow");
   if (!box) return;
   const m = scFlowModel();
-  const sig = m ? JSON.stringify([m.from, m.to, m.fromOptions, m.toOptions, m.word, m.why, m.status, m.playing]) : "hidden";
+  scRenderFlowCursor(m);
+  const sig = m ? JSON.stringify([m.from, m.to, m.fromOptions, m.toOptions, m.word, m.why, m.status, m.playing, m.track && Object.assign({}, m.track, { cursor: null }), m.rows]) : "hidden";
   if (sig === scFlowLast) return;
   scFlowLast = sig;
+  scRenderFlowTrack(m);
   box.hidden = !m;
   if (!m) return;
   for (const end of ["from", "to"]) {
@@ -1169,6 +1266,45 @@ function scRenderFlow() {
   box.dataset.state = m.status || (m.pair ? m.pair.state : "");
   $("scFlowWord").textContent = m.word;
   $("scFlowWhy").textContent = m.why ? " · " + m.why : "";
+}
+/* FASE 4: tramos, marcas, extremos y filas (solo cuando cambian) y el cursor (cada fotograma, solo si se mueve). */
+function scRenderFlowTrack(m) {
+  const track = m && m.track, rows = (m && m.rows) || [];
+  $("scFlowTrack").hidden = !track;
+  $("scFlowEnds").hidden = !track;
+  if (track) {
+    $("scFlowSegs").replaceChildren(...track.segments.map((s) => {
+      const el = scEl("span", "scFlowSeg");
+      el.dataset.state = s.state;
+      el.style.left = s.left + "%";
+      el.style.width = s.width + "%";
+      return el;
+    }));
+    $("scFlowMarks").replaceChildren(...track.marks.map((k) => {
+      const el = scEl("span", k.frontier ? "scFlowMark scFlowFrontier" : "scFlowMark");
+      el.style.left = k.left + "%";
+      return el;
+    }));
+    $("scFlowStart").textContent = track.start;
+    $("scFlowCount").textContent = track.count;
+    $("scFlowFinal").textContent = track.final;
+  }
+  $("scFlowRows").hidden = !rows.length;
+  $("scFlowRows").replaceChildren(...rows.map((r) => {
+    const li = scEl("li", r.state ? "scFlowRow" : "scFlowRow scFlowMore", r.text);
+    if (r.state) li.dataset.state = r.state;
+    if (r.title) li.title = r.title;
+    return li;
+  }));
+}
+let scFlowCursorLast;   // sin valor: el primer pintado siempre escribe (también «oculto»)
+function scRenderFlowCursor(m) {
+  const at = m && m.track ? m.track.cursor : null;
+  if (at === scFlowCursorLast) return;
+  scFlowCursorLast = at;
+  const el = $("scFlowCursor");
+  el.hidden = at === null;
+  if (at !== null) el.style.left = at + "%";
 }
 /* Elegir un extremo. «Automática» quita la ruta guardada (si la hay). Un nodo escribe los DOS extremos: el otro es el que
    muestra su selector (el guardado o el automático); si el otro no tiene valor, la elección espera a que lo tenga. */

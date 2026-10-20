@@ -39,7 +39,7 @@ test("alcance: kernel (model, config, motor, playback, story-playback, integrida
 
 test("story-clock.js: fuera del kernel, cargado por el editor y el Viewer tras story-playback.js, precacheado; CACHE v77", () => {
   const sw = read("sw.js"), html = read("index.html"), viewer = read("s/index.html");
-  assert.match(sw, /const CACHE = "fluyo-static-v98";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v99";/);
   assert.ok(sw.includes('"./js/story-clock.js"'), "precacheado");
   assert.ok(html.indexOf('src="js/story-playback.js"') < html.indexOf('src="js/story-clock.js"') && html.indexOf('src="js/story-clock.js"') < html.indexOf('src="js/editor-scenarios.js"'), "editor: tras story-playback y antes de editor-scenarios");
   assert.ok(viewer.indexOf('src="../js/story-playback.js"') < viewer.indexOf('src="../js/story-clock.js"') && viewer.indexOf('src="../js/story-clock.js"') < viewer.indexOf('src="../js/viewer.js"'), "Viewer: tras story-playback y antes de viewer.js");
@@ -208,7 +208,8 @@ test("editor-scenarios.js / interaction.js: el reloj solo decide el tiempo; Espa
   const es = read("js/editor-scenarios.js"), it = read("js/interaction.js"), rt = read("js/editor-runtime.js");
   assert.ok(between(es, "function scRun(opts) {", "\n}\n").includes("FluyoStoryClock.start(P(), sc, scNow())"), "misma receta (FluyoStory.start dentro de FluyoStoryClock.start, 018.21), reloj de la Historia");
   assert.ok(between(es, "function scTick() {", "\n}\n").includes("if (scIsPaused()) return;"), "en pausa no hay fotogramas propios");
-  assert.ok(es.includes("return FluyoStory.renderState(scPlayback, scActiveScenario(), scNow());"));
+  /* SCENARIOS-SEMANTICS-001 FASE 4 añade la ruta observada al mismo renderState (const rs = …; rs.flow): la proyección sigue siendo esta */
+  assert.ok(between(es, "function buildScenarioRenderState() {", "\n}\n").includes("FluyoStory.renderState(scPlayback, scActiveScenario(), scNow());"));
   assert.ok(between(es, "function scSeekMoment(i) {", "\n}\n").includes("FluyoStoryClock.seek(scClock, performance.now(), P(), sc, i)"), "saltar = la misma receta con el origen desplazado");
   assert.ok(!/scStatus = "paused"/.test(es), "«en pausa» no es un estado nuevo de scStatus");
   assert.match(rt, /if\(typeof scPlaceNow==="function"\) scPlaceNow\(\);/, "el rótulo se coloca en cada fotograma");

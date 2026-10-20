@@ -25,7 +25,8 @@ const { undo4b } = require("./fluyo-019-4b-undo.cjs");   /* FLUYO-019.4b cambia 
 const { undo3: undo3only } = require("./fluyo-scenarios-semantics-3-undo.cjs");   /* SCENARIOS-SEMANTICS-001 FASE 3 cambia a propósito model.js, document-integrity.js, story-authoring.js, flow-semantics.js, editor-scenarios.js, index.html, styles.css y sw.js (precache): se deshace aquí, antes que todo lo demás; su alcance lo vigila test/fluyo-scenarios-semantics-3.test.cjs */
 const { undoReverse } = require("./fluyo-step-reverse-002-undo.cjs");   /* FLUYO-STEP-REVERSE-002 cambia a propósito model.js, scenario-engine.js, story-playback.js, scenario-playback.js, story-authoring.js, document-integrity.js, render.js, editor-scenarios.js y selection.js: se deshace aquí, antes que FASE 3; su alcance lo vigila test/fluyo-step-reverse-002.test.cjs */
 const { undoReverseUi } = require("./fluyo-step-reverse-003-undo.cjs");   /* FLUYO-STEP-REVERSE-003 añade «Invertir sentido» a editor-scenarios.js: se deshace aquí, antes que 002; su alcance lo vigila test/fluyo-step-reverse-003.test.cjs */
-const undo3 = (f, src) => undo3only(f, undoReverse(f, undoReverseUi(f, src)));
+const { undo4 } = require("./fluyo-scenarios-semantics-4-undo.cjs");   /* SCENARIOS-SEMANTICS-001 FASE 4 va encima de STEP-REVERSE-003: se deshace antes; su alcance lo vigila test/fluyo-scenarios-semantics-4.test.cjs */
+const undo3 = (f, src) => undo3only(f, undoReverse(f, undoReverseUi(f, undo4(f, src))));
 const J = (v) => JSON.parse(JSON.stringify(v));
 
 function context(src, files) {
@@ -301,8 +302,8 @@ test("alcance · entre los archivos servidos solo cambian model.js, geometry.js,
   for (const f of ["js/config.js", "js/safe-svg.js", "js/scenario-engine.js", "js/scenario-playback.js", "js/story-playback.js", "js/document-integrity.js", "js/story-authoring.js",
     "js/story-clock.js", "js/skin.js", "js/viewer.js", "js/export.js", "js/state.js", "js/selection.js", "js/editor-scenarios.js", "s/index.html"]) assert.equal(undo4b(f, undo3(f, read(f))), before(f), f);
   const sw = undo3("sw.js", read("sw.js"));
-  assert.match(sw, /const CACHE = "fluyo-static-v98";/);
-  assert.equal(sw.replace('"fluyo-static-v98"', '"fluyo-static-v' + (94 - 1) + '"'), before("sw.js"), "sw.js: solo sube CACHE (sin archivos nuevos)");
+  assert.match(sw, /const CACHE = "fluyo-static-v99";/);
+  assert.equal(sw.replace('"fluyo-static-v99"', '"fluyo-static-v' + (94 - 1) + '"'), before("sw.js"), "sw.js: solo sube CACHE (sin archivos nuevos)");
   /* UNKNOWN sigue fuera (D3): el kernel solo admite UP/DOWN */
   assert.match(read("js/model.js"), /const SCENARIO_STATES=new Set\(\["UP","DOWN"\]\);/);
   assert.match(read("js/scenario-engine.js"), /const VALID_STATES = new Set\(\["UP", "DOWN"\]\);/);

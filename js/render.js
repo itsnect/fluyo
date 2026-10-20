@@ -417,7 +417,7 @@ function drawScenarioNodeOverlay(c,n,t,state,theme,rs){
   if(!rs || !rs.scenarioRuntime) return;
   const cues = nodeRuntimeCues(n, rs.scenarioRuntime);
   const isDown = state === "DOWN";
-  if(!cues.length && !isDown) return;
+  if(!cues.length && !isDown){ drawRouteNodeMarks(c,n,theme,rs); return; }
   const reduced = prefersReducedMotion();
   const box = [n.x-n.w/2-2, n.y-n.h/2-2, n.w+4, n.h+4];
   if(isDown){
@@ -449,6 +449,68 @@ function drawScenarioNodeOverlay(c,n,t,state,theme,rs){
       c.strokeStyle = M.arrow; c.lineWidth = 2.5;
       shapePath(c,n); c.stroke();
     }
+    c.restore();
+  }
+  drawRouteNodeMarks(c,n,theme,rs);
+}
+
+/* ===================== Ruta observada en el lienzo (SCENARIOS-SEMANTICS-001 FASE 4; § Pintado, § T, decisión 244) =====================
+   Pinta lo que dice scenarioRuntime.flow (editor-scenarios.js, scFlowOverlay); sin ese dato no pinta nada. Solo reproduciendo en
+   el editor con la bandera labs: nunca en Present ni en el Viewer (FASE 5) ni al exportar. Requisito y Conexión no tienen
+   funda: su trazo es estable en todo instante (§ Requisito). Oliva = disponible, terracota apagada = no disponible. */
+const ROUTE_MARK={
+  dark :{AVAILABLE:"#C3CDA4", UNAVAILABLE:"#D9825F", halo:"rgba(195,205,164,.30)", haloOff:"rgba(217,130,95,.42)"},
+  crema:{AVAILABLE:"#4E5A3F", UNAVAILABLE:"#B5532F", halo:"rgba(78,90,63,.22)",   haloOff:"rgba(181,83,47,.34)"},
+  claro:{AVAILABLE:"#4E5A3F", UNAVAILABLE:"#B5532F", halo:"rgba(195,205,164,.55)", haloOff:"rgba(181,83,47,.30)"},   /* QA del PO: oliva pálido; el oliva al 20 % se leía gris sobre blanco */
+};
+function routeMark(theme){ return ROUTE_MARK[theme]||ROUTE_MARK.dark; }
+/* Funda de una conexión de la ruta: disponible = halo oliva estático (sin «respiración»); no disponible = terracota fina y
+   discontinua (una señal propia, no la ausencia del halo). */
+function routeSleeve(c,line,cls,alpha,K,zoom){
+  if(alpha<=0) return;
+  c.save(); c.globalAlpha*=alpha; c.lineCap="round"; c.lineJoin="round";
+  if(cls==="AVAILABLE"){ c.strokeStyle=K.halo; c.lineWidth=9/zoom+3; }
+  else { c.strokeStyle=K.haloOff; c.lineWidth=4/zoom+2.5; c.setLineDash([2,6]); }
+  c.beginPath(); traceSegments(c,line); c.stroke();
+  c.restore();
+}
+/* Bajo la línea (como la funda de selección), sobre la línea PINTADA (con la piel, la aterrizada). Desde el instante del cambio
+   la conexión lleva ya la funda de su clase nueva y la anterior se desvanece debajo en SC_FLOW_FADE_MS: en pausa justo en ese
+   instante (un salto) el lienzo ya dice lo mismo que el panel. Si cambia la RUTA, además un barrido único del origen al destino en
+   el color del estado nuevo (nunca con «reducir movimiento»). */
+function drawRouteSleeve(c,e,line,flow,theme,zoom){
+  const r=flow.edges && flow.edges[e.id]; if(!r) return;
+  const K=routeMark(theme);
+  if(r.prev!==r.cls && r.k<1) routeSleeve(c,line,r.prev,1-r.k,K,zoom);
+  routeSleeve(c,line,r.cls,1,K,zoom);
+  const s=flow.sweep;
+  if(!s || !(e.id in s.depth) || prefersReducedMotion()) return;
+  const head=s.p*(s.layers+1)-0.5, w=Math.max(0, 1-Math.abs(s.depth[e.id]+0.5-head)/1.1);
+  if(w<=0) return;
+  c.save(); c.globalAlpha*=0.5*w; c.strokeStyle=K[s.status]; c.lineWidth=7/zoom+2.5; c.lineCap="round"; c.lineJoin="round";
+  c.beginPath(); traceSegments(c,line); c.stroke();
+  c.restore();
+}
+/* Marcas de NODO en el mismo pintor de overlays (un pintor, no un gancho): la transición local de un nodo que cambia (anillo breve
+   del color del estado nuevo, quieto con «reducir movimiento») y la pastilla de «no disponible», que acompaña al oscurecido de
+   siempre sin sustituirlo. Con la piel, sobre la envolvente visible (tapa y lateral incluidos). */
+function drawRouteNodeMarks(c,n,theme,rs){
+  const f=rs.scenarioRuntime.flow; if(!f) return;
+  const K=routeMark(theme), X=nodeSkinExtent(n, rs.skinOn);
+  const x0=X? X.x0 : n.x-n.w/2, y0=X? X.y0 : n.y-n.h/2, x1=X? X.x1 : n.x+n.w/2, y1=X? X.y1 : n.y+n.h/2;
+  const p=f.pulses && f.pulses[n.id];
+  if(p && p.k<1){
+    const grow=prefersReducedMotion()? 6 : 4+14*p.k;
+    c.save(); c.globalAlpha=(1-p.k)*0.9; c.strokeStyle=p.to==="DOWN"? K.UNAVAILABLE : K.AVAILABLE; c.lineWidth=2.2;
+    c.beginPath(); roundRect(c,x0-grow,y0-grow,x1-x0+grow*2,y1-y0+grow*2,10+grow/2); c.stroke();
+    c.restore();
+  }
+  if(f.pips && f.pips.includes(n.id)){
+    const bg=(typeof doc!=="undefined" && doc.customBg)||THEMES[theme].bg;
+    c.save();
+    c.fillStyle=bg; c.beginPath(); c.arc(x1,y0,9,0,Math.PI*2); c.fill();
+    c.fillStyle=K.UNAVAILABLE; c.beginPath(); c.arc(x1,y0,7,0,Math.PI*2); c.fill();
+    c.strokeStyle=bg; c.lineWidth=1.8; c.lineCap="round"; c.beginPath(); c.moveTo(x1-3,y0); c.lineTo(x1+3,y0); c.stroke();
     c.restore();
   }
 }
@@ -931,6 +993,9 @@ function drawEdge(c,e,t,theme,isExport,rs){
     c.save(); c.strokeStyle=M.sleeve; c.lineWidth=10/zoom; c.lineCap="round"; c.lineJoin="round";
     c.beginPath(); traceSegments(c,stroke.line); c.stroke(); c.restore();
   }
+  /* SCENARIOS-SEMANTICS-001 FASE 4: funda de la ruta observada, también bajo la línea (solo la trae una reproducción con labs) */
+  const flow=!isExport && rs.scenarioRuntime && rs.scenarioRuntime.flow;
+  if(flow) drawRouteSleeve(c,e,stroke.line,flow,theme,zoom);
   c.strokeStyle=lineCol; c.lineWidth=EDGE_W;
   c.lineJoin="round";
   if(e.dashed) c.setLineDash([8,7]);
@@ -943,8 +1008,10 @@ function drawEdge(c,e,t,theme,isExport,rs){
      export_diagram del MCP las porten (FASE 5), para que raster, SVG y MCP no difieran. Sin `kind`, nada cambia. */
   const sem=!isExport && typeof edgeSemanticMarks==="function" ? edgeSemanticMarks(e,pts) : null;
   if(sem) drawEdgeSemanticMarks(c,sem,lineCol,(typeof doc!=="undefined" && doc.customBg)||T.bg);
-  /* FLUYO-019.1: anillo de salida (no si hay punta de inicio: ya ocupa ese sitio) */
-  if(rs.skinOn && !e.startArrow && typeof skinEdgePort==="function"){
+  /* FLUYO-019.1: anillo de salida (no si hay punta de inicio: ya ocupa ese sitio). SCENARIOS-SEMANTICS-001 FASE 4 (N3, decisión
+     244): tampoco donde se pinta el anillo de Requisito, para que una conexión no lleve nunca dos anillos casi iguales a 10 px; al
+     exportar no hay marcas (FASE 5) y el anillo de salida sale como en el SVG y en el MCP. */
+  if(rs.skinOn && !e.startArrow && !(sem && sem.ring) && typeof skinEdgePort==="function"){
     const port=skinEdgePort(pts[0], lineCol, rs.skinBg);
     c.beginPath(); traceSegments(c,port.segs);
     c.fillStyle=port.fill; c.fill(); c.strokeStyle=port.stroke; c.lineWidth=port.sw; c.stroke();

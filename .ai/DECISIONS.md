@@ -486,3 +486,35 @@
    - Sin conexión (borrada o con un extremo perdido) la entrada está desactivada: no hay sentido que invertir; el Step se repara con «Elegir otro».
    - No se añade el atajo «Añadir la respuesta» ni ningún otro control. Desktop y móvil usan el mismo menú.
    - **Tests de alcance de slices anteriores**: `test/fluyo-step-reverse-003-undo.cjs` (`undoReverseUi`) deshace 003 sobre `702f269` antes que `undoReverse` (002), como en la decisión 218.
+
+## SCENARIOS-SEMANTICS-001 — Experiencia de la ruta observada (FASE 4)
+241. **Lo que se pinta de una ruta se decide por alcanzabilidad, igual que su estado** (FASE 4, § Pintado; D-Ruta sin cambios). `flowRoute(page, source, target)` (`flow-semantics.js`).
+   - Una conexión FLOWS_TO es «de la ruta» si está en algún recorrido de `source` a `target` que no vuelve a entrar en `source` ni sale de `target`. Las que entran al origen o salen del destino nunca están en un camino simple, así que se excluyen. Un nodo es de la ruta si algún recorrido así pasa por él.
+   - `routeEdgeStates(route, states)`: una conexión es AVAILABLE si está en un recorrido así con TODOS sus nodos UP; si no, UNAVAILABLE. Hay alguna AVAILABLE si y solo si la ruta es AVAILABLE (medido en 400 grafos con un oráculo).
+   - Exacto y O(V + E), sin enumerar caminos. Saber si una conexión está en algún camino SIMPLE es NP-completo en un grafo dirigido: la única diferencia es un ciclo interior de la ruta, que se pinta como parte de ella. Toda conexión de un camino simple está siempre en la ruta.
+   - `depth` (distancia desde el origen del nodo del que sale la conexión) solo ordena el barrido.
+   - NO_PATH exactamente cuando `flowStatus` lo da. Conexión, Requisito y un `kind` desconocido no entran.
+242. **La línea de tiempo de la ruta es derivada y su fin es el fin VISIBLE de la Historia** (FASE 4, D6; N3 de la tarea: nunca se persiste).
+   - `routeTimeline(page, route, events, end)`: el estado en 0 (con lo que se aplica en 0, el mismo que «Al inicio») y en cada instante visible en que cambia algún nodo. Los eventos del mismo instante se aplican juntos.
+   - Marcas: **frontera** (cambia el estado de la ruta) → barra; **cambio de un nodo de la ruta sin frontera** → punto; nodos fuera de la ruta → nada. En 0 nunca hay frontera (no hay un «antes» visible).
+   - Fin = el instante en que la reproducción queda «terminada» (`FluyoStory.isFinished`): el último envío llega y su señal breve se apaga (viaje + `TERMINAL_MS`) y acaba el último efecto de elemento (`scFlowVisibleEnd`, las mismas duraciones que el Playback; medido en 200 Historias aleatorias). No «último cambio + 1,5 s» del prototipo.
+   - Sin par, ENDPOINT_MISSING o NO_PATH: no hay línea de tiempo. Un solo estado: un tramo y «Cambios de la ruta: ninguno».
+   - Edición: completa y sin cursor. Reproduciendo: cursor en el instante visible; pausa, ⏮/⏭ y terminada lo mueven. No es un control de salto.
+   - Se memoiza por base (Trace visible), página y par; el DOM de tramos, marcas y filas solo se escribe si cambia, y el cursor solo si se mueve.
+243. **Filas de la ruta: caminos simples, como mucho 3 y «+N rutas»** (FASE 4, § 3.1).
+   - `routePaths(route, limit)`: caminos simples de NODOS (dos conexiones paralelas no son dos filas), en orden del documento. Solo aparecen con 2 caminos o más.
+   - Nombre: «vía » + los nodos que distinguen el camino, es decir, los que no están en todos los caminos (`mustPass`, calculado sin enumerar: un nodo está en todos si al quitarlo el destino deja de ser alcanzable). Si no tiene ninguno, la cadena entera. El `title` lleva siempre la cadena entera.
+   - Estado de la fila en el instante: «disponible» si todos sus nodos están UP; si no, «no disponible». Sin contador «por defecto» por fila (la procedencia vive en la línea de estado).
+   - «+N rutas» / «+1 ruta» es exacto: sin ciclos se cuenta por programación dinámica (128 caminos sin enumerar); con ciclos, por enumeración hasta `PATH_BUDGET` = 10 000. Por encima, el recuento no es exacto y la última fila dice exactamente «Más de 10 000 rutas» (QA del PO: nunca «+N … o más» ni un número derivado del tope; inalcanzable en diagramas reales). El estado nunca depende de esto, y «Rutas truncadas» del prototipo desaparece.
+   - Nunca en el Viewer ni en Present.
+244. **El lienzo pinta la ruta solo reproduciendo en el editor con labs, desde un dato que entrega el editor (`scenarioRuntime.flow`)** (FASE 4, § Pintado, § Requisito, § T, N3 de 019.4b).
+   - `scFlowOverlay()` lo construye cuando hay reproducción (también en pausa y terminada), la herramienta existe (labs, Flujo, eventos), hay par y la ruta no es NO_PATH, y **no** en Present (FASE 5, D8). Todo sale del cursor VIRTUAL: en pausa el dibujo queda quieto y un salto da lo mismo que la reproducción continua en ese instante.
+   - Pintor (`render.js`), siempre bajo la línea PINTADA (con la piel, la aterrizada de la 213) y fuera de la exportación:
+     - AVAILABLE: halo oliva estático (sin «respiración»): `rgba(78,90,63,.22)` en crema y `rgba(195,205,164,.30)` en oscuro. En claro, el oliva pálido del sistema (`--c-oliva-palido` al 55 %, `rgba(195,205,164,.55)`; QA del PO), porque el oliva al 20 % se leía gris sobre blanco (saturación ≈ 2 %). Medido en Chrome: tono 77°, saturación 10 %, separado de la terracota (Δ 21);
+     - UNAVAILABLE: funda terracota apagada, fina y discontinua;
+     - cambio de clase sin cambio de ruta: desde el instante del cambio va la clase nueva y la anterior se desvanece debajo en 450 ms. Así, en pausa tras un salto, el lienzo dice lo mismo que el panel;
+     - cambio de RUTA (frontera): además, un barrido único de 900 ms del origen al destino, por capas, en el color nuevo. Nunca con «reducir movimiento».
+   - Nodo, en el mismo pintor de overlays (`drawScenarioNodeOverlay` → `drawRouteNodeMarks`): transición local de 1100 ms (anillo del color del estado nuevo, quieto con «reducir movimiento») y pastilla de «no disponible» en la esquina superior derecha de lo que se ve (con la piel, `skinExtent`). Acompaña al oscurecido de siempre; no lo sustituye.
+   - Requisito y Conexión no tienen funda: su trazo es idéntico en todo instante (§ Requisito). El estado del nodo requerido se ve solo en ese nodo.
+   - **N3**: con la piel, donde se pinta el anillo de Requisito no se pinta el anillo de salida (como con una punta de inicio): una conexión nunca lleva dos anillos casi iguales a 10 px. Al exportar no hay marcas (FASE 5), así que el anillo de salida sale como en el SVG y en el MCP. Es una regla de las marcas estáticas, sin bandera (D10): también en Present y en el Viewer, y solo afecta a Requisitos con la piel.
+   - Sin `flow`, `render()` es el de v98 operación a operación (medido con los ejemplos, en plano y con la piel, también reproduciendo). Con labs apagada, el lienzo y la cabecera de Historias son idénticos a v98 píxel a píxel.

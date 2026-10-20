@@ -376,7 +376,7 @@ test("alcance: motor, kernel, model.js, render y formato sin cambios; solo story
 });
 test("release: CACHE v79 y story-clock.js en el precache (lo cargan el editor y el Viewer)", () => {
   const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v98";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v99";/);
   assert.ok(sw.includes('"./js/story-clock.js"'));
   assert.ok(read("index.html").includes('<script src="js/story-clock.js"></script>') && read("s/index.html").includes('<script src="../js/story-clock.js"></script>'));
 });

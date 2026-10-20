@@ -742,6 +742,9 @@ try{ if(localStorage.getItem("fluyo.ui.props")==="folded") document.documentElem
         <section id="scFlow" class="scFlow" aria-label="Ruta observada" hidden>
           <div class="scFlowHead"><span class="scFlowKicker">Ruta observada</span><label class="scFlowPick"><span class="srOnly">Origen</span><select id="scFlowFrom"></select></label><span class="scFlowArrow" aria-hidden="true">→</span><label class="scFlowPick"><span class="srOnly">Destino</span><select id="scFlowTo"></select></label></div>
           <p id="scFlowState" class="scFlowState" role="status"><span id="scFlowWord"></span><span id="scFlowWhy"></span></p>
+          <div id="scFlowTrack" class="scFlowTrack" aria-hidden="true" hidden><span id="scFlowSegs" class="scFlowSegs"></span><span id="scFlowMarks" class="scFlowMarks"></span><span id="scFlowCursor" class="scFlowCursor" hidden></span></div>
+          <dl id="scFlowEnds" class="scFlowEnds" hidden><div><dt>Inicio</dt><dd id="scFlowStart"></dd></div><div><dt>Cambios de la ruta</dt><dd id="scFlowCount"></dd></div><div><dt>Final</dt><dd id="scFlowFinal"></dd></div></dl>
+          <ul id="scFlowRows" class="scFlowRows" hidden></ul>
         </section>
         <button id="scPaletteToggle" type="button" aria-expanded="false">Eventos · 0</button>
       </header>

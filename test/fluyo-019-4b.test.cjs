@@ -29,6 +29,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs"), path = require("node:path"), vm = require("node:vm");
 const { execFileSync } = require("node:child_process");
 const { undo4b, BASE4B } = require("./fluyo-019-4b-undo.cjs");
+const { undo3 } = require("./fluyo-scenarios-semantics-3-undo.cjs");   /* SCENARIOS-SEMANTICS-001 FASE 3 cambia a propósito model.js, document-integrity.js, story-authoring.js, flow-semantics.js, editor-scenarios.js, index.html, styles.css y sw.js (precache): se deshace aquí, antes que todo lo demás; su alcance lo vigila test/fluyo-scenarios-semantics-3.test.cjs */
 const root = path.resolve(__dirname, "..");
 const gitRoot = process.env.FLUYO_GIT_ROOT || root;
 const read = (f) => fs.readFileSync(path.join(root, f), "utf8").replace(/\r\n/g, "\n");
@@ -377,19 +378,19 @@ test("F6/P4 (Q4 en vm) · con la piel, marco y tiradores salen después de todos
 /* ───────── alcance ───────── */
 test("alcance · frente a eff5129 solo cambian render.js, interaction.js, geometry.js (connectPortPoint), editor-runtime.js, state.js e index.html (comentario y #skinSel) y sw.js (CACHE v95)", () => {
   const served = ["js/render.js", "js/interaction.js", "js/geometry.js", "js/editor-runtime.js", "js/state.js", "index.html"];
-  for (const f of served) assert.equal(undo4b(f, read(f)), atBase(f), f + ": fuera de lo de 019.4b, idéntico");
+  for (const f of served) assert.equal(undo4b(f, undo3(f, read(f))), atBase(f), f + ": fuera de lo de 019.4b, idéntico");
   for (const f of ["js/skin.js", "js/export.js", "js/model.js", "js/config.js", "js/selection.js", "js/ui.js", "js/editor-scenarios.js", "js/flow-semantics.js", "js/story-authoring.js",
     "js/scenario-engine.js", "js/scenario-playback.js", "js/story-playback.js", "js/document-integrity.js", "js/viewer.js", "js/present-story.js", "js/share-url.js", "js/deeplink.js",
     "s/index.html", "css/styles.css", "css/system.css", "css/identity.css", "css/share.css", "manifest.webmanifest"])
-    if (fs.existsSync(path.join(root, f))) assert.equal(read(f), atBase(f), f + " idéntico");
-  const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v95";/);
-  assert.equal(sw.replace('"fluyo-static-v95"', '"fluyo-static-v' + (95 - 1) + '"'), atBase("sw.js"), "sw.js: solo sube CACHE (sin archivos nuevos)");
+    if (fs.existsSync(path.join(root, f))) assert.equal(undo3(f, read(f)), atBase(f), f + " idéntico");
+  const sw = undo3("sw.js", read("sw.js"));
+  assert.match(sw, /const CACHE = "fluyo-static-v96";/);
+  assert.equal(sw.replace('"fluyo-static-v96"', '"fluyo-static-v' + (95 - 1) + '"'), atBase("sw.js"), "sw.js: solo sube CACHE (sin archivos nuevos)");
   /* geometry.js: solo el parámetro `lift` de connectPortPoint (por defecto 0: en plano el mismo punto) */
   const g = read("js/geometry.js");
   assert.match(g, /function connectPortPoint\(n, side, zoom, lift=0\)\{\n  const p=sidePoint\(n,side\), d=DIR\[side\], off=lift\+CONNECT_PORT_OFF\/\(zoom\|\|1\);/);
   /* index.html: solo el comentario y el title de #skinSel (ningún mando nuevo, P1) */
-  const ih = read("index.html"), ib = atBase("index.html");
+  const ih = undo3("index.html", read("index.html")), ib = atBase("index.html");
   assert.equal(ih.split("\n").length, ib.split("\n").length);
   assert.deepEqual(ih.split("\n").filter((l, i) => l !== ib.split("\n")[i]).map((l) => l.trim().slice(0, 30)), ["<!-- FLUYO-019.2/019.4b: aspec", '<select id="skinSel" title="As']);
   assert.ok(!/id="skin(Btn|Toggle|Edit)/.test(ih), "sin mando nuevo");

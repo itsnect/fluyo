@@ -213,15 +213,24 @@ var FluyoIntegrity = (function(){
     const before = validateProject(project);
     const copy = clone(project);
     const eventTypesOnly = eventTypeIds.size>0 && !nodeIds.size && !edgeIds.size && pageIndex===undefined;
+    const observedFlows = [];
     if(!eventTypesOnly){
       const pg = copy && copy.doc && copy.doc.pages && copy.doc.pages[pageIndex];
-      if(!pg) return {wouldInvalidate:false, error:"page_not_found", errors:[], affectedStories:[]};
+      if(!pg) return {wouldInvalidate:false, error:"page_not_found", errors:[], affectedStories:[], observedFlows};
       pg.edges = pg.edges.filter(e=>!edgeIds.has(e.id) && !nodeIds.has(e.from) && !nodeIds.has(e.to));
       pg.nodes = pg.nodes.filter(n=>!nodeIds.has(n.id));
+      /* SCENARIOS-SEMANTICS-001 FASE 3 (D5): deleteNodeIn quita la ruta observada que nombra un nodo borrado. Es un aviso, no
+         invalida nada (la Historia vuelve a la resolución automática): se informa aparte y no cuenta en wouldInvalidate. */
+      for(const sc of Array.isArray(pg.scenarios) ? pg.scenarios : []){
+        const f = isRecord(sc) ? sc.observedFlow : null;
+        if(!isRecord(f)) continue;
+        const ends = ["from","to"].filter(k=>nodeIds.has(f[k]));
+        if(ends.length){ delete sc.observedFlow; observedFlows.push({pageIndex, storyId:sc.id, storyName:sc.name, endpoints:ends}); }
+      }
     }
     if(eventTypeIds.size && copy && copy.doc && Array.isArray(copy.doc.eventTypes))
       copy.doc.eventTypes = copy.doc.eventTypes.filter(et=>!(et && eventTypeIds.has(et.id)));
-    return impactBetween(before, validateProject(copy), copy);
+    return Object.assign(impactBetween(before, validateProject(copy), copy), {observedFlows});
   }
 
   /* FLUYO-017.3. ¿Qué quedaría inválido si este EventType desapareciera (candidate = null) o se

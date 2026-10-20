@@ -16,11 +16,12 @@ const read = (f) => fs.readFileSync(path.join(root, f), "utf8").replace(/\r\n/g,
 const atBase = (f) => execFileSync("git", ["-C", gitRoot, "show", BASE + ":" + f], { encoding: "utf8" }).replace(/\r\n/g, "\n");
 const { undo4a } = require("./fluyo-019-4a-undo.cjs");   /* FLUYO-019.4a cambia a propósito skin.js, render.js y export.js: se deshace aquí; su alcance lo vigila test/fluyo-019-4a.test.cjs */
 const { undo4b } = require("./fluyo-019-4b-undo.cjs");   /* FLUYO-019.4b cambia a propósito render.js, interaction.js, geometry.js, editor-runtime.js, state.js e index.html: se deshace aquí (antes que 019.4a y FASE 1); su alcance lo vigila test/fluyo-019-4b.test.cjs */
+const { undo3 } = require("./fluyo-scenarios-semantics-3-undo.cjs");   /* SCENARIOS-SEMANTICS-001 FASE 3 cambia a propósito model.js, document-integrity.js, story-authoring.js, flow-semantics.js, editor-scenarios.js, index.html, styles.css y sw.js (precache): se deshace aquí, antes que todo lo demás; su alcance lo vigila test/fluyo-scenarios-semantics-3.test.cjs */
 const { undoSemantics } = require("./fluyo-scenarios-semantics-undo.cjs");   /* SCENARIOS-SEMANTICS-001 (FASE 1) cambia a propósito model.js, geometry.js, render.js, ui.js, index.html y styles.css: se deshace aquí; su alcance lo vigila test/fluyo-scenarios-semantics-1.test.cjs */
 const between = (s, a, b) => { const i = s.indexOf(a); assert.ok(i >= 0, "falta " + a); const j = s.indexOf(b, i + a.length); assert.ok(j >= 0, "falta " + b); return s.slice(i, j); };
 
 const RULE = "#presentBar #prSkin{--active:var(--c-oliva-palido); --active-rule:rgba(195,205,164,.42); --focus:2px solid var(--c-oliva-palido);}";
-const sys = read("css/system.css"), styles = read("css/styles.css");
+const sys = read("css/system.css"), styles = undo3("css/styles.css", read("css/styles.css"));   /* FASE 3 añade sus estilos (.scFlow): deshechos */
 const decl = (block, name) => { const m = new RegExp("(?:^|[\\s;{])" + name + ":([^;]+);").exec(block); assert.ok(m, "falta " + name); return m[1].trim(); };
 const rootBlock = between(sys, ":root{", "\n}\n"), dark = between(sys, ':root[data-ui-theme="dark"]{', "\n}\n"), inverse = between(sys, ".inverse, #presentBar, #presentStory{", "\n}\n");
 const prim = (v) => { const m = /^var\((--c-[\w-]+)\)$/.exec(v); return m ? decl(rootBlock, m[1]) : v; };
@@ -62,11 +63,11 @@ test("contraste: texto ≥ 4,5:1 y foco ≥ 3:1 sobre la barra, con lo que haya 
 test("alcance: frente a d4fb06d solo cambian css/styles.css (la regla) y sw.js (CACHE)", () => {
   for (const f of ["css/system.css", "css/identity.css", "css/share.css", "index.html", "s/index.html", "js/skin.js", "js/render.js", "js/geometry.js",
     "js/interaction.js", "js/ui.js", "js/viewer.js", "js/export.js", "js/model.js", "js/editor-runtime.js", "js/present-story.js", "js/share-url.js"])
-    assert.equal(undoSemantics(f, undo4a(f, undo4b(f, read(f)))), atBase(f), f + " idéntico");
+    assert.equal(undoSemantics(f, undo4a(f, undo4b(f, undo3(f, read(f))))), atBase(f), f + " idéntico");
   const added = between(styles, "/* FLUYO-019-PRSKIN", RULE) + RULE + "\n";
   assert.equal(undoSemantics("css/styles.css", styles).replace(added, ""), atBase("css/styles.css"), "styles.css: solo se añade la regla (y su comentario)");
   /* FLUYO-019.4a sube CACHE a v93: aquí basta con que sea ≥ v92 y que sw.js no cambie en nada más */
-  const sw = read("sw.js"), cur = +/const CACHE = "fluyo-static-v(\d+)";/.exec(sw)[1];
+  const sw = undo3("sw.js", read("sw.js")), cur = +/const CACHE = "fluyo-static-v(\d+)";/.exec(sw)[1];
   assert.ok(cur >= 92, "CACHE ≥ v92");
   /* la de d4fb06d (v91) se construye sin literal: fluyo-019-1 vigila que ningún test fuera de las mutaciones nombre la anterior */
   assert.equal(sw.replace('"fluyo-static-v' + cur + '"', '"fluyo-static-v' + 91 + '"'), atBase("sw.js"), "sw.js: solo cambia CACHE");

@@ -737,6 +737,12 @@ try{ if(localStorage.getItem("fluyo.ui.props")==="folded") document.documentElem
         <p id="scStatus" role="status"></p>
         <p id="scUnsupported" class="hint" hidden>Esta historia necesita una versión compatible de Fluyo.</p>
         <p id="scErrors" role="alert" hidden></p>
+        <!-- SCENARIOS-SEMANTICS-001 FASE 3: la ruta observada de la Historia (D5/D6), bajo el transporte. Solo existe con la
+             bandera labs, si la página tiene alguna conexión Flujo y la Historia tiene eventos (editor-scenarios.js, scRenderFlow). -->
+        <section id="scFlow" class="scFlow" aria-label="Ruta observada" hidden>
+          <div class="scFlowHead"><span class="scFlowKicker">Ruta observada</span><label class="scFlowPick"><span class="srOnly">Origen</span><select id="scFlowFrom"></select></label><span class="scFlowArrow" aria-hidden="true">→</span><label class="scFlowPick"><span class="srOnly">Destino</span><select id="scFlowTo"></select></label></div>
+          <p id="scFlowState" class="scFlowState" role="status"><span id="scFlowWord"></span><span id="scFlowWhy"></span></p>
+        </section>
         <button id="scPaletteToggle" type="button" aria-expanded="false">Eventos · 0</button>
       </header>
       <section id="scLibrarySection" class="scEventLibrarySection" aria-label="Eventos">
@@ -1085,6 +1091,7 @@ try{ if(localStorage.getItem("fluyo.ui.props")==="folded") document.documentElem
 <script src="js/story-playback.js"></script>
 <!-- FLUYO-018.18: el reloj de la Historia (pausa, reanudar, saltar entre momentos). Fuera del kernel. -->
 <script src="js/story-clock.js"></script>
+<script src="js/flow-semantics.js"></script>
 <script src="js/document-integrity.js"></script>
 <script src="js/editor-scenarios.js"></script>
 <script src="js/present-story.js"></script>

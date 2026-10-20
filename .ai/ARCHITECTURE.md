@@ -776,7 +776,7 @@ lienzo:   edgeSemanticMarks(e, pts) (geometry.js) → drawEdgeSemanticMarks (ren
 ## Derivación de la disponibilidad de un flujo (SCENARIOS-SEMANTICS-001, FASE 2)
 
 ```
-js/flow-semantics.js (FluyoFlow, puro; depende de edgeKind de model.js; la app aún NO lo carga → sin CACHE ni sync del MCP)
+js/flow-semantics.js (FluyoFlow, puro; depende de edgeKind de model.js; desde FASE 3 lo carga el editor, no el Viewer)
   availabilityAt(page, events, t)                → {id: UP|DOWN}       Behaviors + state_changed del Trace con at ≤ t
   flowStatus(page, source, target, states)       → AVAILABLE | UNAVAILABLE | NO_PATH   (G = FLOWS_TO; BFS, O(V+E), sin tope)
   availabilityProvenance(page, steps, t, timeOf) → {id: EXPLICIT|DEFAULT}  Behavior o SET_STATE (aunque no cambie) con timeOf ≤ t
@@ -784,6 +784,26 @@ js/flow-semantics.js (FluyoFlow, puro; depende de edgeKind de model.js; la app a
 ```
 
 - Decisiones 223–225; contrato congelado en `.ai/tasks/FLUYO-SCENARIOS-SEMANTICS-001.md` § FASE 2. UNKNOWN reservado y rechazado (`invalid_availability`).
-- FASE 3 lo cablea: el editor lo carga (`<script>`, precache y CACHE) y le pasa el Trace visible y `FluyoStoryClock.visibleAt`.
+- FASE 3 lo cablea: el editor lo carga (`<script>`, precache y CACHE v96) y le pasa el Trace visible y `FluyoStoryClock.visibleAt` (sección siguiente).
 - Pruebas: `test/fluyo-scenarios-semantics-2.test.cjs` (vm, 33: M1–M6 con > 64 caminos, ciclos, aislamiento, `source == target`, estado, procedencia, equivalencia con el motor, errores, determinismo y 600 grafos aleatorios contra un oráculo de caminos simples) y `test/fluyo-scenarios-semantics-2-mutations.cjs` (18).
 - Línea histórica: `94e50fa` (sobre `4fb5872`); reaplicado sobre la FASE 1 reconstruida (`59588a9`, `ca08fc1`) con la misma lógica y reintegrado sobre `0409f4d` sin cambios.
+
+## Ruta observada de una Historia (SCENARIOS-SEMANTICS-001, FASE 3)
+
+```
+model.js (kernel)        scenario.observedFlow = {from, to}  opcional; normalizeObservedFlow (conservadora, nunca falla la carga)
+                         setObservedFlowIn(pg, scenarioId, flow|null)  única escritura · deleteNodeIn → cascada (observedFlows)
+                         setInitialAvailability guarda UP y DOWN (Condiciones → «Disponible» = EXPLICIT)
+document-integrity.js    removalImpact(...).observedFlows  aviso, fuera de wouldInvalidate
+flow-semantics.js        flowNodes(page) · resolveObservedFlow(page, sc) → PAIR (story|structural) | ENDPOINT_MISSING | NO_PAIR
+                         observedFlowAt(page, sc, events, t, timeOf) → {pair, status, explicitPath}   (FASE 2 compuesta)
+editor-scenarios.js      bloque «Ruta observada»: scFlowModel (sin DOM) → scRenderFlow (#scFlow, bajo el transporte)
+                         sin reproducir: FluyoStory.run + FluyoStoryClock.schedule, t = 0, «Al inicio · »
+                         reproduciendo: scPlayback.trace (visible) + cursorVirtual; pausa, ⏮/⏭ y terminada incluidos
+```
+
+- Solo con la bandera labs (D10), si la página tiene alguna conexión Flujo y la Historia activa tiene eventos. Con labs apagada, la cabecera de Historias es idéntica a la de v95.
+- Se refresca desde `scRenderStatus` (cada fotograma de la reproducción, transporte, panel) y `scSetBehavior`; el DOM solo se escribe si cambia. La base se memoiza por reproducción o por firma del documento.
+- Elegir o quitar la ruta: una entrada de Undo (`pushUndo` + `setObservedFlowIn`); borrar un extremo, la misma entrada que el borrado (cascada del dominio).
+- No pinta nada en el lienzo, no hay timeline y no toca Viewer, Present, exportación ni la autoría del MCP (FASE 4 y FASE 5). El MCP solo sincroniza el kernel: passthrough y `delete_node` informa `cascade.observedFlows`.
+- Decisiones 230–233. Pruebas: `test/fluyo-scenarios-semantics-3.test.cjs` (vm: kernel, derivación con el reloj visible, editor con `state.js` y `selection.js` reales, estático y alcance), `-mutations.cjs` (25), `-browser.cjs` (Chrome real a 1440 y 390, labs apagado frente a v95, SW v95 → v96). Los alcances de slices anteriores descuentan FASE 3 con `test/fluyo-scenarios-semantics-3-undo.cjs`.

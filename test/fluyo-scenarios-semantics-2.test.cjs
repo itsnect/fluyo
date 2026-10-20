@@ -16,6 +16,7 @@ const read = (f) => fs.readFileSync(path.join(root, f), "utf8").replace(/\r\n/g,
 const gitRoot = process.env.FLUYO_GIT_ROOT || root;
 const MAIN = "0409f4d";   // main al reintegrar; FASE 1 de referencia: 59588a9 (sobre ce8e699; la histórica es 4fb5872)
 const { undo4b } = require("./fluyo-019-4b-undo.cjs");   /* FLUYO-019.4b cambia a propósito render.js, interaction.js, geometry.js, editor-runtime.js, state.js e index.html: se deshace aquí (antes que 019.4a y FASE 1); su alcance lo vigila test/fluyo-019-4b.test.cjs */
+const { undo3 } = require("./fluyo-scenarios-semantics-3-undo.cjs");   /* SCENARIOS-SEMANTICS-001 FASE 3 cambia a propósito model.js, document-integrity.js, story-authoring.js, flow-semantics.js, editor-scenarios.js, index.html, styles.css y sw.js (precache): se deshace aquí, antes que todo lo demás; su alcance lo vigila test/fluyo-scenarios-semantics-3.test.cjs */
 const J = (v) => JSON.parse(JSON.stringify(v));
 
 const G = vm.createContext({ console });
@@ -286,16 +287,20 @@ test("alcance · FASE 2 solo añade js/flow-semantics.js: ningún archivo servid
   const untracked = execFileSync("git", ["-C", gitRoot, "ls-files", "--others", "--exclude-standard", "--", "js", "s", "css", "index.html", "sw.js"], { encoding: "utf8" }).split("\n").filter(Boolean);
   /* FLUYO-019.4b toca además interaction.js, editor-runtime.js y state.js: deshechos, son los de MAIN */
   const ONLY4B = ["js/editor-runtime.js", "js/interaction.js", "js/state.js"];
-  for (const f of ONLY4B) assert.equal(undo4b(f, read(f)), execFileSync("git", ["-C", gitRoot, "show", MAIN + ":" + f], { encoding: "utf8" }).replace(/\r\n/g, "\n"), f + " = " + MAIN + " fuera de 019.4b");
-  assert.deepEqual([...new Set([...changed, ...untracked])].filter((f) => !FASE1.includes(f) && !ONLY4B.includes(f)).sort(), ["js/flow-semantics.js"]);
-  for (const f of ["index.html", "s/index.html", "sw.js"]) assert.ok(!read(f).includes("flow-semantics"), f + " no carga ni precachea el módulo");
+  for (const f of ONLY4B) assert.equal(undo4b(f, undo3(f, read(f))), execFileSync("git", ["-C", gitRoot, "show", MAIN + ":" + f], { encoding: "utf8" }).replace(/\r\n/g, "\n"), f + " = " + MAIN + " fuera de 019.4b");
+  /* SCENARIOS-SEMANTICS-001 FASE 3 añade document-integrity.js, story-authoring.js y editor-scenarios.js, y cablea el módulo
+     (index.html y el precache): deshechos, son los de MAIN */
+  const ONLY3 = ["js/document-integrity.js", "js/editor-scenarios.js", "js/story-authoring.js"];
+  for (const f of ONLY3) assert.equal(undo3(f, read(f)), execFileSync("git", ["-C", gitRoot, "show", MAIN + ":" + f], { encoding: "utf8" }).replace(/\r\n/g, "\n"), f + " = " + MAIN + " fuera de FASE 3");
+  assert.deepEqual([...new Set([...changed, ...untracked])].filter((f) => !FASE1.includes(f) && !ONLY4B.includes(f) && !ONLY3.includes(f)).sort(), ["js/flow-semantics.js"]);
+  for (const f of ["index.html", "s/index.html", "sw.js"]) assert.ok(!undo3(f, read(f)).includes("flow-semantics"), f + " no carga ni precachea el módulo (fuera de FASE 3)");
   const lines = (args, f) => execFileSync("git", ["-C", gitRoot, "diff", "-U0", ...args, "--", f], { encoding: "utf8" }).replace(/\r\n/g, "\n").split("\n")
     .filter((l) => /^[-+]/.test(l) && !/^(---|\+\+\+) /.test(l) && !/const CACHE = /.test(l));
   /* el árbol frente a MAIN, con 019.4b deshecho (git diff --no-index entre MAIN y el texto deshecho) */
   const linesNow = (f) => {
     const dir = fs.mkdtempSync(path.join(require("node:os").tmpdir(), "fluyo-sem2-")), a = path.join(dir, "a"), b = path.join(dir, "b");
     fs.writeFileSync(a, execFileSync("git", ["-C", gitRoot, "show", MAIN + ":" + f], { encoding: "utf8" }).replace(/\r\n/g, "\n"));
-    fs.writeFileSync(b, undo4b(f, read(f)));
+    fs.writeFileSync(b, undo4b(f, undo3(f, read(f))));
     let out = ""; try { execFileSync("git", ["diff", "--no-index", "-U0", "--", a, b], { encoding: "utf8" }); } catch (e) { out = e.stdout || ""; }
     fs.rmSync(dir, { recursive: true, force: true });
     return out.replace(/\r\n/g, "\n").split("\n").filter((l) => /^[-+]/.test(l) && !/^(---|\+\+\+) /.test(l) && !/const CACHE = /.test(l));

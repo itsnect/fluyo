@@ -529,6 +529,7 @@ function normalizeScenarios(pg){
       maxStepId=Math.max(maxStepId,step.id);
     }
     sc.nextStepId=projectCounter(sc.nextStepId,maxStepId);
+    normalizeObservedFlow(sc);
   }
   pg.nextScenarioId=projectCounter(pg.nextScenarioId,maxScenarioId);
 }
@@ -651,12 +652,52 @@ function retargetStep(pg,sc,stepId,targetId){
   return step;
 }
 /* Disponibilidad INICIAL de un elemento: es de la PÁGINA (Behavior), rige en todas sus Historias.
-   UP es el valor por defecto y se representa sin Behavior. */
+   Sin Behavior, el elemento está UP por defecto. Elegir un valor, también «Disponible», lo guarda como Behavior: es una
+   afirmación del usuario y la procedencia la cuenta como EXPLICIT (SCENARIOS-SEMANTICS-001, decisiones 224 y 231). El motor
+   no cambia: un elemento UP lo está con o sin Behavior. */
 function setInitialAvailability(pg,nodeId,state){
   if(state!=="UP" && state!=="DOWN") throw projectDataError();
   if(!pg.nodes.some(n=>n.id===nodeId)) throw projectDataError("node_not_found");
   pg.behaviors=pg.behaviors.filter(b=>b.nodeId!==nodeId);
-  if(state==="DOWN") pg.behaviors.push({nodeId, initialState:"DOWN"});
+  pg.behaviors.push({nodeId, initialState:state});
+}
+
+/* ===================== Ruta observada de una Historia (SCENARIOS-SEMANTICS-001 FASE 3, D5) =====================
+   Dato OPCIONAL de la Historia: scenario.observedFlow = {from, to}, dos ids de nodo de su página, distintos. El motor no lo ve
+   (como arrivalDependencies); la ruta se DERIVA en flow-semantics.js y nada derivado se persiste (B6).
+
+   Normalización conservadora: la carga nunca falla por esta clave.
+     · ausente → sigue ausente (no se rellena);
+     · {from, to} con dos ids enteros ≥ 1 y distintos → se conserva TAL CUAL, también con claves de una versión futura y con
+       extremos que ya no existen (ENDPOINT_MISSING: lo resuelve el editor; un editor anterior no poda);
+     · null o cualquier otra forma → se quita la clave. */
+function observedFlowIsId(v){ return Number.isSafeInteger(v) && v>=1; }
+function observedFlowValid(f){ return projectObject(f) && observedFlowIsId(f.from) && observedFlowIsId(f.to) && f.from!==f.to; }
+function normalizeObservedFlow(sc){
+  if(sc.observedFlow!==undefined && !observedFlowValid(sc.observedFlow)) delete sc.observedFlow;
+}
+/* Elegir (flow = {from, to}) o quitar (flow = null, «Automática») la ruta observada de una Historia de `pg`. Autoridad única:
+   la llama el editor, que la envuelve en UNA entrada de Undo. Los dos extremos son nodos de la página y distintos. Elegir el
+   valor actual no cambia nada. Devuelve {changed, before, after}, con before/after = {from, to} o null.
+   Códigos: scenario_not_found(storyId) · invalid_document(observedFlow|from|to) · node_not_found(from|to) · self_loop(to). */
+function setObservedFlowIn(pg, scenarioId, flow){
+  const sc=(pg.scenarios||[]).find(s=>s.id===scenarioId);
+  if(!sc) throw projectDataError("scenario_not_found","storyId");
+  const before=sc.observedFlow!==undefined ? {from:sc.observedFlow.from, to:sc.observedFlow.to} : null;
+  if(flow===null){
+    if(sc.observedFlow===undefined) return {changed:false, before, after:null};
+    delete sc.observedFlow;
+    return {changed:true, before, after:null};
+  }
+  if(!projectObject(flow)) throw projectDataError("invalid_document","observedFlow");
+  for(const k of ["from","to"]){
+    if(!observedFlowIsId(flow[k])) throw projectDataError("invalid_document",k);
+    if(!pg.nodes.some(n=>n.id===flow[k])) throw projectDataError("node_not_found",k);
+  }
+  if(flow.from===flow.to) throw projectDataError("self_loop","to");
+  if(before && before.from===flow.from && before.to===flow.to) return {changed:false, before, after:before};
+  sc.observedFlow={from:flow.from, to:flow.to};
+  return {changed:true, before, after:{from:flow.from, to:flow.to}};
 }
 
 /* ===================== Autoría del diagrama: crear nodos y conexiones (FLUYO-018.1) =====================
@@ -869,7 +910,8 @@ function updateConnectionIn(pg, id, patch, context){
   for(const k of fields){ const kk=connectionKey(k); if(cand[kk]===undefined) delete e[kk]; else e[kk]=cand[kk]; }
   return e;
 }
-/* Quita el nodo, las conexiones que lo tocan y su Behavior. Devuelve lo que se llevó: {node, connections, behaviors}. */
+/* Quita el nodo, las conexiones que lo tocan, su Behavior y la ruta observada de las Historias de la página que lo nombran.
+   Devuelve lo que se llevó: {node, connections, behaviors, observedFlows} (observedFlows: ids de esas Historias). */
 function deleteNodeIn(pg, id, context){
   const n=updateEntry(pg,"nodes",id,"node_not_found");
   const connections=pg.edges.filter(e=>e.from===id || e.to===id).map(e=>e.id);
@@ -880,7 +922,14 @@ function deleteNodeIn(pg, id, context){
   pg.edges=pg.edges.filter(e=>e.from!==id && e.to!==id);
   pg.nodes=pg.nodes.filter(x=>x!==n);
   if(!keep && pg.behaviors) pg.behaviors=pg.behaviors.filter(b=>b.nodeId!==id);
-  return {node:n, connections, behaviors};
+  // SCENARIOS-SEMANTICS-001 FASE 3 (D5, B5): una ruta observada sin uno de sus extremos se quita entera; la Historia vuelve a la
+  // resolución automática. En el editor va en la misma entrada de Undo que el borrado (el snapshot incluye las Historias).
+  const observedFlows=[];
+  for(const sc of pg.scenarios||[]){
+    const f=sc.observedFlow;
+    if(f && (f.from===id || f.to===id)){ delete sc.observedFlow; observedFlows.push(sc.id); }
+  }
+  return {node:n, connections, behaviors, observedFlows};
 }
 function deleteConnectionIn(pg, id, context){
   const e=updateEntry(pg,"edges",id,"connection_not_found");

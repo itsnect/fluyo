@@ -25,6 +25,7 @@ const read = (f) => fs.readFileSync(path.join(root, f), "utf8").replace(/\r\n/g,
 const atBase = (f) => execFileSync("git", ["-C", gitRoot, "show", BASE + ":" + f], { encoding: "utf8" }).replace(/\r\n/g, "\n");
 const { undo4a } = require("./fluyo-019-4a-undo.cjs");   /* FLUYO-019.4a cambia a propósito skin.js, render.js y export.js: se deshace aquí; su alcance lo vigila test/fluyo-019-4a.test.cjs */
 const { undo4b } = require("./fluyo-019-4b-undo.cjs");   /* FLUYO-019.4b cambia a propósito render.js, interaction.js, geometry.js, editor-runtime.js, state.js e index.html: se deshace aquí (antes que 019.4a y FASE 1); su alcance lo vigila test/fluyo-019-4b.test.cjs */
+const { undo3 } = require("./fluyo-scenarios-semantics-3-undo.cjs");   /* SCENARIOS-SEMANTICS-001 FASE 3 cambia a propósito model.js, document-integrity.js, story-authoring.js, flow-semantics.js, editor-scenarios.js, index.html, styles.css y sw.js (precache): se deshace aquí, antes que todo lo demás; su alcance lo vigila test/fluyo-scenarios-semantics-3.test.cjs */
 const { undoSemantics } = require("./fluyo-scenarios-semantics-undo.cjs");   /* SCENARIOS-SEMANTICS-001 (FASE 1) cambia a propósito model.js, geometry.js, render.js, ui.js, index.html y styles.css: se deshace aquí; su alcance lo vigila test/fluyo-scenarios-semantics-1.test.cjs */
 const between = (s, a, b) => { const i = s.indexOf(a); assert.ok(i >= 0, "falta " + a); const j = s.indexOf(b, i + a.length); assert.ok(j >= 0, "falta " + b); return s.slice(i, j); };
 const J = (v) => JSON.parse(JSON.stringify(v));
@@ -188,7 +189,7 @@ test("D1: pasos 4–5 del pointerdown, hover y doble clic usan hitTarget", () =>
   assert.match(between(I, "function openEditorAt(p){", "\n}"), /const t=hitTarget\(p\.x,p\.y\), tgt=t && t\.obj;/);
 });
 test("Historias: un evento de conexión solo lo bloquea una HOJA (hitLeafNode), no un contenedor", () => {
-  const es = read("js/editor-scenarios.js"), esB = atBase("js/editor-scenarios.js");
+  const es = undo3("js/editor-scenarios.js", read("js/editor-scenarios.js")), esB = atBase("js/editor-scenarios.js");
   assert.match(between(es, "function scFindDropTargets(", "\n}"), /if \(kind === "edge"\) \{\n\s*if \(hitLeafNode\(x, y\)\) return \[\];/);
   assert.match(between(es, "function scResolveDrop(", "\n}"), /if \(kind === "edge" && !hitLeafNode\(x, y\)\) \{/);
   assert.match(es, /if \(!hitLeafNode\(w\.x, w\.y\)\) ids = scEdgeCandidates\(w\.x, w\.y\)\.map\(\(e\) => e\.id\);/);
@@ -210,12 +211,12 @@ test("alcance: frente a d31703e solo cambian interaction.js, geometry.js (isCont
   /* FLUYO-019-HIT-TEST-D6 cambia a propósito render.js, export.js, geometry.js (containmentPaintOrder) y CACHE (v91):
      su alcance lo vigila test/fluyo-019-d6.test.cjs */
   for (const f of ["js/skin.js", "js/model.js", "js/ui.js", "js/config.js", "js/selection.js", "js/state.js", "js/viewer.js", "js/editor-runtime.js", "index.html", "s/index.html"])
-    assert.equal(undoSemantics(f, undo4a(f, undo4b(f, read(f)))), atBase(f), f + " idéntico");
-  const g = undoSemantics("js/geometry.js", undo4b("js/geometry.js", read("js/geometry.js"))), gB = atBase("js/geometry.js");
+    assert.equal(undoSemantics(f, undo4a(f, undo4b(f, undo3(f, read(f))))), atBase(f), f + " idéntico");
+  const g = undoSemantics("js/geometry.js", undo4b("js/geometry.js", undo3("js/geometry.js", read("js/geometry.js")))), gB = atBase("js/geometry.js");
   const added = between(g, "/* FLUYO-019-HIT-TEST (D1)", "function isContainerNode(") + between(g, "function isContainerNode(", "\n}\n") + "\n}\n";
   const addedD6 = g.includes("function containmentPaintOrder(") ? between(g, "/* FLUYO-019-HIT-TEST-D6", "function containmentPaintOrder(") + between(g, "function containmentPaintOrder(", "\n}\n") + "\n}\n" : "";
   assert.equal(g.replace(added, "").replace(addedD6, ""), gB, "geometry.js: solo se añaden isContainerNode (y containmentPaintOrder, D6)");
-  const sw = read("sw.js"), cur = +/const CACHE = "fluyo-static-v(\d+)";/.exec(sw)[1];
+  const sw = undo3("sw.js", read("sw.js")), cur = +/const CACHE = "fluyo-static-v(\d+)";/.exec(sw)[1];
   assert.ok(cur >= 90, "CACHE ≥ v90");
   /* la de d31703e (v89) se construye sin literal: fluyo-019-1 vigila que ningún test fuera de las mutaciones nombre la anterior */
   assert.equal(sw.replace('"fluyo-static-v' + cur + '"', '"fluyo-static-v' + 89 + '"'), atBase("sw.js"), "sw.js: solo cambia CACHE");

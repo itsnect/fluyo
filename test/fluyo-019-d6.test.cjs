@@ -21,6 +21,7 @@ const atBase = (f) => execFileSync("git", ["-C", gitRoot, "show", BASE + ":" + f
 const between = (s, a, b) => { const i = s.indexOf(a); assert.ok(i >= 0, "falta " + a); const j = s.indexOf(b, i + a.length); assert.ok(j >= 0, "falta " + b); return s.slice(i, j); };
 const { undo4a } = require("./fluyo-019-4a-undo.cjs");   /* FLUYO-019.4a cambia a propósito skin.js, render.js y export.js: se deshace aquí; su alcance lo vigila test/fluyo-019-4a.test.cjs */
 const { undo4b } = require("./fluyo-019-4b-undo.cjs");   /* FLUYO-019.4b cambia a propósito render.js, interaction.js, geometry.js, editor-runtime.js, state.js e index.html: se deshace aquí (antes que 019.4a y FASE 1); su alcance lo vigila test/fluyo-019-4b.test.cjs */
+const { undo3 } = require("./fluyo-scenarios-semantics-3-undo.cjs");   /* SCENARIOS-SEMANTICS-001 FASE 3 cambia a propósito model.js, document-integrity.js, story-authoring.js, flow-semantics.js, editor-scenarios.js, index.html, styles.css y sw.js (precache): se deshace aquí, antes que todo lo demás; su alcance lo vigila test/fluyo-scenarios-semantics-3.test.cjs */
 const { undoSemantics } = require("./fluyo-scenarios-semantics-undo.cjs");   /* SCENARIOS-SEMANTICS-001 (FASE 1) cambia a propósito model.js, geometry.js, render.js, ui.js, index.html y styles.css: se deshace aquí; su alcance lo vigila test/fluyo-scenarios-semantics-1.test.cjs */
 const J = (v) => JSON.parse(JSON.stringify(v));
 
@@ -83,7 +84,7 @@ test("pura: no muta los nodos ni su orden; determinista; empates por orden del d
 
 /* ───────── pintores (estáticos) ───────── */
 test("render.js: las dos ramas pintan contenedores → conexiones → flujo → hojas; las capas solo existen con la piel", () => {
-  const r = undoSemantics("js/render.js", undo4a("js/render.js", undo4b("js/render.js", read("js/render.js"))));
+  const r = undoSemantics("js/render.js", undo4a("js/render.js", undo4b("js/render.js", undo3("js/render.js", read("js/render.js")))));
   const fn = between(r, "function render(c,t,opts={}){", "\n}\n");
   /* FLUYO-019.4b: la regla vive ahora en nodePaintLayers (la comparten render() y el acierto); se mira en el árbol tal cual */
   const cur = read("js/render.js");
@@ -113,10 +114,10 @@ test("alcance: frente a ce8e699 solo cambian geometry.js (+ containmentPaintOrde
   /* FLUYO-019-PRSKIN sube CACHE a v92 (y solo toca css/styles.css): su alcance lo vigila test/fluyo-019-prskin.test.cjs */
   for (const f of ["js/skin.js", "js/model.js", "js/interaction.js", "js/viewer.js", "js/config.js", "js/ui.js", "js/state.js", "js/selection.js", "js/editor-scenarios.js",
     "js/editor-runtime.js", "js/share-url.js", "js/share-loader.js", "js/deeplink.js", "js/link-codec.js", "index.html", "s/index.html"])
-    if (fs.existsSync(path.join(root, f))) assert.equal(undoSemantics(f, undo4a(f, undo4b(f, read(f)))), atBase(f), f + " idéntico");
-  const g = undoSemantics("js/geometry.js", undo4b("js/geometry.js", read("js/geometry.js"))), added = between(g, "/* FLUYO-019-HIT-TEST-D6", "function containmentPaintOrder(") + between(g, "function containmentPaintOrder(", "\n}\n") + "\n}\n";
+    if (fs.existsSync(path.join(root, f))) assert.equal(undoSemantics(f, undo4a(f, undo4b(f, undo3(f, read(f))))), atBase(f), f + " idéntico");
+  const g = undoSemantics("js/geometry.js", undo4b("js/geometry.js", undo3("js/geometry.js", read("js/geometry.js")))), added = between(g, "/* FLUYO-019-HIT-TEST-D6", "function containmentPaintOrder(") + between(g, "function containmentPaintOrder(", "\n}\n") + "\n}\n";
   assert.equal(g.replace(added, ""), atBase("js/geometry.js"), "geometry.js: solo se añade containmentPaintOrder");
-  const sw = read("sw.js"), cur = +/const CACHE = "fluyo-static-v(\d+)";/.exec(sw)[1];
+  const sw = undo3("sw.js", read("sw.js")), cur = +/const CACHE = "fluyo-static-v(\d+)";/.exec(sw)[1];
   assert.ok(cur >= 91, "CACHE ≥ v91");
   /* la de ce8e699 (v90) se construye sin literal: fluyo-019-1 vigila que ningún test fuera de las mutaciones nombre la anterior */
   assert.equal(sw.replace('"fluyo-static-v' + cur + '"', '"fluyo-static-v' + 90 + '"'), atBase("sw.js"), "sw.js: solo cambia CACHE");

@@ -206,6 +206,7 @@ function scSetBehavior(nodeId, state) {
   setInitialAvailability(pg, nodeId, state);
   scheduleAutosave();
   scRenderBehaviors();
+  scRenderFlow();
 }
 
 function escapeHtml(s) {
@@ -362,6 +363,7 @@ function scSyncPage() {
   scSelectedStep = null;
   scContext = null;
   scStorySignature = "";
+  scFlowPending = null;
   if (isScenarioPlaybackActive()) scReset();
   if (scUiReady) {
     scCancelPlacement();
@@ -380,6 +382,7 @@ function scSelectStory(id) {
   scContext = null;
   scStorySignature = "";
   scErrors = [];
+  scFlowPending = null;
 }
 
 function scNewScenario() {
@@ -959,6 +962,7 @@ function scRenderButtons() {
 }
 function scRenderStatus() {
   scRenderNow();
+  scRenderFlow();
   const el = $("scStatus");
   if (!el) return;
   el.textContent =
@@ -1037,6 +1041,177 @@ function scPlaceNow() {
   card.style.left = cx + "px";
   if (card.classList) card.classList.toggle("atBottom", y !== top);
 }
+/* ===================== Ruta observada (SCENARIOS-SEMANTICS-001 FASE 3; D5, D6, decisión 233) =====================
+   Herramienta bajo el transporte (#scFlow). Solo existe con la bandera labs, si la página tiene alguna conexión Flujo y la
+   Historia activa tiene eventos. Lee la derivación de flow-semantics.js con el reloj de la Historia:
+     · reproduciendo (también en pausa, tras un salto y terminada): el Trace VISIBLE de la reproducción y su cursor;
+     · sin reproducir: la misma receta (FluyoStory.run + horario visible de story-clock.js) en el instante 0: «Al inicio · ».
+   La base (Trace visible y reloj de los Steps) se memoiza: por reproducción, o por firma del documento sin reproducir. El
+   estado se evalúa en cada fotograma de la reproducción y el DOM solo se escribe si cambia. Elegir o quitar la ruta escribe
+   AMBOS extremos con UNA entrada de Undo (setObservedFlowIn); cambiar de Historia no escribe. No pinta nada en el lienzo. */
+const SC_FLOW_WORDS = {
+  AVAILABLE: "Ruta disponible",
+  UNAVAILABLE: "Ruta no disponible",
+  NO_PATH: "Sin ruta de flujo",
+  byDefault: "incluye estados por defecto",
+  atStart: "Al inicio · ",
+  auto: "Automática",
+  noPair: "Elige origen y destino",
+  missing: "Un extremo de la ruta ya no existe",
+  gone: "—",
+};
+let scFlowBase = { key: null, value: null }, scFlowLast = null, scFlowPending = null;
+function scFlowLabs() {
+  return typeof LABS_SEMANTICS !== "undefined" && !!LABS_SEMANTICS && typeof FluyoFlow !== "undefined";
+}
+function scFlowShown(pg, sc) {
+  return scFlowLabs() && !!pg && !!sc && sc.steps.length > 0 && pg.edges.some((e) => edgeKind(e) === "FLOWS_TO");
+}
+/* Trace visible y reloj de los Steps de la Historia. Reproduciendo, los de la reproducción; si no, la receta única en edición. */
+function scFlowTimeline(pg, sc) {
+  if (scPlayback && isScenarioPlaybackActive()) {
+    if (scFlowBase.key !== scPlayback) {
+      const pb = scPlayback;
+      scFlowBase = { key: pb, value: { ok: true, events: pb.trace.events, timeOf: (st) => FluyoStoryClock.visibleAt(pb, st) } };
+    }
+    return scFlowBase.value;
+  }
+  const meta = FluyoStory.stepMeta(sc.steps);
+  const key = JSON.stringify([sc.id, pg.nodes.map((n) => n.id), pg.edges.map((e) => [e.id, e.from, e.to, edgeKind(e)]), pg.behaviors, sc.steps, sc.arrivalDependencies || null, meta]);
+  if (scFlowBase.key !== key) {
+    const run = FluyoStory.run(pg, sc);
+    let value = { ok: false };
+    if (run.ok) {
+      const sch = FluyoStoryClock.schedule(sc, meta);
+      const events = sch.shifted ? FluyoStoryClock.visibleTrace(run.trace, sch.byStep).events : run.trace.events;
+      value = { ok: true, events, timeOf: (st) => (sch.byStep[st.id] !== undefined ? sch.byStep[st.id] : st.at) };
+    }
+    scFlowBase = { key, value };
+  }
+  return scFlowBase.value;
+}
+/* Modelo de la herramienta (sin DOM): qué se ve, con qué valores y qué texto. null = la herramienta no existe. */
+function scFlowModel() {
+  const pg = P(), sc = scActiveScenario();
+  if (!scFlowShown(pg, sc)) return null;
+  const playing = isScenarioPlaybackActive() && !!scPlayback;
+  const m = { playing, pair: null, status: null, explicitPath: null, from: "auto", to: "auto", fromOptions: [], toOptions: [], word: "", why: "" };
+  let flowIds = [];
+  try {
+    flowIds = FluyoFlow.flowNodes(pg);
+    m.pair = FluyoFlow.resolveObservedFlow(pg, sc);
+    const tl = scFlowTimeline(pg, sc);
+    if (tl.ok && m.pair.state === FluyoFlow.PAIR) {
+      const r = FluyoFlow.observedFlowAt(pg, sc, tl.events, playing ? scPlayback.cursorVirtual || 0 : 0, tl.timeOf);
+      m.status = r.status;
+      m.explicitPath = r.explicitPath;
+    }
+  } catch (err) {
+    if (!err || typeof err.code !== "string") throw err;
+    m.pair = m.pair || { state: FluyoFlow.NO_PAIR, origin: null, source: null, target: null, missing: [] };
+  }
+  const p = m.pair, saved = sc.observedFlow;
+  if (p.origin === "story") {
+    m.from = p.missing.includes("from") ? "" : String(saved.from);
+    m.to = p.missing.includes("to") ? "" : String(saved.to);
+  }
+  /* Elección a medias (solo en la sesión): un extremo elegido sin el otro todavía no escribe nada. */
+  const pend = scFlowPending;
+  if (pend && pend.storyId === sc.id && (p.origin !== "story" || m[pend.end] === "")) m[pend.end] = String(pend.id);
+  /* Opciones: los nodos de algún Flujo (orden del documento) y los extremos guardados que siguen existiendo aunque ya no
+     participen. Cada selector excluye lo que muestra el otro: origen = destino es imposible. */
+  const ids = flowIds.slice();
+  for (const k of ["from", "to"]) if (saved && pg.nodes.some((n) => n.id === saved[k]) && !ids.includes(saved[k])) ids.push(saved[k]);
+  const shownOf = (end) => (m[end] !== "auto" && m[end] !== "" ? +m[end] : p.origin === "structural" ? (end === "from" ? p.source : p.target) : null);
+  const autoText = (end) => {
+    const id = p.origin === "structural" ? (end === "from" ? p.source : p.target) : null;
+    return id !== null ? SC_FLOW_WORDS.auto + " · " + scNodeFallback(id) : SC_FLOW_WORDS.auto;
+  };
+  for (const end of ["from", "to"]) {
+    const other = shownOf(end === "from" ? "to" : "from");
+    const list = [{ value: "auto", text: autoText(end) }];
+    if (m[end] === "") list.push({ value: "", text: SC_FLOW_WORDS.gone, disabled: true });
+    for (const id of ids) if (id !== other) list.push({ value: String(id), text: scNodeFallback(id) });
+    m[end + "Options"] = list;
+  }
+  if (p.state === FluyoFlow.ENDPOINT_MISSING) m.word = SC_FLOW_WORDS.missing;
+  else if (p.state === FluyoFlow.NO_PAIR) m.word = SC_FLOW_WORDS.noPair;
+  else if (m.status) {
+    m.word = (playing ? "" : SC_FLOW_WORDS.atStart) + SC_FLOW_WORDS[m.status];
+    m.why = m.status === FluyoFlow.AVAILABLE && m.explicitPath === false ? SC_FLOW_WORDS.byDefault : "";
+  }
+  return m;
+}
+function scRenderFlow() {
+  const box = $("scFlow");
+  if (!box) return;
+  const m = scFlowModel();
+  const sig = m ? JSON.stringify([m.from, m.to, m.fromOptions, m.toOptions, m.word, m.why, m.status, m.playing]) : "hidden";
+  if (sig === scFlowLast) return;
+  scFlowLast = sig;
+  box.hidden = !m;
+  if (!m) return;
+  for (const end of ["from", "to"]) {
+    const sel = $(end === "from" ? "scFlowFrom" : "scFlowTo");
+    sel.replaceChildren(...m[end + "Options"].map((o) => {
+      const opt = scEl("option", "", o.text);
+      opt.value = o.value;
+      if (o.disabled) opt.disabled = true;
+      return opt;
+    }));
+    sel.value = m[end];
+    sel.title = (m[end + "Options"].find((o) => o.value === m[end]) || { text: "" }).text;   // el texto entero aunque el selector lo recorte
+    sel.disabled = m.playing;
+  }
+  box.dataset.state = m.status || (m.pair ? m.pair.state : "");
+  $("scFlowWord").textContent = m.word;
+  $("scFlowWhy").textContent = m.why ? " · " + m.why : "";
+}
+/* Elegir un extremo. «Automática» quita la ruta guardada (si la hay). Un nodo escribe los DOS extremos: el otro es el que
+   muestra su selector (el guardado o el automático); si el otro no tiene valor, la elección espera a que lo tenga. */
+function scFlowPick(end) {
+  const sc = scActiveScenario(), m = scFlowModel();
+  if (!sc || !m || m.playing) return;
+  const value = $(end === "from" ? "scFlowFrom" : "scFlowTo").value;
+  if (value === "auto") {
+    scFlowPending = null;
+    scFlowWrite(sc, null);
+    return;
+  }
+  if (value === "") return;
+  const otherEnd = end === "from" ? "to" : "from", p = m.pair;
+  let other = m[otherEnd] !== "auto" && m[otherEnd] !== "" ? +m[otherEnd] : null;
+  if (other === null && p.origin === "structural") other = otherEnd === "from" ? p.source : p.target;
+  if (other === null || other === +value) {
+    scFlowPending = { storyId: sc.id, end, id: +value };
+    scFlowLast = null;
+    scRenderFlow();
+    return;
+  }
+  scFlowPending = null;
+  scFlowWrite(sc, end === "from" ? { from: +value, to: other } : { from: other, to: +value });
+}
+/* Escribe por el dominio con UNA entrada de Undo. Lo que no cambiaría nada (o el dominio rechaza) no apila. */
+function scFlowWrite(sc, flow) {
+  const pg = P();
+  const probe = { nodes: pg.nodes, scenarios: [JSON.parse(JSON.stringify(sc))] };
+  let r;
+  try {
+    r = setObservedFlowIn(probe, sc.id, flow);
+  } catch (err) {
+    if (err && typeof err.code === "string") { scFlowLast = null; scRenderFlow(); return; }
+    throw err;
+  }
+  if (r.changed) {
+    pushUndo();
+    setObservedFlowIn(pg, sc.id, flow);
+    scheduleAutosave();
+  }
+  scFlowLast = null;
+  scRenderFlow();
+}
+/* ===================== fin de la ruta observada ===================== */
+
 function scScenarioMenu(anchor) {
   const none = !scActiveScenario();
   scMenu(anchor, [
@@ -2868,6 +3043,9 @@ function scInitUI() {
   bind("scPause", scTogglePause);
   bind("scPrev", scPrevMoment);
   bind("scNext", scNextMoment);
+  /* SCENARIOS-SEMANTICS-001 FASE 3: la ruta observada (solo con la bandera; scRenderFlow decide si existe) */
+  if ($("scFlowFrom")) $("scFlowFrom").onchange = () => scFlowPick("from");
+  if ($("scFlowTo")) $("scFlowTo").onchange = () => scFlowPick("to");
   bind("scEventNew", () => scOpenEventDialog(null));
   bind("scEventSave", scSaveEventType);
   bind("scEventCancel", scCloseEventDialog);

@@ -93,12 +93,12 @@ test("retargetStep: sólo cambia el objetivo; conserva id, EventType, tiempo y o
   bad("step_not_found", "retargetStep({nodes:[], edges:[]}, {steps:[]}, 1, 77)");
 });
 
-test("setInitialAvailability: es de la página; UP no deja Behavior; DOWN queda una sola vez", () => {
+test("setInitialAvailability: es de la página; DOWN y UP quedan una sola vez (SCENARIOS-SEMANTICS-001, decisión 231: «Disponible» también se guarda)", () => {
   const r = K.call(`(function(){ const pg = {nodes:[{id:1},{id:2}], behaviors:[]};
     setInitialAvailability(pg, 2, "DOWN"); setInitialAvailability(pg, 2, "DOWN"); const a = JSON.stringify(pg.behaviors);
     setInitialAvailability(pg, 2, "UP"); return {a, b: pg.behaviors}; })()`);
   assert.equal(r.a, '[{"nodeId":2,"initialState":"DOWN"}]');
-  assert.deepEqual(r.b, []);
+  assert.deepEqual(r.b, [{ nodeId: 2, initialState: "UP" }]);
   assert.throws(() => K.call("setInitialAvailability({nodes:[], behaviors:[]}, 9, 'DOWN')"), (e) => e.code === "node_not_found");
   assert.throws(() => K.call("setInitialAvailability({nodes:[{id:1}], behaviors:[]}, 1, 'MAYBE')"));
 });
@@ -214,7 +214,8 @@ test("set_initial_availability: es de la PÁGINA, usa el Behavior actual y decla
   assert.deepEqual(r.changes[0].affects.stories.map((s) => s.storyId), [1, 2, 3]);
   assert.match(r.changes[0].affects.note, /pertenece a la página/);
   assert.equal(r.changes[0].pageLevel, true);
-  assert.deepEqual(pg(apply(r.project, [P("set_initial_availability", { nodeId: 2, state: "UP" })]).project).behaviors, []);
+  /* decisión 231: «Disponible» es una afirmación y se guarda (antes se quitaba el Behavior) */
+  assert.deepEqual(pg(apply(r.project, [P("set_initial_availability", { nodeId: 2, state: "UP" })]).project).behaviors, [{ nodeId: 2, initialState: "UP" }]);
 });
 
 /* ═══════════════ 3. Rechazos de operación (atomicidad incluida) ═══════════════ */

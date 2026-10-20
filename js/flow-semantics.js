@@ -3,7 +3,9 @@
    Contrato congelado: .ai/tasks/FLUYO-SCENARIOS-SEMANTICS-001.md § «FASE 2 — FROZEN SEMANTIC CONTRACT».
 
    Puro: sin DOM, timers, azar ni estado; nada se persiste. Depende solo de edgeKind (model.js, el único lector de `kind`).
-   En FASE 2 la app no lo carga (ni index.html, ni s/index.html, ni el precache): lo cablea FASE 3.
+   FASE 3 (decisiones 230 y 232) lo cablea en el editor (index.html y precache; el Viewer no lo carga) y añade la ruta observada
+   de una Historia: resolveObservedFlow (qué par se observa) y observedFlowAt (su estado en un instante). Las funciones de
+   FASE 2 no cambian.
 
      estructura: G = conexiones con edgeKind(e) === "FLOWS_TO", de from a to (Conexión y Requisito no existen aquí;
                  las puntas visibles y flowDir no cuentan)
@@ -158,6 +160,57 @@ var FluyoFlow = (function(){
     return p;
   }
 
-  return {AVAILABLE, UNAVAILABLE, NO_PATH, UNKNOWN, EXPLICIT, DEFAULT,
-          availabilityAt, flowStatus, flowAvailability, availabilityProvenance};
+  /* ─────────── FASE 3 — Ruta observada de una Historia (D5, D-Ruta) ───────────
+     Resolución (resolveObservedFlow), determinista e igual en todas las superficies:
+       1. scenario.observedFlow con sus dos nodos en la página → PAIR, origen "story";
+       2. observedFlow con algún extremo que no existe → ENDPOINT_MISSING (missing: "from"/"to"); NO se cae al par estructural,
+          para no observar otra cosa en silencio;
+       3. sin observedFlow → PAIR "structural" si en G hay exactamente un nodo sin entradas y exactamente uno sin salidas;
+       4. si no → NO_PAIR.
+     ENDPOINT_MISSING y NO_PAIR son estados de la herramienta, no de la ruta: no tienen estado de ruta (status null). */
+  const PAIR = "PAIR", ENDPOINT_MISSING = "ENDPOINT_MISSING", NO_PAIR = "NO_PAIR";
+  const isId = v => Number.isSafeInteger(v) && v >= 1;
+
+  /* Nodos que participan en alguna conexión FLOWS_TO, en orden del documento. */
+  function flowNodes(page){
+    checkPage(page);
+    const adj = flowGraph(page, nodeIds(page)), on = new Set();
+    for(const [from, tos] of adj){ on.add(from); for(const to of tos) on.add(to); }
+    return page.nodes.filter(n => on.has(n.id)).map(n => n.id);
+  }
+
+  function resolveObservedFlow(page, scenario){
+    checkPage(page);
+    const ids = nodeIds(page);
+    const f = scenario ? scenario.observedFlow : undefined;
+    if(f !== undefined){
+      if(!f || typeof f !== "object" || Array.isArray(f) || !isId(f.from) || !isId(f.to) || f.from === f.to) throw flowError("invalid_document", "observedFlow");
+      const missing = ["from", "to"].filter(k => !ids.has(f[k]));
+      return {state: missing.length ? ENDPOINT_MISSING : PAIR, origin: "story", source: f.from, target: f.to, missing};
+    }
+    const adj = flowGraph(page, ids), on = new Set(), hasIn = new Set();
+    for(const [from, tos] of adj){ on.add(from); for(const to of tos){ on.add(to); hasIn.add(to); } }
+    const sources = page.nodes.filter(n => on.has(n.id) && !hasIn.has(n.id)).map(n => n.id);
+    const sinks = page.nodes.filter(n => on.has(n.id) && !adj.has(n.id)).map(n => n.id);
+    if(sources.length === 1 && sinks.length === 1) return {state: PAIR, origin: "structural", source: sources[0], target: sinks[0], missing: []};
+    return {state: NO_PAIR, origin: null, source: null, target: null, missing: []};
+  }
+
+  /* Estado de la ruta observada en t, con el reloj que proyecta la Historia: events = Trace VISIBLE (FluyoStoryClock) y
+     timeOf(step) = instante visible del Step (FluyoStoryClock.visibleAt; por defecto step.at). Es la composición de FASE 2:
+     availabilityAt + availabilityProvenance + flowAvailability. Devuelve {pair, status, explicitPath}; sin PAIR, status y
+     explicitPath son null. «Incluye estados por defecto» = status AVAILABLE y explicitPath false. */
+  function observedFlowAt(page, scenario, events, t, timeOf){
+    const pair = resolveObservedFlow(page, scenario);
+    if(pair.state !== PAIR) return {pair, status: null, explicitPath: null};
+    const steps = scenario ? scenario.steps : [];
+    const states = availabilityAt(page, events, t);
+    const provenance = availabilityProvenance(page, steps, t, timeOf);
+    const r = flowAvailability(page, pair.source, pair.target, states, provenance);
+    return {pair, status: r.status, explicitPath: r.explicitPath};
+  }
+
+  return {AVAILABLE, UNAVAILABLE, NO_PATH, UNKNOWN, EXPLICIT, DEFAULT, PAIR, ENDPOINT_MISSING, NO_PAIR,
+          availabilityAt, flowStatus, flowAvailability, availabilityProvenance,
+          flowNodes, resolveObservedFlow, observedFlowAt};
 })();

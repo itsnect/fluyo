@@ -1,10 +1,10 @@
 # FLUYO-SCENARIOS-SEMANTICS-001 — Productización de Semantic Scenarios
 
-Estado: **READY FOR INTEGRATION / MERGE** (2026-10-19) · FASE 1 + FASE 2 reintegradas sobre `main` `0409f4d` en la rama
-`feat/scenario-semantics-integration`, sin commit · `CACHE` v94 · decisiones 214–225 · MCP `efb316f` sin cambios (`check:kernel`
-OK) · FASE 3: sin empezar · sin merge ni push. Ver § «Reintegración sobre `0409f4d`» y § Handoff. Línea congelada de origen:
-`59588a9` + `ca08fc1` + `2f9f418` (base `ce8e699`); referencia histórica: `feat/scenario-semantics` (`4fb5872`, `e47500f`,
-`94e50fa`).
+Estado: **FASE 3 READY FOR COMMIT** (2026-10-20, QA del PO: PASS) · FASE 1 + FASE 2 integradas y publicadas (`eff5129`, v94) · FASE 3 (ruta
+observada) implementada sobre `main` `16ee642`, sin commit, merge, push ni deploy · `CACHE` v96 · decisiones 214–233 · MCP:
+solo `sync:kernel` (sin commit) · FASE 3 aprobada por el PO; siguiente: commit con el OK. Ver § «FASE 3» y § Handoff.
+Referencias históricas: línea congelada `59588a9` + `ca08fc1` + `2f9f418` (base `ce8e699`); `feat/scenario-semantics`
+(`4fb5872`, `e47500f`, `94e50fa`).
 Owner/agente actual: (libre)
 
 > **Repo público**: este archivo puede terminar publicado. Solo contenido técnico apto para público (`AGENTS.md` §9).
@@ -851,9 +851,187 @@ contrato de `edge.kind`, la derivación y la procedencia no cambian.
 - No se ejecutaron los demás `*-browser.cjs`. El guion de QA y 019-2-browser cubren las superficies afectadas. `ui.js`, el
   panel y su CSS no cambiaron en `main` desde la QA responsive de la línea congelada (solo la regla de `#prSkin`).
 
+## FASE 3 — Story Observed Flow (ruta observada de una Historia) · READY FOR COMMIT (2026-10-20)
+
+Base: `main` `16ee642` (= `origin/main`, producción v95) y fluyo-mcp `9ad8147`. Sin commit, sin merge, sin push y sin deploy.
+CACHE v95 → **v96**. Decisiones **230–233**. Alcance pedido por el PO: solo FASE 3; FASE 4, 5 y 6 no se empiezan.
+
+### Qué se implementó
+
+| Pieza | Qué hace |
+|---|---|
+| Kernel (`js/model.js`) | `scenario.observedFlow = {from, to}` opcional con normalización conservadora (`normalizeObservedFlow`: ausente sigue ausente; par válido tal cual, también con claves futuras y extremos perdidos; `null` o formas rotas se quitan; la carga nunca falla). `setObservedFlowIn(pg, scenarioId, flow|null)`, la única escritura. Cascada en `deleteNodeIn` (devuelve `observedFlows`). Condiciones → «Disponible» guarda `{initialState:"UP"}` (`setInitialAvailability`). Decisiones 230 y 231 |
+| Integridad (`js/document-integrity.js`) | `removalImpact(...).observedFlows` (`{pageIndex, storyId, storyName, endpoints}`): un aviso, fuera de `wouldInvalidate` |
+| Autoría MCP (`js/story-authoring.js`) | `delete_node` añade `cascade.observedFlows` solo si había ruta. Ninguna operación nueva |
+| Derivación (`js/flow-semantics.js`) | `flowNodes`, `resolveObservedFlow` (PAIR story/structural · ENDPOINT_MISSING · NO_PAIR) y `observedFlowAt` (composición de FASE 2 con el Trace visible y `visibleAt`). Las funciones de FASE 2 no cambian. Decisión 232 |
+| Editor (`index.html`, `js/editor-scenarios.js`, `css/styles.css`) | `#scFlow` bajo el transporte, estático y oculto. Bloque «Ruta observada»: `scFlowModel`, `scRenderFlow`, `scFlowPick`, `scFlowWrite`. Ganchos en `scRenderStatus`, `scSetBehavior`, `scSelectStory`, `scSyncPage` y `scInitUI`. Decisión 233 |
+| Carga (`index.html`, `sw.js`) | `flow-semantics.js` tras `story-clock.js`; en el precache; CACHE v96. El Viewer (`s/index.html`) no cambia |
+| MCP (`fluyo-mcp`) | Solo `src/generated/kernel-sources.ts` (`npm run sync:kernel`). Ningún cambio de API ni de zod |
+
+**Textos.** Se usan los aprobados: «Ruta disponible», «Ruta no disponible», «Sin ruta de flujo», « · incluye estados por defecto», «Al inicio · » y «Automática».
+
+Dos casos no tenían texto aprobado:
+- **Sin par**: «Elige origen y destino», el del prototipo que validó el QA del PO.
+- **ENDPOINT_MISSING**: «Un extremo de la ruta ya no existe», derivado de W2. **Lo tiene que confirmar el PO.**
+
+No es un conflicto conceptual: D5 fija el estado y la recuperación, pero no la frase.
+
+**Sin conflicto con D5, D-Ruta, FASE 1/2 ni el modelo de Historia.** Precisiones mecánicas, documentadas en 230–233:
+- un `observedFlow` con `from === to` se trata como forma rota y se quita (D5 exige dos nodos distintos);
+- con el par estructural, el selector muestra «Automática · nombre»;
+- elegir un extremo escribe los dos (el otro, el que muestra su selector); si el otro no tiene valor, la elección queda a medias en la sesión y no escribe;
+- en el editor, Condiciones solo emite un cambio cuando el valor cambia: un nodo nunca tocado sigue sin Behavior (DEFAULT).
+
+### Archivos modificados
+
+- fluyo, producto: `js/model.js`, `js/document-integrity.js`, `js/story-authoring.js`, `js/flow-semantics.js`, `js/editor-scenarios.js`, `index.html`, `css/styles.css` y `sw.js`.
+- fluyo, tests nuevos:
+  - `test/fluyo-scenarios-semantics-3.test.cjs`;
+  - `test/fluyo-scenarios-semantics-3-mutations.cjs`;
+  - `test/fluyo-scenarios-semantics-3-browser.cjs`;
+  - `test/fluyo-scenarios-semantics-3-undo.cjs`.
+- fluyo, tests adaptados:
+  - **Literales de CACHE**: v95 → v96 en 58 archivos, el cambio mecánico de cada slice.
+  - **`undo3` cableado** en los alcances de FASE 1, FASE 2, 019.4b, 019.4a, D6, HIT-TEST, PRSKIN y FLOW-FADE (incluida la lista de solo-FASE-3 de FASE 1 y 2, el `sw.js` y las lecturas de `index.html`, `editor-scenarios.js` y `styles.css`).
+  - **`fluyo-017-2.test.cjs`**: las dos aserciones de «UP no deja Behavior» pasan a la regla de la decisión 231.
+- fluyo, documentación: `.ai/DECISIONS.md` (230–233; notas en 223 y 225), `.ai/ARCHITECTURE.md` (sección FASE 3) y esta tarea.
+- fluyo-mcp: `src/generated/kernel-sources.ts`.
+- Fuera: `.ai/tasks/FLUYO-019.4.md` y `.ai/tasks/FLUYO-STEP-REVERSE-001.md` están sin seguimiento y no son de FASE 3. **No se commitean con FASE 3.**
+
+### Pruebas
+
+- **`test/fluyo-scenarios-semantics-3.test.cjs`**, vm, **35/35**:
+  - **A (kernel)**:
+    - normalización conservadora e idempotente;
+    - B4: corpus de ejemplos y fixtures idéntico byte a byte con el `model.js` de `16ee642`;
+    - `setObservedFlowIn` con sus códigos;
+    - cascada (B5) solo en las Historias que nombran el nodo;
+    - `removalImpact`, `delete_node` del MCP, duplicar y `#d=`;
+    - Condiciones guarda UP sin cambiar el Trace.
+  - **B (derivación)**:
+    - resolución en sus cuatro casos;
+    - **aceptación de los dos workers** (disponible → cae A, sigue disponible → cae B, no disponible → sin estructura, NO_PATH);
+    - NO_PATH ≠ UNAVAILABLE;
+    - más de 64 caminos (128, con el único disponible en el último);
+    - ciclos;
+    - horario visible con dependencias de llegada, para el estado y para la procedencia;
+    - procedencia;
+    - determinismo;
+    - B6: nada derivado se persiste;
+    - 300 Historias aleatorias sin UNKNOWN.
+  - **C (editor)**: el bloque real con `state.js` y `selection.js` reales:
+    - visibilidad (labs, Flujo, eventos);
+    - «Al inicio»;
+    - reproducción, pausa, ⏮/⏭, terminada y Detener;
+    - selectores;
+    - Undo y Redo;
+    - sin par;
+    - ENDPOINT_MISSING;
+    - `deleteSel` en la misma entrada de Undo;
+    - memoización;
+    - mismo Trace que la reproducción;
+    - escritura del DOM solo si cambia.
+  - **D (estático)**:
+    - markup y textos;
+    - carga y precache;
+    - alcance frente a `16ee642`;
+    - `undo3` exacto;
+    - B7.
+- **Mutaciones**, `test/fluyo-scenarios-semantics-3-mutations.cjs`: **25/25 detectadas**.
+  - Derivación (6): ENDPOINT_MISSING cae al estructural o se trata como par; par estructural con varios orígenes o con todas las conexiones; procedencia sin `timeOf`; sin par observa el primer Flujo.
+  - Cascada y kernel (8): sin cascada, cascada a todas o solo del origen; `removalImpact` mudo; normalización que reescribe o que rechaza; sin comprobar el nodo; Condiciones con la regla antigua.
+  - Editor (11): sin labs; sin eventos; el final en lugar del inicio; «Al inicio» reproduciendo; matiz invertido; Undo sin cambio; sin completar el otro extremo; receta paralela al reproducir; sin memoización; DOM a cada llamada; selectores sin exclusión.
+  - La U22 sobrevivía a la primera versión del test (las dos recetas dan el mismo Trace). Se añadió C9b: con un Trace de reproducción alterado, la herramienta lo sigue.
+  - Equivalente, sin mutación: en edición, usar el Trace narrativo en lugar del visible. A t = 0 coinciden siempre, porque el primer momento nunca espera.
+- **FASE 1 y FASE 2 con FASE 3 en el árbol**: 21/21 y 33/33. Mutaciones 26/26 y 18/18.
+- **Chrome real**, `test/fluyo-scenarios-semantics-3-browser.cjs`: **47/47**.
+  - V1–V4 a 1440 (ratón) y a 390 (dedo, hoja).
+    - Primer «Ruta no disponible» a 3007 y 3035 ms (cae B a 3000).
+    - Pausa: 1,8 s sin cambio.
+    - Una entrada de Undo; Ctrl+Z la deshace.
+    - Borrar el extremo y deshacer.
+    - «Sin ruta de flujo» y ENDPOINT_MISSING.
+    - En la hoja, la herramienta se ve entera también reproduciendo.
+    - Sin errores de consola.
+  - V5, labs apagado: cabecera de Historias igual píxel a píxel que en `16ee642`, a 1440 y a 390.
+  - SW: v95 (`16ee642`) → v96 instalada y activada, la anterior borrada; `flow-semantics.js` sale de la caché.
+- **Regresión**:
+  - **vm completa, una sola vez**, en un clon desechable con commit desechable (fluyo y fluyo-mcp hermanos):
+    - **1447 tests, 81 fallos**. Línea base `16ee642` en el mismo entorno: 1412/83.
+    - **0 fallos nuevos.**
+    - Los 2 que «dejan de fallar» (`fluyo-016` 016.1 y `fluyo-018-7d`) son un artefacto de fin de línea del checkout base: esos tests buscan texto con `\n` y el checkout dejó `editor-scenarios.js` en CRLF. No se deben a FASE 3.
+  - **Navegador dirigido**: `fluyo-019-2-browser` 85/85 (SW y Viewer) y `fluyo-019-4b-browser` 49/49. No se lanzaron las 46 suites.
+  - **MCP**:
+    - `npm run sync:kernel`;
+    - `check:kernel` OK;
+    - `npm test` **757/757**.
+    - Ningún test del MCP fijaba «UP quita el Behavior».
+  - **En el árbol de trabajo** (sin commit), los alcances «contra HEAD» de 019-1 y 019-2 fallan. Es el artefacto conocido: pasan en el clon con commit.
+
+### QA del PO (2026-10-20) — PASS · FASE 3 aprobada
+
+Chrome real 155, con `?labs=escenarios` y el fixture de dos workers de `test/fluyo-scenarios-semantics-3-browser.cjs`.
+- A 1440 px con ratón y a 390 px con dedo, en la hoja.
+- El guion de QA vive fuera del repo; el árbol no se modificó.
+- **49/49 comprobaciones.** Sin errores de consola.
+
+| # | Comprobación | Resultado |
+|---|---|---|
+| 1 | Historia con `observedFlow` Cliente → BD | «Al inicio · Ruta disponible · incluye estados por defecto». Al reproducir: «Ruta disponible» hasta 1,5 s, **sigue** «Ruta disponible» al caer Worker A y pasa a «Ruta no disponible» a 3022 ms (1440) / 3051 ms (390), con el cambio en 3000 y hasta el final. Sin la conexión API → Cola: «Al inicio · Sin ruta de flujo», y «Sin ruta de flujo» reproduciendo (neutro) |
+| 2 | Pausa y saltos | Pausado a ~2,04 s, de +0,3 s a +2,8 s reales el cursor no se mueve y sigue «Ruta disponible»: el cambio de los 3 s no llega. Al reanudar llega «Ruta no disponible». Desde «terminada», ⏮ ⏮ ⏮ ⏭ ⏭ = 3000 «no disponible» · 1500 «disponible» · 0 «disponible» · 1500 «disponible» · 3000 «no disponible». Tras un salto, en pausa, 2 s sin cambio |
+| 3 | Selector y Undo | Origen → API escribe `{2,6}`; Destino → Worker B escribe `{2,5}`; «Automática» quita la clave y vuelve el par estructural. Una entrada de Undo cada vez. El botón ↶ de la cabecera ×3 da `{2,5}` → `{2,6}` → `{1,6}`, con los selectores siguiendo al documento. Rehacer correcto. Sin par: elegir solo el origen no escribe ni apila; el destino escribe los dos con una entrada |
+| 4 | Textos pendientes | **Aceptados como UX final.** «Un extremo de la ruta ya no existe» se lee junto al «—» del selector afectado: dice qué pasa y dónde, y se recupera eligiendo otro nodo. «Elige origen y destino» es una instrucción directa en el único caso en que la herramienta no puede elegir |
+| 5 | «Automática · nombre» | Se recorta **también a 1440**, no solo a 390. Visible: «Automática …»; el nombre no se ve con el selector cerrado (necesita 197 px y hay 123 a 1440; 245 y 158 a 390). Se ve entero en el desplegable nativo y en el `title`. Con una ruta elegida (`observedFlow`) los nombres se leen enteros: «Cliente → BD» a 390. **No bloquea** (ver debajo) |
+| 6 | labs apagado | Con un documento que YA trae `observedFlow`, frente a `16ee642`, a 1440 y a 390: ningún elemento visible nuevo editando, en Historias ni reproduciendo. El panel de Historias y el de Propiedades de una conexión son idénticos píxel a píxel |
+
+**Por qué el recorte no bloquea el cierre**:
+- El estado de la ruta, que es lo que entrega FASE 3, se lee siempre entero.
+- El caso de aceptación (una ruta configurada) muestra los nombres completos.
+- En automático, el par se descubre con un toque (la lista nativa) o al pasar el ratón.
+- La herramienta solo existe tras la bandera labs.
+
+Queda como **deuda que debe resolverse antes de retirar la bandera** (FASE 6): con el selector cerrado, «Automática · nombre» no enseña el nombre, que es justo lo que esa etiqueta quería mostrar.
+
+Corrige lo que decía el informe de implementación: «legible en escritorio» era inexacto, porque a 1440 también se recorta.
+
+### Deuda y riesgos
+
+1. **Textos**: aceptados en la QA del PO. **Recorte de «Automática · nombre»** (a 1440 y a 390): deuda no bloqueante; hay que resolverlo antes de retirar la bandera (FASE 6).
+2. **W2 en `FluyoIntegrity`**: el aviso de ENDPOINT_MISSING en `validateProject`/`describe_document` no entra. Cambiaría la salida del MCP, así que va con FASE 5. Hoy solo lo ve la herramienta.
+3. **Confirmación al borrar**: borrar un extremo no pide confirmación (política de 018.4: solo se confirma si se rompen Steps). Undo lo recupera; `removalImpact` ya lo informa por si el PO quiere avisarlo.
+4. **B9** (contradicción temporal de SEND + SET_STATE): sigue pendiente del fixture de FASE 6.
+5. **Coste por fotograma**: reproduciendo, se evalúa la derivación en cada fotograma, O(V + E + eventos), y el DOM solo se toca si cambia. No se midió con 300 nodos.
+6. **La deuda general de tests no se tocó**: 81 fallos de base, CACHE escritos a mano (58 archivos subidos a v96) y alcances contra HEAD.
+
 ## Handoff
 
-### Estado al reintegrar (2026-10-19)
+### Estado tras FASE 3 (2026-10-20)
+
+```
+SEMANTIC SCENARIOS — FASE 3 (Story Observed Flow)
+BASE:      fluyo 16ee642 (= origin/main, producción v95) · fluyo-mcp 9ad8147
+ESTADO:    READY FOR COMMIT · QA del PO: PASS (49/49, 1440 y 390) · sin commit · sin merge · sin push · sin deploy
+CACHE:     v96 · DECISIONES: 230–233
+FASE 3:    vm 35/35 · mutaciones 25/25 · Chrome 47/47 (1440 y 390, labs off = v95, SW v95 → v96)
+FASE 1/2:  21/21 + 33/33 · mutaciones 26/26 + 18/18
+SUITE:     1447 / 81 fallos (base 1412 / 83 en el mismo entorno) · 0 nuevos
+NAVEGADOR: 019-2 85/85 · 019.4b 49/49 (dirigido; no las 46 suites)
+MCP:       sync:kernel · check:kernel OK · 757/757 (sin commit)
+```
+
+### Próximo paso concreto
+
+FASE 3 está **aprobada por el PO** (QA del 2026-10-20, § FASE 3 · QA del PO).
+
+1. Con el OK de commit:
+   - un commit en fluyo con los archivos de § FASE 3, sin `.ai/tasks/FLUYO-019.4.md` ni `.ai/tasks/FLUYO-STEP-REVERSE-001.md`;
+   - otro en fluyo-mcp con `src/generated/kernel-sources.ts` (opcional: `npm run sync:kernel` desde el commit de fluyo para que la
+     cabecera nombre la revisión).
+2. Después, push de los dos (primero fluyo) y comprobar que fluyo.space sirve v96. Siguiente CACHE libre: v97.
+3. Deuda no bloqueante: el recorte de «Automática · nombre», antes de retirar la bandera.
+4. FASE 4, 5 y 6 no se empiezan sin autorización.
+
+### Estado al reintegrar (2026-10-19; histórico)
 
 ```
 SEMANTIC SCENARIOS — REINTEGRACIÓN
@@ -868,7 +1046,7 @@ QA:        48/48 Chrome real · 019-2-browser 85/85
 ESTADO:    READY FOR INTEGRATION / MERGE — esperando aprobación del PO (sin merge ni push)
 ```
 
-### Próximo paso concreto
+### Próximo paso al reintegrar (histórico; cumplido en `eff5129`)
 Con la aprobación del PO:
 1. Commit en `feat/scenario-semantics-integration` (o directo sobre `main`).
 2. Merge en `main`.

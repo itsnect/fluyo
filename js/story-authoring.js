@@ -641,7 +641,9 @@ var FluyoAuthoring = (function(){
       catch(e){ throw fromDiagramDomain(e, op, ctx, id); }
       ctx.deleted.push({kind:"node", pageIndex:op.pageIndex, id, label:r.node.label, operationIndex:ctx.opIndex, operation:op.op});
       for(const cid of r.connections) ctx.deleted.push({kind:"connection", pageIndex:op.pageIndex, id:cid, operationIndex:ctx.opIndex, operation:op.op, cascadedFrom:{kind:"node", id}});
-      return {entityKind:"node", entityId:id, deleted:true, label:r.node.label, cascade:{connections:r.connections, behaviors:r.behaviors}, affects:{stories:[]}};
+      // SCENARIOS-SEMANTICS-001 FASE 3: la ruta observada que nombraba el nodo se va con él (deleteNodeIn); solo se informa si había
+      const cascade = Object.assign({connections:r.connections, behaviors:r.behaviors}, r.observedFlows.length ? {observedFlows:r.observedFlows} : {});
+      return {entityKind:"node", entityId:id, deleted:true, label:r.node.label, cascade, affects:{stories:[]}};
     },
     delete_connection(ctx, op, pg){
       const id = entityOf(ctx, op, op.connection, "connection", "edges");

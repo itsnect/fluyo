@@ -32,7 +32,7 @@ const ESC_UNDO = ["if(segDrag){ segDrag=null; undo(); }", "segDrag=null; undo();
 const NO_F4 = [" if(e.route===\"ortho\" && (e.waypoints||[]).length && routeIsStraight(edgePoints(e))) e.waypoints=[];", ""];
 /* [nombre, suite, archivo, desde, hasta] */
 const MUTATIONS = [
-  ["U0 CACHE no sube (sigue v82)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v95";', 'const CACHE = "fluyo-static-v82";'],
+  ["U0 CACHE no sube (sigue v82)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v96";', 'const CACHE = "fluyo-static-v82";'],
   ["U1 la U vuelve al punto medio (n/s)", UNIT, "js/geometry.js", ...U_MID],
   ["U2 los carriles de una U van hacia dentro", UNIT, "js/geometry.js", ...U_INWARD],
   ["U3 la regla de la U también con lados que se miran", UNIT, "js/geometry.js", ...U_OPPOSITE],

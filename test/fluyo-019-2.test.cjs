@@ -253,7 +253,7 @@ test("alcance · editor: presentSkin ya no existe; #skinSel vive en «Lienzo» (
   assert.match(tools, /<select id="skinSel"[^>]*>\s*<option value="flat">Plano<\/option>\s*<option value="built">Construido \(2\.5D\)<\/option>\s*<\/select>/, "control «Aspecto» con la lista cerrada, dentro de «Lienzo»");
   assert.ok(html.indexOf('id="fontGlobalSel"') < html.indexOf('id="skinSel"'), "junto a «Tipografía»");
   assert.match(html, /<button id="prSkin" type="button" aria-pressed="false"[^>]*>Plano<\/button>/, "la barra de Present arranca en plano (ausente = plano)");
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v95";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v96";/);
   assert.ok(read("sw.js").includes('"./js/skin.js",'), "skin.js precacheado (también lo usa el Viewer)");
   for (const f of ["js/editor-runtime.js", "js/ui.js", "js/export.js", "js/viewer.js", "js/state.js"]) assert.ok(read(f).includes("projectSkin(settings)"), f + " lee el aspecto por projectSkin");
   assert.ok(!/skin/.test(read("js/analytics.js")), "sin telemetría de la piel");

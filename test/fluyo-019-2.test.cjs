@@ -281,26 +281,16 @@ test("golden · fixture con skin:\"built\" y golden SVG de la piel (generados po
   assert.ok(g.lines.some((l) => l.startsWith('<clipPath id="skin-clip-')), "clip del cilindro");
   assert.deepEqual(skinSvgLines(g.lines.join("\n")), g.lines, "el golden es exactamente lo que extrae skinSvgLines");
 });
-/* FLUYO-019.4a (decisión 213): el aterrizaje por silueta cambia la sección `landing` de fluyo-019-1-skin.json y las conexiones
-   que aterrizan en fluyo-019-2-skin-svg.json. fluyo-mcp no se toca en ese slice: hasta su port, sus copias son EXACTAMENTE las
-   de 22f82eb (la base de 019.4a), y eso es lo que se comprueba para esos dos archivos. Al portar, se vuelve a «iguales». */
-const MCP_PENDING_4A = ["fluyo-019-1-skin.json", "fluyo-019-2-skin-svg.json"];
-test("golden · fixtures compartidos con fluyo-mcp (si está al lado): la piel y su golden son byte a byte los mismos (salvo la brecha declarada de 019.4a)", () => {
+/* FLUYO-019.4a (decisión 213) cambió la sección `landing` de fluyo-019-1-skin.json y las conexiones que aterrizan en
+   fluyo-019-2-skin-svg.json; FLUYO-019-MCP-PARITY portó el aterrizaje al MCP y cerró la brecha: las copias vuelven a ser
+   iguales, sin excepciones. */
+test("golden · fixtures compartidos con fluyo-mcp (si está al lado): la piel y su golden son byte a byte los mismos", () => {
   const mcp = path.resolve(root, "..", "fluyo-mcp", "test", "fixtures");
   if (!fs.existsSync(mcp)) return;
-  let shared = 0;
   for (const f of ["fluyo-019-1-skin.json", "fluyo-019-2-skin.fluyo.json", "fluyo-019-2-skin-svg.json"]) {
     const other = path.join(mcp, f);
-    if (!fs.existsSync(other)) continue;   /* hasta FLUYO-019.3 el MCP no los tiene: nada que comparar */
-    const theirs = fs.readFileSync(other, "utf8").replace(/\r\n/g, "\n"), ours = read("test/fixtures/" + f);
-    if (MCP_PENDING_4A.includes(f) && theirs !== ours) {
-      const base4a = execFileSync("git", ["-C", gitRoot, "show", "22f82eb:test/fixtures/" + f], { encoding: "utf8" }).replace(/\r\n/g, "\n");
-      assert.equal(theirs, base4a, f + ": la copia del MCP es la de 22f82eb (brecha de 019.4a hasta el port)");
-      assert.notEqual(ours, base4a, f + ": fluyo ya lleva el contrato de 019.4a");
-      console.log("    " + f + ": el MCP conserva la versión de 22f82eb (brecha declarada de FLUYO-019.4a)");
-    } else assert.equal(theirs, ours, f + " igual en los dos repos");
-    shared++;
+    assert.ok(fs.existsSync(other), "falta en fluyo-mcp: " + f);
+    assert.equal(fs.readFileSync(other, "utf8").replace(/\r\n/g, "\n"), read("test/fixtures/" + f), f + " igual en los dos repos");
   }
-  console.log("    fixtures de la piel compartidos con fluyo-mcp: " + shared + " (el resto llega con FLUYO-019.3)");
 });
 module.exports = { skinSvgLines };

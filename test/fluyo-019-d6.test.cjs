@@ -123,12 +123,14 @@ test("alcance: frente a ce8e699 solo cambian geometry.js (+ containmentPaintOrde
 });
 
 /* ───────── contrato compartido con fluyo-mcp ───────── */
-test("fixtures compartidos con fluyo-mcp (si está al lado): mismos bytes; hasta el port (fase 2), solo un aviso", () => {
+/* FLUYO-019-MCP-PARITY portó D6 al MCP (fase 2): con fluyo-mcp al lado, los dos fixtures tienen que estar allí, idénticos */
+test("fixtures compartidos con fluyo-mcp (si está al lado): mismos bytes", () => {
   const mcp = path.resolve(root, "..", "fluyo-mcp", "test", "fixtures");
   for (const f of ["fluyo-019-d6-capas.json", "fluyo-019-d6-capas-svg.json"]) {
     assert.ok(fs.existsSync(path.join(root, "test", "fixtures", f)), "falta " + f);
     const other = path.join(mcp, f);
-    if (!fs.existsSync(other)) { console.log("    " + f + ": aún no está en fluyo-mcp (llega con el port, fase 2)"); continue; }
+    if (!fs.existsSync(mcp)) continue;
+    assert.ok(fs.existsSync(other), "falta en fluyo-mcp: " + f);
     assert.equal(fs.readFileSync(other, "utf8").replace(/\r\n/g, "\n"), read("test/fixtures/" + f), f + " idéntico en los dos repos");
   }
 });

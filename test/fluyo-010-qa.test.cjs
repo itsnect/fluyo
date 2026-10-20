@@ -772,7 +772,7 @@ test('scFindDropTargets filters incompatible primitive for direct hit',()=>{
 
 test('Service Worker cache is v72 and includes new scenario assets',()=>{
   const sw=read('sw.js');
-  assert.ok(sw.includes('fluyo-static-v97'));
+  assert.ok(sw.includes('fluyo-static-v98'));
   assert.ok(sw.includes('"./js/scenario-engine.js"'));
   assert.ok(sw.includes('"./js/scenario-playback.js"'));
   assert.ok(sw.includes('"./js/editor-scenarios.js"'));

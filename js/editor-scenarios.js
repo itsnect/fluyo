@@ -1679,7 +1679,10 @@ function scStoryMenu(step, anchor) {
       ...(et ? [{ label: "Editar este evento…", hint: uses > 1 ? "Cambia «" + et.name + "» en sus " + uses + " usos" : "Cambia «" + et.name + "»", fn: () => scOpenEventDialog(et.id) }] : []),
       { label: "Usar otro evento aquí…", hint: "Sólo cambia esta aparición", fn: () => scChangeEvent(step, anchor) },
     ],
-    [{ label: "Cambiar dónde ocurre…", hint: where ? "Ahora: " + where : "", fn: () => scChangeTarget(step) }],
+    [
+      { label: "Cambiar dónde ocurre…", hint: where ? "Ahora: " + where : "", fn: () => scChangeTarget(step) },
+      ...(step.action === "SEND" ? [scReverseMenuItem(step)] : []),
+    ],
     [
       { label: "Duplicar", hint: "Al mismo tiempo, justo debajo", fn: () => scDuplicateStep(step.id) },
       { label: "Mover", sub: { title: "Mover", items: moveItems } },
@@ -1698,6 +1701,23 @@ function scStoryMenu(step, anchor) {
     ],
   ];
   scMenuSections(anchor, { title: scStepTitle(step), subtitle: d.primary !== scStepTitle(step) ? d.primary : "", sections });
+}
+/* FLUYO-STEP-REVERSE-003: «Invertir sentido» da la vuelta al Step en su misma conexión (A → B ⇄ B → A). Reutiliza
+   setStepReverse (decisión 237): sin operación nueva, una sola entrada de Undo y la selección no cambia (decisión 189).
+   El hint dice cómo QUEDARÁ, porque «Cambiar dónde ocurre» ya dice cómo está. Sin conexión no hay sentido que invertir. */
+function scReverseMenuItem(step) {
+  const flipped = scWhereLabel({ edgeId: step.edgeId, reverse: step.reverse !== true });
+  return { label: "Invertir sentido", hint: flipped ? "Pasa a: " + flipped : "", fn: () => scToggleStepReverse(step.id), disabled: scIsTargetMissing(step) };
+}
+function scToggleStepReverse(id) {
+  if (!scEditable()) return false;
+  const sc = scActiveScenario(),
+    s = sc.steps.find((x) => x.id === id);
+  if (!s || s.action !== "SEND" || scIsTargetMissing(s)) return false;
+  pushUndo();
+  setStepReverse(sc, id, s.reverse !== true);
+  scCommit();
+  return true;
 }
 /* Menú agrupado: cabecera opcional, secciones separadas y submenús que sustituyen el contenido
    (con «‹ Volver»). Cada entrada: {label, hint?, fn?, sub?:{title,items}, disabled?, danger?}. */

@@ -20,7 +20,7 @@ const SVG = '  if(skinOn && typeof skinEdgeLanding==="function") pts=skinEdgeLan
 const BALL = "      const p=pointAt(painted(seg), s/seg.L);";
 /* [nombre, suite, archivo, desde, hasta] */
 const MUTATIONS = [
-  ["U0 CACHE no sube (sigue v92)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v97";', 'const CACHE = "fluyo-static-v92";'],
+  ["U0 CACHE no sube (sigue v92)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v98";', 'const CACHE = "fluyo-static-v92";'],
   ["U1 el penúltimo acompaña (vuelve la inclinación de F2)", UNIT, SKIN, MOVE, "  z.x+=u.x*t; z.y+=u.y*t; p.x+=SKIN_DEPTH/2;\n  return out;"],
   ["U2 la punta solo retrocede media silueta", UNIT, SKIN, MOVE, "  z.x+=u.x*t/2; z.y+=u.y*t/2;\n  return out;"],
   ["U3 aterriza también sin silueta (desplazamiento fijo, F3)", UNIT, SKIN, GUARD_T, "  if(t<=1e-6) t=SKIN_DEPTH/2;\n  if(t>L-1) return out;"],

@@ -532,11 +532,12 @@ test("I1 · versiones: engineVersion 2 y version 5 (NO v3); sw.js sube a v97; Vi
   assert.equal(run("FluyoScenarios.ENGINE_VERSION"), 2);
   assert.equal(run("SCENARIO_ENGINE_VERSION"), 2);
   assert.equal(run("projectToSerializable({}, {}).version"), 5);
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v97";/);
-  assert.equal(read("sw.js").replace('"fluyo-static-v97"', '"fluyo-static-v' + (97 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante");
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v98";/);
+  assert.equal(read("sw.js").replace('"fluyo-static-v98"', '"fluyo-static-v' + (97 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante");
   for (const f of ["js/viewer.js", "js/present-story.js", "js/story-clock.js", "js/flow-semantics.js", "js/link-codec.js", "js/share-url.js", "index.html", "s/index.html", "css/styles.css"])
     assert.equal(read(f), atBase(f), f + " sin cambios");
-  assert.ok(!/Invertir sentido/.test(read("js/editor-scenarios.js")), "el menú «Invertir sentido» es de STEP-REVERSE-003");
+  const { undoReverseUi } = require("./fluyo-step-reverse-003-undo.cjs");   /* el menú llega en STEP-REVERSE-003: fuera de 003, no está */
+  assert.ok(!/Invertir sentido/.test(undoReverseUi("js/editor-scenarios.js", read("js/editor-scenarios.js"))), "el menú «Invertir sentido» es de STEP-REVERSE-003");
 });
 
 test("I2 · una sola regla: fuera de traversalEnds nadie deduce el recorrido de e.from/e.to en el texto ni en los resultados", () => {
@@ -554,6 +555,7 @@ test("I3 · alcance frente a " + BASE + ": solo cambian estos archivos servidos,
   const changed = execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean);
   const untracked = execFileSync("git", ["-C", gitRoot, "ls-files", "--others", "--exclude-standard", "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean);
   const { undoReverse, REGIONS } = require("./fluyo-step-reverse-002-undo.cjs");
+  const { undoReverseUi } = require("./fluyo-step-reverse-003-undo.cjs");   /* STEP-REVERSE-003 va encima: se deshace antes */
   assert.deepEqual([...new Set([...changed, ...untracked])].sort(), [...Object.keys(REGIONS), "sw.js"].sort());
-  for (const f of Object.keys(REGIONS)) assert.equal(undoReverse(f, read(f)), atBase(f), f);
+  for (const f of Object.keys(REGIONS)) assert.equal(undoReverse(f, undoReverseUi(f, read(f))), atBase(f), f);
 });

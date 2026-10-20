@@ -479,3 +479,10 @@
    - El control del menú, su texto y un posible atajo «Añadir la respuesta» se deciden en STEP-REVERSE-003.
 239. **Semantic Scenarios no lee el sentido** (D12). FLOWS_TO, la alcanzabilidad, la procedencia y `observedFlow` no leen Steps (T2), y `reverse` no altera G. FASE 3 no se toca. Un aviso del tipo de W5 («la respuesta va contra el flujo declarado») queda fuera.
    - **Tests de alcance de slices anteriores**: `test/fluyo-step-reverse-002-undo.cjs` (`undoReverse`) deshace 002 sobre `544fd4b` antes que `undo3`, como en la decisión 218.
+240. **«Invertir sentido» en el menú del Step FLOW** (STEP-REVERSE-003; cierra D10 y la decisión 238).
+   - Va en el grupo «Dónde», justo después de «Cambiar dónde ocurre…». Solo aparece en Steps FLOW (`SEND`).
+   - El hint dice cómo **quedará** («Pasa a: DB → Servicio»): «Cambiar dónde ocurre…» ya dice cómo está («Ahora: Servicio → DB»).
+   - Reutiliza `setStepReverse` (decisión 237): no hay operación nueva. `pushUndo` + `setStepReverse` + `scCommit`: una sola entrada de Undo, el panel y el token cambian al momento y la selección no cambia (decisión 189). Normal → inverso escribe `reverse:true`; inverso → normal quita la clave.
+   - Sin conexión (borrada o con un extremo perdido) la entrada está desactivada: no hay sentido que invertir; el Step se repara con «Elegir otro».
+   - No se añade el atajo «Añadir la respuesta» ni ningún otro control. Desktop y móvil usan el mismo menú.
+   - **Tests de alcance de slices anteriores**: `test/fluyo-step-reverse-003-undo.cjs` (`undoReverseUi`) deshace 003 sobre `702f269` antes que `undoReverse` (002), como en la decisión 218.

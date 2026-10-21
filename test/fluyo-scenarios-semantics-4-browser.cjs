@@ -263,26 +263,35 @@ async function counts(browser, base, vp, touch) {
   } finally { await T.ctx.close(); }
 }
 
+/* FASE 6 (decisión 253): la bandera labs se retiró. V4 pasa a medir que su ausencia es el comportamiento normal: sin parámetro, el
+   lienzo (editando y reproduciendo) y la cabecera de Historias son los de ?labs=escenarios; editando, el lienzo sigue siendo el de la base
+   (la ruta solo se pinta reproduciendo). */
 async function labsOff(browser, now, old, vp, label, touch) {
-  console.log(`\n── V4 · labs apagado frente a ${BASE} · ${label}`);
-  const meas = async (base) => {
-    const T = await open(browser, base, vp, "?labs=off", { touch });
+  console.log(`\n── V4 · sin bandera (retirada en FASE 6) · ${label}`);
+  const meas = async (base, query) => {
+    const T = await open(browser, base, vp, query, { touch });
     try {
-      await T.load(DOC()); await T.story();
+      /* el arranque centra con setTimeout(centerView, 100) (state.js): según llegue antes o después de cargar el documento, el encuadre
+         cambia 48 px (la intermitencia de la deuda 1 de FASE 5). Se espera y se centra igual en las tres cargas: se comparan lienzos, no la carrera. */
+      await T.load(DOC()); await T.page.waitForTimeout(150); await T.page.evaluate(() => centerView()); await T.story();
       const edit = await T.canvasHash();
       const header = await T.page.locator("#panelScenarios .scHeader").screenshot();
       const at = {};
       for (const t of [800, 2300, 3300]) { await T.playAt(t); at[t] = await T.canvasHash(); }
-      const hidden = await T.page.evaluate(() => { const f = document.getElementById("scFlow"); return !f || (f.hidden && getComputedStyle(f).display === "none"); });
-      return { edit, header: hash(header), at, hidden, errors: T.errors };
+      const shown = await T.page.evaluate(() => { const f = document.getElementById("scFlow"); return !!f && !f.hidden && getComputedStyle(f).display !== "none"; });
+      return { edit, header: hash(header), at, shown, errors: T.errors };
     } finally { await T.ctx.close(); }
   };
-  const a = await meas(old.base), b = await meas(now.base);
-  check(b.hidden, "la herramienta no existe");
-  check(a.edit === b.edit, `lienzo editando idéntico (${a.edit} = ${b.edit})`);
-  check([800, 2300, 3300].every((t) => a.at[t] === b.at[t]), "lienzo reproduciendo, en pausa a 0,8 · 2,3 · 3,3 s: idéntico píxel a píxel");
-  check(a.header === b.header, "cabecera de Historias idéntica píxel a píxel");
-  check(b.errors.length === 0, "sin errores de consola");
+  const base = await meas(old.base, "?labs=off"), a = await meas(now.base, ""), b = await meas(now.base, "?labs=escenarios");
+  check(a.shown, "sin parámetro: la herramienta existe");
+  check(a.edit === b.edit, `lienzo editando: igual sin parámetro y con ?labs=escenarios (${a.edit})`);
+  /* Con la hoja (390), la herramienta ahora existe sin bandera y la hoja de Historias crece: el lienzo visible cambia respecto de la base
+     a propósito. Con el panel lateral (1440) el lienzo editando sigue siendo el de la base. */
+  if (!touch) check(a.edit === base.edit, `panel lateral: el lienzo editando es el de ${BASE} (${base.edit})`);
+  check([800, 2300, 3300].every((t) => a.at[t] === b.at[t]), "lienzo reproduciendo, en pausa a 0,8 · 2,3 · 3,3 s: el de ?labs=escenarios píxel a píxel (la ruta se pinta)");
+  check([800, 2300, 3300].some((t) => a.at[t] !== base.at[t]), `y distinto del de ${BASE} sin bandera (que no pintaba la ruta)`);
+  check(a.header === b.header, "cabecera de Historias: la de ?labs=escenarios píxel a píxel");
+  check(a.errors.length + b.errors.length === 0, "sin errores de consola");
 }
 
 async function present(browser, base) {

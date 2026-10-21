@@ -1,7 +1,7 @@
 # FLUYO-SCENARIOS-SEMANTICS-001 — Productización de Semantic Scenarios
 
-Estado: **FASE 5 READY FOR PUSH** (2026-10-20): revisión del PO aprobada; commit en fluyo y en fluyo-mcp, sin push ni deploy (§ «FASE 5 — Implementación»); CACHE v100,
-decisiones 245–249, sin commit, push ni deploy. **FASE 4 CERRADA** (2026-10-20): `6701261` con push y deploy (fluyo.space sirve v99, smoke en producción 24/24). Ver § «Publicación» de FASE 4 · FASE 1 + FASE 2 publicadas (`eff5129`, v94) · FASE 3 publicada (`544fd4b`, v96) ·
+Estado: **FASE 6 READY FOR PUSH** (2026-10-21; commit de FASE 6 sobre `a4bbf2f` aprobado por el PO, sin push ni deploy): cierre del PO aplicado sobre `a4bbf2f` (B1 en el pegado, B9 aceptado, «Automática · nombre», bandera retirada, «Semántica» en «Puntos»; decisiones 250–254, CACHE v101); 018.23 = base; vm 1566/83 = conjunto de la base; sin commit, push ni deploy (§ «FASE 6»).
+con push y deploy (§ «FASE 5 — Publicación»); CACHE v100, decisiones 245–249. **FASE 4 CERRADA** (2026-10-20): `6701261` con push y deploy (fluyo.space sirve v99, smoke en producción 24/24). Ver § «Publicación» de FASE 4 · FASE 1 + FASE 2 publicadas (`eff5129`, v94) · FASE 3 publicada (`544fd4b`, v96) ·
 FASE 4 (Scenario Experience) implementada sobre `main` `ae0d619` (producción v98), sin commit, push ni deploy · `CACHE` v99 · decisiones
 241–244 · MCP: sin cambios · siguiente: revisión del PO. Ver § «FASE 4» y § Handoff.
 Referencias históricas: línea congelada `59588a9` + `ca08fc1` + `2f9f418` (base `ce8e699`); `feat/scenario-semantics`
@@ -1286,7 +1286,7 @@ A 1440 cabe en los dos sitios; a 390, en ninguno. El contrato no dice qué hacer
   - Sin mencionar la bandera labs, que no tiene interruptor visible hasta FASE 6.
 - **Operativo**: CACHE v99 → v100; `undo5` encadenado antes de `undo4` en los alcances antiguos; MCP: `sync:kernel` y `check:kernel`.
 
-## FASE 5 — Paridad de superficies · Implementación · APROBADA · READY FOR PUSH (2026-10-20)
+## FASE 5 — Paridad de superficies · Implementación · APROBADA · CERRADA (2026-10-20)
 
 **Contexto**:
 - Base: fluyo `6701261` (producción v99) y fluyo-mcp `497c81e`. Sin commit, push ni deploy. CACHE v99 → **v100**.
@@ -1433,14 +1433,389 @@ Revisión del PO de FASE 5. Con su OK:
 
 Siguiente CACHE libre después del push: v101. FASE 6 no se empieza sin autorización.
 
+### Publicación (2026-10-20) — CERRADA
+
+- **fluyo**:
+  - Commit `a4bbf2f` (93 archivos), push `6701261..a4bbf2f` a `origin/main`.
+  - Los dos `.md` ajenos (`FLUYO-019.4.md` y `FLUYO-STEP-REVERSE-003.md`) se quedan fuera, sin commit.
+  - fluyo.space sirve **v100** unos 15 s después del push. Los 14 archivos servidos que toca FASE 5 coinciden con `a4bbf2f`:
+    `sw.js`, `/`, `/s/`, `/docs/`, `flow-semantics.js`, `editor-scenarios.js`, `present-story.js`, `viewer.js`, `render.js`, `export.js`,
+    `document-integrity.js`, `story-authoring.js`, `styles.css` y `share.css`.
+- **Smoke en producción** con Chrome real (perfil limpio, terceros bloqueados, service worker activo), a 1440 y 390: **14/14**.
+  - SW v100 activo y controlando, con el código de FASE 5.
+  - SVG con 12 cuñas y 1 anillo.
+  - Present con labs: sin línea antes de reproducir; «Ruta no disponible» y la ruta en el lienzo a 4,2 s.
+  - Share → Viewer:
+    - sin línea antes de reproducir;
+    - a 2,3 s, «Ruta disponible · incluye estados por defecto», entera en el rótulo;
+    - rama A no disponible y B disponible;
+    - la banda sigue en 64 px.
+  - labs apagado: ni herramienta ni ruta.
+  - 0 errores de consola.
+- **fluyo-mcp**:
+  - Commit `3d9cda7` (11 archivos; el kernel se resincronizó desde `a4bbf2f` y solo cambia la cabecera), push `497c81e..3d9cda7`.
+  - Deploy con `deploy mcp.bat` (`gcloud run deploy fluyo-mcp --source . --region=us-central1`, proyecto `fluyo-mcp-prod`): revisión **`fluyo-mcp-00027-nxh`** con el **100 %** del tráfico (antes `fluyo-mcp-00026-nqb`).
+  - `verify-deploy.sh https://mcp.fluyo.space`: **21/21**, dos veces. La espera de 60 s del `.bat` se saltó porque, sin consola, `timeout` no admite entrada redirigida; la segunda pasada se lanzó después a mano.
+  - **Smoke de FASE 5 en producción: 9/9**:
+    - `tools/list` con `set_observed_flow` (71 102 caracteres);
+    - `create_diagram` guarda `kind`;
+    - `export_diagram` con 4 cuñas y 1 anillo;
+    - `describe_document` con `connectionKind`, `observedFlow` y etiquetas;
+    - `set_observed_flow`;
+    - W2/W3 sin invalidar.
+- Esta nota de cierre se queda sin commit, como en FASE 4. Siguiente CACHE libre: **v101**. FASE 6 no se empieza sin autorización.
+
+## FASE 6 — QA y regresión · READY FOR REVIEW (2026-10-20)
+
+**Contexto**:
+- Base: fluyo `a4bbf2f` (producción v100) y fluyo-mcp `2fc47c4` (FASE 5 + MCP-TOKEN-EFFICIENCY-003). Sin commit, push ni deploy.
+- CACHE v100 → **v101**. Decisiones **250–251**.
+- Las dos `.md` ajenas (`FLUYO-019.4.md`, `FLUYO-STEP-REVERSE-003.md`) no se tocan.
+
+### Qué define FASE 6 (contrato, § 9 y D12)
+
+- Alcance: QA del PO (con un fixture mixto SEND + SET_STATE para B9), regresión completa, documentos no semánticos, decisión de retirar la bandera y cierre de B1–B9.
+- Aceptación: B1, B4, B6 y B7 verificados; B3, B5 y B8 cerrados; **B9 juzgado por el PO**. Rollback: mantener la bandera.
+- La retirada de la bandera es **decisión del PO tras FASE 6** (D10). Antes hay que resolver el recorte de «Automática · nombre» (deuda de FASE 3).
+
+### Auditoría: qué quedaba después de FASE 5
+
+| Punto | Clase | Resultado |
+|---|---|---|
+| B9 (SEND en vuelo + SET_STATE que deja la ruta UNAVAILABLE) | decisión del PO | sin fixture ni test hasta ahora. Reproducido y medido (abajo). Semántica sin cambios |
+| B1 (UNKNOWN nunca como disponible) | **bug real** | el pegado `fluyo::` copiaba un Behavior UNKNOWN sin validar y el documento dejaba de leerse, autoguardado incluido. Estaba en el plan de FASE 2 (§ 9) y se quedó fuera al partirla. **Corregido** (decisión 250) |
+| B1, otras entradas | verificación | archivo, autoguardado, `?ejemplo=`, `#d=`, Viewer, «Añadir como página», autoría y Condiciones: ya rechazaban. Ahora con test por entrada |
+| B7 | verificación | los tests anteriores no cubrían `ui.js`, `geometry.js`, `present-story.js` ni `link-codec.js`. Ahora se recorren los 48 archivos servidos |
+| B3 (plantillas) | ya resuelto | `create_from_template` no recibe `kind`: sus plantillas son fijas y siguen la ruta de `create_diagram`, que lo conserva desde FASE 5 |
+| B4, B5, B6, B8 | ya resuelto | cubiertos en FASE 1–5. B4 se amplía al pegar y duplicar el corpus; B8, v100 → v101 medido |
+| «Automática · nombre» recortado | deuda / decisión de UX | solo bloquea la retirada de la bandera. Opciones medidas (abajo). Sin cambios |
+| «Present solo con labs» | consecuencia de D10 | desaparece al retirar la bandera |
+| Interruptor visible de labs | no contratado | D10 dice «sin interruptor visible hasta FASE 6», pero el contrato no define ninguno. No se inventa |
+| UNKNOWN + caído / disponible en la derivación | no aplica | UNKNOWN no se persiste en el MVP (D3). Es de la tarea de UNKNOWN |
+
+### B9 — qué significa hoy y cómo se valida
+
+**Reproducido** con el motor, el reloj y la receta de la ruta reales (vm) y en Chrome (editor con labs, Present y Viewer, a 1440 y 390).
+
+Fixture de la QA del PO: `test/fixtures/fluyo-scenarios-semantics-6-b9.json`.
+- Es el de dos workers, con la ruta automática Cliente → BD.
+- Se abre con «Abrir» (acepta `.json`) y `?labs=escenarios`.
+
+| Historia | Qué pasa | Oráculo § T |
+|---|---|---|
+| 1. Cae el destino con el pedido en camino | Pedido Cola → Worker B a 2,5 s (llega a 3,6 s); Worker B cae a 3 s | **B9** dentro del vuelo |
+| 2. Cae la BD con el pedido en camino | El mismo pedido; la BD cae a 3 s | **B9** dentro del vuelo |
+| 3. La caída espera a que llegue el pedido | La Historia 1 con «Esperar a que llegue…» (decisión 200) | sin B9 en vuelo; **solo en el borde** |
+| 4. Vuelve el destino con el pedido en camino | El pedido sale con Worker B caído (falla) y B vuelve a 3 s | **inversa**: fuera de la definición |
+
+Lo que ve el usuario en la Historia 1 (igual en las tres superficies, medido):
+
+| Instante | Línea | Funda Cola → Worker B | Pedido | Worker B | Mensaje |
+|---|---|---|---|---|---|
+| 2,9 s | Ruta disponible · incluye estados por defecto | oliva | en camino (45 %) | disponible | Worker A no está disponible |
+| 3,0 s | **Ruta no disponible** | terracota + barrido | **sigue en camino** | no disponible | Worker B no está disponible |
+| 3,65 s | Ruta no disponible | terracota | **llegó «completado»** (anillo verde 700 ms; «Llegó» en el registro; `completed` en `run_story`) | no disponible | Worker B no está disponible |
+
+**Análisis de la semántica temporal**:
+- Es **correcta según el contrato**:
+  - T1: la ruta cambia en el instante del `SET_STATE`;
+  - T2: los envíos nunca alimentan la ruta (quitar el envío deja la línea de tiempo idéntica);
+  - C1: el motor decide el envío en su `at` (`scenario-engine.js`), con el destino aún disponible.
+- **Es ambigua en la Historia 1**. El lienzo enseña, a la vez, un pedido que entra en un nodo ya caído dentro de una funda «no disponible» y una llegada «completada». Se puede leer como «Worker B lo recibió estando caído». La señal de éxito es débil (un anillo verde pequeño), pero el registro dice «Llegó».
+- **No es engañosa en la Historia 2**: el salto llega a un nodo disponible y la ruta (que es otra cosa) no está disponible. Las dos cosas son ciertas (ruta ≠ salto).
+- **La mitigación de autoría funciona**: con «Esperar a que llegue…» el cambio se ve justo en la llegada (3,6 s) y nunca con el pedido en camino. Pero la definición literal de § T, cerrada por arriba `(at, at + viaje]`, también cuenta ese borde: el cue verde de llegada coincide con el instante en que Worker B cae. El oráculo lo separa.
+- **La inversa** (Historia 4) es simétrica:
+  - el pedido ya «no se completó» al salir;
+  - a 3 s el mensaje pasa a «Worker B vuelve a estar disponible» y la ruta a disponible;
+  - el pedido se apaga en rojo al llegar a un nodo disponible.
+  - § T no la incluye en B9.
+- Es **preexistente** (C1 existe desde 013, sin rutas). Las fundas y el barrido de FASE 4 la hacen más visible.
+
+**Cómo se valida** (sin cambiar la semántica, decisión 251): el oráculo en vm, el fixture y el guion de Chrome. Las capturas por instante se generan con `FLUYO_SHOTS` y quedan fuera del repo.
+
+### Qué se implementó
+
+| Pieza | Cambio |
+|---|---|
+| `js/model.js` (kernel) | `cloneStructureIn` valida los Behaviors con la regla de carga ANTES de mutar; si no, `invalid_document("behaviors")` (decisión 250) |
+| `js/selection.js` | `pasteClip` atrapa ese rechazo como `dupSel`: no pega, no apila Undo ni lanza; `id_exhausted` se propaga |
+| `sw.js` | CACHE v101 |
+| fluyo-mcp | `sync:kernel` (solo `model.js`; `KERNEL_ID` nuevo). T8 de MCP-TOKEN-EFFICIENCY-003 comparaba hashes de respuestas que llevan el `kernelId`: ahora normaliza ese id al de la base (mismo largo) y sigue midiendo que nada más cambie |
+
+### Archivos
+
+- **fluyo, producto**: `js/model.js`, `js/selection.js`, `sw.js`.
+- **fluyo, tests nuevos**:
+  - `test/fluyo-scenarios-semantics-6.test.cjs` (14);
+  - `-6-mutations.cjs` (15);
+  - `-6-browser.cjs` (29);
+  - `-6-undo.cjs` (`undo6`, `undo56`);
+  - `test/fixtures/fluyo-scenarios-semantics-6-b9.json`.
+- **fluyo, tests adaptados**:
+  - CACHE v100 → v101 en 63 archivos;
+  - `undo56` en lugar de `undo5` en 11 suites de alcance antiguas;
+  - descuento de las piezas de FASE 6 en `-4.test.cjs` E2, `-5.test.cjs` G3 y `fluyo-step-reverse-003.test.cjs` E1.
+- **fluyo, docs**: esta tarea, `.ai/DECISIONS.md` (250–251), `.ai/architecture/SCENARIO-SEMANTICS-001.md` (estado de D12 tras FASE 6).
+- **fluyo-mcp**: `src/generated/kernel-sources.ts`, `test/fluyo-mcp-token-efficiency-003.test.ts`.
+
+### Pruebas
+
+- **vm de FASE 6: 14/14**.
+  - A1: rechazo de UNKNOWN por entrada.
+  - A2: el pegado, frente al bug de la base.
+  - A3: el corpus pega y duplica igual que en `a4bbf2f`.
+  - A4: `pasteClip`.
+  - B1–B7: el oráculo B9 con el fixture, la Historia de aceptación sin B9, la semántica de § T fijada, T2, la mitigación, ruta ≠ salto y la inversa.
+  - C1–C3: B7 en todos los archivos servidos, el alcance frente a `a4bbf2f` con `undo6` exacto, y el kernel del MCP.
+- **Mutaciones: 15/15** (grupos A y B).
+  - Las primeras versiones de M6 y M7 tenían un patrón no único (la misma línea está en `dupSel`).
+  - M10 sobre `story-authoring.js` era equivalente (doble barrera con `model.js`): se mutó `model.js` y A1 comprueba Condiciones.
+  - M14 y M15 se rehicieron para el caso que el fixture ejerce.
+- **Regresión vm completa**, en clones desechables con commit y fluyo-mcp hermano: base `a4bbf2f` **1549 / 83 fallos**; árbol **1563 / 83**, **el mismo conjunto: 0 nuevos, 0 arreglados**.
+  - La primera pasada dio un fallo causado por esta tarea: la guarda de CACHE de `fluyo-019-1` vio el literal `fluyo-static-v100` en C2. Se corrigió y se volvió a medir.
+- **Dirigidas**: FASE 1–5, STEP-REVERSE-002/003, 019.4a, 019.4b, D6, FLOW-FADE, HIT-TEST y PRSKIN: 301/301. 018.7a dominio y 018.4: 41/41.
+- **MCP**: `sync:kernel` y `check:kernel` OK; `npm test` **843/843**.
+- **Alcance contra HEAD**: `fluyo-019-1` #15 falla en el árbol de trabajo, como cualquier alcance que lee HEAD, y pasa en el clon con commit (deuda general conocida).
+
+### QA en Chrome (Chrome 155 real, headless, perfil limpio, SW bloqueado salvo en el smoke)
+
+- **`-6-browser.cjs`: 29/29**.
+  - **B9**, a 1440 (ratón) y 390 (dedo), las 4 Historias, en el editor con labs y en su Present, a 2,9 · 3,3 · 3,65 s: línea, funda, pedido, llegada y estado de Worker B según § T.
+  - **Viewer** sin bandera: la misma ruta que el editor en el mismo instante y la misma línea.
+  - **B1**: un evento de pegado real con `fluyo::`.
+    - En `a4bbf2f` pega dos nodos y el documento ya no se lee.
+    - En el árbol no pega, no apila Undo y no hay errores.
+    - Con DOWN pega dos nodos con una entrada de Undo.
+  - **SW** v100 → v101: instalada y activada, la anterior borrada, y la caché sirve el pegado nuevo.
+  - 0 errores de consola.
+- **Regresión de navegador**: FASE 5 85/85 (Viewer, Present, Share, exportación y SW), 018.7a (pegar y duplicar) 67 ✔ y 018.4 76/76.
+
+### «Automática · nombre» (deuda de FASE 3; solo para retirar la bandera)
+
+Medido en Chrome con el fixture: ancho del selector frente al que necesita «Automática · Cliente».
+
+| Ancho | Hoy | Apilando origen y destino (cada selector a lo ancho) | Coste |
+|---|---|---|---|
+| 1440 | 125 / 201 px | 268 / 201 (cabe) | +22 px de herramienta |
+| 768 | 119 / 249 | 256 / 249 (justo) | +28 |
+| 390 | 160 / 249 | 338 / 249 (cabe) | +28 |
+
+Con nombres largos se seguiría recortando. Es un cambio de disposición de una herramienta aprobada: no se implementa sin el PO.
+
+### Deuda y riesgos
+
+1. **B9**: la semántica no cambia. Si el PO la juzga engañosa, pasa a BLOCKER (D12) y hace falta una decisión de diseño:
+   - cambiar el motor (decidir el envío en la llegada: otra versión del motor y del formato, kernel y MCP);
+   - o una señal visual en el lienzo (la decisión 200 descartó avisos heurísticos de causalidad).
+   - Ninguna cabe en FASE 6.
+2. **Portapapeles**: los nodos y las conexiones de un `fluyo::` siguen sin la regla de carga (un nodo roto también dejaría el documento ilegible). No toca B1; se registra en la decisión 250.
+3. **El registro del editor** dice «Llegó» en el instante de salida del envío (el Trace narrativo), antes de que el pedido llegue. Es preexistente y forma parte de C1.
+4. **El MCP** necesita un deploy para que su kernel sea el de v101. El cambio no altera ninguna respuesta (`duplicate_node` copia Behaviors ya válidos), solo el `kernelId`.
+5. **Intermitencia previa** del V4 de FASE 4 en el navegador (FASE 5, deuda 1): no se tocó.
+6. Arrastrada: densidad de la herramienta a 390 con 3 filas.
+
+### Para el PO (el punto exacto de revisión)
+
+1. **Veredicto de B9**, con el fixture (Historias 1 y 2):
+   - (a) **aceptable**: se queda como HIGH y el patrón de autoría «Esperar a que llegue…» es la respuesta (se documenta para autores);
+   - (b) **engañoso**: pasa a BLOCKER y se abre una tarea de diseño (motor o señal visual); la bandera no se retira hasta entonces.
+2. **Alcance de la definición**: ¿el borde (cambio en el mismo instante que la llegada, Historia 3) cuenta como B9? El oráculo lo separa; la definición literal lo incluye.
+3. **La inversa** (Historia 4): ¿entra en el juicio de B9 o se queda fuera, como dice § T?
+4. **Retirar la bandera**: ¿sí o no tras el veredicto? Si es sí, antes hay que elegir cómo resolver «Automática · nombre» (apilar, medido arriba, u otra opción).
+
+```
+SEMANTIC SCENARIOS — FASE 6 (QA y regresión)
+BASE:      fluyo a4bbf2f (= origin/main, producción v100) · fluyo-mcp 2fc47c4
+ESTADO:    READY FOR REVIEW · sin commit, push ni deploy
+CACHE:     v101 · DECISIONES: 250–251
+FASE 6:    vm 14/14 · mutaciones 15/15 · Chrome 29/29 (1440 y 390)
+SUITE:     1563 / 83 fallos (base 1549 / 83) · 0 nuevos
+MCP:       sync:kernel · check:kernel OK · 843/843
+PO:        veredicto B9 (+ borde e inversa) · retirar la bandera (+ «Automática · nombre»)
+```
+
+### Cierre del PO (2026-10-20) — APPROVED WITH CHANGES · cambios aplicados · READY FOR REVIEW
+
+Veredicto del PO:
+
+1. **B9 ACEPTADO**, no es BLOCKER; se queda en HIGH. La semántica del motor es correcta y no cambia (ni FASE 4/5). Hay que documentar
+   el caso y la mitigación.
+2. **Historia 3 (borde)**: SÍ es B9, porque la ventana `(at, at+viaje]` es cerrada por arriba. Debe quedar cubierta en el test.
+3. **Historia 4 (inversa)**: NO es B9. Se documenta como deuda o caso futuro, sin tarea ni cambio de semántica.
+4. **«Automática · nombre»**: apilar origen y destino en anchos estrechos y mantener la fila cuando hay espacio. Validar a 390, 768 y 1440.
+5. **Retirar `?labs=escenarios`**: SÍ, después del punto 4. Scenario Semantics queda habilitado por defecto.
+
+**Qué se hizo**:
+
+| Punto | Cambio |
+|---|---|
+| 1 | Decisión 251 reescrita (ACEPTADO, HIGH; semántica fijada). § T y D12 del registro, con el veredicto. `docs/index.html` («Conexiones»): dónde se elige el tipo; qué es la ruta observada; «la ruta cambia en el instante en que un nodo cambia de estado; un envío se decide al salir…»; «Esperar a que llegue…» como mitigación |
+| 2 | El oráculo (`-6.test.cjs`, B1) mete el borde en `b9` con `boundary: true`. La Historia 3 da `{changeAt: 3600, arrival: 3600, boundary: true}`. En Chrome se mide también a 3,6 s: la llegada «completada» y la caída de Worker B en el mismo instante |
+| 3 | La inversa se cuenta en `inverse`, nunca en `b9`, con el motivo en el test. En Chrome: «NO es B9: el envío ya había fallado al salir» |
+| 4 | `css/styles.css`: `.scFlow` es su propio contenedor; `@container scflow (max-width: 539px)` apila los dos selectores a todo el ancho, con la flecha en vertical (↓). Sin cambios de marcado, de textos ni de interacción (decisión 252) |
+| 5 | `ui.js`: fuera `LABS_SEMANTICS` (ni URL ni almacenamiento); «Semántica» y W5 en toda conexión. `editor-scenarios.js`: fuera `scFlowLabs`; la herramienta y la ruta en el lienzo y en Present, sin bandera. Comentarios de `index.html`, `render.js` y `present-story.js` (decisión 253) |
+
+**Por qué la herramienta también se apila a 1440**:
+- El PO pidió mantener la fila «cuando haya espacio».
+- La condición mira el ancho de la herramienta, no el de la ventana. El panel mide unos 290 px en escritorio, y con la fila «Automática · Cliente» no cabe (125 px de 201).
+- Con 540 px o más (forzado en el test), vuelve la fila de siempre.
+
+Medido con el selector cerrado (texto + márgenes + flecha del selector):
+
+| Ancho | Herramienta | «Automática · Cliente» | «Automática · BD» | Alto |
+|---|---|---|---|---|
+| 390 (dedo, hoja) | 358 px | 249 / 338 | 201 / 338 | 236 px |
+| 768 (dedo, panel) | 276 px | 249 / 256 | 201 / 256 | 248 px |
+| 1440 (ratón) | 288 px | 201 / 268 | 165 / 268 | 238 px |
+
+A 768 el margen es el más justo (7 px). Un nombre de nodo largo puede seguir recortándose; se ve entero en la lista nativa y en el `title`.
+
+**Tests adaptados a la bandera retirada**. Fijaban «sin bandera = editor de siempre» y ahora fijan «con o sin el valor antiguo, lo mismo»:
+- `-1.test.cjs`: D10, el markup del selector y W5 ×2.
+- `-3.test.cjs`: C1.
+- `-4.test.cjs`: B1.
+- `-5.test.cjs`: B1 y B2.
+- Chrome: `-3-browser` V5, `-4-browser` V4 y `-5-browser` V2. Comparan sin parámetro, con `?labs=escenarios` y con `?labs=off`; en FASE 4, el lienzo editando sigue igual a la base.
+- Mutaciones de la bandera:
+  - FASE 1, U11 y U19, y FASE 3, U15: ahora la vuelven a poner.
+  - FASE 1, U12 (`?labs=off`): retirada, ya no tiene objeto.
+  - FASE 4, U11: retirada, equivalente sin bandera.
+- Alcances: `undo6` regenerado para los 9 archivos servidos (con los hunks vecinos fusionados). Se descuenta en `-3` D3 y `step-reverse-002` I3.
+
+### Batería final (2026-10-20) — DETENIDA: regresión real en 018.23 (sin arreglar, a la espera del PO)
+
+**Regresión real**: la retirada de la bandera (decisión 253) deja «Semántica» a la vista en toda conexión. En la columna de Propiedades,
+esa fila (unos 55–60 px, con la etiqueta encima) empuja «Puntas» y «Sentido de los puntos» fuera de la primera pantalla. Eso rompe el
+contrato de 018.23 en escritorio bajo:
+
+| Viewport | Comprobación de 018.23 | Base `a4bbf2f` | Árbol |
+|---|---|---|---|
+| 1280×720 (ratón) | flowDir y puntas en la primera pantalla | ✔ | **✘** |
+| 1024×768 (ratón) | flowDir y puntas en la primera pantalla | ✔ | **✘** |
+| 1280×720 | conexión con puntos: pantallas (≤ 1,0) | ✘ 1,06 (preexistente) | ✘ 1,16 |
+| 1024×768 | conexión con puntos: pantallas (≤ 1,05) | ✘ 1,10 (preexistente) | ✘ 1,19 |
+| 768×1024 (dedo) | conexión con puntos: pantallas (≤ 1,0) | ✔ 1,00 | **✘ 1,05** |
+| 1440×900, 390×844 | — | ✔ | ✔ |
+
+La sección § Autoría del registro ya lo avisaba: «columna estrecha… hoja móvil… sin rediseño salvo problema medido». Ahora está medido.
+**No se ha tocado nada**: es una decisión de disposición de Propiedades.
+
+**Opciones para el PO** (ninguna implementada):
+- (a) «Semántica» en una sola línea (etiqueta y segmentado en la misma fila, como Ruta o Puntas, `inlineSeg`), con apilado solo bajo 240 px;
+- (b) mover «Semántica» detrás de «Puntas» y «Sentido» (deja de ser la primera fila de «Trazo», § Autoría);
+- (c) aceptar el desborde y relajar el umbral de 018.23.
+
+**Resto de la batería** (verde o ya clasificado):
+- **Chrome, base frente a árbol** (15 suites):
+  - mismos resultados en FASE 3 (47/47), FASE 5 (85/85), 018.12 (6 fallos, los mismos en la base), 018.13, 018.14b, 018.17, 018.18, 018.24, 018.27, 019.2, 019.4b, STEP-REVERSE-003 (68/68) y 018.7a (67/67).
+  - **FASE 4**: el árbol falló en V4 a 390 con la primera versión del test adaptado: la hoja de Historias crece al aparecer la herramienta sin bandera, así que el lienzo visible deja de ser el de la base. Clase (b), por el cambio sin commit. Con el test corregido, **117/117**.
+- **Bandera**:
+  - sin parámetro, `?labs=escenarios`, `?labs=off` y la clave antigua guardada dan lo mismo (`-6-browser`, FLAG, 1440 y 390).
+  - En el código servido solo quedan dos comentarios históricos.
+  - En los tests: el arnés vm que inyecta el valor antiguo (y prueba que no cuenta), suites que abren con `?labs=escenarios` (parámetro ignorado), mutaciones que vuelven a poner la bandera y el texto base de `undo6`. Ninguna dependencia funcional.
+- **B9**:
+  - Historia 3 = B9 en el borde (`changeAt` = `arrival` = 3600, `boundary: true`, test B1 vm y Chrome a 3,6 s).
+  - Historia 4 fuera de B9 (`inverse`, nunca `b9`).
+  - Motor sin cambios.
+  - Caso documentado en la decisión 251, en § T y en `docs/index.html`.
+- **«Automática · nombre»**: QA visual en contexto (panel o hoja completos, editando y reproduciendo) a 390, 768 y 1440. Origen y destino enteros, apilados, dentro de la herramienta, sin desborde del panel ni de la página. Las únicas cajas recortadas son las etiquetas `.srOnly`, a propósito.
+- **Mutaciones**: FASE 1 25/25 · FASE 2 18/18 · FASE 3 25/25 · FASE 4 35/35 · FASE 5 30/30 · FASE 6 20/20.
+  - U11 de FASE 4 («el lienzo recibe la ruta sin la bandera») dejó de ser válida: lo que detectaba es ahora el comportamiento pedido.
+  - Sin bandera, quitar `scFlowShown` de `scFlowOverlay` es equivalente: sin Flujo no hay par ni ruta, y sin eventos no hay reproducción.
+  - La regresión contraria (que la ruta vuelva a depender de la bandera) la capturan FASE 6 M16, FASE 3 U15 (C1, vm con el valor antiguo) y FASE 4 B1 (vm: sin y con el valor antiguo, la misma ruta), además de FLAG en Chrome.
+- **vm completa**, en clones con commit: árbol **1565 / 83** frente a base **1549 / 83**, **el mismo conjunto: 0 nuevos**.
+- **MCP**: `check:kernel` OK (idéntico a `fluyo/js`) · `npm test` **843/843**.
+
+**Estado**: NO READY FOR COMMIT mientras no se resuelva 018.23. Sin commit, push ni deploy.
+
+### Opción (a) del PO para 018.23 — probada y DETENIDA (2026-10-20): no cabe sin sacrificar algo; intento deshecho
+
+Se probó «Semántica» en una línea con el patrón de Ruta y Puntas (`row inlineSeg`; el segmentado a su ancho natural; bajo 240 px se apila
+con la regla común). Luego se **deshizo**: el árbol vuelve exactamente al estado verificado (undo6 exacto, vm FASE 1 + FASE 6 37/37).
+
+Medido en Chrome, con una conexión con puntos en movimiento. «Margen» es lo que queda bajo «Sentido de los puntos» en la primera
+pantalla de Propiedades.
+
+| Viewport | Ancho de Propiedades | Margen en la base (sin la fila) | Fila «Semántica» hoy (apilada) | Margen en el árbol | En una línea |
+|---|---|---|---|---|---|
+| 1280×720 | 256 px | 57 px | 61 px | −3 px | **no cabe**: la etiqueta y las tres palabras piden unos 290 px; «Requisito» pasa a otra línea y la fila mide 64 px |
+| 1024×768 | 192 px | **31 px** | 61 px | −30 px | **imposible**: bajo 240 px la regla común apila ya Ruta y Puntas; y aunque cupiera, una fila de una línea mide unos 38 px con su margen, más que los 31 disponibles |
+| 768×1024 | 192 px | 149 px | 77 px | 72 px | se apila (columna estrecha); Sentido sigue a la vista |
+| 1440×900 | 256 px | 237 px | 61 px | 177 px | — |
+
+Conclusión: con las restricciones del PO (primera fila de «Trazo», sin cambiar textos, sin truncar, sin perder legibilidad), 018.23
+**no se puede cumplir a 1024×768**. A 1280×720 cabría una fila de una línea (unos 38 px de 57), pero no la de «etiqueta + tres palabras»
+en 256 px sin reducir la letra o el relleno de los botones. Hace falta una nueva decisión del PO.
+
+### Decisión final del PO para 018.23 (2026-10-20) — «Semántica» en «Puntos» · aplicada · READY FOR COMMIT
+
+**Decisión del PO** (después de medir las opciones (a), el final de «Trazo» y el final de «Dirección»):
+- «Semántica» puede salir de «Trazo».
+- No se relaja 018.23.
+- La fila va en un grupo que ya viene plegado para las conexiones: **«Puntos»**.
+
+**Cambio**:
+- `index.html`: `#rowKind` y el aviso W5 (`#kindNote`, justo detrás) son la primera fila de `grpFlow`.
+- Nada más en producto. Sin cambios en textos, controles, Undo, teclado ni contrato.
+- El orden de grupos es el mismo en todos los anchos: Trazo · Dirección · Puntos · Texto.
+- Decisión 254.
+
+**Tests**:
+- FASE 1: el markup del selector y W5 pasan a «Puntos». U13 y U24 solo se renombran.
+- FASE 6:
+  - nuevo D3: primera fila de «Puntos», W5 detrás, ausente de Trazo y Dirección, «Puntos» plegado en `primaryGroups`;
+  - mutaciones nuevas M21 («Puntos» abierto por defecto) y M22 («Semántica» vuelve a «Trazo»).
+- `undo6` regenerado.
+- FASE 4, V4 (`-4-browser.cjs`): la comparación entre cargas esperaba la carrera del arranque, `setTimeout(centerView, 100)` en `state.js`. El encuadre sale 32,107 u 80,155 al azar en todas las versiones (medido: árbol, árbol sin la 254 y `a4bbf2f`). Es la deuda 1 de FASE 5. El arnés ahora espera y centra igual en las tres cargas. Desde entonces, 117/117 en cuatro pasadas seguidas.
+
+**QA del PO en Chrome** (conexión con puntos en movimiento):
+
+| Viewport | Puntas · Sentido (1ª pantalla) | Pantallas (= base) | «Semántica» plegada | Abierta: «Conexión · Flujo · Requisito» |
+|---|---|---|---|---|
+| 1280×720 | ✔ ✔ | 1,06 = 1,06 | no se pinta | 86 · 67 · 93 px, enteras; teclado y Undo ✔ |
+| 1024×768 | ✔ ✔ | 1,10 = 1,10 | no se pinta | 65 · 45 · 72 px, enteras ✔ |
+| 768 (dedo) | ✔ ✔ | 1,00 = 1,00 | no se pinta | 44 px de alto, enteras ✔ |
+| 390 (dedo, hoja) | (acordeón) | 1,05 | no se pinta | 120 · 101 · 127 px, enteras ✔ |
+| 1440 | ✔ ✔ | 1,00 = 1,00 | no se pinta | enteras ✔ |
+
+**Cifras finales**:
+- **018.23 en Chrome**: el árbol es igual a la base (211 ✔ · 2 ✘ en las dos). Los 2 ✘ son «conexión con puntos: pantallas» a 1280 (1,06) y 1024 (1,10): ya fallaban en `a4bbf2f`. Clase (a), preexistente. «Puntas y Sentido en la primera pantalla» vuelve a pasar en todos los anchos.
+- **Chrome, base frente a árbol**: mismos resultados en 018.12 (6 ✘ preexistentes), 018.13, 018.14b, 018.17, 018.18, 018.24, 018.27, 019.2, 019.4b, STEP-REVERSE-003 (68/68), 018.7a (67/67), FASE 3 (47/47) y FASE 5 (85/85). FASE 4: 117/117 (×4). FASE 6: 52/52.
+- **vm**:
+  - FASE 6 17/17.
+  - Dirigidas FASE 1–6, STEP-REVERSE-002/003 y 019.x: todas en verde.
+  - 018.23/24/27 vm: solo fallan sus alcances contra HEAD y su «CACHE v84», como en cualquier árbol sin commit.
+  - **Completa en clones con commit: árbol 1566 / 83 frente a base 1549 / 83, el mismo conjunto: 0 nuevos, 0 arreglados.**
+- **Mutaciones**: FASE 1 25/25 · FASE 2 18/18 · FASE 3 25/25 · FASE 4 35/35 · FASE 5 30/30 · **FASE 6 22/22**.
+- **MCP**: `check:kernel` OK · `npm test` 843/843.
+
+**Deudas que quedan** (ninguna bloquea):
+1. El aviso W5 vive ahora en un grupo plegado: se ve al abrir «Puntos» (consecuencia aceptada de la decisión 254).
+2. 018.23 «pantallas» a 1280 y 1024: preexistente, como en la base.
+3. La carrera de `setTimeout(centerView, 100)` del arranque sigue en el producto, aunque es inocua: el arnés de V4 ya no depende de ella.
+4. La inversa de B9 queda como caso futuro (decisión 251).
+5. Un nombre de nodo muy largo puede recortarse en la herramienta de la ruta (decisión 252).
+6. Los nodos y las conexiones de un portapapeles `fluyo::` siguen sin la regla de carga (decisión 250).
+
+**Estado: READY FOR PUSH** (2026-10-21). El PO aprobó el commit; se hizo un único commit en fluyo con esta nota dentro. Sin push ni deploy. fluyo-mcp (kernel resincronizado y T8) queda sin commit, para su propio commit cuando el PO lo pida.
+
+Al hacer commit:
+- fluyo primero, **sin** `.ai/tasks/FLUYO-019.4.md` ni `.ai/tasks/FLUYO-STEP-REVERSE-003.md`;
+- después fluyo-mcp: `src/generated/kernel-sources.ts` y `test/fluyo-mcp-token-efficiency-003.test.ts`. Opcional: `npm run sync:kernel` desde el commit de fluyo para que la cabecera nombre la revisión.
+- Después de push y deploy, la siguiente CACHE libre será la v102. El MCP necesita deploy para alinear su kernel.
+
 ## Handoff
+
+### Estado tras FASE 6 (2026-10-20)
+
+READY FOR PUSH (2026-10-21): commit único de FASE 6 en fluyo (sin `.ai/tasks/FLUYO-019.4.md` ni `.ai/tasks/FLUYO-STEP-REVERSE-003.md`). Próximo paso, con el OK del PO: push de fluyo y comprobar que fluyo.space sirve v101; después, commit, push y deploy de fluyo-mcp (kernel de v101). Siguiente CACHE libre: v102.
 
 ### Estado tras FASE 5 (2026-10-20)
 
 ```
 SEMANTIC SCENARIOS — FASE 5 (paridad de superficies)
 BASE:      fluyo 6701261 (= origin/main, producción v99) · fluyo-mcp 497c81e
-ESTADO:    READY FOR PUSH · revisión del PO aprobada · commit en fluyo y fluyo-mcp · sin push ni deploy
+ESTADO:    CERRADA · fluyo a4bbf2f (fluyo.space v100, smoke 14/14) · fluyo-mcp 3d9cda7 desplegado (§ «Publicación» de FASE 5)
 CACHE:     v100 · DECISIONES: 245–249
 FASE 5:    vm 19/19 · mutaciones 30/30 (fluyo) + 30/30 (MCP) · Chrome 85/85 (1440 y 390)
 DIRIGIDAS: 301/301 · mutaciones antiguas 26 + 18 + 25 + 36 + 16 · navegador FASE 4 114/114, FASE 3 47/47, 019.2 85/85, 019.4b 49/49

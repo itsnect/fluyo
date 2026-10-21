@@ -553,3 +553,50 @@
    - `svg.ts` porta `edgeKind` y `edgeSemanticMarks`, con N3; golden de la decisión 247.
    - Test de deriva: los enums de disponibilidad de zod son `SCENARIO_STATES` y `EVENT_TYPE_AVAILABILITY` del kernel, y los de `kind` son `EDGE_KINDS`.
    - El catálogo de tools sigue por debajo del tope de 72 000 caracteres de MCP-TOKEN-EFFICIENCY-002 (71 102).
+
+## SCENARIOS-SEMANTICS-001 — QA y regresión (FASE 6)
+250. **El pegado `fluyo::` pasa la regla de carga de los Behaviors: un portapapeles que el documento no podría volver a leer no pega nada** (FASE 6, B1; plan de FASE 0, § 9: «validar Behaviors en `cloneStructureIn` con la regla de carga», que quedó fuera al partir FASE 2).
+   - Era la única entrada sin normalizar: archivo, autoguardado, `?ejemplo=`, `#d=` y el Viewer pasan por `projectFromProjectData`; «Añadir como página», por `documentFromProjectData`; la autoría y Condiciones, por `setInitialAvailability`. En `a4bbf2f`, pegar un `fluyo::` con `{initialState:"UNKNOWN"}` (de otra versión del editor, o escrito a mano) copiaba el Behavior y el documento dejaba de leerse: el autoguardado no se podía restaurar (medido en vm y en Chrome).
+   - `cloneStructureIn` (`model.js`, kernel) comprueba, ANTES de reservar ids y mutar, que `behaviors` sea una lista de objetos y que los de los nodos copiados tengan un estado de `SCENARIO_STATES`. Si no, `invalid_document("behaviors")` y nada cambia (ni el contador). `behaviors` ausente o `null` = sin Behaviors; los de nodos que no se copian se ignoran, como antes.
+   - `pasteClip` (`selection.js`) atrapa ese rechazo como `dupSel`: no pega, no apila Undo y no lanza; `id_exhausted` se sigue propagando. Sin mensaje nuevo (un portapapeles corrupto ya no hacía nada visible).
+   - El corpus pega y duplica exactamente como en `a4bbf2f` (vm). Kernel del MCP resincronizado (decisión 70): `duplicate_node` no cambia, porque sus Behaviors salen de la propia página. Solo los nodos y conexiones del portapapeles siguen sin la regla de carga (deuda; no rompen B1).
+251. **B9 queda ACEPTADO (HIGH, no BLOCKER): un envío ya en tránsito puede completarse aunque la ruta deje de estar disponible después** (FASE 6, D12, § T; PO al cerrar FASE 6; decisiones 200 y 232).
+   - **Semántica sin cambios** (motor, FASE 4 y FASE 5):
+     - la ruta cambia en el instante del `SET_STATE` (T1);
+     - los envíos nunca alimentan la ruta (T2);
+     - el resultado de un `SEND` se decide al salir (C1, `scenario-engine.js`).
+   - Por eso un pedido que sale con el destino disponible sigue su viaje dentro de la funda terracota y llega «completado» aunque el destino caiga mientras viaja. Lo que se ve al llegar: el cue verde de 700 ms, «Llegó» en el registro y `completed` en `run_story`.
+   - **Mitigación de autoría**: «Esperar a que llegue…» en el evento que cambia el estado. Así el cambio se ve justo en la llegada y nunca con el pedido en camino. Está documentada para autores en `docs/index.html` («Conexiones»).
+   - **Definición** (§ T): un `send_succeeded` cuya ventana visible `(at, at + viaje]` contiene un `state_changed` que pasa la ruta a UNAVAILABLE, sobre una conexión de esa ruta.
+     - Es cerrada por arriba: **el borde (el cambio cae justo en la llegada, lo que produce la mitigación) es B9**. El oráculo lo marca con `boundary: true`.
+     - **La inversa no es B9**: un `send_failed` cuyo vuelo contiene la vuelta de la ruta a AVAILABLE es otro caso temporal. Queda como deuda y caso futuro, sin tarea abierta y sin cambio de semántica.
+   - Evidencia:
+     - oráculo en `test/fluyo-scenarios-semantics-6.test.cjs`;
+     - fixture `test/fixtures/fluyo-scenarios-semantics-6-b9.json` con cuatro Historias: cae el destino con el pedido en camino (B9 en vuelo); cae la BD con el pedido en camino (B9 en vuelo, y el salto llega a un nodo disponible: ruta ≠ salto); la caída espera a que llegue (B9 en el borde); vuelve el destino con un pedido ya fallido en camino (la inversa);
+     - QA en Chrome en el editor, Present y el Viewer, a 1440 y 390.
+     - La Historia de aceptación de FASE 3–5 no tiene B9.
+252. **«Automática · nombre» se lee entero: la herramienta de la ruta apila origen y destino cuando no da para dos selectores** (FASE 6, PO; deuda de FASE 3 que bloqueaba la retirada de la bandera).
+   - `.scFlow` es su propio contenedor (`container: scflow / inline-size`). Por debajo de 540 px, cada selector va a todo el ancho y la flecha pasa a vertical (↓) entre ellos.
+   - El marcado, el orden, los textos y la interacción no cambian. Con espacio, la fila de siempre.
+   - Se mide la herramienta y no la ventana: el panel mide unos 290 px en escritorio, así que a 1440 también se apila.
+   - Medido en Chrome con el selector cerrado. «Automática · Cliente» necesita 249 de 338 px a 390, 249 de 256 a 768 (el margen más justo) y 201 de 268 a 1440. La herramienta crece unos 22–28 px.
+   - Un nombre de nodo muy largo puede seguir recortándose. Se ve entero en la lista nativa y en el `title`.
+253. **La bandera labs se retira: la semántica de la conexión, la ruta observada y su pintado son el comportamiento normal** (FASE 6, PO; cierra D10).
+   - `ui.js` ya no lee el parámetro `labs` de la URL ni `localStorage["fluyo.labs.escenarios"]`. Esa clave, si existe, se ignora y no se borra.
+   - «Semántica: Conexión · Flujo · Requisito» y el aviso W5 salen en toda conexión.
+   - La herramienta de la ruta existe si la página tiene algún Flujo y la Historia tiene eventos (`scFlowShown`).
+   - El editor y Present pintan la ruta al reproducir (`scFlowOverlay`), como ya hacía el Viewer sin bandera.
+   - Sin cambios: el Viewer, Share, la exportación (las marcas ya salían sin bandera; los overlays nunca se exportan), el kernel, la derivación y el MCP.
+   - Un enlace antiguo con `?labs=escenarios` o `?labs=off` abre igual que sin él (medido: Propiedades, la herramienta, el lienzo y Present idénticos).
+   - Test estático: ningún archivo servido lee la bandera.
+   - Los tests de FASE 1, 3, 4 y 5 que fijaban «sin bandera = editor de siempre» pasan a fijar «con o sin el valor antiguo, lo mismo». Las mutaciones que la quitaban pasan a volver a ponerla. U12 (FASE 1) y U11 (FASE 4) se retiran: ya no tienen objeto o son equivalentes.
+254. **«Semántica» vive en «Puntos», plegado por defecto: no suma altura a Propiedades y «Puntas» y «Sentido» conservan su sitio** (FASE 6, PO; regresión de 018.23 por la decisión 253).
+   - Al retirar la bandera, la fila (unos 61 px, con la etiqueta encima) en la cabecera de «Trazo» empujaba «Sentido de los puntos» fuera de la primera pantalla a 1280×720 y 1024×768, y llevaba el panel de 768 a 1,05 pantallas.
+   - Opciones descartadas por el PO, con medidas:
+     - en una línea: a 1280 no cabe en 256 px; a 1024 el panel mide 192 px y el margen es de 31 px;
+     - al final de «Trazo»: no cambia nada;
+     - al final de «Dirección»: sigue sumando altura.
+   - Ahora `#rowKind` y el aviso W5 (`#kindNote`, justo detrás) son la primera fila de «Puntos» (`grpFlow`), que empieza plegado para las conexiones (`primaryGroups`, 018.23). Al abrirlo, «Semántica» y «Conexión · Flujo · Requisito» se leen enteros (ratón y dedo).
+   - Sin cambios de textos, controles, Undo, teclado ni contrato. El orden de grupos sigue siendo Trazo · Dirección · Puntos · Texto, igual en todos los anchos.
+   - Medido: el panel mide lo mismo que en `a4bbf2f` en todos los anchos (1,00 a 1440 y 768; 1,06 a 1280 y 1,10 a 1024, que ya fallaban el umbral de 018.23 en la base).
+   - Consecuencia: el aviso W5 está en un grupo plegado, así que se ve al abrir «Puntos».

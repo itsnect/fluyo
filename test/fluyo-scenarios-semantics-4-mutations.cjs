@@ -32,7 +32,8 @@ const MUTATIONS = [
     "const mustPass = route.nodes.filter(v => v === s || v === t);"],
   ["U10 dos conexiones paralelas cuentan como dos filas", FS, "      if(!l.includes(e.to)) l.push(e.to);", "      l.push(e.to);"],
   /* editor (editor-scenarios.js) */
-  ["U11 el lienzo recibe la ruta sin la bandera labs", ED, "  if (!scFlowShown(pg, sc)) return null;\n  let d = null;", "  let d = null;"],
+  /* U11 («el lienzo recibe la ruta sin la bandera labs») se retiró en FASE 6 (decisión 253): sin bandera, quitar scFlowShown aquí es una
+     mutación equivalente (sin Flujo no hay par ni ruta, y una Historia sin eventos no se reproduce). */
   /* SCENARIOS-SEMANTICS-001 FASE 5 (decisión 245): Present pinta la ruta (U12 es ahora la vuelta a FASE 4) y lo que se pinta se calcula en
      FluyoFlow.routeOverlay (U13–U16 siguen al código a flow-semantics.js) */
   ["U12 Present vuelve a no recibir la ruta (FASE 4; D8 lo pide en FASE 5)", ED, "if (!scPlayback || !isScenarioPlaybackActive()) return null;", `if (!scPlayback || !isScenarioPlaybackActive() || (typeof presenting !== "undefined" && presenting)) return null;`],

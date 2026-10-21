@@ -264,7 +264,11 @@ Auditoría (HEAD `81154f1`, kernel sincronizado con `1ee65ee`, `check:kernel` OK
   las marcas estáticas (D-Export) por port literal y golden compartido; test de deriva de disponibilidad (hoy no existe).
 - Sin derivación de ruta en el MCP en el MVP (sería otra tool; no se propone).
 
-## D10 — Bandera y rollout · ACEPTADO
+## D10 — Bandera y rollout · ACEPTADO · RETIRADA en FASE 6
+
+> **FASE 6 (PO, decisión 253)**: la bandera se retiró. La semántica de la conexión, la ruta observada y su pintado son el
+> comportamiento normal; el parámetro y la clave de almacenamiento ya no se leen. Lo de abajo es el contrato histórico de FASE 1–5.
+
 
 - **Bandera interna «labs»** por navegador: `localStorage["fluyo.labs.escenarios"]`, que se activa con `?labs=escenarios` y
   se apaga con `?labs=off` (patrón de preferencias de interfaz, decisión 134: no entra en el documento). Sin interruptor
@@ -303,6 +307,14 @@ Auditoría (HEAD `81154f1`, kernel sincronizado con `1ee65ee`, `check:kernel` OK
 | B8 | desajuste de caché del service worker | HIGH | colisión real v88/v89 (ver D11); cada fase sube a la siguiente versión libre de `main` en su momento |
 | B9 | contradicción temporal de la Historia que confunde | HIGH (pasa a BLOCKER si el QA de FASE 6 la juzga engañosa) | ver § T |
 
+**Estado tras FASE 6** (2026-10-20, sin commit; detalle y evidencia en la tarea, § «FASE 6»):
+- **B1 verificado y corregido**: el pegado `fluyo::` no pasaba la regla de carga y podía dejar el documento ilegible; ahora lo rechaza entero (decisión 250). Las demás entradas, con test por entrada.
+- **B4, B6 y B7 verificados**: corpus idéntico a `a4bbf2f` (también al pegar y duplicar); sin claves derivadas; B7 recorre ya todos los archivos servidos.
+- **B3, B5 y B8 cerrados**: B3 en FASE 5 (`create_from_template` no recibe `kind`: sus plantillas son fijas y siguen la ruta de `create_diagram`); B5 en FASE 3; B8 con cada fase y v100 → v101 medido.
+- **B2**: no aplica en el MVP.
+- **B9 ACEPTADO por el PO (HIGH, no BLOCKER)**: la semántica de § T no cambia; el borde de la ventana es B9 y la inversa no (decisión 251).
+- **La bandera labs se retiró** (decisión 253), después de resolver «Automática · nombre» (decisión 252); «Semántica» va en «Puntos» para cumplir 018.23 (decisión 254).
+
 ## § T — Sincronización temporal · ACEPTADO
 
 - **T1**: la disponibilidad de la ruta cambia en el **instante de aplicación** del estado: el `at` visible del
@@ -317,6 +329,10 @@ Auditoría (HEAD `81154f1`, kernel sincronizado con `1ee65ee`, `check:kernel` OK
   - Mitigación sin cambiar semántica (decisión 200 descarta avisos heurísticos de causalidad): el patrón de autoría ya
     existe (`waitsForArrivalOf`, «Esperar a que llegue…»); FASE 6 incluye un fixture mixto SEND + SET_STATE para que el PO
     juzgue la legibilidad. No se diseña otro reloj.
+  - **Veredicto (FASE 6, PO; decisión 251)**: B9 ACEPTADO, se queda en HIGH. Un envío ya en tránsito puede completarse aunque la ruta
+    deje de estar disponible después; «Esperar a que llegue…» es la mitigación cuando se quiere ver el cambio con la llegada. La ventana
+    es cerrada por arriba: el borde (cambio = llegada) es B9. La inversa (un `send_failed` cuyo vuelo contiene la vuelta de la ruta a
+    AVAILABLE) NO es B9: caso futuro, sin tarea ni cambio de semántica.
   - **C2** (solo con UNKNOWN): `SEND` hacia/desde UNKNOWN se completa (D3, hallazgo 2).
 
 ## § Requisito — regla de pintado · ACEPTADO
@@ -360,6 +376,11 @@ Auditoría (HEAD `81154f1`, kernel sincronizado con `1ee65ee`, `check:kernel` OK
 Prohibido: «esta conexión probablemente debería ser Flujo» o cualquier sugerencia de tipo.
 
 ## § Autoría de la conexión · ACEPTADO
+
+> **FASE 6 (PO, decisión 254)**: el selector y el aviso W5 pasan a ser la primera fila de «Puntos» (plegado por defecto para las conexiones).
+> Al retirar la bandera, la fila en la cabecera de «Trazo» empujaba «Puntas» y «Sentido» fuera de la primera pantalla (018.23). Textos,
+> controles y contrato, sin cambios. Lo de abajo es el diseño original de FASE 1.
+
 
 - Selector segmentado **Conexión · Flujo · Requisito** en Propiedades (KEEP), primera fila del grupo «Trazo» como en el
   prototipo, con `segBind`/`segSync` (radiogroup accesible: flechas, Inicio/Fin, Espacio; 018.23). Markup estático en

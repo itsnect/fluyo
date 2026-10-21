@@ -33,7 +33,7 @@ const { undo3: undo3only } = require("./fluyo-scenarios-semantics-3-undo.cjs"); 
 const { undoReverse } = require("./fluyo-step-reverse-002-undo.cjs");   /* FLUYO-STEP-REVERSE-002 cambia a propósito model.js, scenario-engine.js, story-playback.js, scenario-playback.js, story-authoring.js, document-integrity.js, render.js, editor-scenarios.js y selection.js: se deshace aquí, antes que FASE 3; su alcance lo vigila test/fluyo-step-reverse-002.test.cjs */
 const { undoReverseUi } = require("./fluyo-step-reverse-003-undo.cjs");   /* FLUYO-STEP-REVERSE-003 añade «Invertir sentido» a editor-scenarios.js: se deshace aquí, antes que 002; su alcance lo vigila test/fluyo-step-reverse-003.test.cjs */
 const { undo4: undo4only } = require("./fluyo-scenarios-semantics-4-undo.cjs");   /* SCENARIOS-SEMANTICS-001 FASE 4 va encima de STEP-REVERSE-003: se deshace antes; su alcance lo vigila test/fluyo-scenarios-semantics-4.test.cjs */
-const { undo5 } = require("./fluyo-scenarios-semantics-5-undo.cjs");   /* SCENARIOS-SEMANTICS-001 FASE 5 va encima de FASE 4: se deshace antes; su alcance lo vigila test/fluyo-scenarios-semantics-5.test.cjs */
+const { undo56: undo5 } = require("./fluyo-scenarios-semantics-6-undo.cjs");   /* SCENARIOS-SEMANTICS-001 FASE 5 va encima de FASE 4: se deshace antes; su alcance lo vigila test/fluyo-scenarios-semantics-5.test.cjs */
 const undo4 = (f, src) => undo4only(f, undo5(f, src));
 const undo3 = (f, src) => undo3only(f, undoReverse(f, undoReverseUi(f, undo4(f, src))));
 const root = path.resolve(__dirname, "..");
@@ -390,8 +390,8 @@ test("alcance · frente a eff5129 solo cambian render.js, interaction.js, geomet
     "s/index.html", "css/styles.css", "css/system.css", "css/identity.css", "css/share.css", "manifest.webmanifest"])
     if (fs.existsSync(path.join(root, f))) assert.equal(undo3(f, read(f)), atBase(f), f + " idéntico");
   const sw = undo3("sw.js", read("sw.js"));
-  assert.match(sw, /const CACHE = "fluyo-static-v100";/);
-  assert.equal(sw.replace('"fluyo-static-v100"', '"fluyo-static-v' + (95 - 1) + '"'), atBase("sw.js"), "sw.js: solo sube CACHE (sin archivos nuevos)");
+  assert.match(sw, /const CACHE = "fluyo-static-v101";/);
+  assert.equal(sw.replace('"fluyo-static-v101"', '"fluyo-static-v' + (95 - 1) + '"'), atBase("sw.js"), "sw.js: solo sube CACHE (sin archivos nuevos)");
   /* geometry.js: solo el parámetro `lift` de connectPortPoint (por defecto 0: en plano el mismo punto) */
   const g = read("js/geometry.js");
   assert.match(g, /function connectPortPoint\(n, side, zoom, lift=0\)\{\n  const p=sidePoint\(n,side\), d=DIR\[side\], off=lift\+CONNECT_PORT_OFF\/\(zoom\|\|1\);/);

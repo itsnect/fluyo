@@ -497,9 +497,9 @@ aside.scenariosOpen{box-sizing:border-box;width:320px;flex:0 0 320px;overflow:hi
 #scStatus:empty{display:none;}
 #scStatus{font-size:12px;color:var(--muted);margin:8px 0 0;}
 #scErrors{color:var(--attention);font-size:13px;}
-/* SCENARIOS-SEMANTICS-001 FASE 3: ruta observada (labs). Una línea de selección y una de estado; el color solo marca el
+/* SCENARIOS-SEMANTICS-001 FASE 3: ruta observada. Una línea de selección y una de estado; el color solo marca el
    estado de la RUTA (disponible / no disponible). «Sin ruta de flujo» y los estados de la herramienta son neutros. */
-.scFlow{margin:8px 0 0; padding:6px 8px; border:1px solid var(--rule); border-left:3px solid var(--rule-2); border-radius:var(--r-xs, 6px); min-width:0;}
+.scFlow{margin:8px 0 0; padding:6px 8px; border:1px solid var(--rule); border-left:3px solid var(--rule-2); border-radius:var(--r-xs, 6px); min-width:0; container:scflow / inline-size;}
 .scFlow[hidden]{display:none;}
 .scFlow[data-state="AVAILABLE"]{border-left-color:var(--active);}
 .scFlow[data-state="UNAVAILABLE"]{border-left-color:var(--attention);}
@@ -508,6 +508,14 @@ aside.scenariosOpen{box-sizing:border-box;width:320px;flex:0 0 320px;overflow:hi
 .scFlowPick{flex:1 1 0; min-width:0; display:flex;}
 .scFlowPick select{width:100%; min-width:0; text-overflow:ellipsis;}
 .scFlowArrow{flex:none; color:var(--muted);}
+/* FASE 6 (decisión 252): «Automática · nombre» entero. Si la herramienta no da para dos selectores de ~250 px, origen y destino
+   se apilan, cada uno a todo el ancho, y la flecha pasa a vertical entre ellos (el mismo orden, el mismo marcado y la misma
+   interacción). Con espacio, la fila de siempre. Se mide la herramienta, no la ventana: el panel mide 320 px en escritorio. */
+@container scflow (max-width: 539px){
+  .scFlowPick{flex:1 1 100%;}
+  .scFlowArrow{flex:0 0 100%; font-size:0; line-height:1; text-align:center;}
+  .scFlowArrow::before{content:"↓"; font-size:12px;}
+}
 .scFlowState{margin:6px 0 0; font-size:13px; color:var(--ink);}
 #scFlowWhy{color:var(--muted);}
 /* SCENARIOS-SEMANTICS-001 FASE 4: línea de tiempo derivada de la ruta (D6) y filas (§ 3.1). Oliva = disponible,

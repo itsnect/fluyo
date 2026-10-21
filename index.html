@@ -598,19 +598,6 @@ try{ if(localStorage.getItem("fluyo.ui.props")==="folded") document.documentElem
       <details class="pgroup" id="grpStroke" data-group="Trazo" open>
         <summary><span class="pgTitle">Trazo</span></summary>
         <div class="pgBody">
-          <!-- SCENARIOS-SEMANTICS-001 (D1/D2): semántica de la conexión (edge.kind; ausente = Conexión). Solo con la bandera labs
-               (ui.js, LABS_SEMANTICS); la primera fila del grupo, como en el prototipo validado por el PO. -->
-          <div class="row" id="rowKind" data-stack style="display:none">
-            <span class="lblText" id="kindLbl">Semántica</span>
-            <div class="seg pseg" id="kindSeg" role="radiogroup" aria-labelledby="kindLbl">
-              <button type="button" class="segBtn" role="radio" data-v="GENERIC">Conexión</button>
-              <button type="button" class="segBtn" role="radio" data-v="FLOWS_TO">Flujo</button>
-              <button type="button" class="segBtn" role="radio" data-v="REQUIRES">Requisito</button>
-            </div>
-          </div>
-          <!-- SCENARIOS-SEMANTICS-001 (W5): aviso no bloqueante, solo con la bandera labs, cuando la punta visible de un Flujo
-               apunta al revés (ui.js, syncKindNote). Nunca cambia origen ni destino. -->
-          <p class="hint rowNote" id="kindNote" role="status" hidden>La punta visible apunta en sentido contrario al flujo. El flujo se calcula de origen a destino; la punta solo cambia la apariencia.</p>
           <div class="row colorRow" id="rowLineC" data-stack>
             <span class="lblText">Color</span>
             <div class="swRow"><div class="swatches" id="lineSw"></div></div>
@@ -685,6 +672,20 @@ try{ if(localStorage.getItem("fluyo.ui.props")==="folded") document.documentElem
       <details class="pgroup" id="grpFlow" data-group="Puntos">
         <summary><span class="pgTitle">Puntos</span></summary>
         <div class="pgBody">
+          <!-- SCENARIOS-SEMANTICS-001 (D1/D2): semántica de la conexión (edge.kind; ausente = Conexión). En toda conexión
+               (ui.js; la bandera labs se retiró en FASE 6). FASE 6 (decisión 254, PO): la primera fila de «Puntos», un grupo plegado por defecto
+               para las conexiones; así no suma altura permanente y Puntas y Sentido conservan su sitio (018.23). Antes, primera de «Trazo». -->
+          <div class="row" id="rowKind" data-stack style="display:none">
+            <span class="lblText" id="kindLbl">Semántica</span>
+            <div class="seg pseg" id="kindSeg" role="radiogroup" aria-labelledby="kindLbl">
+              <button type="button" class="segBtn" role="radio" data-v="GENERIC">Conexión</button>
+              <button type="button" class="segBtn" role="radio" data-v="FLOWS_TO">Flujo</button>
+              <button type="button" class="segBtn" role="radio" data-v="REQUIRES">Requisito</button>
+            </div>
+          </div>
+          <!-- SCENARIOS-SEMANTICS-001 (W5): aviso no bloqueante, cuando la punta visible de un Flujo
+               apunta al revés (ui.js, syncKindNote). Nunca cambia origen ni destino. -->
+          <p class="hint rowNote" id="kindNote" role="status" hidden>La punta visible apunta en sentido contrario al flujo. El flujo se calcula de origen a destino; la punta solo cambia la apariencia.</p>
           <div class="row colorRow" id="rowDotC" data-stack>
             <span class="lblText">Color de puntos</span>
             <div class="swRow"><div class="swatches" id="dotSw"></div></div>
@@ -737,8 +738,8 @@ try{ if(localStorage.getItem("fluyo.ui.props")==="folded") document.documentElem
         <p id="scStatus" role="status"></p>
         <p id="scUnsupported" class="hint" hidden>Esta historia necesita una versión compatible de Fluyo.</p>
         <p id="scErrors" role="alert" hidden></p>
-        <!-- SCENARIOS-SEMANTICS-001 FASE 3: la ruta observada de la Historia (D5/D6), bajo el transporte. Solo existe con la
-             bandera labs, si la página tiene alguna conexión Flujo y la Historia tiene eventos (editor-scenarios.js, scRenderFlow). -->
+        <!-- SCENARIOS-SEMANTICS-001 FASE 3: la ruta observada de la Historia (D5/D6), bajo el transporte. Existe
+             si la página tiene alguna conexión Flujo y la Historia tiene eventos (editor-scenarios.js, scRenderFlow). -->
         <section id="scFlow" class="scFlow" aria-label="Ruta observada" hidden>
           <div class="scFlowHead"><span class="scFlowKicker">Ruta observada</span><label class="scFlowPick"><span class="srOnly">Origen</span><select id="scFlowFrom"></select></label><span class="scFlowArrow" aria-hidden="true">→</span><label class="scFlowPick"><span class="srOnly">Destino</span><select id="scFlowTo"></select></label></div>
           <p id="scFlowState" class="scFlowState" role="status"><span id="scFlowWord"></span><span id="scFlowWhy"></span></p>
@@ -967,7 +968,7 @@ try{ if(localStorage.getItem("fluyo.ui.props")==="folded") document.documentElem
   <div id="psDots" class="psDots" hidden></div>
   <div id="psCaption" class="psCaption" role="status" aria-live="polite"></div>
   <div id="psSummary" class="psSummary"></div>
-  <!-- SCENARIOS-SEMANTICS-001 FASE 5 (D8, decisión 246): la línea de estado de la ruta observada (labs), reproduciendo y con par -->
+  <!-- SCENARIOS-SEMANTICS-001 FASE 5 (D8, decisión 246): la línea de estado de la ruta observada, reproduciendo y con par -->
   <div id="psFlow" class="psFlow" role="status" hidden></div>
 </div>
 

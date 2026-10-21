@@ -455,7 +455,7 @@ function drawScenarioNodeOverlay(c,n,t,state,theme,rs){
 }
 
 /* ===================== Ruta observada en el lienzo (SCENARIOS-SEMANTICS-001 FASE 4; § Pintado, § T, decisión 244) =====================
-   Pinta lo que dice scenarioRuntime.flow (FluyoFlow.routeOverlay: el editor y Present con la bandera labs, el Viewer sin ella,
+   Pinta lo que dice scenarioRuntime.flow (FluyoFlow.routeOverlay: el editor, Present y el Viewer,
    FASE 5); sin ese dato no pinta nada. Solo reproduciendo, y nunca al exportar. Requisito y Conexión no tienen
    funda: su trazo es estable en todo instante (§ Requisito). Oliva = disponible, terracota apagada = no disponible. */
 const ROUTE_MARK={
@@ -993,7 +993,7 @@ function drawEdge(c,e,t,theme,isExport,rs){
     c.save(); c.strokeStyle=M.sleeve; c.lineWidth=10/zoom; c.lineCap="round"; c.lineJoin="round";
     c.beginPath(); traceSegments(c,stroke.line); c.stroke(); c.restore();
   }
-  /* SCENARIOS-SEMANTICS-001 FASE 4: funda de la ruta observada, también bajo la línea (solo la trae una reproducción con labs) */
+  /* SCENARIOS-SEMANTICS-001 FASE 4: funda de la ruta observada, también bajo la línea (solo la trae una reproducción) */
   const flow=!isExport && rs.scenarioRuntime && rs.scenarioRuntime.flow;
   if(flow) drawRouteSleeve(c,e,stroke.line,flow,theme,zoom);
   c.strokeStyle=lineCol; c.lineWidth=EDGE_W;

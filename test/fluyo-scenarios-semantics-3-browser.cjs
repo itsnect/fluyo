@@ -169,23 +169,25 @@ async function acceptance(browser, base, vp, label, touch) {
   } finally { await T.ctx.close(); }
 }
 
+/* FASE 6 (decisión 253): la bandera labs se retiró. V5 pasa a medir que su ausencia es el comportamiento normal: sin parámetro, con
+   ?labs=escenarios y con ?labs=off, la herramienta existe y la cabecera de Historias es la misma, píxel a píxel. */
 async function labsOff(browser, now, old, vp, label, touch) {
-  console.log(`\n── V5 · labs apagado frente a ${BASE} · ${label}`);
-  const meas = async (base) => {
-    const T = await open(browser, base, vp, "?labs=off", touch);
+  console.log(`\n── V5 · sin bandera (retirada en FASE 6) · ${label}`);
+  const meas = async (query) => {
+    const T = await open(browser, now.base, vp, query, touch);
     try {
       await T.load(DOC()); await T.story();
       const m = await T.page.evaluate(() => { const h = document.querySelector("#panelScenarios .scHeader").getBoundingClientRect(), f = document.getElementById("scFlow");
-        return { h: Math.round(h.height * 10) / 10, w: Math.round(h.width * 10) / 10, flow: f ? (f.hidden && getComputedStyle(f).display === "none") : "sin markup" }; });
+        return { h: Math.round(h.height * 10) / 10, w: Math.round(h.width * 10) / 10, flow: !!f && !f.hidden && getComputedStyle(f).display !== "none", word: document.getElementById("scFlowWord").textContent }; });
       const png = await T.page.locator("#panelScenarios .scHeader").screenshot();
       return { m, png, errors: T.errors };
     } finally { await T.ctx.close(); }
   };
-  const a = await meas(old.base), b = await meas(now.base);
-  check(b.m.flow === true, "la herramienta no existe (oculta)");
-  check(a.m.h === b.m.h && a.m.w === b.m.w, `cabecera de Historias: ${a.m.w}×${a.m.h} (${BASE}) = ${b.m.w}×${b.m.h} (árbol)`);
-  check(Buffer.compare(a.png, b.png) === 0, "cabecera de Historias idéntica píxel a píxel");
-  check(b.errors.length === 0, "sin errores de consola");
+  const a = await meas(""), b = await meas("?labs=escenarios"), c = await meas("?labs=off");
+  check(a.m.flow && a.m.word === "Al inicio · Ruta disponible", "sin parámetro: la herramienta existe («" + a.m.word + "»)");
+  check(a.m.h === b.m.h && a.m.w === b.m.w && a.m.h === c.m.h && a.m.w === c.m.w, `cabecera de Historias: ${a.m.w}×${a.m.h} igual sin parámetro, con ?labs=escenarios y con ?labs=off`);
+  check(Buffer.compare(a.png, b.png) === 0 && Buffer.compare(a.png, c.png) === 0, "cabecera de Historias idéntica píxel a píxel en los tres casos");
+  check(a.errors.length + b.errors.length + c.errors.length === 0, "sin errores de consola");
 }
 
 (async () => {

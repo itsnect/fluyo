@@ -26,7 +26,7 @@ const { undo3: undo3only } = require("./fluyo-scenarios-semantics-3-undo.cjs"); 
 const { undoReverse } = require("./fluyo-step-reverse-002-undo.cjs");   /* FLUYO-STEP-REVERSE-002 cambia a propósito model.js, scenario-engine.js, story-playback.js, scenario-playback.js, story-authoring.js, document-integrity.js, render.js, editor-scenarios.js y selection.js: se deshace aquí, antes que FASE 3; su alcance lo vigila test/fluyo-step-reverse-002.test.cjs */
 const { undoReverseUi } = require("./fluyo-step-reverse-003-undo.cjs");   /* FLUYO-STEP-REVERSE-003 añade «Invertir sentido» a editor-scenarios.js: se deshace aquí, antes que 002; su alcance lo vigila test/fluyo-step-reverse-003.test.cjs */
 const { undo4: undo4only } = require("./fluyo-scenarios-semantics-4-undo.cjs");   /* SCENARIOS-SEMANTICS-001 FASE 4 va encima de STEP-REVERSE-003: se deshace antes; su alcance lo vigila test/fluyo-scenarios-semantics-4.test.cjs */
-const { undo5 } = require("./fluyo-scenarios-semantics-5-undo.cjs");   /* SCENARIOS-SEMANTICS-001 FASE 5 va encima de FASE 4: se deshace antes; su alcance lo vigila test/fluyo-scenarios-semantics-5.test.cjs */
+const { undo56: undo5 } = require("./fluyo-scenarios-semantics-6-undo.cjs");   /* SCENARIOS-SEMANTICS-001 FASE 5 va encima de FASE 4: se deshace antes; su alcance lo vigila test/fluyo-scenarios-semantics-5.test.cjs */
 const undo4 = (f, src) => undo4only(f, undo5(f, src));
 const undo3 = (f, src) => undo3only(f, undoReverse(f, undoReverseUi(f, undo4(f, src))));
 const J = (v) => JSON.parse(JSON.stringify(v));
@@ -122,26 +122,11 @@ test("Share/#d= · el enlace (link-codec) transporta `kind` intacto", async () =
   assert.deepEqual(JSON.parse(back).doc.pages[0].edges.map((e) => e.kind), ["FLOWS_TO", "TRIGGERS", undefined]);
 });
 
-/* ── Bandera labs (D10) ── */
-function labs(search, store, throws = false) {
+/* ── Bandera labs (D10): existió de FASE 1 a FASE 5 y se retiró en FASE 6 (decisión 253, PO) ── */
+test("D10 · la bandera labs se retiró (FASE 6, decisión 253): ui.js ya no lee la URL ni el almacenamiento; las herramientas son el comportamiento normal", () => {
   const ui = read("js/ui.js");
-  const a = ui.indexOf("const LABS_SEMANTICS_KEY"), b = ui.indexOf("function isSideSheet(){");
-  assert.ok(a > 0 && b > a, "bloque de la bandera en ui.js");
-  const mem = new Map(Object.entries(store));
-  const localStorage = { getItem: (k) => { if (throws) throw new Error("x"); return mem.has(k) ? mem.get(k) : null; },
-    setItem: (k, v) => { if (throws) throw new Error("x"); mem.set(k, String(v)); }, removeItem: (k) => { if (throws) throw new Error("x"); mem.delete(k); } };
-  const ctx = vm.createContext({ URLSearchParams, location: { search }, localStorage });
-  const on = vm.runInContext(ui.slice(a, b) + "; LABS_SEMANTICS", ctx);
-  return { on, stored: mem.get("fluyo.labs.escenarios") ?? null };
-}
-test("D10 · bandera labs: ?labs=escenarios la enciende y la recuerda; ?labs=off la apaga; sin almacenamiento, solo la URL", () => {
-  assert.deepEqual(labs("", {}), { on: false, stored: null }, "por defecto apagada");
-  assert.deepEqual(labs("?labs=escenarios", {}), { on: true, stored: "1" });
-  assert.deepEqual(labs("", { "fluyo.labs.escenarios": "1" }), { on: true, stored: "1" }, "recordada en este navegador");
-  assert.deepEqual(labs("?labs=off", { "fluyo.labs.escenarios": "1" }), { on: false, stored: null });
-  assert.deepEqual(labs("?ejemplo=kafka", { "fluyo.labs.escenarios": "1" }), { on: true, stored: "1" }, "otros parámetros no la tocan");
-  assert.equal(labs("?labs=escenarios", {}, true).on, true, "localStorage bloqueado: la URL basta para esta carga");
-  assert.equal(labs("", {}, true).on, false);
+  assert.ok(!/LABS_SEMANTICS|fluyo\.labs\.escenarios|get\("labs"\)/.test(ui), "ni la constante, ni la clave, ni el parámetro");
+  assert.ok(ui.includes('$("rowKind").style.display=isNode ? "none" : "flex";'), "Semántica en toda conexión");
   assert.ok(!/prototipo=escenario-semantico|PROTO_SEMANTIC|protoSemantic/.test(read("js/ui.js") + read("index.html") + read("js/render.js")), "B7: nada del prototipo");
 });
 
@@ -185,16 +170,17 @@ test("§ Autoría · sin una conexión sola seleccionada el selector no hace nad
   assert.equal(E.kinds(), '["TRIGGERS",null]', "se lee como Conexión: elegir Conexión no reescribe");
   E.pick("REQUIRES"); assert.equal(E.kinds(), '["REQUIRES",null]');
 });
-test("§ Autoría · markup estático: «Semántica» con Conexión · Flujo · Requisito, primera fila de «Trazo», oculta por defecto; solo con la bandera y en conexiones", () => {
+test("§ Autoría · markup estático: «Semántica» con Conexión · Flujo · Requisito, primera fila de «Puntos» (FASE 6, decisión 254; antes de «Trazo»), oculta por defecto; en toda conexión (la bandera se retiró en FASE 6)", () => {
   const html = read("index.html");
-  const stroke = html.slice(html.indexOf('id="grpStroke"'), html.indexOf("</details>", html.indexOf('id="grpStroke"')));
+  const stroke = html.slice(html.indexOf('id="grpFlow"'), html.indexOf("</details>", html.indexOf('id="grpFlow"')));
   const row = stroke.indexOf('id="rowKind"');
-  assert.ok(row > 0 && row < stroke.indexOf('id="rowLineC"'), "primera fila del grupo");
+  assert.ok(row > 0 && row < stroke.indexOf('id="rowDotC"'), "primera fila del grupo");
+  assert.ok(!html.slice(html.indexOf('id="grpStroke"'), html.indexOf('id="grpFlow"')).includes('id="rowKind"'), "ya no está en «Trazo» ni en «Dirección»");
   assert.match(stroke, /<div class="row" id="rowKind" data-stack style="display:none">/);
   assert.match(stroke, /id="kindSeg" role="radiogroup" aria-labelledby="kindLbl"/);
   assert.deepEqual([...stroke.matchAll(/data-v="(\w+)">([^<]+)</g)].slice(0, 3).map((m) => [m[1], m[2]]), [["GENERIC", "Conexión"], ["FLOWS_TO", "Flujo"], ["REQUIRES", "Requisito"]]);
   const ui = read("js/ui.js");
-  assert.match(ui, /\$\("rowKind"\)\.style\.display=!isNode && LABS_SEMANTICS \? "flex" : "none";/);
+  assert.ok(ui.includes('$("rowKind").style.display=isNode ? "none" : "flex";'));
   assert.match(ui, /segSync\("kindSeg", edgeKind\(obj\)\);/);
 });
 
@@ -218,16 +204,16 @@ test("W5 · el aviso sale solo en un Flujo con punta de inicio y sin punta final
   for (const kind of [undefined, "REQUIRES", "TRIGGERS"])
     assert.equal(shows(edge(10, 1, 2, { kind, startArrow: true, endArrow: false })), false, "solo el Flujo tiene sentido: " + kind);
   assert.equal(shows(null), false, "un nodo seleccionado: sin aviso");
-  assert.equal(w5(false)(edge(10, 1, 2, { kind: "FLOWS_TO", startArrow: true, endArrow: false })), false, "labs OFF: sin herramientas, sin aviso");
+  assert.equal(w5(false)(edge(10, 1, 2, { kind: "FLOWS_TO", startArrow: true, endArrow: false })), true, "sin la bandera (retirada en FASE 6), el aviso sale igual");
 });
 test("W5 · markup estático tras el selector, con los textos aprobados; se sincroniza al refrescar el panel y al cambiar las puntas", () => {
   const html = read("index.html");
-  const stroke = html.slice(html.indexOf('id="grpStroke"'), html.indexOf("</details>", html.indexOf('id="grpStroke"')));
+  const stroke = html.slice(html.indexOf('id="grpFlow"'), html.indexOf("</details>", html.indexOf('id="grpFlow"')));
   const note = stroke.indexOf('id="kindNote"');
-  assert.ok(note > stroke.indexOf('id="rowKind"') && note < stroke.indexOf('id="rowLineC"'), "justo después del selector");
+  assert.ok(note > stroke.indexOf('id="rowKind"') && note < stroke.indexOf('id="rowDotC"'), "justo después del selector (los dos en «Puntos», decisión 254)");
   assert.match(stroke, /<p class="hint rowNote" id="kindNote" role="status" hidden>La punta visible apunta en sentido contrario al flujo\. El flujo se calcula de origen a destino; la punta solo cambia la apariencia\.<\/p>/);
   const ui = read("js/ui.js");
-  assert.match(ui, /\$\("rowKind"\)\.style\.display=!isNode && LABS_SEMANTICS \? "flex" : "none";\n  syncKindNote\(isNode \? null : obj\);/);
+  assert.ok(ui.includes('$("rowKind").style.display=isNode ? "none" : "flex";\n  syncKindNote(isNode ? null : obj);'));
   assert.match(ui, /function syncArrowSeg\(e\)\{[^\n]*syncKindNote\(e\); syncArrowSizeSeg\(e\); \}/, "el contrato de 018.27 (termina en syncArrowSizeSeg) se conserva");
 });
 
@@ -306,8 +292,8 @@ test("alcance · entre los archivos servidos solo cambian model.js, geometry.js,
   for (const f of ["js/config.js", "js/safe-svg.js", "js/scenario-engine.js", "js/scenario-playback.js", "js/story-playback.js", "js/document-integrity.js", "js/story-authoring.js",
     "js/story-clock.js", "js/skin.js", "js/viewer.js", "js/export.js", "js/state.js", "js/selection.js", "js/editor-scenarios.js", "s/index.html"]) assert.equal(undo4b(f, undo3(f, read(f))), before(f), f);
   const sw = undo3("sw.js", read("sw.js"));
-  assert.match(sw, /const CACHE = "fluyo-static-v100";/);
-  assert.equal(sw.replace('"fluyo-static-v100"', '"fluyo-static-v' + (94 - 1) + '"'), before("sw.js"), "sw.js: solo sube CACHE (sin archivos nuevos)");
+  assert.match(sw, /const CACHE = "fluyo-static-v101";/);
+  assert.equal(sw.replace('"fluyo-static-v101"', '"fluyo-static-v' + (94 - 1) + '"'), before("sw.js"), "sw.js: solo sube CACHE (sin archivos nuevos)");
   /* UNKNOWN sigue fuera (D3): el kernel solo admite UP/DOWN */
   assert.match(read("js/model.js"), /const SCENARIO_STATES=new Set\(\["UP","DOWN"\]\);/);
   assert.match(read("js/scenario-engine.js"), /const VALID_STATES = new Set\(\["UP", "DOWN"\]\);/);

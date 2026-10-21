@@ -11,20 +11,8 @@ const mqSheet=window.matchMedia ? matchMedia("(max-width: 700px)") : null;
    inferior desaparece (páginas y modos suben a la cabecera). Antes caía en el layout de tableta por anchura. */
 const mqSide=window.matchMedia ? matchMedia("(orientation: landscape) and (max-height: 500px) and (pointer: coarse)") : null;
 let uiMode="edit";
-/* SCENARIOS-SEMANTICS-001 (D10): bandera interna «labs» de este navegador (como la interfaz oscura, nunca entra en el
-   documento). `?labs=escenarios` la enciende, `?labs=off` la apaga. Solo decide si se ofrecen las HERRAMIENTAS de autoría;
-   lo que el documento ya dice (la semántica de una conexión) se conserva y se pinta siempre. */
-const LABS_SEMANTICS_KEY="fluyo.labs.escenarios";
-const LABS_SEMANTICS=(()=>{
-  let p=null;
-  try{ p=new URLSearchParams(location.search).get("labs"); }catch(e){}
-  try{
-    if(p==="escenarios") localStorage.setItem(LABS_SEMANTICS_KEY,"1");
-    else if(p==="off") localStorage.removeItem(LABS_SEMANTICS_KEY);
-  }catch(e){}
-  if(p==="escenarios") return true;
-  try{ return localStorage.getItem(LABS_SEMANTICS_KEY)==="1"; }catch(e){ return false; }
-})();
+/* SCENARIOS-SEMANTICS-001 FASE 6 (decisión 253): la bandera «labs» (D10) se retiró. La semántica de la conexión, la ruta
+   observada y su pintado son el comportamiento normal; el parámetro «labs» de la URL ya no se lee y la clave que guardaba se ignora. */
 function isSideSheet(){ return !!(mqSide && mqSide.matches); }
 function isSheetLayout(){ return !!((mqSheet && mqSheet.matches) || isSideSheet()); }
 /* FLUYO-018.17 (M2): sin selección, ⚙ desaparece y la hoja de Propiedades se cierra, pero solo AL REPOSO: tocar otro elemento
@@ -89,7 +77,7 @@ function refreshPanel(){
   const edgeRows=["rowRoute","rowEnds","rowFrom","rowTo","rowAnim","rowSpeedF","rowDotsGlobal","rowDots","rowDash","rowArrows","rowArrowSize","rowArrS","rowArrE","rowFlow","rowLineC","rowDotC"];
   nodeRows.forEach(r=>$(r).style.display=isNode?"flex":"none");
   edgeRows.forEach(r=>$(r).style.display=isNode?"none":"flex");
-  $("rowKind").style.display=!isNode && LABS_SEMANTICS ? "flex" : "none";
+  $("rowKind").style.display=isNode ? "none" : "flex";
   syncKindNote(isNode ? null : obj);
   $("btnWps").style.display=(!isNode&&(obj.waypoints||[]).length)?"block":"none";
   $("flowNote").style.display="none";
@@ -591,9 +579,9 @@ segBind("kindSeg", v=>{
   pushUndo(); editEdge(e,{kind: v===EDGE_KIND_GENERIC ? null : v}); scheduleAutosave(); refreshPanel();
 });
 /* SCENARIOS-SEMANTICS-001 (W5): aviso no bloqueante cuando la punta visible de un Flujo apunta al revés (solo punta de inicio).
-   Solo avisa: nunca invierte origen y destino, y ni las puntas ni flowDir cambian la semántica. Tras la bandera, como el selector. */
+   Solo avisa: nunca invierte origen y destino, y ni las puntas ni flowDir cambian la semántica. Siempre, como el selector. */
 function flowArrowReversed(e){ return !!e && edgeKind(e)==="FLOWS_TO" && arrowsOf(e)==="start"; }
-function syncKindNote(e){ $("kindNote").hidden=!(LABS_SEMANTICS && flowArrowReversed(e)); }
+function syncKindNote(e){ $("kindNote").hidden=!flowArrowReversed(e); }
 segOnSelect("arrowSizeSeg","arrowSizeSel");
 $("arrowSizeSel").onchange=()=>{
   const e=singleEdge(); if(!e) return;

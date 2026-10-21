@@ -601,7 +601,7 @@ function scTick() {
 function buildScenarioRenderState() {
   if (!scPlayback) return null;
   const rs = FluyoStory.renderState(scPlayback, scActiveScenario(), scNow());
-  /* SCENARIOS-SEMANTICS-001 FASE 4: lo que el lienzo pinta de la ruta observada (null sin labs o sin ruta; FASE 5: también en Present) */
+  /* SCENARIOS-SEMANTICS-001 FASE 4: lo que el lienzo pinta de la ruta observada (null sin ruta; FASE 5: también en Present) */
   const flow = scFlowOverlay();
   if (flow) rs.flow = flow;
   return rs;
@@ -1049,8 +1049,8 @@ function scPlaceNow() {
   if (card.classList) card.classList.toggle("atBottom", y !== top);
 }
 /* ===================== Ruta observada (SCENARIOS-SEMANTICS-001 FASE 3; D5, D6, decisión 233) =====================
-   Herramienta bajo el transporte (#scFlow). Solo existe con la bandera labs, si la página tiene alguna conexión Flujo y la
-   Historia activa tiene eventos. Lee la derivación de flow-semantics.js con el reloj de la Historia:
+   Herramienta bajo el transporte (#scFlow). Existe si la página tiene alguna conexión Flujo y la Historia activa tiene eventos
+   (FASE 6, decisión 253: sin la bandera labs, que se retiró). Lee la derivación de flow-semantics.js con el reloj de la Historia:
      · reproduciendo (también en pausa, tras un salto y terminada): el Trace VISIBLE de la reproducción y su cursor;
      · sin reproducir: la misma receta (FluyoStory.run + horario visible de story-clock.js) en el instante 0: «Al inicio · ».
    La base (Trace visible y reloj de los Steps) se memoiza: por reproducción, o por firma del documento sin reproducir. El
@@ -1075,11 +1075,8 @@ const SC_FLOW_WORDS = {
   tooMany: "Más de 10 000 rutas",   // recuento no exacto (QA del PO): nunca un número derivado del tope interno
 };
 let scFlowBase = { key: null, value: null }, scFlowLast = null, scFlowPending = null;
-function scFlowLabs() {
-  return typeof LABS_SEMANTICS !== "undefined" && !!LABS_SEMANTICS && typeof FluyoFlow !== "undefined";
-}
 function scFlowShown(pg, sc) {
-  return scFlowLabs() && !!pg && !!sc && sc.steps.length > 0 && pg.edges.some((e) => edgeKind(e) === "FLOWS_TO");
+  return typeof FluyoFlow !== "undefined" && !!pg && !!sc && sc.steps.length > 0 && pg.edges.some((e) => edgeKind(e) === "FLOWS_TO");
 }
 /* Trace visible y reloj de los Steps de la Historia. Reproduciendo, los de la reproducción; si no, la receta única en edición. */
 function scFlowTimeline(pg, sc) {
@@ -1164,7 +1161,7 @@ function scFlowTrackView(d, t, playing) {
   return { track, rows };
 }
 /* Lo que el lienzo pinta de la ruta en este fotograma (render.js lo recibe en scenarioRuntime.flow). Solo reproduciendo, con la
-   herramienta (labs, Flujo, eventos), con par y con ruta (NO_PATH no pinta fundas, D-Ruta). FASE 5 (D8, decisión 245): también en
+   herramienta (Flujo, eventos), con par y con ruta (NO_PATH no pinta fundas, D-Ruta). FASE 5 (D8, decisión 245): también en
    Present, con la misma receta que el Viewer (FluyoFlow.routeOverlay). Todo sale del cursor VIRTUAL: en pausa el dibujo queda
    quieto y un salto da el de una reproducción continua (§ T1). */
 function scFlowOverlay() {

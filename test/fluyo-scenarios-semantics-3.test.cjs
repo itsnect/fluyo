@@ -18,7 +18,7 @@ const BASE = "16ee642";   // main al empezar FASE 3 (producción v95)
 const atBase = (f) => execFileSync("git", ["-C", gitRoot, "show", BASE + ":" + f], { encoding: "utf8" }).replace(/\r\n/g, "\n");
 const J = (v) => JSON.parse(JSON.stringify(v));
 const { undo4: undo4only } = require("./fluyo-scenarios-semantics-4-undo.cjs");   /* SCENARIOS-SEMANTICS-001 FASE 4 va encima de STEP-REVERSE-003: se deshace antes; su alcance lo vigila test/fluyo-scenarios-semantics-4.test.cjs */
-const { undo5 } = require("./fluyo-scenarios-semantics-5-undo.cjs");   /* SCENARIOS-SEMANTICS-001 FASE 5 va encima de FASE 4: se deshace antes; su alcance lo vigila test/fluyo-scenarios-semantics-5.test.cjs */
+const { undo56: undo5 } = require("./fluyo-scenarios-semantics-6-undo.cjs");   /* SCENARIOS-SEMANTICS-001 FASE 5 va encima de FASE 4: se deshace antes; su alcance lo vigila test/fluyo-scenarios-semantics-5.test.cjs */
 const undo4 = (f, src) => undo4only(f, undo5(f, src));
 
 const KERNEL = ["config.js", "safe-svg.js", "model.js", "scenario-engine.js", "scenario-playback.js", "story-playback.js", "story-clock.js", "flow-semantics.js", "document-integrity.js", "story-authoring.js"];
@@ -339,9 +339,9 @@ function editor({ labs = true } = {}) {
   return { ctx, R, $, load, model, view, pick, play, tick, seek, undo: () => R("undo()"), redo: () => R("redo()"), undos: () => R("undoStack.length"), doc: () => J(R("P()")) };
 }
 
-test("C1 · la herramienta solo existe con labs, con alguna conexión Flujo y con eventos en la Historia", () => {
+test("C1 · la herramienta existe con alguna conexión Flujo y con eventos en la Historia (sin bandera: labs se retiró en FASE 6, decisión 253)", () => {
   const off = editor({ labs: false }); off.load(project([workersPage()]));
-  assert.equal(off.view().hidden, true, "labs apagado: no existe");
+  assert.equal(off.view().hidden, false, "el valor antiguo de la bandera ya no cuenta: existe");
   const e = editor(); e.load(project([workersPage()]));
   assert.equal(e.view().hidden, false);
   const noFlow = workersPage(); noFlow.edges = noFlow.edges.map((x) => Object.assign({}, x, { kind: x.kind === "FLOWS_TO" ? undefined : x.kind }));
@@ -497,7 +497,7 @@ test("D2 · carga: el editor carga flow-semantics.js (tras story-clock.js) y lo 
   assert.ok(i("story-clock.js") < i("flow-semantics.js") && i("flow-semantics.js") < i("editor-scenarios.js") && i("flow-semantics.js") > 0);
   assert.ok(!undo4("s/index.html", read("s/index.html")).includes("flow-semantics"), "Viewer sin cambios en FASE 3 (lo carga FASE 5: undo5, dentro de undo4)");
   const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v100";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v101";/);
   assert.ok(sw.includes('"./js/story-clock.js",\n  "./js/flow-semantics.js",\n  "./js/document-integrity.js",'));
 });
 
@@ -512,7 +512,9 @@ test("D3 · alcance frente a " + BASE + ": solo cambian estos archivos servidos;
   for (const f of ONLY_REV) assert.equal(undoReverse(f, undoReverseUi(f, undo4(f, read(f)))), atBase(f), f + " = " + BASE + " fuera de STEP-REVERSE-002");
   /* SCENARIOS-SEMANTICS-001 FASE 5 añade el Viewer, Present, la exportación SVG, share.css y docs (intactos tras undo4, abajo) */
   const ONLY5 = ["css/share.css", "docs/index.html", "js/export.js", "js/present-story.js", "js/viewer.js", "s/index.html"];
-  assert.deepEqual([...new Set([...changed, ...untracked])].filter((f) => !ONLY_REV.includes(f) && !ONLY5.includes(f)).sort(),
+  /* SCENARIOS-SEMANTICS-001 FASE 6 (la bandera retirada en ui.js): lo que solo cambia FASE 6 se descuenta si undo4 (con undo6 dentro) lo devuelve a la base */
+  const PIECES6 = require("./fluyo-scenarios-semantics-6-undo.cjs").PIECES;
+  assert.deepEqual([...new Set([...changed, ...untracked])].filter((f) => !ONLY_REV.includes(f) && !ONLY5.includes(f) && !(f in PIECES6 && undo4(f, read(f)) === atBase(f))).sort(),
     ["css/styles.css", "index.html", "js/document-integrity.js", "js/editor-scenarios.js", "js/flow-semantics.js", "js/model.js", "js/story-authoring.js", "sw.js"]);
   for (const f of ["js/render.js", "js/viewer.js", "js/present-story.js", "js/export.js", "js/story-clock.js", "js/scenario-engine.js", "js/ui.js", "s/index.html"])
     assert.equal(undoReverse(f, undoReverseUi(f, undo4(f, read(f)))), atBase(f), f + " intacto");
@@ -524,7 +526,7 @@ test("D5 · undo3 (para los alcances de slices anteriores) deshace EXACTAMENTE F
   const { undoReverseUi } = require("./fluyo-step-reverse-003-undo.cjs");   /* y 003 encima de 002 */
   for (const f of Object.keys(REGIONS)) {
     let back = undo3(f, undoReverse(f, undoReverseUi(f, undo4(f, read(f)))));
-    if (f === "sw.js") back = back.replace('"fluyo-static-v100"', '"fluyo-static-v' + (96 - 1) + '"');
+    if (f === "sw.js") back = back.replace('"fluyo-static-v101"', '"fluyo-static-v' + (96 - 1) + '"');
     assert.equal(back, atBase(f), f);
   }
 });

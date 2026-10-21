@@ -30,7 +30,8 @@ const MUTATIONS = [
   ["U13 setObservedFlowIn no comprueba que el nodo exista", MD, '    if(!pg.nodes.some(n=>n.id===flow[k])) throw projectDataError("node_not_found",k);\n', ""],
   ["U14 Condiciones → Disponible no se guarda (regla anterior)", MD, "  pg.behaviors.push({nodeId, initialState:state});", '  if(state==="DOWN") pg.behaviors.push({nodeId, initialState:"DOWN"});'],
   /* editor */
-  ["U15 la herramienta sale sin la bandera labs", ED, "return typeof LABS_SEMANTICS !== \"undefined\" && !!LABS_SEMANTICS && typeof FluyoFlow !== \"undefined\";", "return typeof FluyoFlow !== \"undefined\";"],
+  /* FASE 6 (decisión 253): la bandera se retiró; la regresión es que la herramienta vuelva a depender de ella */
+  ["U15 la herramienta vuelve a depender de la bandera labs", ED, "  return typeof FluyoFlow !== \"undefined\" && !!pg", "  return typeof LABS_SEMANTICS !== \"undefined\" && !!LABS_SEMANTICS && typeof FluyoFlow !== \"undefined\" && !!pg"],
   ["U16 la herramienta sale con una Historia sin eventos", ED, "!!sc && sc.steps.length > 0 && pg.edges", "!!sc && pg.edges"],
   ["U17 sin reproducir se mira el final de la Historia (no el inicio)", ED, "playing ? scPlayback.cursorVirtual || 0 : 0,", "playing ? scPlayback.cursorVirtual || 0 : 1e12,"],
   ["U18 «Al inicio» también reproduciendo", ED, "(playing ? \"\" : SC_FLOW_WORDS.atStart)", "SC_FLOW_WORDS.atStart"],

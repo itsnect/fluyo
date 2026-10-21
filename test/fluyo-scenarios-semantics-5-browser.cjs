@@ -261,13 +261,13 @@ async function present(browser, now, old, vp, label, touch) {
     }
     await T.page.evaluate(() => { scReset(); presentStoryRefresh(); }); await frames(T.page);
     check(!(await box(T.page, "#psFlow")).visible, "Detener: sin línea");
-    /* labs apagado: Present como siempre */
-    const L = await openEditor(browser, now.base, vp, "?labs=off", { touch });
+    /* FASE 6 (decisión 253): sin bandera, Present es el de ?labs=escenarios (la bandera se retiró) */
+    const L = await openEditor(browser, now.base, vp, "", { touch });
     try {
       await L.load(DOC()); await L.page.evaluate(() => enterPresent()); await L.playAt(2300, true);
-      const off = await L.page.evaluate(() => ({ line: !document.getElementById("psFlow").hidden, flow: !!(buildScenarioRenderState() || {}).flow }));
-      check(!off.line && !off.flow, "labs apagado: ni línea ni ruta en Present");
-      check(L.errors.length === 0, "labs apagado: 0 errores");
+      const off = await L.page.evaluate(() => ({ line: !document.getElementById("psFlow").hidden, text: document.getElementById("psFlow").textContent, flow: !!(buildScenarioRenderState() || {}).flow }));
+      check(off.line && off.flow && off.text === "Ruta disponible · incluye estados por defecto", "sin bandera: la línea y la ruta en Present («" + off.text + "»)");
+      check(L.errors.length === 0, "sin bandera: 0 errores");
     } finally { await L.ctx.close(); }
     check(T.errors.length + O.errors.length === 0, "0 errores (" + T.errors.concat(O.errors).join(" | ") + ")");
   } finally { await T.ctx.close(); await O.ctx.close(); }

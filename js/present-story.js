@@ -138,7 +138,7 @@ function presentStoryRefresh(){
   psSet("psCaption","text",cap);
   psSet("psSummary","text",sum);
   /* SCENARIOS-SEMANTICS-001 FASE 5 (D8, decisión 246): la línea de estado de la ruta observada, en el rótulo (la fila de controles no
-     cambia). La MISMA línea que la herramienta del editor (labs), solo reproduciendo (también en pausa y terminada) y con par. */
+     cambia). La MISMA línea que la herramienta del editor, solo reproduciendo (también en pausa y terminada) y con par. */
   const route=dphase!=="ready" && typeof scFlowPresentLine==="function" ? scFlowPresentLine() : null;
   psSet("psFlow","hidden",!route);
   if(route){ psSet("psFlow","text",route.text); psSet("psFlow","className","psFlow is"+route.status); }

@@ -53,7 +53,11 @@ function cutSel(){ if(editorFrozen()) return; copySel(); deleteSel(); }
 function pasteClip(){
   if(!clip || !clip.nodes.length) return;
   const snap=snapPage();
-  const r=cloneStructureIn(P(), clip, {dx:GRID, dy:GRID});      // un fallo (p. ej. id_exhausted) no deja copia parcial ni entrada de Undo
+  let r;
+  /* Un fallo no deja copia parcial ni entrada de Undo. Un portapapeles que el documento no podría volver a leer (un `fluyo::` de otra
+     versión con un estado desconocido; SCENARIOS-SEMANTICS-001 FASE 6, B1) no pega nada, como dupSel; id_exhausted se propaga. */
+  try{ r=cloneStructureIn(P(), clip, {dx:GRID, dy:GRID}); }
+  catch(err){ if(err && typeof err.code==="string" && err.code!=="id_exhausted") return; throw err; }
   pushUndoSnapshot(snap);
   selN=new Set(r.nodes.map(x=>x.id)); selE=new Set(r.connections.map(x=>x.id));
   // cascada en pegados sucesivos

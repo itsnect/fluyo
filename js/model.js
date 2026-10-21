@@ -1117,7 +1117,9 @@ function importPagesIn(d, incoming){
      Las conexiones no tienen Z (se dibujan siempre bajo los nodos).
    · cloneStructureIn / duplicateNodesIn: única autoridad de clonado (pegar y duplicar). Ids en un solo bloque reservado ANTES de
      mutar (todo o nada), nodos en el orden del documento y luego conexiones; solo las conexiones internas al conjunto; los Behaviors
-     de los nodos copiados se copian; Steps, Historias y EventTypes no se tocan.
+     de los nodos copiados se copian; Steps, Historias y EventTypes no se tocan. Los Behaviors que se copian pasan la regla de carga
+     (normalizeBehaviors) ANTES de mutar: un pegado `fluyo::` de otra versión con un estado que este editor no conoce (UNKNOWN) se
+     rechaza entero con invalid_document("behaviors"), sin copia parcial (SCENARIOS-SEMANTICS-001 FASE 6, B1).
 
    Códigos: invalid_document(field) · invalid_theme · empty_patch · invalid_placement · node_not_found(id) · id_exhausted. */
 const THEME_PATCH_KEYS=new Set(["theme","customBg"]);
@@ -1182,6 +1184,10 @@ function cloneStructureIn(pg, snapshot, offset){
   for(const [k,v] of [["x",dx],["y",dy]]) if(typeof v!=="number" || !Number.isFinite(v)) throw projectDataError("invalid_document","offset."+k);
   const inSet=new Set(snapshot.nodes.map(n=>n.id));
   const edges=(snapshot.edges||[]).filter(e=>inSet.has(e.from) && inSet.has(e.to));
+  // B1: la misma regla que la carga, antes de mutar (un Behavior que el documento no podría volver a leer nunca entra).
+  const behaviors=snapshot.behaviors==null ? [] : snapshot.behaviors;
+  if(!Array.isArray(behaviors)) throw projectDataError("invalid_document","behaviors");
+  for(const b of behaviors) if(!projectObject(b) || (inSet.has(b.nodeId) && !SCENARIO_STATES.has(b.initialState))) throw projectDataError("invalid_document","behaviors");
   // Reserva ANTES de mutar: el agotamiento no puede dejar una copia parcial (los contadores nunca bajan).
   let nextId=reserveStructureIds(pg, snapshot.nodes.length+edges.length);
   const map={}, out={nodes:[], connections:[], behaviors:[]};
@@ -1196,7 +1202,7 @@ function cloneStructureIn(pg, snapshot, offset){
     (c.waypoints||[]).forEach(w=>{ w.x+=dx; w.y+=dy; });
     pg.edges.push(c); out.connections.push({from:e.id, id:c.id});
   }
-  for(const b of snapshot.behaviors||[]){
+  for(const b of behaviors){
     if(projectOwn(map,b.nodeId)){ pg.behaviors.push({...deep(b), nodeId:map[b.nodeId]}); out.behaviors.push(map[b.nodeId]); }
   }
   return out;

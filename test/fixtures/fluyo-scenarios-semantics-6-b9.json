@@ -1,0 +1,500 @@
+{
+  "version": 5,
+  "app": "fluyo",
+  "settings": {
+    "speed": 0.5,
+    "dots": 3,
+    "build": false,
+    "stagger": 0.45,
+    "grid": false,
+    "snap": false,
+    "font": "Georgia, serif",
+    "single": false
+  },
+  "doc": {
+    "theme": "crema",
+    "customBg": "",
+    "cur": 0,
+    "nextEventTypeId": 4,
+    "eventTypes": [
+      {
+        "id": 1,
+        "name": "Pedido",
+        "primitive": "FLOW",
+        "sentenceTemplate": "{source} pide a {target}",
+        "visual": {
+          "kind": "token",
+          "value": "●"
+        },
+        "motion": "normal"
+      },
+      {
+        "id": 2,
+        "name": "Cae",
+        "primitive": "SET_AVAILABILITY",
+        "sentenceTemplate": "{target} cae",
+        "visual": {
+          "kind": "token",
+          "value": "✕"
+        },
+        "availability": "DOWN"
+      },
+      {
+        "id": 3,
+        "name": "Vuelve",
+        "primitive": "SET_AVAILABILITY",
+        "sentenceTemplate": "{target} vuelve",
+        "visual": {
+          "kind": "token",
+          "value": "✓"
+        },
+        "availability": "UP"
+      }
+    ],
+    "pages": [
+      {
+        "name": "Workers",
+        "nextId": 100,
+        "behaviors": [],
+        "nextScenarioId": 5,
+        "nodes": [
+          {
+            "id": 1,
+            "shape": "rect",
+            "x": 120,
+            "y": 300,
+            "w": 150,
+            "h": 60,
+            "label": "Cliente",
+            "color": "#5b8db5",
+            "fill": null,
+            "border": "solid",
+            "lblPos": "center",
+            "textBg": null,
+            "textColor": null,
+            "font": null,
+            "bold": false,
+            "order": 1
+          },
+          {
+            "id": 2,
+            "shape": "rect",
+            "x": 340,
+            "y": 300,
+            "w": 150,
+            "h": 60,
+            "label": "API",
+            "color": "#5b8db5",
+            "fill": null,
+            "border": "solid",
+            "lblPos": "center",
+            "textBg": null,
+            "textColor": null,
+            "font": null,
+            "bold": false,
+            "order": 2
+          },
+          {
+            "id": 3,
+            "shape": "rect",
+            "x": 560,
+            "y": 300,
+            "w": 150,
+            "h": 60,
+            "label": "Cola",
+            "color": "#5b8db5",
+            "fill": null,
+            "border": "solid",
+            "lblPos": "center",
+            "textBg": null,
+            "textColor": null,
+            "font": null,
+            "bold": false,
+            "order": 3
+          },
+          {
+            "id": 4,
+            "shape": "rect",
+            "x": 800,
+            "y": 200,
+            "w": 150,
+            "h": 60,
+            "label": "Worker A",
+            "color": "#5b8db5",
+            "fill": null,
+            "border": "solid",
+            "lblPos": "center",
+            "textBg": null,
+            "textColor": null,
+            "font": null,
+            "bold": false,
+            "order": 4
+          },
+          {
+            "id": 5,
+            "shape": "rect",
+            "x": 800,
+            "y": 400,
+            "w": 150,
+            "h": 60,
+            "label": "Worker B",
+            "color": "#5b8db5",
+            "fill": null,
+            "border": "solid",
+            "lblPos": "center",
+            "textBg": null,
+            "textColor": null,
+            "font": null,
+            "bold": false,
+            "order": 5
+          },
+          {
+            "id": 6,
+            "shape": "rect",
+            "x": 1040,
+            "y": 300,
+            "w": 150,
+            "h": 60,
+            "label": "BD",
+            "color": "#5b8db5",
+            "fill": null,
+            "border": "solid",
+            "lblPos": "center",
+            "textBg": null,
+            "textColor": null,
+            "font": null,
+            "bold": false,
+            "order": 6
+          },
+          {
+            "id": 7,
+            "shape": "rect",
+            "x": 340,
+            "y": 470,
+            "w": 150,
+            "h": 60,
+            "label": "Auth",
+            "color": "#5b8db5",
+            "fill": null,
+            "border": "solid",
+            "lblPos": "center",
+            "textBg": null,
+            "textColor": null,
+            "font": null,
+            "bold": false,
+            "order": 7
+          },
+          {
+            "id": 8,
+            "shape": "rect",
+            "x": 340,
+            "y": 130,
+            "w": 150,
+            "h": 60,
+            "label": "Métricas",
+            "color": "#5b8db5",
+            "fill": null,
+            "border": "solid",
+            "lblPos": "center",
+            "textBg": null,
+            "textColor": null,
+            "font": null,
+            "bold": false,
+            "order": 8
+          }
+        ],
+        "edges": [
+          {
+            "id": 11,
+            "from": 1,
+            "to": 2,
+            "route": "ortho",
+            "fromSide": null,
+            "toSide": null,
+            "waypoints": [],
+            "label": "",
+            "font": null,
+            "bold": false,
+            "endArrow": true,
+            "startArrow": false,
+            "flowDir": "normal",
+            "kind": "FLOWS_TO"
+          },
+          {
+            "id": 12,
+            "from": 2,
+            "to": 3,
+            "route": "ortho",
+            "fromSide": null,
+            "toSide": null,
+            "waypoints": [],
+            "label": "",
+            "font": null,
+            "bold": false,
+            "endArrow": true,
+            "startArrow": false,
+            "flowDir": "normal",
+            "kind": "FLOWS_TO"
+          },
+          {
+            "id": 13,
+            "from": 3,
+            "to": 4,
+            "route": "ortho",
+            "fromSide": null,
+            "toSide": null,
+            "waypoints": [],
+            "label": "",
+            "font": null,
+            "bold": false,
+            "endArrow": true,
+            "startArrow": false,
+            "flowDir": "normal",
+            "kind": "FLOWS_TO"
+          },
+          {
+            "id": 14,
+            "from": 3,
+            "to": 5,
+            "route": "ortho",
+            "fromSide": null,
+            "toSide": null,
+            "waypoints": [],
+            "label": "",
+            "font": null,
+            "bold": false,
+            "endArrow": true,
+            "startArrow": false,
+            "flowDir": "normal",
+            "kind": "FLOWS_TO"
+          },
+          {
+            "id": 15,
+            "from": 4,
+            "to": 6,
+            "route": "ortho",
+            "fromSide": null,
+            "toSide": null,
+            "waypoints": [],
+            "label": "",
+            "font": null,
+            "bold": false,
+            "endArrow": true,
+            "startArrow": false,
+            "flowDir": "normal",
+            "kind": "FLOWS_TO"
+          },
+          {
+            "id": 16,
+            "from": 5,
+            "to": 6,
+            "route": "ortho",
+            "fromSide": null,
+            "toSide": null,
+            "waypoints": [],
+            "label": "",
+            "font": null,
+            "bold": false,
+            "endArrow": true,
+            "startArrow": false,
+            "flowDir": "normal",
+            "kind": "FLOWS_TO"
+          },
+          {
+            "id": 17,
+            "from": 2,
+            "to": 7,
+            "route": "ortho",
+            "fromSide": null,
+            "toSide": null,
+            "waypoints": [],
+            "label": "",
+            "font": null,
+            "bold": false,
+            "endArrow": true,
+            "startArrow": false,
+            "flowDir": "normal",
+            "kind": "REQUIRES"
+          },
+          {
+            "id": 18,
+            "from": 2,
+            "to": 8,
+            "route": "ortho",
+            "fromSide": null,
+            "toSide": null,
+            "waypoints": [],
+            "label": "",
+            "font": null,
+            "bold": false,
+            "endArrow": true,
+            "startArrow": false,
+            "flowDir": "normal"
+          }
+        ],
+        "scenarios": [
+          {
+            "id": 1,
+            "engineVersion": 2,
+            "name": "Cae el destino con el pedido en camino",
+            "nextStepId": 5,
+            "steps": [
+              {
+                "id": 1,
+                "at": 0,
+                "action": "SEND",
+                "edgeId": 11,
+                "eventTypeId": 1
+              },
+              {
+                "id": 2,
+                "at": 1500,
+                "action": "SET_STATE",
+                "nodeId": 4,
+                "state": "DOWN",
+                "eventTypeId": 2
+              },
+              {
+                "id": 3,
+                "at": 2500,
+                "action": "SEND",
+                "edgeId": 14,
+                "eventTypeId": 1
+              },
+              {
+                "id": 4,
+                "at": 3000,
+                "action": "SET_STATE",
+                "nodeId": 5,
+                "state": "DOWN",
+                "eventTypeId": 2
+              }
+            ]
+          },
+          {
+            "id": 2,
+            "engineVersion": 2,
+            "name": "Cae la BD con el pedido en camino",
+            "nextStepId": 4,
+            "steps": [
+              {
+                "id": 1,
+                "at": 0,
+                "action": "SEND",
+                "edgeId": 11,
+                "eventTypeId": 1
+              },
+              {
+                "id": 2,
+                "at": 2500,
+                "action": "SEND",
+                "edgeId": 14,
+                "eventTypeId": 1
+              },
+              {
+                "id": 3,
+                "at": 3000,
+                "action": "SET_STATE",
+                "nodeId": 6,
+                "state": "DOWN",
+                "eventTypeId": 2
+              }
+            ]
+          },
+          {
+            "id": 3,
+            "engineVersion": 2,
+            "name": "La caída espera a que llegue el pedido",
+            "nextStepId": 5,
+            "steps": [
+              {
+                "id": 1,
+                "at": 0,
+                "action": "SEND",
+                "edgeId": 11,
+                "eventTypeId": 1
+              },
+              {
+                "id": 2,
+                "at": 1500,
+                "action": "SET_STATE",
+                "nodeId": 4,
+                "state": "DOWN",
+                "eventTypeId": 2
+              },
+              {
+                "id": 3,
+                "at": 2500,
+                "action": "SEND",
+                "edgeId": 14,
+                "eventTypeId": 1
+              },
+              {
+                "id": 4,
+                "at": 3000,
+                "action": "SET_STATE",
+                "nodeId": 5,
+                "state": "DOWN",
+                "eventTypeId": 2
+              }
+            ],
+            "arrivalDependencies": [
+              {
+                "stepId": 4,
+                "waitsForArrivalOf": [
+                  3
+                ]
+              }
+            ]
+          },
+          {
+            "id": 4,
+            "engineVersion": 2,
+            "name": "Vuelve el destino con el pedido en camino",
+            "nextStepId": 6,
+            "steps": [
+              {
+                "id": 1,
+                "at": 0,
+                "action": "SEND",
+                "edgeId": 11,
+                "eventTypeId": 1
+              },
+              {
+                "id": 2,
+                "at": 0,
+                "action": "SET_STATE",
+                "nodeId": 4,
+                "state": "DOWN",
+                "eventTypeId": 2
+              },
+              {
+                "id": 3,
+                "at": 0,
+                "action": "SET_STATE",
+                "nodeId": 5,
+                "state": "DOWN",
+                "eventTypeId": 2
+              },
+              {
+                "id": 4,
+                "at": 2500,
+                "action": "SEND",
+                "edgeId": 14,
+                "eventTypeId": 1
+              },
+              {
+                "id": 5,
+                "at": 3000,
+                "action": "SET_STATE",
+                "nodeId": 5,
+                "state": "UP",
+                "eventTypeId": 3
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

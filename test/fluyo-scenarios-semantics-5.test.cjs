@@ -192,7 +192,7 @@ test("A3 · routeOverlay: sin timeline (NO_PATH) → null; t inválido → inval
 });
 
 /* ═══════════════ B. Present (editor con labs) ═══════════════ */
-test("B1 · Present pinta la MISMA ruta que el editor (D8); con labs apagado, nada (D10)", () => {
+test("B1 · Present pinta la MISMA ruta que el editor (D8); sin bandera desde FASE 6 (decisión 253), igual", () => {
   const e = editor(); e.load(project([workersPage()]));
   for (const t of [100, 1500, 1725, 3000, 3400]) {
     e.play(0); e.tick(t); const out = e.overlay();
@@ -201,7 +201,8 @@ test("B1 · Present pinta la MISMA ruta que el editor (D8); con labs apagado, na
     e.R("presenting = false");
   }
   const off = editor({ labs: false }); off.load(project([workersPage()])); off.R("presenting = true"); off.play(1500);
-  assert.equal(off.overlay(), null, "labs apagado: Present como siempre");
+  e.R("presenting = true"); e.play(0); e.tick(1500);
+  assert.ok(off.overlay(), "el valor antiguo de la bandera ya no cuenta"); assert.deepEqual(off.overlay(), e.overlay());
 });
 
 test("B2 · la línea de Present va en el rótulo (#psFlow), solo reproduciendo (también en pausa y terminada) y con par; nunca «Al inicio»", () => {
@@ -223,7 +224,7 @@ test("B2 · la línea de Present va en el rótulo (#psFlow), solo reproduciendo 
   const amb = workersPage(); amb.nodes.push(rect(9, "Otro")); amb.edges.push(edge(19, 9, API, "FLOWS_TO"));
   e.load(project([amb])); e.play(100); assert.equal(e.present().hidden, true, "sin par: nada");
   const off = editor({ labs: false }); off.R("presenting = true"); off.load(project([workersPage()])); off.play(100);
-  assert.equal(off.present().hidden, true, "labs apagado: nada");
+  assert.deepEqual([off.present().hidden, off.present().text], [false, "Ruta disponible · incluye estados por defecto"], "sin bandera (FASE 6): la línea igual");
   e.load(project([workersPage()])); e.play(100); e.present();
   assert.equal(e.R('psLast["psFlow.text"]'), "Ruta disponible · incluye estados por defecto", "el DOM solo se escribe si cambia (psSet)");
   /* la página siguiente no tiene Historia: la línea que se veía se oculta */
@@ -516,15 +517,17 @@ test("G3 · alcance frente a " + BASE + ": solo los archivos de FASE 5 y sw.js (
   const changed = execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean);
   const untracked = execFileSync("git", ["-C", gitRoot, "ls-files", "--others", "--exclude-standard", "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean);
   const { undo5, PIECES } = require("./fluyo-scenarios-semantics-5-undo.cjs");
+  /* SCENARIOS-SEMANTICS-001 FASE 6 va encima (B1 en model.js y selection.js): se deshace con undo6 y su alcance lo vigila -6.test.cjs */
+  const { undo6, PIECES: PIECES6 } = require("./fluyo-scenarios-semantics-6-undo.cjs"), read5 = (f) => undo6(f, read(f));
   const FILES = ["css/share.css", "css/styles.css", "docs/index.html", "index.html", "js/document-integrity.js", "js/editor-scenarios.js", "js/export.js", "js/flow-semantics.js",
     "js/present-story.js", "js/render.js", "js/story-authoring.js", "js/viewer.js", "s/index.html"];
-  assert.deepEqual([...new Set([...changed, ...untracked])].sort(), FILES.concat("sw.js").sort());
+  assert.deepEqual([...new Set([...changed, ...untracked])].filter((f) => !(f in PIECES6) || read5(f) !== atBase(f)).sort(), FILES.concat("sw.js").sort());
   assert.deepEqual(Object.keys(PIECES).sort(), FILES);
-  for (const f of FILES) assert.equal(undo5(f, read(f)), atBase(f), f + ": undo5 exacto");
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v100";/);
-  assert.equal(read("sw.js").replace('"fluyo-static-v100"', '"fluyo-static-v' + (100 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante; flow-semantics.js, viewer.js y s/ ya se precachean");
+  for (const f of FILES) assert.equal(undo5(f, read5(f)), atBase(f), f + ": undo5 exacto");
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v101";/);
+  assert.equal(read("sw.js").replace('"fluyo-static-v101"', '"fluyo-static-v' + (100 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante; flow-semantics.js, viewer.js y s/ ya se precachean");
   for (const f of ["js/model.js", "js/scenario-engine.js", "js/scenario-playback.js", "js/story-playback.js", "js/story-clock.js", "js/geometry.js", "js/skin.js", "js/interaction.js", "js/ui.js", "js/state.js", "js/share-url.js", "js/editor-share.js", "js/deeplink.js"])
-    assert.equal(read(f), atBase(f), f + " intacto (modelo, motor, reloj, geometría, piel, Share y #d= sin cambios)");
+    assert.equal(read5(f), atBase(f), f + " intacto (modelo, motor, reloj, geometría, piel, Share y #d= sin cambios)");
   /* FASE 2/3/4 intactas en flow-semantics.js: FASE 5 solo añade al final (y una nota en la cabecera) */
   const cut = (s) => s.slice(s.indexOf("var FluyoFlow"), s.indexOf("    return {paths, total, exact, mustPass};"));
   assert.equal(cut(read("js/flow-semantics.js")), cut(atBase("js/flow-semantics.js")), "funciones de FASE 2, 3 y 4 sin cambios");

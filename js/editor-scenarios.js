@@ -1696,6 +1696,8 @@ function scStoryRow(step) {
   if (hasIdentity && sentence && scNormText(sentence) !== scNormText(d.eventType.name)) {
     text.appendChild(scEl("div", "scStepSecondary", sentence));
   }
+  /* FLUYO-MCP-STEP-MESSAGE-001: el mensaje propio del paso (el texto de su globo), bajo la frase. Sin él, el globo es el del evento. */
+  if (scStepMessage(step)) text.appendChild(scEl("div", "scStepMessage", "«" + step.message + "»"));
   if (r.detail) text.appendChild(scEl("div", "scStepDetail", r.detail));
   if (d.missing && !isScenarioPlaybackActive())
     text.appendChild(scButton("Elegir otro", () => scChangeTarget(step), "scStoryRepair"));
@@ -1814,7 +1816,7 @@ function scStoryMenu(step, anchor) {
     ],
     [
       { label: "Cambiar dónde ocurre…", hint: where ? "Ahora: " + where : "", fn: () => scChangeTarget(step) },
-      ...(step.action === "SEND" ? [scReverseMenuItem(step)] : []),
+      ...(step.action === "SEND" ? [scReverseMenuItem(step)] : [scMessageMenuItem(step, anchor)]),
     ],
     [
       { label: "Duplicar", hint: "Al mismo tiempo, justo debajo", fn: () => scDuplicateStep(step.id) },
@@ -1849,6 +1851,71 @@ function scToggleStepReverse(id) {
   if (!s || s.action !== "SEND" || scIsTargetMissing(s)) return false;
   pushUndo();
   setStepReverse(sc, id, s.reverse !== true);
+  scCommit();
+  return true;
+}
+/* ─────────── FLUYO-MCP-STEP-MESSAGE-001: «Mensaje del paso…» (decisión 255) ───────────
+   El texto del globo de ESTA aparición, en vez del mensaje de su evento (que sigue siendo el de todos sus usos). Solo en eventos de
+   elemento: un envío no tiene globo. Reutiliza setStepMessage (model.js): una entrada de Undo, la selección no cambia y no toca
+   tiempos, orden, objetivo ni dependencias. "" o solo espacios no son un mensaje: para quitarlo está «Quitar mensaje». */
+function scStepMessage(step) {
+  return step && step.action !== "SEND" && typeof step.message === "string" ? step.message : null;
+}
+function scMessageMenuItem(step, anchor) {
+  const own = scStepMessage(step),
+    fx = eventTypeById(step.eventTypeId)?.presentation?.nodeEffects;
+  const hint = own ? "«" + own + "»" : fx?.message ? "Ahora el del evento: «" + fx.message + "»" : "Ahora sin mensaje";
+  return { label: "Mensaje del paso…", hint, fn: () => scEditStepMessage(step.id, anchor), disabled: scIsTargetMissing(step) };
+}
+function scEditStepMessage(id, anchor) {
+  if (!scEditable()) return;
+  const step = scActiveScenario()?.steps.find((x) => x.id === id);
+  if (!step || step.action === "SEND") return;
+  const p = scOpenPopover(anchor);
+  if (!p) return;
+  const own = scStepMessage(step),
+    fx = eventTypeById(step.eventTypeId)?.presentation?.nodeEffects;
+  const label = scEl("label", "", "Mensaje de este paso"),
+    input = scEl("input", "scMessageInput");
+  input.value = own || "";
+  input.maxLength = STEP_MESSAGE_MAX_LEN;
+  if (fx?.message) input.placeholder = fx.message;
+  label.appendChild(input);
+  p.append(label, scEl("p", "", "Se ve en el globo de este paso, en lugar del mensaje del evento. No cambia tiempos."));
+  const save = () => {
+    if (!input.value.trim()) {
+      input.setCustomValidity("Escribe el mensaje, o usa «Quitar mensaje».");
+      input.reportValidity();
+      return;
+    }
+    scSetStepMessage(id, input.value);
+    scClosePopover();
+  };
+  input.oninput = () => input.setCustomValidity("");
+  input.onkeydown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault(); // como en «Renombrar»: el Enter no debe reabrir el menú
+      save();
+    }
+  };
+  p.appendChild(scButton("Guardar mensaje", save));
+  if (own)
+    p.appendChild(
+      scButton("Quitar mensaje", () => {
+        scSetStepMessage(id, null);
+        scClosePopover();
+      }),
+    );
+  input.focus();
+}
+function scSetStepMessage(id, message) {
+  if (!scEditable()) return false;
+  const sc = scActiveScenario(),
+    s = sc && sc.steps.find((x) => x.id === id);
+  if (!s || s.action === "SEND") return false;
+  if ((scStepMessage(s) ?? null) === message) return false;
+  pushUndo();
+  setStepMessage(sc, id, message);
   scCommit();
   return true;
 }

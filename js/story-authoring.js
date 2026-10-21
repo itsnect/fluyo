@@ -7,7 +7,8 @@
        createEventTypeIn, updateEventTypeIn, deleteEventTypeIn, eventTypeDefinition, createNodeIn, createConnectionIn,
        updateNodeIn, updateConnectionIn, deleteNodeIn, deleteConnectionIn, createPageIn, renamePageIn,
        setThemeIn, reorderNodesIn, duplicateNodesIn (FLUYO-018.7a), deletePageIn (FLUYO-018.7c), y las dependencias de llegada
-       arrivalCandidates, withArrivalWaits, pruneArrivalDependencies, copyArrivalWaits (FLUYO-018.22): las mismas que ejecuta el editor);
+       arrivalCandidates, withArrivalWaits, pruneArrivalDependencies, copyArrivalWaits (FLUYO-018.22), setStepMessage
+       (FLUYO-MCP-STEP-MESSAGE-001): las mismas que ejecuta el editor);
      · FluyoIntegrity (la autoridad de integridad) sobre el ESTADO FINAL del lote y para explicar qué rompería
        borrar o cambiar un EventType usado.
    Aquí sólo viven la forma de las operaciones, la resolución de referencias del lote (`ref`) y la explicación
@@ -24,7 +25,7 @@ var FluyoAuthoring = (function(){
   const OPERATION_SCOPE = {
     create_story:"story", rename_story:"story", duplicate_story:"story", delete_story:"story",
     add_step:"story", remove_step:"story", move_step:"story", duplicate_step:"story", retarget_step:"story", set_wait:"story",
-    set_arrival_dependencies:"story", set_observed_flow:"story",
+    set_arrival_dependencies:"story", set_observed_flow:"story", set_step_message:"story",
     set_initial_availability:"page", create_node:"page", create_connection:"page",
     update_node:"page", update_connection:"page", delete_node:"page", delete_connection:"page",
     create_page:"document", rename_page:"document", delete_page:"document", set_theme:"document",
@@ -41,9 +42,9 @@ var FluyoAuthoring = (function(){
      p. ej. nadie puede escribir `action`, `state` ni `at` en un paso; el EventType y las esperas lo deciden. */
   const OPERATION_FIELDS = {
     create_story:["name","ref"], rename_story:["storyId","name"], duplicate_story:["storyId","name","ref"], delete_story:["storyId"],
-    add_step:["storyId","eventTypeId","target","waitMs","placement","waitsForArrivalOf","ref"], remove_step:["storyId","stepId"],
+    add_step:["storyId","eventTypeId","target","waitMs","placement","waitsForArrivalOf","message","ref"], remove_step:["storyId","stepId"],
     move_step:["storyId","stepId","direction","to"], duplicate_step:["storyId","stepId","ref"],
-    retarget_step:["storyId","stepId","target"], set_wait:["storyId","stepId","waitMs"],
+    retarget_step:["storyId","stepId","target"], set_wait:["storyId","stepId","waitMs"], set_step_message:["storyId","stepId","message"],
     set_arrival_dependencies:["storyId","stepId","waitsForArrivalOf"],
     set_observed_flow:["storyId","source","target"],
     set_initial_availability:["nodeId","state"],
@@ -115,6 +116,14 @@ var FluyoAuthoring = (function(){
   function nameOf(v, optional){
     if(v===undefined && optional) return undefined;
     if(typeof v!=="string" || !v.trim() || v.length>120) throw reject("INVALID_NAME", "El nombre debe ser un texto de 1 a 120 caracteres.", {field:"name"});
+    return v;
+  }
+  /* FLUYO-MCP-STEP-MESSAGE-001: el texto del globo de un paso de elemento. La regla es la de model.js (stepMessageValid); aquí solo se
+     explica el rechazo. `spec` = la acción del paso (eventTypeActionSpec o el propio Step). */
+  const NO_SEND_MESSAGE = "message solo existe en pasos de elemento (OCCURRENCE, SET_STATE): un envío no tiene globo.";
+  function messageOf(v, spec){
+    if(spec.action==="SEND") throw reject("INVALID_OPERATION", NO_SEND_MESSAGE, {field:"message"});
+    if(!stepMessageValid(v)) throw reject("INVALID_FIELD", `message debe ser un texto de 1 a ${STEP_MESSAGE_MAX_LEN} caracteres que no sea solo espacios.`, {field:"message"});
     return v;
   }
   function waitOf(v, field){
@@ -815,12 +824,13 @@ var FluyoAuthoring = (function(){
       const spec = eventTypeActionSpec(et);
       if(!spec) throw reject("EVENT_TYPE_NOT_FOUND", `El evento ${et.id} no tiene una primitiva válida.`, {eventTypeId:et.id});
       const tgt = targetOf(ctx, op, pg, spec.target, op.target);
+      const message = op.message===undefined ? undefined : messageOf(op.message, spec);
       const before = clone(sc.steps);
       let step;
       if(op.placement===undefined){
         // Al final de la Historia, tras una espera (por defecto la del editor); el primero entra en 0.
         const wait = op.waitMs===undefined ? DEFAULT_STEP_DELAY_MS : waitOf(op.waitMs, "waitMs");
-        step = createStep(sc, stepDefinitionForEvent(et, tgt.id, defaultStepTime(sc, wait), tgt.reverse));
+        step = createStep(sc, stepDefinitionForEvent(et, tgt.id, defaultStepTime(sc, wait), tgt.reverse, message));
         if(sc.steps.length>1 && step.at>FluyoScenarios.MAX_VIRTUAL_TIME_MS) throw reject("WAIT_OUT_OF_RANGE", "El tiempo resultante supera el máximo de 24 h.", {storyId:sc.id});
       }else{
         if(op.waitMs!==undefined) throw reject("INVALID_OPERATION", "waitMs sólo se usa al añadir al final; con placement la espera es la del momento elegido.", {field:"waitMs"});
@@ -830,7 +840,7 @@ var FluyoAuthoring = (function(){
         const pos = op.placement.position;
         if(pos!==undefined && pos!=="before" && pos!=="after") throw reject("INVALID_OPERATION", "position debe ser \"before\" o \"after\".", {field:"placement.position"});
         // Sin position: igual que «Añadir al mismo tiempo» del editor (mismo momento, resuelve después de los existentes).
-        step = createStep(sc, stepDefinitionForEvent(et, tgt.id, anchor.at, tgt.reverse));
+        step = createStep(sc, stepDefinitionForEvent(et, tgt.id, anchor.at, tgt.reverse, message));
         if(pos!==undefined){
           const r = storyboardMoveStep(sc.steps, step.id, {kind:"join", anchorId:anchor.id, after:pos==="after"});
           if(!r) throw reject("MOVE_UNSUPPORTED", "No se pudo colocar el paso junto al elegido.", {storyId:sc.id});
@@ -910,6 +920,19 @@ var FluyoAuthoring = (function(){
       touch(ctx, op.pageIndex, sc);
       return Object.assign({entityKind:"step", entityId:st.id, storyId:sc.id, from, to:tgt.id}, previousReverse || tgt.reverse ? {reverse:tgt.reverse, previousReverse} : {},
         {affects:storyAffect(op.pageIndex, sc, {stepIds:[st.id]})});
+    },
+    /* FLUYO-MCP-STEP-MESSAGE-001: fija (texto) o quita (null) el mensaje de un paso de elemento con la autoridad del editor
+       (setStepMessage). No toca at, orden, evento, objetivo, sentido ni dependencias: solo afecta a ese paso. */
+    set_step_message(ctx, op, pg){
+      const sc = storyOf(ctx, op, pg, true);
+      const st = stepOf(ctx, sc, op.stepId, "stepId", op.pageIndex);
+      if(op.message===undefined) throw reject("INVALID_OPERATION", "set_step_message necesita «message»: el texto, o null para quitarlo.", {field:"message"});
+      if(st.action==="SEND") throw reject("INVALID_OPERATION", NO_SEND_MESSAGE, {field:"message", stepId:st.id});
+      const to = op.message===null ? null : messageOf(op.message, st);
+      const from = st.message===undefined ? null : st.message;
+      setStepMessage(sc, st.id, to);
+      touch(ctx, op.pageIndex, sc);
+      return {entityKind:"step", entityId:st.id, storyId:sc.id, from, to, changed:from!==to, affects:storyAffect(op.pageIndex, sc, {stepIds:[st.id]})};
     },
     set_wait(ctx, op, pg){
       const sc = storyOf(ctx, op, pg, true);

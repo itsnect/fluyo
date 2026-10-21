@@ -578,6 +578,9 @@ aside.scenariosOpen{box-sizing:border-box;width:320px;flex:0 0 320px;overflow:hi
 .scStatus_failed .scStatusMark,.scStepDetail{color:var(--attention);}
 .scStepDetail{font-size:12px;padding:0 4px 5px;line-height:1.4;}
 .scStepSecondary{color:var(--muted);font-size:12px;padding:0 4px 4px;line-height:1.4;}
+/* FLUYO-MCP-STEP-MESSAGE-001: el mensaje propio del paso (su globo), bajo la frase; entero, sin recortar. */
+.scStepMessage{color:var(--text);font-size:12px;font-style:italic;padding:0 4px 4px;line-height:1.4;overflow-wrap:anywhere;}
+.scPopover input.scMessageInput{display:block;width:100%;margin-top:4px;}
 .scStoryRepair{font-size:11px;padding:3px 5px;margin:3px;}
 .scGroupWarning{font-size:11px;line-height:1.4;color:var(--muted);margin:5px 0;}
 #scPaletteToggle{display:none;width:100%;text-align:left;margin-top:8px;}

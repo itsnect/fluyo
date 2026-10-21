@@ -242,19 +242,19 @@ const lines = (s) => s.split("\n").filter(Boolean);
 test("C2 · alcance frente a " + BASE + ": B1 (model.js, selection.js), «Automática · nombre» (styles.css), la bandera retirada (ui.js, editor-scenarios.js y comentarios), docs y sw.js (CACHE v101); undo6 los devuelve EXACTOS", () => {
   const changed = lines(execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...SERVED], { encoding: "utf8" }));
   const untracked = lines(execFileSync("git", ["-C", gitRoot, "ls-files", "--others", "--exclude-standard", "--", ...SERVED], { encoding: "utf8" }));
-  assert.deepEqual([...new Set([...changed, ...untracked])].sort(), FILES6.concat("sw.js").sort());
-  const { undo6, PIECES } = require("./fluyo-scenarios-semantics-6-undo.cjs");
+  const { PIECES } = require("./fluyo-scenarios-semantics-6-undo.cjs"), { undoMsg6: undo6, undoMsg, PIECES: PIECESM } = require("./fluyo-step-message-001-undo.cjs"), readM = (f) => undoMsg(f, read(f));   /* FLUYO-MCP-STEP-MESSAGE-001 va encima: se deshace antes */
+  assert.deepEqual([...new Set([...changed, ...untracked])].filter((f) => !(f in PIECESM) || FILES6.includes(f) || undo6(f, read(f)) !== atBase(f)).sort(), FILES6.concat("sw.js").sort());
   assert.deepEqual(Object.keys(PIECES).sort(), FILES6);
   for (const f of FILES6) assert.equal(undo6(f, read(f)), atBase(f), f + ": undo6 exacto");
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v101";/);
-  assert.equal(read("sw.js").replace('"fluyo-static-v101"', '"fluyo-static-v' + (101 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante (el precache no cambia)");
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v102";/);
+  assert.equal(read("sw.js").replace('"fluyo-static-v102"', '"fluyo-static-v' + (101 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante (el precache no cambia)");
   /* en model.js solo cambia cloneStructureIn (y su nota en la cabecera de autoría) */
   const fn = (s) => s.slice(s.indexOf("function cloneStructureIn("), s.indexOf("const DUPLICATE_CONNECTIONS"));
-  assert.equal(read("js/model.js").replace(fn(read("js/model.js")), "").replace(/ Los Behaviors que se copian pasan la regla de carga\n[\s\S]*?\(SCENARIOS-SEMANTICS-001 FASE 6, B1\)\.\n/, "\n"),
+  assert.equal(readM("js/model.js").replace(fn(readM("js/model.js")), "").replace(/ Los Behaviors que se copian pasan la regla de carga\n[\s\S]*?\(SCENARIOS-SEMANTICS-001 FASE 6, B1\)\.\n/, "\n"),
     atBase("js/model.js").replace(fn(atBase("js/model.js")), ""));
   /* el resto del kernel, la derivación, el Viewer, Share y la exportación no cambian (la semántica de FASE 4/5, PO) */
   for (const f of ["js/flow-semantics.js", "js/scenario-engine.js", "js/scenario-playback.js", "js/story-playback.js", "js/story-clock.js", "js/viewer.js", "js/share-url.js", "js/export.js", "js/document-integrity.js", "js/story-authoring.js", "s/index.html", "css/share.css"])
-    assert.equal(read(f), atBase(f), f + " intacto");
+    assert.equal(readM(f), atBase(f), f + " intacto");
 });
 
 test("D1 · la bandera labs se retiró: ninguna superficie la lee ni depende de ella; la herramienta, el selector y W5 existen sin ella", () => {

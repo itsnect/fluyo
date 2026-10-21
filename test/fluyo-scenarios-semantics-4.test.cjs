@@ -639,7 +639,7 @@ test("E1 · markup estático dentro de #scFlow, oculto por defecto; textos del p
 /* SCENARIOS-SEMANTICS-001 FASE 5 va encima (6701261 → árbol): se deshace con undo5 antes de comparar con la base de FASE 4. */
 const { undo5, PIECES: PIECES5 } = require("./fluyo-scenarios-semantics-5-undo.cjs");
 /* FASE 6 (B1 en model.js y selection.js) va encima de FASE 5: undo6 primero. */
-const { undo6 } = require("./fluyo-scenarios-semantics-6-undo.cjs");
+const { undoMsg6: undo6 } = require("./fluyo-step-message-001-undo.cjs");   /* FLUYO-MCP-STEP-MESSAGE-001 va encima de FASE 6: se deshace antes */
 const read4 = (f) => undo5(f, undo6(f, read(f)));
 test("E2 · alcance frente a " + BASE + ": solo cambian render.js, editor-scenarios.js, flow-semantics.js, index.html, styles.css y sw.js (CACHE v99)", () => {
   const SERVED = ["js", "s", "css", "index.html", "sw.js", "manifest.webmanifest", "docs", "ejemplos", "privacidad", "privacy", "soporte", "support", "terminos", "terms"];
@@ -647,10 +647,11 @@ test("E2 · alcance frente a " + BASE + ": solo cambian render.js, editor-scenar
   const untracked = execFileSync("git", ["-C", gitRoot, "ls-files", "--others", "--exclude-standard", "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean);
   /* lo que solo cambia FASE 5 no cuenta aquí (su alcance lo vigila test/fluyo-scenarios-semantics-5.test.cjs) */
   const PIECES6 = require("./fluyo-scenarios-semantics-6-undo.cjs").PIECES;   /* FASE 6 (B1): lo suyo se descuenta igual */
-  const mine = [...new Set([...changed, ...untracked])].filter((f) => !((Object.keys(PIECES5).includes(f) || Object.keys(PIECES6).includes(f)) && read4(f) === atBase(f)));
+  const PIECESM = require("./fluyo-step-message-001-undo.cjs").PIECES;   /* FLUYO-MCP-STEP-MESSAGE-001, igual */
+  const mine = [...new Set([...changed, ...untracked])].filter((f) => !((Object.keys(PIECES5).includes(f) || Object.keys(PIECES6).includes(f) || Object.keys(PIECESM).includes(f)) && read4(f) === atBase(f)));
   assert.deepEqual(mine.sort(), ["css/styles.css", "index.html", "js/editor-scenarios.js", "js/flow-semantics.js", "js/render.js", "sw.js"]);
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v101";/);
-  assert.equal(read("sw.js").replace('"fluyo-static-v101"', '"fluyo-static-v' + (99 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante (el precache no cambia)");
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v102";/);
+  assert.equal(read("sw.js").replace('"fluyo-static-v102"', '"fluyo-static-v' + (99 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante (el precache no cambia)");
   for (const f of ["js/model.js", "js/scenario-engine.js", "js/scenario-playback.js", "js/story-playback.js", "js/story-clock.js", "js/document-integrity.js", "js/story-authoring.js",
     "js/viewer.js", "js/present-story.js", "js/export.js", "js/geometry.js", "js/skin.js", "js/interaction.js", "js/ui.js", "s/index.html"])
     assert.equal(read4(f), atBase(f), f + " intacto (kernel del MCP, Viewer, Present y exportación)");

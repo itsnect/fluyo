@@ -20,10 +20,14 @@ var FluyoStory = (function(){
     const meta = {};
     for(const step of steps){
       const et = step.eventTypeId ? eventTypeById(step.eventTypeId) : null;
+      const fx = et ? playbackEffects(et) : defaultNodeEffects();
+      /* FLUYO-MCP-STEP-MESSAGE-001 (decisión 255): el globo de un paso con `message` dice ESE texto, con el estilo y la duración de su
+         evento. Es el único sitio donde el texto del paso llega a la pintura (editor, Present y Viewer); el motor y el reloj no lo ven. */
+      if(typeof step.message==="string") fx.message = step.message;
       meta[step.id] = {
         token: et ? eventSymbol(et) : "",
         motion: et && et.motion ? et.motion : DEFAULT_EVENT_MOTION,
-        nodeEffects: et ? playbackEffects(et) : defaultNodeEffects(),
+        nodeEffects: fx,
         connection: et ? connectionVisualSpec(et) : null,
         name: et ? et.name : ""
       };

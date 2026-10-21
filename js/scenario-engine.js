@@ -95,7 +95,8 @@ var FluyoScenarios = (function(){
           const allowed=step.action==="SET_STATE"?[ "id","at","action","nodeId","state"]:(step.action==="OCCURRENCE"?[ "id","at","action","nodeId"]:[ "id","at","action","edgeId"]);
           // eventTypeId es metadata de presentación, opcional en cualquier versión.
           // reverse (FLUYO-STEP-REVERSE-002): opcional y solo en SEND; su único valor es `true`. En otra acción es un campo de más.
-          const keys=Object.keys(step).filter(k=>k!=="eventTypeId" && !(k==="reverse" && step.action==="SEND"));
+          // message (FLUYO-MCP-STEP-MESSAGE-001): presentación como eventTypeId, solo en pasos de elemento; en un SEND es un campo de más.
+          const keys=Object.keys(step).filter(k=>k!=="eventTypeId" && !(k==="reverse" && step.action==="SEND") && !(k==="message" && step.action!=="SEND"));
           if(keys.length!==allowed.length || !allowed.every(k=>Object.prototype.hasOwnProperty.call(step,k)))
             add(shape,"invalid_scenario",path,{...extra,reason:"extra_fields"});
           if(step.action==="SEND" && Object.prototype.hasOwnProperty.call(step,"reverse") && step.reverse!==true)

@@ -89,6 +89,7 @@ function editor({ labs = true, src = read } = {}) {
   const ctx = vm.createContext({ TextEncoder, TextDecoder, atob, btoa, URL, console, $, GRID: 20, innerWidth: 1280, innerHeight: 800, LABS_SEMANTICS: labs,
     document: { createElement: (tag) => Object.assign(fakeEl(tag), { tag }), createTextNode: (t) => ({ t }), createElementNS: () => fakeEl("svg") } });
   const R = (code) => vm.runInContext(code, ctx);
+  vm.runInContext(read("js/i18n.js"), ctx, { filename: "js/i18n.js" });   /* FLUYO-I18N-001: el texto de la interfaz pasa por FluyoI18n */
   for (const f of KERNEL) vm.runInContext(src("js/" + f), ctx, { filename: f });
   R(`var selN=new Set(), selE=new Set(), clip=null, __autosaves=0, __routes=0, scPlayback=null, scStatus="idle", scActive=1, presenting=false, __now=0, __paused=false, scErrors=[];
      function confirm(){ return true; } function alert(){} function prompt(){ return null; }
@@ -122,6 +123,7 @@ function viewer({ withFlow = true } = {}) {
   const ctx = vm.createContext({ TextEncoder, TextDecoder, atob, btoa, URL, console, $, performance: { now: () => 0 },
     document: { createElement: (tag) => Object.assign(fakeEl(tag), { tag }), createTextNode: (t) => ({ t }), createElementNS: () => fakeEl("svg") } });
   const R = (code) => vm.runInContext(code, ctx);
+  vm.runInContext(read("js/i18n.js"), ctx, { filename: "js/i18n.js" });   /* FLUYO-I18N-001: el texto de la interfaz pasa por FluyoI18n */
   for (const f of KERNEL) if (withFlow || f !== "flow-semantics.js") vm.runInContext(read("js/" + f), ctx, { filename: f });
   const v = read("js/viewer.js");
   R(`var viewerPhase="ready", story=null, storyError=null, storyLast={}, storyFlowMemo={playback:null, page:null, value:null}, __rs=null, __routes=0, __frames=0;
@@ -487,12 +489,13 @@ test("E2 · set_observed_flow (author_document): la MISMA escritura que el edito
 
 /* ═══════════════ G. Estático y alcance ═══════════════ */
 test("G1 · markup: #psFlow en el rótulo de Present y #stFlow en el del Viewer; la fila de controles (#psGroup, banda #story) es la de " + BASE + "; el Viewer carga flow-semantics.js entre story-clock.js y viewer.js", () => {
-  const idx = read("index.html"), old = atBase("index.html");
+  const { NEW_FILES: NEW_I18N, undoI18n } = require("./fluyo-i18n-001-undo.cjs");   /* FLUYO-I18N-001 añade js/i18n.js y js/i18n-en.js (no existen en la base) */
+  const idx = undoI18n("index.html", read("index.html")), old = atBase("index.html");
   const block = (s, open, close) => s.slice(s.indexOf(open), s.indexOf(close, s.indexOf(open)) + close.length);
   assert.equal(block(idx, '<div id="presentBar">', "\n</div>"), block(old, '<div id="presentBar">', "\n</div>"), "el mando de Present no cambia");
   const ps = block(idx, '<div id="presentStory"', "\n</div>");
   assert.ok(/<div id="psSummary"[^>]*><\/div>[\s\S]*<div id="psFlow" class="psFlow" role="status" hidden><\/div>/.test(ps), "#psFlow, tras el resumen, oculto de inicio");
-  const s = read("s/index.html"), sOld = atBase("s/index.html");
+  const s = undoI18n("s/index.html", read("s/index.html")), sOld = atBase("s/index.html");
   assert.equal(block(s, '<section id="story"', "</section>"), block(sOld, '<section id="story"', "</section>"), "la banda del Viewer sigue siendo solo el transporte");
   assert.ok(/<div id="stNow"[\s\S]*<div id="stFlow" class="stFlow" role="status" hidden><\/div>\n  <\/div>/.test(s), "#stFlow dentro del rótulo");
   const at = (f) => s.indexOf('<script src="../js/' + f + '"></script>');
@@ -523,11 +526,12 @@ test("G3 · alcance frente a " + BASE + ": solo los archivos de FASE 5 y sw.js (
   const FILES = ["css/share.css", "css/styles.css", "docs/index.html", "index.html", "js/document-integrity.js", "js/editor-scenarios.js", "js/export.js", "js/flow-semantics.js",
     "js/present-story.js", "js/render.js", "js/story-authoring.js", "js/viewer.js", "s/index.html"];
   const PIECESM = require("./fluyo-step-message-001-undo.cjs").PIECES;   /* FLUYO-MCP-STEP-MESSAGE-001, igual */
-  assert.deepEqual([...new Set([...changed, ...untracked])].filter((f) => !(f in PIECES6 || f in PIECESM) || read5(f) !== atBase(f)).sort(), FILES.concat("sw.js").sort());
+  const { NEW_FILES: NEW_I18N, undoI18n } = require("./fluyo-i18n-001-undo.cjs");   /* FLUYO-I18N-001 añade js/i18n.js y js/i18n-en.js (no existen en la base) */
+  assert.deepEqual([...new Set([...changed, ...untracked])].filter((f) => !NEW_I18N.includes(f)).filter((f) => !(f in PIECES6 || f in PIECESM) || read5(f) !== atBase(f)).sort(), FILES.concat("sw.js").sort());
   assert.deepEqual(Object.keys(PIECES).sort(), FILES);
   for (const f of FILES) assert.equal(undo5(f, read5(f)), atBase(f), f + ": undo5 exacto");
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v104";/);
-  assert.equal(read("sw.js").replace('"fluyo-static-v104"', '"fluyo-static-v' + (100 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante; flow-semantics.js, viewer.js y s/ ya se precachean");
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v105";/);
+  assert.equal(undoI18n("sw.js", read("sw.js")).replace('"fluyo-static-v105"', '"fluyo-static-v' + (100 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante; flow-semantics.js, viewer.js y s/ ya se precachean");
   for (const f of ["js/model.js", "js/scenario-engine.js", "js/scenario-playback.js", "js/story-playback.js", "js/story-clock.js", "js/geometry.js", "js/skin.js", "js/interaction.js", "js/ui.js", "js/state.js", "js/share-url.js", "js/editor-share.js", "js/deeplink.js"])
     assert.equal(read5(f), atBase(f), f + " intacto (modelo, motor, reloj, geometría, piel, Share y #d= sin cambios)");
   /* FASE 2/3/4 intactas en flow-semantics.js: FASE 5 solo añade al final (y una nota en la cabecera) */

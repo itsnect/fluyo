@@ -1,0 +1,80 @@
+"use strict";
+/* FLUYO-I18N-001 — English. Clave → texto; el español (idioma base) es el texto por defecto de cada llamada a
+   FluyoI18n.t() y del HTML marcado con data-i18n*. Términos: glosario de .ai/tasks/FLUYO-I18N-001.md.
+   test/fluyo-i18n-001.test.cjs exige exactamente las claves que usa el código, con los mismos marcadores {param}. */
+var FLUYO_LOCALES=(typeof FLUYO_LOCALES==="object" && FLUYO_LOCALES) || {};
+FLUYO_LOCALES.en={
+  /* Cabecera del editor */
+  "editor.history":"Change history",
+  "editor.undo":"Undo",
+  "editor.undoHint":"Undo · Ctrl+Z",
+  "editor.redo":"Redo",
+  "editor.redoHint":"Redo · Ctrl+Y",
+  "editor.mode":"Working mode",
+  "editor.modeEdit":"Edit",
+  "editor.modeStories":"Stories",
+  "editor.canvas":"Canvas",
+  "editor.canvasHint":"Canvas settings: theme, background, typography and grid",
+  "editor.export":"Export",
+  "editor.share":"Share",
+  "editor.presentHint":"Present mode (P): full screen, one page per slide",
+  "editor.properties":"Properties",
+  "editor.more":"More options",
+
+  /* Historia (editor, Present y Viewer) */
+  "story.group":"Story",
+  "story.kicker":"Story · {name}",
+  "story.play":"Play",
+  "story.playStory":"Play story",
+  "story.replay":"Replay",
+  "story.pause":"Pause",
+  "story.resume":"Resume",
+  "story.stop":"Stop",
+  "story.paused":"Paused",
+  "story.pausedCaption":"Paused · {caption}",
+  "story.momentPrev":"Previous moment",
+  "story.momentNext":"Next moment",
+
+  /* Present (editor y Viewer) */
+  "present.start":"Present",
+  "present.playHint":"Play the story (Space)",
+  "present.pauseHint":"Pause or resume (Space)",
+  "present.stopHint":"Stop (Esc)",
+  "present.pages":"Pages",
+  "present.prev":"Previous",
+  "present.next":"Next",
+  "present.pagePrev":"Previous page",
+  "present.pageNext":"Next page",
+  "present.pagePrevHint":"Previous page (←)",
+  "present.pageNextHint":"Next page (→)",
+  "present.exit":"Exit",
+  "present.exitLong":"Exit presentation",
+  "present.exitHint":"Exit presentation (Esc)",
+  "present.skinFlat":"Flat",
+  "present.skinBuilt":"Built",
+  "present.skinFlatHint":"Flat look · press B for the built look",
+  "present.skinBuiltHint":"Built look (2.5D) · press B for the flat look",
+
+  /* Viewer (/s/) */
+  "viewer.docTitle":"Shared diagram · Fluyo",
+  "viewer.pages":"Diagram pages",
+  "viewer.page":"Diagram page",
+  "viewer.fit":"Fit the diagram to the view",
+  "view.zoomOut":"Zoom out",
+  "view.zoomIn":"Zoom in",
+  "viewer.presentHint":"Present the pages as slides",
+  "viewer.open":"Open in Fluyo",
+  "viewer.openShort":"Open",
+  "viewer.openRest":"in Fluyo",
+  "viewer.openHint":"Open an editable copy of this diagram in the editor",
+  "viewer.madeWith":"Made with Fluyo",
+  "viewer.loading":"Loading diagram…",
+  "viewer.emptyPage":"This page has no elements.",
+  "viewer.openFailed":"Couldn't prepare the editable copy. Please try again.",
+  "viewer.error.invalidId":"The diagram link isn't valid.",
+  "viewer.error.notFound":"This shared diagram isn't available.",
+  "viewer.error.invalidDocument":"The shared document isn't a valid Fluyo diagram.",
+  "viewer.error.unsupportedVersion":"This diagram needs a newer version of Fluyo.",
+  "viewer.error.unavailable":"Couldn't load the diagram right now. Please try again later.",
+  "page.untitled":"Page {n}"
+};

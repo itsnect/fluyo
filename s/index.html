@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Diagrama compartido · Fluyo</title>
+<title data-i18n="viewer.docTitle">Diagrama compartido · Fluyo</title>
 
 <!-- Discoverability (FLUYO-003 §5/§9): el share es una capability URL pública,
      no un contenido que deba indexarse. El snapshot viaja exclusivamente en #d=; no existe backend. -->
@@ -44,16 +44,16 @@
 
 <header id="chrome">
   <a class="logo" href="../" title="Fluyo" aria-label="Fluyo">flu<b>yo</b><span class="dots" aria-hidden="true"><span></span><span></span><span></span></span></a>
-  <nav id="pgTabs" aria-label="Páginas del diagrama" hidden></nav>
+  <nav id="pgTabs" aria-label="Páginas del diagrama" data-i18n-aria-label="viewer.pages" hidden></nav>
   <!-- FLUYO-018.18: en el teléfono las páginas son un selector (la cabecera queda en una fila). -->
-  <select id="pgSelect" aria-label="Página del diagrama" hidden></select>
+  <select id="pgSelect" aria-label="Página del diagrama" data-i18n-aria-label="viewer.page" hidden></select>
   <div class="tools">
-    <button id="btnFit" type="button" class="iconBtn btnGhost" disabled title="Encajar el diagrama en la vista" aria-label="Encajar el diagrama en la vista"><svg class="ic" aria-hidden="true"><use href="#i-fit"/></svg></button>
-    <button id="btnZoomOut" type="button" class="iconBtn btnGhost" disabled title="Alejar" aria-label="Alejar"><svg class="ic" aria-hidden="true"><use href="#i-minus"/></svg></button>
-    <button id="btnZoomIn" type="button" class="iconBtn btnGhost" disabled title="Acercar" aria-label="Acercar"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></button>
+    <button id="btnFit" type="button" class="iconBtn btnGhost" disabled title="Encajar el diagrama en la vista" aria-label="Encajar el diagrama en la vista" data-i18n-title="viewer.fit" data-i18n-aria-label="viewer.fit"><svg class="ic" aria-hidden="true"><use href="#i-fit"/></svg></button>
+    <button id="btnZoomOut" type="button" class="iconBtn btnGhost" disabled title="Alejar" aria-label="Alejar" data-i18n-title="view.zoomOut" data-i18n-aria-label="view.zoomOut"><svg class="ic" aria-hidden="true"><use href="#i-minus"/></svg></button>
+    <button id="btnZoomIn" type="button" class="iconBtn btnGhost" disabled title="Acercar" aria-label="Acercar" data-i18n-title="view.zoomIn" data-i18n-aria-label="view.zoomIn"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></button>
     <span class="vdivider" aria-hidden="true"></span>
-    <button id="btnPresent" type="button" class="btnGhost" disabled title="Presentar las páginas como diapositivas" aria-label="Presentar"><svg class="ic" aria-hidden="true"><use href="#i-present"/></svg><span class="lbl">Presentar</span></button>
-    <button id="btnOpen" type="button" disabled class="primary" title="Abrir una copia editable de este diagrama en el editor" aria-label="Abrir en Fluyo"><svg class="ic" aria-hidden="true"><use href="#i-edit"/></svg><span class="lbl">Abrir<span class="lblRest"> en Fluyo</span></span></button>
+    <button id="btnPresent" type="button" class="btnGhost" disabled title="Presentar las páginas como diapositivas" aria-label="Presentar" data-i18n-title="viewer.presentHint" data-i18n-aria-label="present.start"><svg class="ic" aria-hidden="true"><use href="#i-present"/></svg><span class="lbl" data-i18n="present.start">Presentar</span></button>
+    <button id="btnOpen" type="button" disabled class="primary" title="Abrir una copia editable de este diagrama en el editor" aria-label="Abrir en Fluyo" data-i18n-title="viewer.openHint" data-i18n-aria-label="viewer.open"><svg class="ic" aria-hidden="true"><use href="#i-edit"/></svg><span class="lbl" data-i18n="viewer.openShort">Abrir<span class="lblRest" data-i18n="viewer.openRest"> en Fluyo</span></span></button>
   </div>
 </header>
 
@@ -62,7 +62,7 @@
   <!-- FLUYO-018.18 (D4): la Historia se cuenta SOBRE el lienzo (qué Historia, qué momento, su consecuencia, el progreso), como en
        el editor y en Present. Alto fijo; baja al pie si el destino del momento queda debajo (viewer.js, storyPlace). -->
   <div id="stNow" class="stNow" hidden>
-    <div id="stKicker" class="stKicker">Historia</div>
+    <div id="stKicker" class="stKicker" data-i18n="story.group">Historia</div>
     <div class="stLine"><span id="stTitle" class="stTitle"></span><span id="stCaption" class="stCaption" role="status"></span><span id="stSummary" class="stSummary"></span><span id="stProgress" class="stProgress"></span></div>
     <!-- SCENARIOS-SEMANTICS-001 FASE 5 (D7, decisión 246): la línea de estado de la ruta observada, en el rótulo (la banda sigue siendo
          solo el transporte). Solo reproduciendo y con par resuelto; sin bandera. -->
@@ -71,13 +71,13 @@
   <!-- Presentación: la Historia y las páginas son dos grupos, y la salida es una (FLUYO-018.18, D8). El transporte de la
        banda (#stActions) se muda aquí mientras se presenta: mismos botones, misma lógica. -->
   <div id="prBar" class="inverse" hidden>
-    <div id="prStory" class="prGroup" role="group" aria-label="Historia" hidden></div>
-    <div id="prPages" class="prGroup" role="group" aria-label="Páginas">
-      <button id="prPrev" type="button" title="Página anterior" aria-label="Página anterior"><svg class="ic" aria-hidden="true"><use href="#i-prev"/></svg><span class="lbl">Anterior</span></button>
+    <div id="prStory" class="prGroup" role="group" aria-label="Historia" data-i18n-aria-label="story.group" hidden></div>
+    <div id="prPages" class="prGroup" role="group" aria-label="Páginas" data-i18n-aria-label="present.pages">
+      <button id="prPrev" type="button" title="Página anterior" aria-label="Página anterior" data-i18n-title="present.pagePrev" data-i18n-aria-label="present.pagePrev"><svg class="ic" aria-hidden="true"><use href="#i-prev"/></svg><span class="lbl" data-i18n="present.prev">Anterior</span></button>
       <span id="prPos"></span>
-      <button id="prNext" type="button" title="Página siguiente" aria-label="Página siguiente"><span class="lbl">Siguiente</span><svg class="ic" aria-hidden="true"><use href="#i-next"/></svg></button>
+      <button id="prNext" type="button" title="Página siguiente" aria-label="Página siguiente" data-i18n-title="present.pageNext" data-i18n-aria-label="present.pageNext"><span class="lbl" data-i18n="present.next">Siguiente</span><svg class="ic" aria-hidden="true"><use href="#i-next"/></svg></button>
     </div>
-    <button id="prExit" type="button" title="Salir de la presentación"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg>Salir</button>
+    <button id="prExit" type="button" title="Salir de la presentación" data-i18n-title="present.exitLong" data-i18n="present.exit"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg>Salir</button>
   </div>
   <div id="status" role="status"></div>
 </main>
@@ -85,24 +85,27 @@
 <!-- Historia compartida (FLUYO-014). Se muestra sólo si la página tiene una Historia. FLUYO-018.18: la banda es SOLO el
      transporte, en una fila de alto fijo (el lienzo ya no salta al aparecer una consecuencia): Reproducir · Pausar/Reanudar ·
      momento anterior/siguiente · Detener. «Abrir en Fluyo» está en la cabecera. -->
-<section id="story" aria-label="Historia" hidden>
+<section id="story" aria-label="Historia" data-i18n-aria-label="story.group" hidden>
   <div id="stActions" class="stActions">
-    <button id="stPrev" type="button" class="iconBtn" hidden aria-label="Momento anterior" title="Momento anterior"><svg class="ic" aria-hidden="true"><use href="#i-step-back"/></svg></button>
-    <button id="stPlay" type="button" class="primary">▶ Reproducir historia</button>
-    <button id="stPause" type="button" hidden><svg class="ic" aria-hidden="true"><use href="#i-pause"/></svg>Pausar</button>
-    <button id="stNext" type="button" class="iconBtn" hidden aria-label="Momento siguiente" title="Momento siguiente"><svg class="ic" aria-hidden="true"><use href="#i-step-fwd"/></svg></button>
-    <button id="stStop" type="button" hidden>■ Detener</button>
-    <button id="stOpen" type="button" hidden title="Abrir una copia editable de este diagrama en el editor">Abrir en Fluyo</button>
+    <button id="stPrev" type="button" class="iconBtn" hidden aria-label="Momento anterior" title="Momento anterior" data-i18n-title="story.momentPrev" data-i18n-aria-label="story.momentPrev"><svg class="ic" aria-hidden="true"><use href="#i-step-back"/></svg></button>
+    <button id="stPlay" type="button" class="primary" data-i18n="story.playStory">▶ Reproducir historia</button>
+    <button id="stPause" type="button" hidden data-i18n="story.pause"><svg class="ic" aria-hidden="true"><use href="#i-pause"/></svg>Pausar</button>
+    <button id="stNext" type="button" class="iconBtn" hidden aria-label="Momento siguiente" title="Momento siguiente" data-i18n-title="story.momentNext" data-i18n-aria-label="story.momentNext"><svg class="ic" aria-hidden="true"><use href="#i-step-fwd"/></svg></button>
+    <button id="stStop" type="button" hidden data-i18n="story.stop">■ Detener</button>
+    <button id="stOpen" type="button" hidden title="Abrir una copia editable de este diagrama en el editor" data-i18n-title="viewer.openHint" data-i18n="viewer.open">Abrir en Fluyo</button>
   </div>
 </section>
 
 <footer id="brand">
-  <a href="../">Hecho con Fluyo</a>
+  <a href="../" data-i18n="viewer.madeWith">Hecho con Fluyo</a>
 </footer>
 
 <!-- Core compartido (idéntico al del editor, sin módulos de edición).
      NO cargar aquí: state.js, editor-runtime.js, selection.js,
      interaction.js, ui.js ni export.js. -->
+<!-- FLUYO-I18N-001: idioma de la interfaz (diccionarios → runtime), antes que quien pinta texto. -->
+<script src="../js/i18n-en.js"></script>
+<script src="../js/i18n.js"></script>
 <script src="../js/config.js"></script>
 <script src="../js/safe-svg.js"></script>
 <script src="../js/model.js"></script>

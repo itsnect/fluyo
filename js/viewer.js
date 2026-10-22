@@ -50,12 +50,14 @@ const CAMERA_MS=450, FOLLOW_MARGIN=16;
 
 /* ───────────────────────────── Estados ───────────────────────────── */
 
+/* FLUYO-I18N-001: texto de la interfaz por FluyoI18n (js/i18n.js); el español es el texto por defecto de cada llamada. Getters: el
+   mapa sigue dando textos y se lee en el idioma de ese momento. */
 const SHARE_ERROR_MESSAGES={
-  invalid_id:"El enlace del diagrama no es válido.",
-  not_found:"Este diagrama compartido no está disponible.",
-  invalid_document:"El documento compartido no es un diagrama Fluyo válido.",
-  unsupported_version:"Este diagrama necesita una versión más reciente de Fluyo.",
-  unavailable:"No se pudo cargar el diagrama ahora mismo. Inténtalo de nuevo más tarde."
+  get invalid_id(){ return FluyoI18n.t("viewer.error.invalidId","El enlace del diagrama no es válido."); },
+  get not_found(){ return FluyoI18n.t("viewer.error.notFound","Este diagrama compartido no está disponible."); },
+  get invalid_document(){ return FluyoI18n.t("viewer.error.invalidDocument","El documento compartido no es un diagrama Fluyo válido."); },
+  get unsupported_version(){ return FluyoI18n.t("viewer.error.unsupportedVersion","Este diagrama necesita una versión más reciente de Fluyo."); },
+  get unavailable(){ return FluyoI18n.t("viewer.error.unavailable","No se pudo cargar el diagrama ahora mismo. Inténtalo de nuevo más tarde."); }
 };
 function setStatus(msg){ const el=$("status"); el.textContent=msg; el.hidden=!msg; }
 function clearViewerDocument(){
@@ -133,7 +135,7 @@ function renderViewerFrame(){
     const flow=storyFlowOverlay();
     if(flow) rs.scenarioRuntime.flow=flow;
   }
-  render(sctx, now(), {renderState:rs, emptyHint:"Esta página no contiene elementos."});
+  render(sctx, now(), {renderState:rs, emptyHint:FluyoI18n.t("viewer.emptyPage","Esta página no contiene elementos.")});
   if(story && story.status==="running" && !FluyoStoryClock.isPaused(story.clock) && FluyoStory.isFinished(story.playback)) story.status="completed";
   storyRefresh();
   storyPlace();
@@ -331,7 +333,7 @@ function storyGlyph(id, glyph, cls, label){
   w.append(g, document.createTextNode(" "+label)); el.replaceChildren(w);
 }
 function storyPauseLabel(paused){
-  const label=paused ? "Reanudar" : "Pausar";
+  const label=paused ? FluyoI18n.t("story.resume","Reanudar") : FluyoI18n.t("story.pause","Pausar");
   if(storyLast["stPause.label"]===label) return;
   storyLast["stPause.label"]=label;
   if(typeof document.createElementNS!=="function" || typeof $("stPause").replaceChildren!=="function"){ $("stPause").textContent=label; return; }
@@ -348,9 +350,9 @@ function storyRefresh(){
   const paused=storyPaused();
   const phase=!story ? "ready" : story.status==="running" ? "playing" : "finished";
   const d=FluyoStoryClock.describe(phase, sc, story && story.playback, storyNodeName, id=>edgeById(id));
-  storySet("stKicker","text",phase==="ready" ? "Historia" : "Historia · "+sc.name);
+  storySet("stKicker","text",phase==="ready" ? FluyoI18n.t("story.group","Historia") : FluyoI18n.t("story.kicker","Historia · {name}",{name:sc.name}));
   storySet("stTitle","text",d.title);
-  storySet("stCaption","text",storyError || (paused ? (d.caption ? "En pausa · "+d.caption : "En pausa") : d.caption));
+  storySet("stCaption","text",storyError || (paused ? (d.caption ? FluyoI18n.t("story.pausedCaption","En pausa · {caption}",{caption:d.caption}) : FluyoI18n.t("story.paused","En pausa")) : d.caption));
   storySet("stSummary","text",d.summary);
   storySet("stProgress","text",phase!=="ready" && d.moments.length>1 ? Math.max(0,d.idx+1)+" / "+d.moments.length : "");
   /* SCENARIOS-SEMANTICS-001 FASE 5 (D7, decisión 246): la línea de estado de la ruta, solo reproduciendo (también en pausa y terminada) */
@@ -360,8 +362,8 @@ function storyRefresh(){
     if(route){ storySet("stFlow","text",route.text); storySet("stFlow","className","stFlow is"+route.status); }
   }
   storySet("stPlay","hidden",phase==="playing");
-  if(phase==="finished") storyGlyph("stPlay","↻","g-replay","Repetir");
-  else storyGlyph("stPlay","▶","g-play","Reproducir historia");
+  if(phase==="finished") storyGlyph("stPlay","↻","g-replay",FluyoI18n.t("story.replay","Repetir"));
+  else storyGlyph("stPlay","▶","g-play",FluyoI18n.t("story.playStory","Reproducir historia"));
   storySet("stPause","hidden",phase!=="playing");
   if(phase==="playing") storyPauseLabel(paused);
   const nav=storyNav();
@@ -370,7 +372,7 @@ function storyRefresh(){
   storySet("stPrev","disabled",nav.prev===null);
   storySet("stNext","disabled",nav.next===null);
   storySet("stStop","hidden",phase==="ready");
-  if(phase!=="ready") storyGlyph("stStop","■","g-stop","Detener");
+  if(phase!=="ready") storyGlyph("stStop","■","g-stop",FluyoI18n.t("story.stop","Detener"));
   /* «Abrir en Fluyo» está siempre en la cabecera: repetirlo en la banda la partía en dos filas al terminar (018.18). */
   storySet("stOpen","hidden",true);
 }
@@ -446,7 +448,7 @@ function buildTabs(){
   sel.textContent="";
   doc.pages.forEach((pg,i)=>{
     const o=document.createElement("option");
-    o.value=String(i); o.textContent=String(i+1).padStart(2,"0")+" · "+(pg.name||("Página "+(i+1)));
+    o.value=String(i); o.textContent=String(i+1).padStart(2,"0")+" · "+(pg.name||FluyoI18n.t("page.untitled","Página {n}",{n:i+1}));
     sel.appendChild(o);
   });
   sel.value=String(doc.cur);
@@ -456,7 +458,7 @@ function buildTabs(){
   doc.pages.forEach((pg,i)=>{
     const b=document.createElement("button");
     b.type="button";
-    b.textContent=pg.name||("Página "+(i+1));
+    b.textContent=pg.name||FluyoI18n.t("page.untitled","Página {n}",{n:i+1});
     b.className=i===doc.cur? "active":"";
     b.setAttribute("aria-current", i===doc.cur? "page":"false");
     b.onclick=()=>goPage(i);
@@ -638,7 +640,7 @@ function openInFluyo(){
     .catch(err=>{
       if(generation!==viewerGeneration) return;
       console.error("No se pudo preparar la copia editable.");
-      setStatus("No se pudo preparar la copia editable. Inténtalo de nuevo.");
+      setStatus(FluyoI18n.t("viewer.openFailed","No se pudo preparar la copia editable. Inténtalo de nuevo."));
     });
 }
 
@@ -676,7 +678,7 @@ async function bootViewer(){
   try{ sctx=sv.getContext("2d"); }
   catch(e){ showShareError("unavailable"); return; }
   if(!sctx){ showShareError("unavailable"); return; }
-  setStatus("Cargando diagrama…");
+  setStatus(FluyoI18n.t("viewer.loading","Cargando diagrama…"));
   let loaded;
   const input={hash:location.hash,search:location.search};
   try{ loaded=await loadShareFromLocation(input); }

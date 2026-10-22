@@ -35,7 +35,7 @@ test("alcance: kernel, render, geometría, exportación, enlace y URL corta idé
     try { head = execFileSync("git", ["-C", gitRoot, "show", "HEAD:" + f], { encoding: "utf8" }).replace(/\r\n/g, "\n"); } catch { return; }   // sin git (copia de mutaciones)
     assert.equal(read(f), head, f + " sin cambios");
   }
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v104";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v105";/);
   assert.doesNotMatch(read("js/story-clock.js"), /document\.|window\.|requestAnimationFrame|setTimeout|setInterval|localStorage|Date\.now|Math\.random|performance\./, "story-clock.js sigue puro");
   const mcp = path.join(root, "..", "fluyo-mcp", "scripts", "sync-kernel.ts");
   if (fs.existsSync(mcp)) assert.ok(!fs.readFileSync(mcp, "utf8").includes("story-clock"), "story-clock.js sigue fuera del kernel del MCP");
@@ -273,12 +273,13 @@ test("R1: las filas de «terminada» que se reservan = las que pinta Present al 
 
 test("undo029 (para los alcances de slices anteriores) devuelve EXACTOS a la base los archivos servidos que cambia esta tarea; undoMsg la lleva debajo", () => {
   const { undo029, PIECES, BASE_029 } = require("./fluyo-018-29-undo.cjs"), { undo030 } = require("./fluyo-018-30-undo.cjs");   /* FLUYO-018.30 va encima: se deshace antes */
+  const { undoI18n } = require("./fluyo-i18n-001-undo.cjs");   /* y FLUYO-I18N-001 encima de 018.30 */
   const gitRoot = process.env.FLUYO_GIT_ROOT || root;
   assert.deepEqual(Object.keys(PIECES).sort(), ["js/editor-scenarios.js", "js/present-story.js", "js/story-clock.js", "js/viewer.js"]);
   for (const f of Object.keys(PIECES)) {
     let base;
     try { base = execFileSync("git", ["-C", gitRoot, "show", BASE_029 + ":" + f], { encoding: "utf8" }).replace(/\r\n/g, "\n"); } catch { return; }   // sin git
-    assert.equal(undo029(f, undo030(f, read(f))), base, f);
+    assert.equal(undo029(f, undo030(f, undoI18n(f, read(f)))), base, f);
   }
-  assert.ok(read("test/fluyo-step-message-001-undo.cjs").includes("src = undo029(file, undo030(file, src));"), "undoMsg deshace antes esta tarea");
+  assert.ok(read("test/fluyo-step-message-001-undo.cjs").includes("src = undo029(file, undo030(file, undoI18n(file, src)));"), "undoMsg deshace antes esta tarea");
 });

@@ -790,7 +790,7 @@ function scGlyphText(el, glyph, cls, label, glyphFirst) {
 }
 /* Pausar ↔ Reanudar: el mismo botón, icono del sprite y texto (nunca un glifo nuevo). */
 function scSetPauseLabel(el, paused) {
-  const label = paused ? "Reanudar" : "Pausar";
+  const label = paused ? FluyoI18n.t("story.resume", "Reanudar") : FluyoI18n.t("story.pause", "Pausar");
   if (el.dataset && el.dataset.state === label) return;
   if (el.dataset) el.dataset.state = label;
   if (typeof document.createElementNS !== "function" || typeof el.replaceChildren !== "function") { el.textContent = label; return; }

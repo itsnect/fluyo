@@ -231,15 +231,16 @@ test("alcance · frente a la base solo cambian viewer.js y viewer-viewport.js de
   const gitRoot = process.env.FLUYO_GIT_ROOT || root;
   const atBase = (f) => execFileSync("git", ["-C", gitRoot, "show", BASE + ":" + f], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).replace(/\r\n/g, "\n");
   try { atBase("js/viewer.js"); } catch { return; }   // sin git (copia de mutaciones)
+  const { undoI18n } = require("./fluyo-i18n-001-undo.cjs");   /* FLUYO-I18N-001 va encima de esta tarea: se deshace antes */
   /* lo que esta tarea NO toca: el reloj, el render, la geometría, la ruta, Present, el Viewer HTML/CSS, el enlace */
   for (const f of ["js/story-clock.js", "js/scenario-playback.js", "js/render.js", "js/geometry.js", "js/skin.js", "js/flow-semantics.js", "js/present-story.js",
     "js/link-codec.js", "js/share-url.js", "js/share-loader.js", "js/config.js", "s/index.html", "css/share.css", "css/styles.css", "index.html"])
-    assert.equal(read(f), atBase(f), f + " sin cambios");
+    assert.equal(undoI18n(f, read(f)), atBase(f), f + " sin cambios");
   const { undo030, PIECES, BASE_030 } = require("./fluyo-018-30-undo.cjs");
   assert.equal(BASE_030, BASE);
   assert.deepEqual(Object.keys(PIECES).sort(), ["js/viewer-viewport.js", "js/viewer.js"]);
-  for (const f of Object.keys(PIECES)) assert.equal(undo030(f, read(f)), atBase(f), f + ": undo030 da la base");
-  assert.ok(read("test/fluyo-step-message-001-undo.cjs").includes("src = undo029(file, undo030(file, src));"), "undoMsg deshace antes esta tarea");
+  for (const f of Object.keys(PIECES)) assert.equal(undo030(f, undoI18n(f, read(f))), atBase(f), f + ": undo030 da la base");
+  assert.ok(read("test/fluyo-step-message-001-undo.cjs").includes("src = undo029(file, undo030(file, undoI18n(file, src)));"), "undoMsg deshace antes esta tarea (con FLUYO-I18N-001 encima)");
   const cache = +(/const CACHE = "fluyo-static-v(\d+)";/.exec(read("sw.js")) || [])[1];
   assert.ok(cache >= 104, "CACHE sube (v" + cache + ")");
   assert.ok(!/^\s*import\s/m.test(read("js/viewer.js")) && !/^\s*import\s/m.test(read("js/viewer-viewport.js")), "scripts clásicos");

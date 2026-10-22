@@ -280,10 +280,11 @@ test("E1 · alcance: solo cambian js/editor-scenarios.js y sw.js (CACHE v98); un
   const PIECES5 = require("./fluyo-scenarios-semantics-5-undo.cjs").PIECES;   /* SCENARIOS-SEMANTICS-001 FASE 5: lo suyo se descuenta como lo de FASE 4 */
   const PIECES6 = require("./fluyo-scenarios-semantics-6-undo.cjs").PIECES;   /* SCENARIOS-SEMANTICS-001 FASE 6 (B1), igual */
   const PIECESM = require("./fluyo-step-message-001-undo.cjs").PIECES;   /* FLUYO-MCP-STEP-MESSAGE-001, igual */
-  assert.deepEqual([...new Set([...changed, ...untracked])].filter((f) => f === "js/editor-scenarios.js" || (!Object.keys(PIECES4).includes(f) && !Object.keys(PIECES5).includes(f) && !Object.keys(PIECES6).includes(f) && !Object.keys(PIECESM).includes(f))).sort(), ["js/editor-scenarios.js", "sw.js"]);
+  const { NEW_FILES: NEW_I18N, undoI18n } = require("./fluyo-i18n-001-undo.cjs");   /* FLUYO-I18N-001 añade js/i18n.js y js/i18n-en.js (no existen en la base) */
+  assert.deepEqual([...new Set([...changed, ...untracked])].filter((f) => !NEW_I18N.includes(f)).filter((f) => f === "js/editor-scenarios.js" || (!Object.keys(PIECES4).includes(f) && !Object.keys(PIECES5).includes(f) && !Object.keys(PIECES6).includes(f) && !Object.keys(PIECESM).includes(f))).sort(), ["js/editor-scenarios.js", "sw.js"]);
   for (const f of Object.keys(PIECES4)) if (f !== "js/editor-scenarios.js") assert.equal(undo4(f, read(f)), atBase(f), f + ": solo FASE 4");
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v104";/);
-  assert.equal(read("sw.js").replace('"fluyo-static-v104"', '"fluyo-static-v' + (98 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante");
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v105";/);
+  assert.equal(undoI18n("sw.js", read("sw.js")).replace('"fluyo-static-v105"', '"fluyo-static-v' + (98 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante");
   const { undoReverseUi } = require("./fluyo-step-reverse-003-undo.cjs");
   assert.equal(undoReverseUi("js/editor-scenarios.js", undo4("js/editor-scenarios.js", read("js/editor-scenarios.js"))), atBase("js/editor-scenarios.js"));
   assert.equal((read("js/editor-scenarios.js").match(/Invertir sentido/g) || []).length, 2, "el rótulo, una vez (más el comentario)");

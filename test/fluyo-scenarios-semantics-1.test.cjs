@@ -289,13 +289,14 @@ test("alcance · entre los archivos servidos solo cambian model.js, geometry.js,
   const ONLY5 = ["css/share.css", "docs/index.html", "js/export.js", "js/present-story.js", "js/viewer.js", "s/index.html"];
   const { undo029 } = require("./fluyo-018-29-undo.cjs"), ONLY029 = ["js/story-clock.js"].filter((f) => undo029(f, read(f)) === before(f));   /* FLUYO-018.29 (G1) solo añade reveal al reloj: deshecho (undo029) es el de la base */
   const { undo030 } = require("./fluyo-018-30-undo.cjs"), ONLY030 = ["js/viewer-viewport.js"].filter((f) => undo030(f, read(f)) === before(f));   /* FLUYO-018.30 solo añade la cámara de la Historia al Viewer: deshecho (undo030) es el de la base */
-  changed.splice(0, changed.length, ...changed.filter((f) => !ONLY4B.includes(f) && !ONLY3.includes(f) && !ONLY_REV.includes(f) && !ONLY5.includes(f) && !ONLY029.includes(f) && !ONLY030.includes(f)));
+  const { NEW_FILES: NEW_I18N, undoI18n } = require("./fluyo-i18n-001-undo.cjs");   /* FLUYO-I18N-001 añade js/i18n.js y js/i18n-en.js (no existen en la base) */
+  changed.splice(0, changed.length, ...changed.filter((f) => !ONLY4B.includes(f) && !ONLY3.includes(f) && !ONLY_REV.includes(f) && !ONLY5.includes(f) && !ONLY029.includes(f) && !ONLY030.includes(f) && !NEW_I18N.includes(f)));
   assert.deepEqual(changed, ["css/styles.css", "index.html", "js/geometry.js", "js/model.js", "js/render.js", "js/ui.js", "sw.js"]);
   for (const f of ["js/config.js", "js/safe-svg.js", "js/scenario-engine.js", "js/scenario-playback.js", "js/story-playback.js", "js/document-integrity.js", "js/story-authoring.js",
     "js/story-clock.js", "js/skin.js", "js/viewer.js", "js/export.js", "js/state.js", "js/selection.js", "js/editor-scenarios.js", "s/index.html"]) assert.equal(undo4b(f, undo3(f, read(f))), before(f), f);
   const sw = undo3("sw.js", read("sw.js"));
-  assert.match(sw, /const CACHE = "fluyo-static-v104";/);
-  assert.equal(sw.replace('"fluyo-static-v104"', '"fluyo-static-v' + (94 - 1) + '"'), before("sw.js"), "sw.js: solo sube CACHE (sin archivos nuevos)");
+  assert.match(sw, /const CACHE = "fluyo-static-v105";/);
+  assert.equal(sw.replace('"fluyo-static-v105"', '"fluyo-static-v' + (94 - 1) + '"'), before("sw.js"), "sw.js: solo sube CACHE (sin archivos nuevos)");
   /* UNKNOWN sigue fuera (D3): el kernel solo admite UP/DOWN */
   assert.match(read("js/model.js"), /const SCENARIO_STATES=new Set\(\["UP","DOWN"\]\);/);
   assert.match(read("js/scenario-engine.js"), /const VALID_STATES = new Set\(\["UP", "DOWN"\]\);/);

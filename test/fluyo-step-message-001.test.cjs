@@ -471,11 +471,12 @@ test("H3 · un lector anterior (" + BASE + ") RECHAZA un documento con message (
 test("I1 · versiones: engineVersion 2 y version 5 (NO v3); sw.js sube a v102; motor solo filtra la clave; reloj, Viewer y Present sin diff", () => {
   assert.equal(run("FluyoScenarios.ENGINE_VERSION"), 2);
   assert.equal(run("projectToSerializable({}, {}).version"), 5);
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v104";/);
-  assert.equal(read("sw.js").replace('"fluyo-static-v104"', '"fluyo-static-v' + (102 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante");
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v105";/);
+  const { undoI18n } = require("./fluyo-i18n-001-undo.cjs");   /* FLUYO-I18N-001 añade al precache js/i18n-en.js y js/i18n.js */
+  assert.equal(undoI18n("sw.js", read("sw.js")).replace('"fluyo-static-v105"', '"fluyo-static-v' + (102 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante");
   const { undo029 } = require("./fluyo-018-29-undo.cjs"), { undo030 } = require("./fluyo-018-30-undo.cjs");   /* FLUYO-018.29 (R1 + G1) y FLUYO-018.30 van encima: se deshacen antes */
   for (const f of ["js/story-clock.js", "js/scenario-playback.js", "js/render.js", "js/viewer.js", "js/present-story.js", "js/link-codec.js", "js/share-url.js", "js/document-integrity.js", "index.html", "s/index.html"])
-    assert.equal(undo029(f, undo030(f, read(f))), atBase(f), f + " sin cambios");
+    assert.equal(undo029(f, undo030(f, undoI18n(f, read(f)))), atBase(f), f + " sin cambios");   /* FLUYO-I18N-001 encima de 018.30 */
   const en = read("js/scenario-engine.js");
   assert.equal(en.split("message").length - 1, 2, "el motor solo nombra la clave para filtrarla (y en su comentario)");
 });
@@ -485,6 +486,7 @@ test("I2 · alcance frente a " + BASE + ": solo cambian estos archivos servidos,
   const changed = execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean);
   const untracked = execFileSync("git", ["-C", gitRoot, "ls-files", "--others", "--exclude-standard", "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean);
   const { undoMsg, PIECES } = require("./fluyo-step-message-001-undo.cjs");
-  assert.deepEqual([...new Set([...changed, ...untracked])].sort(), [...Object.keys(PIECES), "sw.js"].sort());
+  const { NEW_FILES: NEW_I18N, undoI18n } = require("./fluyo-i18n-001-undo.cjs");   /* FLUYO-I18N-001 añade js/i18n.js y js/i18n-en.js (no existen en la base) */
+  assert.deepEqual([...new Set([...changed, ...untracked])].filter((f) => !NEW_I18N.includes(f)).sort(), [...Object.keys(PIECES), "sw.js"].sort());
   for (const f of Object.keys(PIECES)) assert.equal(undoMsg(f, read(f)), atBase(f), f);
 });

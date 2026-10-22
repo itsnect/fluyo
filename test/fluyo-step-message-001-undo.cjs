@@ -10,6 +10,7 @@ const BASE_MSG = "2da088e";
 const { undo6, undo56 } = require("./fluyo-scenarios-semantics-6-undo.cjs");
 const { undo029 } = require("./fluyo-018-29-undo.cjs");
 const { undo030 } = require("./fluyo-018-30-undo.cjs");
+const { undoI18n } = require("./fluyo-i18n-001-undo.cjs");
 
 /* [texto de esta tarea, texto de la base]. Si el texto de esta tarea no está (otra versión del archivo), no se toca nada. */
 const PIECES = {
@@ -113,9 +114,10 @@ const PIECES = {
   ],
 };
 /* FLUYO-018.29 va encima de esta tarea: se deshace antes (undo029), y los alcances antiguos siguen recibiendo su base sin cambiar. */
-/* FLUYO-018.30 (la cámara del Viewer) va encima de 018.29: se deshace la primera (undo030). */
+/* FLUYO-018.30 (la cámara del Viewer) va encima de 018.29: se deshace antes (undo030). */
+/* FLUYO-I18N-001 (el idioma de la interfaz) va encima de 018.30: se deshace la primera (undoI18n). */
 function undoMsg(file, src) {
-  src = undo029(file, undo030(file, src));
+  src = undo029(file, undo030(file, undoI18n(file, src)));
   const f = file.replace(/\\/g, "/"), pieces = PIECES[f];
   if (!pieces) return src;
   let out = src.replace(/\r\n/g, "\n");
@@ -127,4 +129,6 @@ const undoMsg56 = (file, src) => undo56(file, undoMsg(file, src));
 /* Los alcances antiguos usan las CLAVES de PIECES para saber qué archivos deshace undoMsg: también los de FLUYO-018.29 (undo029). */
 const { PIECES: PIECES029 } = require("./fluyo-018-29-undo.cjs");
 const { PIECES: PIECES030 } = require("./fluyo-018-30-undo.cjs");
-module.exports = { undoMsg, undoMsg6, undoMsg56, BASE_MSG, PIECES: Object.assign({}, PIECES030, PIECES029, PIECES) };
+/* FLUYO-I18N-001: sus archivos también, salvo sw.js (los alcances antiguos ya lo cuentan aparte por CACHE; su precache lo deshace undoI18n). */
+const { "sw.js": _swI18n, ...PIECESI18N } = require("./fluyo-i18n-001-undo.cjs").PIECES;
+module.exports = { undoMsg, undoMsg6, undoMsg56, BASE_MSG, PIECES: Object.assign({}, PIECESI18N, PIECES030, PIECES029, PIECES) };

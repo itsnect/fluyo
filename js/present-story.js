@@ -81,7 +81,7 @@ function presentStoryRefresh(){
   psSet("psPlay","hidden",!has || moving);
   if(psLast["psPlay.glyph"]!==phase){
     psLast["psPlay.glyph"]=phase;
-    psGlyph("psPlay", phase==="finished"?"↻":"▶", phase==="finished"?"g-replay":"g-play", phase==="finished"?"Repetir":"Reproducir");
+    psGlyph("psPlay", phase==="finished"?"↻":"▶", phase==="finished"?"g-replay":"g-play", phase==="finished"?FluyoI18n.t("story.replay","Repetir"):FluyoI18n.t("story.play","Reproducir"));
   }
   psSet("psPause","hidden",!moving);
   if(moving && typeof scSetPauseLabel==="function") scSetPauseLabel($("psPause"), phase==="paused");
@@ -91,7 +91,7 @@ function presentStoryRefresh(){
   psSet("psPrev","disabled",nav.prev===null);
   psSet("psNext","disabled",nav.next===null);
   psSet("psStop","hidden",!has || phase==="ready");
-  if(psLast["psStop.glyph"]!==1){ psLast["psStop.glyph"]=1; psGlyph("psStop","■","g-stop","Detener"); }
+  if(psLast["psStop.glyph"]!==1){ psLast["psStop.glyph"]=1; psGlyph("psStop","■","g-stop",FluyoI18n.t("story.stop","Detener")); }
   psSet("presentBar","className", phase==="playing" ? "" : "psAttention");
 
   /* encabezado de la historia */
@@ -134,7 +134,7 @@ function presentStoryRefresh(){
   /* mensaje: consecuencia vigente o cierre */
   let cap=d.caption, sum=d.summary;
   if(dphase!=="playing" && dphase!=="finished" && scErrors.length) cap=scErrors[0];
-  if(phase==="paused") cap=cap ? "En pausa · "+cap : "En pausa";
+  if(phase==="paused") cap=cap ? FluyoI18n.t("story.pausedCaption","En pausa · {caption}",{caption:cap}) : FluyoI18n.t("story.paused","En pausa");
   psSet("psCaption","text",cap);
   psSet("psSummary","text",sum);
   /* SCENARIOS-SEMANTICS-001 FASE 5 (D8, decisión 246): la línea de estado de la ruta observada, en el rótulo (la fila de controles no

@@ -497,7 +497,7 @@ test("D2 · carga: el editor carga flow-semantics.js (tras story-clock.js) y lo 
   assert.ok(i("story-clock.js") < i("flow-semantics.js") && i("flow-semantics.js") < i("editor-scenarios.js") && i("flow-semantics.js") > 0);
   assert.ok(!undo4("s/index.html", read("s/index.html")).includes("flow-semantics"), "Viewer sin cambios en FASE 3 (lo carga FASE 5: undo5, dentro de undo4)");
   const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v104";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v105";/);
   assert.ok(sw.includes('"./js/story-clock.js",\n  "./js/flow-semantics.js",\n  "./js/document-integrity.js",'));
 });
 
@@ -516,7 +516,8 @@ test("D3 · alcance frente a " + BASE + ": solo cambian estos archivos servidos;
   const PIECES6 = require("./fluyo-scenarios-semantics-6-undo.cjs").PIECES;
   const { undo029 } = require("./fluyo-018-29-undo.cjs"), ONLY029 = ["js/story-clock.js"].filter((f) => undo029(f, read(f)) === atBase(f));   /* FLUYO-018.29 (G1) solo añade reveal al reloj: deshecho (undo029) es el de la base */
   const { undo030 } = require("./fluyo-018-30-undo.cjs"), ONLY030 = ["js/viewer-viewport.js"].filter((f) => undo030(f, read(f)) === atBase(f));   /* FLUYO-018.30 solo añade la cámara de la Historia al Viewer: deshecho (undo030) es el de la base */
-  assert.deepEqual([...new Set([...changed, ...untracked])].filter((f) => !ONLY_REV.includes(f) && !ONLY5.includes(f) && !ONLY029.includes(f) && !ONLY030.includes(f) && !(f in PIECES6 && undo4(f, read(f)) === atBase(f))).sort(),
+  const { NEW_FILES: NEW_I18N, undoI18n } = require("./fluyo-i18n-001-undo.cjs");   /* FLUYO-I18N-001 añade js/i18n.js y js/i18n-en.js (no existen en la base) */
+  assert.deepEqual([...new Set([...changed, ...untracked])].filter((f) => !ONLY_REV.includes(f) && !ONLY5.includes(f) && !ONLY029.includes(f) && !ONLY030.includes(f) && !NEW_I18N.includes(f) && !(f in PIECES6 && undo4(f, read(f)) === atBase(f))).sort(),
     ["css/styles.css", "index.html", "js/document-integrity.js", "js/editor-scenarios.js", "js/flow-semantics.js", "js/model.js", "js/story-authoring.js", "sw.js"]);
   for (const f of ["js/render.js", "js/viewer.js", "js/present-story.js", "js/export.js", "js/story-clock.js", "js/scenario-engine.js", "js/ui.js", "s/index.html"])
     assert.equal(undoReverse(f, undoReverseUi(f, undo4(f, read(f)))), atBase(f), f + " intacto");
@@ -528,7 +529,7 @@ test("D5 · undo3 (para los alcances de slices anteriores) deshace EXACTAMENTE F
   const { undoReverseUi } = require("./fluyo-step-reverse-003-undo.cjs");   /* y 003 encima de 002 */
   for (const f of Object.keys(REGIONS)) {
     let back = undo3(f, undoReverse(f, undoReverseUi(f, undo4(f, read(f)))));
-    if (f === "sw.js") back = back.replace('"fluyo-static-v104"', '"fluyo-static-v' + (96 - 1) + '"');
+    if (f === "sw.js") back = back.replace('"fluyo-static-v105"', '"fluyo-static-v' + (96 - 1) + '"');
     assert.equal(back, atBase(f), f);
   }
 });

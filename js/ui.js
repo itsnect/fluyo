@@ -1011,9 +1011,9 @@ function syncSkinControls(){
 function syncPresentSkinButton(){
   const b=$("prSkin"); if(!b) return;
   const built=projectSkin(settings)==="built";
-  b.textContent = built ? "Construido" : "Plano";
+  b.textContent = built ? FluyoI18n.t("present.skinBuilt","Construido") : FluyoI18n.t("present.skinFlat","Plano");
   b.setAttribute("aria-pressed", built ? "true" : "false");
-  b.title = built ? "Aspecto construido (2.5D) · pulsa B para ver el plano" : "Aspecto plano · pulsa B para ver el construido";
+  b.title = built ? FluyoI18n.t("present.skinBuiltHint","Aspecto construido (2.5D) · pulsa B para ver el plano") : FluyoI18n.t("present.skinFlatHint","Aspecto plano · pulsa B para ver el construido");
 }
 function updatePresentBar(){
   syncPresentSkinButton();

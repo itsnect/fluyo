@@ -532,8 +532,9 @@ test("I1 · versiones: engineVersion 2 y version 5 (NO v3); sw.js sube a v97; Vi
   assert.equal(run("FluyoScenarios.ENGINE_VERSION"), 2);
   assert.equal(run("SCENARIO_ENGINE_VERSION"), 2);
   assert.equal(run("projectToSerializable({}, {}).version"), 5);
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v104";/);
-  assert.equal(read("sw.js").replace('"fluyo-static-v104"', '"fluyo-static-v' + (97 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante");
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v105";/);
+  const { undoI18n } = require("./fluyo-i18n-001-undo.cjs");   /* FLUYO-I18N-001 añade al precache js/i18n-en.js y js/i18n.js */
+  assert.equal(undoI18n("sw.js", read("sw.js")).replace('"fluyo-static-v105"', '"fluyo-static-v' + (97 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante");
   const { undo4: undo4only, PIECES: PIECES4 } = require("./fluyo-scenarios-semantics-4-undo.cjs"), { undoMsg56: undo5 } = require("./fluyo-step-message-001-undo.cjs"), undo4 = (f, src) => undo4only(f, undo5(f, src));   /* SCENARIOS-SEMANTICS-001 FASE 4 va encima: se deshace antes */
   for (const f of ["js/viewer.js", "js/present-story.js", "js/story-clock.js", "js/flow-semantics.js", "js/link-codec.js", "js/share-url.js", "index.html", "s/index.html", "css/styles.css"])
     assert.equal(undo4(f, read(f)), atBase(f), f + " sin cambios");
@@ -562,7 +563,8 @@ test("I3 · alcance frente a " + BASE + ": solo cambian estos archivos servidos,
   const PIECES6 = require("./fluyo-scenarios-semantics-6-undo.cjs").PIECES;   /* SCENARIOS-SEMANTICS-001 FASE 6, igual */
   const { undo029 } = require("./fluyo-018-29-undo.cjs"), ONLY029 = ["js/story-clock.js"].filter((f) => undo029(f, read(f)) === atBase(f));   /* FLUYO-018.29 (G1) solo añade reveal al reloj: deshecho (undo029) es el de la base */
   const { undo030 } = require("./fluyo-018-30-undo.cjs"), ONLY030 = ["js/viewer-viewport.js"].filter((f) => undo030(f, read(f)) === atBase(f));   /* FLUYO-018.30 solo añade la cámara de la Historia al Viewer: deshecho (undo030) es el de la base */
-  assert.deepEqual([...new Set([...changed, ...untracked])].filter((f) => (!Object.keys(PIECES4).includes(f) && !Object.keys(PIECES5).includes(f) && !Object.keys(PIECES6).includes(f) && !ONLY029.includes(f) && !ONLY030.includes(f)) || Object.keys(REGIONS).includes(f)).sort(), [...Object.keys(REGIONS), "sw.js"].sort());
+  const { NEW_FILES: NEW_I18N, undoI18n } = require("./fluyo-i18n-001-undo.cjs");   /* FLUYO-I18N-001 añade js/i18n.js y js/i18n-en.js (no existen en la base) */
+  assert.deepEqual([...new Set([...changed, ...untracked])].filter((f) => !NEW_I18N.includes(f)).filter((f) => (!Object.keys(PIECES4).includes(f) && !Object.keys(PIECES5).includes(f) && !Object.keys(PIECES6).includes(f) && !ONLY029.includes(f) && !ONLY030.includes(f)) || Object.keys(REGIONS).includes(f)).sort(), [...Object.keys(REGIONS), "sw.js"].sort());
   for (const f of Object.keys(PIECES6)) if (!Object.keys(REGIONS).includes(f) && !Object.keys(PIECES4).includes(f)) assert.equal(undo4(f, read(f)), atBase(f), f + ": solo FASE 5/6");
   for (const f of Object.keys(PIECES4)) if (!Object.keys(REGIONS).includes(f)) assert.equal(undo4(f, read(f)), atBase(f), f + ": solo FASE 4");
   for (const f of Object.keys(REGIONS)) assert.equal(undoReverse(f, undoReverseUi(f, undo4(f, read(f)))), atBase(f), f);

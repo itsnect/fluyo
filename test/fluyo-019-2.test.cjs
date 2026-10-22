@@ -173,6 +173,7 @@ test("ui.js · setDocumentSkin: escribe \"built\" o QUITA la clave, autoguarda s
   assert.ok(!/pushUndo|undoStack|localStorage/.test(slice), "sin Undo ni almacenamiento propio");
   const els = { skinSel: { value: "" }, prSkin: { textContent: "", title: "", attrs: {}, setAttribute(k, v) { this.attrs[k] = v; } } };
   const ctx = vm.createContext({ settings: {}, saves: 0, scheduleAutosave() { ctx.saves++; }, $: (id) => els[id], projectSkin: (st) => (st && st.skin === "built") ? "built" : "flat" });
+  vm.runInContext(read("js/i18n.js"), ctx);   /* FLUYO-I18N-001: el rótulo del botón pasa por FluyoI18n */
   vm.runInContext(slice, ctx);
   vm.runInContext('setDocumentSkin("built")', ctx);
   assert.deepEqual(ctx.settings, { skin: "built" }); assert.equal(ctx.saves, 1);
@@ -253,7 +254,7 @@ test("alcance · editor: presentSkin ya no existe; #skinSel vive en «Lienzo» (
   assert.match(tools, /<select id="skinSel"[^>]*>\s*<option value="flat">Plano<\/option>\s*<option value="built">Construido \(2\.5D\)<\/option>\s*<\/select>/, "control «Aspecto» con la lista cerrada, dentro de «Lienzo»");
   assert.ok(html.indexOf('id="fontGlobalSel"') < html.indexOf('id="skinSel"'), "junto a «Tipografía»");
   assert.match(html, /<button id="prSkin" type="button" aria-pressed="false"[^>]*>Plano<\/button>/, "la barra de Present arranca en plano (ausente = plano)");
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v104";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v105";/);
   assert.ok(read("sw.js").includes('"./js/skin.js",'), "skin.js precacheado (también lo usa el Viewer)");
   for (const f of ["js/editor-runtime.js", "js/ui.js", "js/export.js", "js/viewer.js", "js/state.js"]) assert.ok(read(f).includes("projectSkin(settings)"), f + " lee el aspecto por projectSkin");
   assert.ok(!/skin/.test(read("js/analytics.js")), "sin telemetría de la piel");

@@ -176,32 +176,32 @@ try{ if(localStorage.getItem("fluyo.ui.props")==="folded") document.documentElem
 <header>
   <span class="logo">flu<b>yo</b><span class="dots" aria-hidden="true"><span></span><span></span><span></span></span></span>
   <span class="vdivider hdrDiv hdrDivA" aria-hidden="true"></span>
-  <div id="hdrHistory" class="hdrHistory" role="group" aria-label="Historial de cambios">
-    <button id="btnUndo" class="iconBtn btnGhost" type="button" data-tip="Deshacer · Ctrl+Z" data-tip-pos="start" aria-label="Deshacer" disabled>
+  <div id="hdrHistory" class="hdrHistory" role="group" aria-label="Historial de cambios" data-i18n-aria-label="editor.history">
+    <button id="btnUndo" class="iconBtn btnGhost" type="button" data-tip="Deshacer · Ctrl+Z" data-tip-pos="start" aria-label="Deshacer" data-i18n-tip="editor.undoHint" data-i18n-aria-label="editor.undo" disabled>
       <svg class="ic" aria-hidden="true"><use href="#i-undo"/></svg>
     </button>
-    <button id="btnRedo" class="iconBtn btnGhost" type="button" data-tip="Rehacer · Ctrl+Y" aria-label="Rehacer" disabled>
+    <button id="btnRedo" class="iconBtn btnGhost" type="button" data-tip="Rehacer · Ctrl+Y" aria-label="Rehacer" data-i18n-tip="editor.redoHint" data-i18n-aria-label="editor.redo" disabled>
       <svg class="ic" aria-hidden="true"><use href="#i-redo"/></svg>
     </button>
   </div>
   <span class="vdivider hdrDiv hdrDivB" aria-hidden="true"></span>
   <!-- Modo de trabajo (FLUYO-018.14b, B1): Editar construye el diagrama; Historias lo cuenta. Es un modo de toda la
        interfaz, no una pestaña del panel. Los ids son los de las antiguas pestañas: quien las pulsaba sigue cambiando de modo. -->
-  <div id="modeSwitch" class="seg modeSwitch" role="group" aria-label="Modo de trabajo">
-    <button id="tabProperties" class="segBtn active" type="button" aria-pressed="true"><svg class="ic" aria-hidden="true"><use href="#i-pen"/></svg><span class="lbl">Editar</span></button>
-    <button id="tabScenarios" class="segBtn" type="button" aria-pressed="false"><svg class="ic" aria-hidden="true"><use href="#i-story"/></svg><span class="lbl">Historias</span></button>
+  <div id="modeSwitch" class="seg modeSwitch" role="group" aria-label="Modo de trabajo" data-i18n-aria-label="editor.mode">
+    <button id="tabProperties" class="segBtn active" type="button" aria-pressed="true"><svg class="ic" aria-hidden="true"><use href="#i-pen"/></svg><span class="lbl" data-i18n="editor.modeEdit">Editar</span></button>
+    <button id="tabScenarios" class="segBtn" type="button" aria-pressed="false"><svg class="ic" aria-hidden="true"><use href="#i-story"/></svg><span class="lbl" data-i18n="editor.modeStories">Historias</span></button>
   </div>
   <span class="spacer hdrSpacer"></span>
-  <button id="btnCanvas" class="btnGhost" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="canvasMenu" data-tip="Ajustes del lienzo: tema, fondo, tipografía y rejilla" data-tip-pos="end"><svg class="ic" aria-hidden="true"><use href="#i-canvas"/></svg><span class="lbl">Lienzo</span><svg class="ic icChev" aria-hidden="true"><use href="#i-chev"/></svg></button>
+  <button id="btnCanvas" class="btnGhost" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="canvasMenu" data-tip="Ajustes del lienzo: tema, fondo, tipografía y rejilla" data-tip-pos="end" data-i18n-tip="editor.canvasHint"><svg class="ic" aria-hidden="true"><use href="#i-canvas"/></svg><span class="lbl" data-i18n="editor.canvas">Lienzo</span><svg class="ic icChev" aria-hidden="true"><use href="#i-chev"/></svg></button>
   <span class="vdivider hdrDiv hdrDivD" aria-hidden="true"></span>
-  <button id="btnExport" class="btnGhost" type="button"><svg class="ic" aria-hidden="true"><use href="#i-export"/></svg><span class="lbl">Exportar</span></button>
-  <button id="btnShare" type="button"><svg class="ic" aria-hidden="true"><use href="#i-link"/></svg><span class="lbl">Compartir</span></button>
-  <button id="btnPresent" class="primary" type="button" title="Modo presentación (P): pantalla completa, una página por diapositiva"><svg class="ic" aria-hidden="true"><use href="#i-present"/></svg><span class="lbl">Presentar</span></button>
+  <button id="btnExport" class="btnGhost" type="button"><svg class="ic" aria-hidden="true"><use href="#i-export"/></svg><span class="lbl" data-i18n="editor.export">Exportar</span></button>
+  <button id="btnShare" type="button"><svg class="ic" aria-hidden="true"><use href="#i-link"/></svg><span class="lbl" data-i18n="editor.share">Compartir</span></button>
+  <button id="btnPresent" class="primary" type="button" title="Modo presentación (P): pantalla completa, una página por diapositiva" data-i18n-title="editor.presentHint"><svg class="ic" aria-hidden="true"><use href="#i-present"/></svg><span class="lbl" data-i18n="present.start">Presentar</span></button>
   <!-- Propiedades: a ≤700 px abre/cierra la hoja (solo con selección, M2); en columna pliega/despliega el panel (FLUYO-018.23, D2). -->
-  <button id="btnPanel" class="iconBtn btnGhost" type="button" data-tip="Propiedades" data-tip-pos="end" aria-label="Propiedades" aria-expanded="false" aria-controls="propPanel">
+  <button id="btnPanel" class="iconBtn btnGhost" type="button" data-tip="Propiedades" data-tip-pos="end" aria-label="Propiedades" data-i18n-tip="editor.properties" data-i18n-aria-label="editor.properties" aria-expanded="false" aria-controls="propPanel">
     <svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg>
   </button>
-  <button id="btnMore" class="iconBtn btnGhost" type="button" data-tip="Más opciones" data-tip-pos="end" aria-label="Más opciones" aria-expanded="false" aria-controls="moreMenu" aria-haspopup="true">
+  <button id="btnMore" class="iconBtn btnGhost" type="button" data-tip="Más opciones" data-tip-pos="end" aria-label="Más opciones" data-i18n-tip="editor.more" data-i18n-aria-label="editor.more" aria-expanded="false" aria-controls="moreMenu" aria-haspopup="true">
     <svg class="ic" aria-hidden="true"><use href="#i-more"/></svg>
   </button>
   <!-- «Lienzo» (FLUYO-018.14b): ajustes del DOCUMENTO. Cambiarlos cambia el .fluyo.json; por eso no están junto al tema de la
@@ -946,21 +946,21 @@ try{ if(localStorage.getItem("fluyo.ui.props")==="folded") document.documentElem
 <!-- FLUYO-018.18 (D7, D8): dos grupos separados —la Historia y las páginas— y UNA salida. Tocar el lienzo no hace nada:
      solo los controles navegan. El transporte llama a las mismas funciones que el del editor (present-story.js). -->
 <div id="presentBar">
-  <div id="psGroup" class="prGroup" role="group" aria-label="Historia" hidden>
-    <button id="psPrev" class="iconBtn" type="button" title="Momento anterior" aria-label="Momento anterior" hidden><svg class="ic" aria-hidden="true"><use href="#i-step-back"/></svg></button>
-    <button id="psPlay" type="button" title="Reproducir la historia (Espacio)" hidden>▶ Reproducir</button>
-    <button id="psPause" type="button" title="Pausar o reanudar (Espacio)" hidden>Pausar</button>
-    <button id="psNext" class="iconBtn" type="button" title="Momento siguiente" aria-label="Momento siguiente" hidden><svg class="ic" aria-hidden="true"><use href="#i-step-fwd"/></svg></button>
-    <button id="psStop" type="button" title="Detener (Esc)" hidden>■ Detener</button>
+  <div id="psGroup" class="prGroup" role="group" aria-label="Historia" data-i18n-aria-label="story.group" hidden>
+    <button id="psPrev" class="iconBtn" type="button" title="Momento anterior" aria-label="Momento anterior" data-i18n-title="story.momentPrev" data-i18n-aria-label="story.momentPrev" hidden><svg class="ic" aria-hidden="true"><use href="#i-step-back"/></svg></button>
+    <button id="psPlay" type="button" title="Reproducir la historia (Espacio)" data-i18n-title="present.playHint" data-i18n="story.play" hidden>▶ Reproducir</button>
+    <button id="psPause" type="button" title="Pausar o reanudar (Espacio)" data-i18n-title="present.pauseHint" data-i18n="story.pause" hidden>Pausar</button>
+    <button id="psNext" class="iconBtn" type="button" title="Momento siguiente" aria-label="Momento siguiente" data-i18n-title="story.momentNext" data-i18n-aria-label="story.momentNext" hidden><svg class="ic" aria-hidden="true"><use href="#i-step-fwd"/></svg></button>
+    <button id="psStop" type="button" title="Detener (Esc)" data-i18n-title="present.stopHint" data-i18n="story.stop" hidden>■ Detener</button>
   </div>
-  <div id="prPages" class="prGroup" role="group" aria-label="Páginas">
-    <button id="prPrev" class="iconBtn" type="button" title="Página anterior (←)" aria-label="Página anterior"><svg class="ic" aria-hidden="true"><use href="#i-prev"/></svg></button>
+  <div id="prPages" class="prGroup" role="group" aria-label="Páginas" data-i18n-aria-label="present.pages">
+    <button id="prPrev" class="iconBtn" type="button" title="Página anterior (←)" aria-label="Página anterior" data-i18n-title="present.pagePrevHint" data-i18n-aria-label="present.pagePrev"><svg class="ic" aria-hidden="true"><use href="#i-prev"/></svg></button>
     <span id="prPos" aria-live="polite"></span>
-    <button id="prNext" class="iconBtn" type="button" title="Página siguiente (→)" aria-label="Página siguiente"><svg class="ic" aria-hidden="true"><use href="#i-next"/></svg></button>
+    <button id="prNext" class="iconBtn" type="button" title="Página siguiente (→)" aria-label="Página siguiente" data-i18n-title="present.pageNextHint" data-i18n-aria-label="present.pageNext"><svg class="ic" aria-hidden="true"><use href="#i-next"/></svg></button>
   </div>
   <!-- FLUYO-019.1/019.2: aspecto (plano / construido 2.5D). Es del DOCUMENTO (settings.skin): el botón y la tecla B lo escriben. -->
-  <button id="prSkin" type="button" aria-pressed="false" title="Aspecto plano · pulsa B para ver el construido">Plano</button>
-  <button id="prExit" type="button" title="Salir de la presentación (Esc)" aria-label="Salir de la presentación"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg><span class="lbl">Salir</span></button>
+  <button id="prSkin" type="button" aria-pressed="false" title="Aspecto plano · pulsa B para ver el construido" data-i18n-title="present.skinFlatHint" data-i18n="present.skinFlat">Plano</button>
+  <button id="prExit" type="button" title="Salir de la presentación (Esc)" aria-label="Salir de la presentación" data-i18n-title="present.exitHint" data-i18n-aria-label="present.exitLong"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg><span class="lbl" data-i18n="present.exit">Salir</span></button>
 </div>
 <!-- Encabezado de la Historia en Present: qué está pasando ahora (secundario al Canvas) -->
 <div id="presentStory" hidden>
@@ -1079,6 +1079,9 @@ try{ if(localStorage.getItem("fluyo.ui.props")==="folded") document.documentElem
   </div>
 </div>
 
+<!-- FLUYO-I18N-001: idioma de la interfaz. Los diccionarios antes que el runtime; el runtime antes que quien pinta texto. -->
+<script src="js/i18n-en.js"></script>
+<script src="js/i18n.js"></script>
 <script src="js/config.js"></script>
 <script src="js/safe-svg.js"></script>
 <script src="js/model.js"></script>

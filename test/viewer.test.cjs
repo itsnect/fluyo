@@ -19,7 +19,7 @@ const {makeViewer,read,VIEWER_SCRIPTS,FORBIDDEN_SCRIPTS,FORBIDDEN_GLOBALS}=requi
 
 test('1. el shell del viewer sólo carga el core compartido y el viewer',()=>{
   const html=read('s/index.html');
-  const srcs=[...html.matchAll(/<script src="\.\.\/(js\/[a-z-]+\.js)"/g)].map(m=>m[1]);
+  const srcs=[...html.matchAll(/<script src="\.\.\/(js\/[a-z0-9-]+\.js)"/g)].map(m=>m[1]);   // FLUYO-I18N-001: i18n-en.js lleva dígitos
   assert.deepEqual(srcs, VIEWER_SCRIPTS);
   for(const f of FORBIDDEN_SCRIPTS)
     assert.ok(!html.includes('js/'+f), 'el shell referencia '+f);

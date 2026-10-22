@@ -149,7 +149,10 @@ function presentStoryRefresh(){
    tape la fila de arriba ni obligue a reencajar, se mide con esas filas desde el inicio: el mensaje y el cierre de «terminada»
    (los del mismo modelo, FluyoStory.describe, sobre el Trace de la Historia: el cierre solo existe si algún envío falla) y la
    línea de la ruta, si la Historia la tiene. Son filas sonda (mismas clases, aria-hidden), puestas y quitadas en la misma
-   tarea: nunca se pintan. Un mensaje de consecuencia más largo que una línea no se reserva (no se conoce hasta reproducir). */
+   tarea: nunca se pintan. Un mensaje de consecuencia más largo que una línea no se reserva (no se conoce hasta reproducir).
+   PRODUCT-NARRATION-001 (decisión 258): el título de un momento narrado puede ser la frase del autor (hasta 120 caracteres) y ocupar
+   más de una línea; se mide también con el título narrado MÁS LARGO de la Historia puesto un instante en #psTitle (y se devuelve el
+   suyo). Una Historia sin frases se mide como siempre. */
 function presentHeaderBottom(){
   const ps=$("presentStory");
   if(!ps || ps.hidden || !ps.offsetHeight) return 0;
@@ -161,7 +164,11 @@ function presentHeaderBottom(){
   if(end && end.summary && !$("psSummary").textContent) probe("psSummary", end.summary);
   const route=$("psFlow").hidden && sc && typeof scFlowPresentLine==="function" ? scFlowPresentLine() : null;
   if(route) probe("psFlow is"+route.status, route.text);
+  const title=$("psTitle"), own=title.textContent;
+  const longest=end ? end.moments.reduce((a, m)=>m.narrated && (m.label||"").length>a.length ? m.label : a, own) : own;
+  if(longest!==own) title.textContent=longest;
   const bottom=ps.getBoundingClientRect().bottom;
+  if(longest!==own) title.textContent=own;
   for(const el of probes) el.remove();
   return bottom;
 }

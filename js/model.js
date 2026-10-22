@@ -486,11 +486,12 @@ function canonicalizePersistedStep(step){
   if(projectObject(step) && step.action==="SEND" && projectOwn(step,"reverse") && step.reverse===false) delete step.reverse;
   return step;
 }
-/* FLUYO-MCP-STEP-MESSAGE-001 (decisión 255). `message` es el texto del globo de ESTA ocurrencia, en vez del nodeEffects.message de su
-   EventType. Presentación pura: ni el motor ni el reloj lo leen. Solo en pasos de elemento (OCCURRENCE, SET_STATE): un SEND no tiene
-   globo. Forma canónica: la clave falta o es un texto de 1 a 120 unidades UTF-16 con algo más que espacios. Se guarda tal cual (sin
-   trim ni normalización) y NUNCA se trunca: cualquier otro valor, también "" o solo espacios, lo rechaza validatePersistedStep. Como
-   `reverse`, un lector anterior lo rechaza en vez de leerlo mal (decisión 234). */
+/* FLUYO-MCP-STEP-MESSAGE-001 (decisión 255) y FLUYO-PRODUCT-NARRATION-001 (decisión 258). `message` es la frase propia de ESTE paso,
+   escrita por el autor: al reproducir es el título de su momento (editor, Present, Viewer) en vez del nombre del evento y, en un paso
+   de elemento, también el texto de su globo en vez del nodeEffects.message del EventType. Vale en CUALQUIER acción, también en un SEND
+   (decisión 258). Presentación pura: ni el motor ni el reloj lo leen. Forma canónica: la clave falta o es un texto de 1 a 120 unidades
+   UTF-16 con algo más que espacios. Se guarda tal cual (sin trim ni normalización) y NUNCA se trunca: cualquier otro valor, también ""
+   o solo espacios, lo rechaza validatePersistedStep. Como `reverse`, un lector anterior lo rechaza en vez de leerlo mal (decisión 234). */
 const STEP_MESSAGE_MAX_LEN=NODE_EFFECT_MAX_MESSAGE_LEN;
 function stepMessageValid(v){ return typeof v==="string" && v.trim().length>0 && v.length<=STEP_MESSAGE_MAX_LEN; }
 function validatePersistedStep(step, engineVersion){
@@ -508,9 +509,9 @@ function validatePersistedStep(step, engineVersion){
     if(step.action!=="SEND" || step.reverse!==true) throw projectDataError();
     allowed.push("reverse");
   }
-  // message: solo en pasos de elemento y solo un texto válido (decisión 255).
+  // message: en cualquier acción (decisiones 255 y 258) y solo un texto válido.
   if(projectOwn(step,"message")){
-    if(step.action==="SEND" || !stepMessageValid(step.message)) throw projectDataError();
+    if(!stepMessageValid(step.message)) throw projectDataError();
     allowed.push("message");
   }
   const keys=Object.keys(step);
@@ -633,7 +634,7 @@ function eventTypeActionSpec(et){
 }
 /* Definición de Step para colocar `et` sobre `target` (id de conexión si FLOW; de elemento en otro caso).
    `reverse` (solo FLOW): el envío recorre la conexión al revés; la clave solo se escribe si es `true` (D8).
-   `message` (solo eventos de elemento, decisión 255): el texto del globo de este paso; la clave solo se escribe si llega. */
+   `message` (cualquier evento, decisiones 255 y 258): la frase propia de este paso; la clave solo se escribe si llega. */
 function stepDefinitionForEvent(et,target,at,reverse,message){
   const spec=eventTypeActionSpec(et);
   if(!spec) throw projectDataError("event_type_invalid");
@@ -644,7 +645,7 @@ function stepDefinitionForEvent(et,target,at,reverse,message){
   if(spec.action==="SET_STATE") def.state=spec.state;
   if(reverse===true) def.reverse=true;
   if(message!==undefined){
-    if(spec.action==="SEND" || !stepMessageValid(message)) throw projectDataError();
+    if(!stepMessageValid(message)) throw projectDataError();
     def.message=message;
   }
   return def;
@@ -705,13 +706,12 @@ function setStepReverse(sc,stepId,reverse){
   if(reverse) step.reverse=true; else delete step.reverse;
   return step;
 }
-/* Fijar (texto) o quitar (null) el mensaje de un paso de elemento en el sitio (decisión 255): id, at, orden, objetivo, EventType y
-   dependencias no cambian. Un SEND no tiene globo; "" o solo espacios no son un mensaje (para quitarlo, null). La llaman el editor
-   («Mensaje del paso…», una entrada de Undo) y set_step_message (story-authoring.js). */
+/* Fijar (texto) o quitar (null) el mensaje de un paso en el sitio (decisiones 255 y 258; también en un SEND): id, at, orden,
+   objetivo, sentido, EventType y dependencias no cambian. "" o solo espacios no son un mensaje (para quitarlo, null). La llaman el
+   editor («Mensaje del paso…», una entrada de Undo) y set_step_message (story-authoring.js). */
 function setStepMessage(sc,stepId,message){
   const step=sc.steps.find(s=>s.id===stepId);
   if(!step) throw projectDataError("step_not_found");
-  if(step.action==="SEND") throw projectDataError();
   if(message===null) delete step.message;
   else if(stepMessageValid(message)) step.message=message;
   else throw projectDataError();

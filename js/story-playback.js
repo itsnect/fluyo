@@ -22,7 +22,8 @@ var FluyoStory = (function(){
       const et = step.eventTypeId ? eventTypeById(step.eventTypeId) : null;
       const fx = et ? playbackEffects(et) : defaultNodeEffects();
       /* FLUYO-MCP-STEP-MESSAGE-001 (decisión 255): el globo de un paso con `message` dice ESE texto, con el estilo y la duración de su
-         evento. Es el único sitio donde el texto del paso llega a la pintura (editor, Present y Viewer); el motor y el reloj no lo ven. */
+         evento. Es el único sitio donde el texto del paso llega a la pintura (editor, Present y Viewer); el motor y el reloj no lo ven.
+         Un SEND no tiene globo (el Playback solo crea cues de elemento): su `message` se lee en el título del momento (describe). */
       if(typeof step.message==="string") fx.message = step.message;
       meta[step.id] = {
         token: et ? eventSymbol(et) : "",
@@ -195,8 +196,16 @@ var FluyoStory = (function(){
   const CAPTION_MS = 2600;   // cuánto se mantiene un mensaje de consecuencia
   const MAX_DOTS = 12;       // por encima, el progreso se resume en «n / total»
 
-  /* Momentos de la Historia (grupos por `at`) con un nombre humano:
-     los nombres de sus Eventos, sin repetir, en el orden de resolución. */
+  /* Texto de un paso en el título de su momento (FLUYO-PRODUCT-NARRATION-001, decisión 258): su `message` si lo tiene —la frase que
+     escribió el autor, de cualquier evento, también de un envío—; si no, el nombre de su evento, como siempre. Solo presentación: el
+     evento del paso, su frase (`sentence`), el Trace y los tiempos no cambian. */
+  function momentText(step){
+    if(typeof step.message==="string") return step.message;
+    const et = step.eventTypeId ? eventTypeById(step.eventTypeId) : null;
+    return et ? et.name : "";
+  }
+  /* Momentos de la Historia (grupos por `at`) con un nombre humano: el texto de sus pasos (momentText), sin repetir, en el orden de
+     resolución. */
   function moments(groups, nameOfStep){
     return (groups||[]).map(g=>{
       const names=[];
@@ -245,10 +254,10 @@ var FluyoStory = (function(){
   /* Modelo de presentación de una Historia en una fase (ready | playing | finished):
      título, momento en curso, mensaje y cierre. Lo pintan Present y el Viewer. */
   function describe(phase, scenario, playback, nodeName, edgeEnds){
-    const ms = moments(storyboardGroups(scenario.steps), s=>{
-      const et = s.eventTypeId ? eventTypeById(s.eventTypeId) : null;
-      return et ? et.name : "";
-    });
+    const groups = storyboardGroups(scenario.steps), ms = moments(groups, momentText);
+    /* PRODUCT-NARRATION-001 (decisión 258, D-PO-2): `narrated` marca el momento cuyo título lleva una frase del autor (algún paso con
+       `message`). Solo esos rótulos pueden crecer en vez de cortarse; los demás se ven como siempre. Sin frase, ni la clave. */
+    groups.forEach((g, i)=>{ if(g.steps.some(s=>typeof s.message==="string")) ms[i].narrated = true; });
     const vt = playback ? playback.cursorVirtual : 0;
     const idx = phase==="finished" ? ms.length-1 : phase==="playing" ? currentIndex(ms, vt) : -1;
     const title = phase==="ready" ? scenario.name : (idx>=0 && ms[idx].label ? ms[idx].label : scenario.name);
@@ -263,7 +272,7 @@ var FluyoStory = (function(){
   }
 
   return {describe, playbackEffects, stepMeta, errorMessages, start, isFinished, renderState,
-          moments, currentIndex, caption, failedCount, summary, CAPTION_MS, MAX_DOTS,
+          moments, momentText, currentIndex, caption, failedCount, summary, CAPTION_MS, MAX_DOTS,
           run, outcomes, finalAvailability, sentence, NARRATED_NOTE};
 })();
 

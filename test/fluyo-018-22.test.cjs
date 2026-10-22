@@ -84,7 +84,7 @@ test("editor: eliminar y duplicar siguen usando prune / copy; duplicar copia sol
 
 test("release: CACHE v80; model.js y story-clock.js precacheados; el editor y el Viewer cargan model.js antes de story-clock.js", () => {
   const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v105";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v106";/);
   assert.ok(sw.includes('"./js/model.js"') && sw.includes('"./js/story-clock.js"'));
   for (const [f, pre] of [["index.html", "js/"], ["s/index.html", "../js/"]]) {
     const html = read(f);

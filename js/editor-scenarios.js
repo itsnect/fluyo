@@ -989,14 +989,16 @@ function scRenderNow() {
   if (!box) return;
   const sc = scActiveScenario();
   const on = scStatus !== "idle" && !!scPlayback && !!sc;
-  let label = "", caption = "", progress = "";
+  let label = "", caption = "", progress = "", narrated = false;
   if (on) {
     const d = (typeof FluyoStoryClock !== "undefined" ? FluyoStoryClock : FluyoStory).describe(scStatus === "running" ? "playing" : "finished", sc, scPlayback, (id) => scNodeFallback(id), (id) => edgeById(id));
     label = scStatus === "running" ? (scIsPaused() ? "En pausa" : "Reproduciendo") : "Terminada";
     caption = scStatus === "running" ? (d.caption ? d.title + " · " + d.caption : d.title) : d.summary ? d.caption + " · " + d.summary : d.caption;
     progress = d.moments.length > 1 ? Math.max(0, d.idx + 1) + " / " + d.moments.length : "";
+    /* PRODUCT-NARRATION-001 (D-PO-2): solo el momento con una frase del autor puede crecer en vez de cortarse */
+    narrated = scStatus === "running" && !!d.moments[d.idx]?.narrated;
   }
-  const sig = [on, label, caption, progress].join("|");
+  const sig = [on, label, caption, progress, narrated].join("|");
   if (sig === scNowLast) return;
   scNowLast = sig;
   box.hidden = !on;
@@ -1004,6 +1006,7 @@ function scRenderNow() {
   if (box.classList) box.classList.toggle("done", scStatus === "completed");
   if ($("scNowLabel")) $("scNowLabel").textContent = label;
   if ($("scNowCaption")) $("scNowCaption").textContent = caption;
+  if ($("scNowCaption")?.classList) $("scNowCaption").classList.toggle("narrated", narrated);
   if ($("scNowProgress")) $("scNowProgress").textContent = progress;
 }
 /* FLUYO-018.18 (D4): el momento activo se cuenta SOBRE el lienzo (#scNow vive en #wrap), arriba de la zona libre. Si el
@@ -1698,7 +1701,8 @@ function scStoryRow(step) {
   if (hasIdentity && sentence && scNormText(sentence) !== scNormText(d.eventType.name)) {
     text.appendChild(scEl("div", "scStepSecondary", sentence));
   }
-  /* FLUYO-MCP-STEP-MESSAGE-001: el mensaje propio del paso (el texto de su globo), bajo la frase. Sin él, el globo es el del evento. */
+  /* FLUYO-MCP-STEP-MESSAGE-001 / PRODUCT-NARRATION-001: la frase propia del paso, de cualquier evento, bajo la del evento. Al reproducir
+     es el título del momento (y, en un evento de elemento, su globo). Sin ella, lo de siempre. */
   if (scStepMessage(step)) text.appendChild(scEl("div", "scStepMessage", "«" + step.message + "»"));
   if (r.detail) text.appendChild(scEl("div", "scStepDetail", r.detail));
   if (d.missing && !isScenarioPlaybackActive())
@@ -1818,7 +1822,8 @@ function scStoryMenu(step, anchor) {
     ],
     [
       { label: "Cambiar dónde ocurre…", hint: where ? "Ahora: " + where : "", fn: () => scChangeTarget(step) },
-      ...(step.action === "SEND" ? [scReverseMenuItem(step)] : [scMessageMenuItem(step, anchor)]),
+      ...(step.action === "SEND" ? [scReverseMenuItem(step)] : []),
+      scMessageMenuItem(step, anchor),
     ],
     [
       { label: "Duplicar", hint: "Al mismo tiempo, justo debajo", fn: () => scDuplicateStep(step.id) },
@@ -1856,34 +1861,47 @@ function scToggleStepReverse(id) {
   scCommit();
   return true;
 }
-/* ─────────── FLUYO-MCP-STEP-MESSAGE-001: «Mensaje del paso…» (decisión 255) ───────────
-   El texto del globo de ESTA aparición, en vez del mensaje de su evento (que sigue siendo el de todos sus usos). Solo en eventos de
-   elemento: un envío no tiene globo. Reutiliza setStepMessage (model.js): una entrada de Undo, la selección no cambia y no toca
-   tiempos, orden, objetivo ni dependencias. "" o solo espacios no son un mensaje: para quitarlo está «Quitar mensaje». */
+/* ─────────── FLUYO-MCP-STEP-MESSAGE-001 y PRODUCT-NARRATION-001: «Mensaje del paso…» (decisiones 255 y 258) ───────────
+   La frase de ESTA aparición, escrita por el autor: al reproducir es el título de su momento (editor, Present, Viewer) en vez del
+   nombre del evento y, en un evento de elemento, también el texto de su globo. El evento sigue siendo el de todos sus usos. En
+   cualquier paso, también en un envío. Reutiliza setStepMessage (model.js): una entrada de Undo, la selección no cambia y no toca
+   tiempos, orden, objetivo, sentido ni dependencias. "" o solo espacios no son un mensaje: para quitarlo está «Quitar mensaje». */
 function scStepMessage(step) {
-  return step && step.action !== "SEND" && typeof step.message === "string" ? step.message : null;
+  return step && typeof step.message === "string" ? step.message : null;
 }
 function scMessageMenuItem(step, anchor) {
   const own = scStepMessage(step),
-    fx = eventTypeById(step.eventTypeId)?.presentation?.nodeEffects;
-  const hint = own ? "«" + own + "»" : fx?.message ? "Ahora el del evento: «" + fx.message + "»" : "Ahora sin mensaje";
+    et = eventTypeById(step.eventTypeId),
+    fx = et?.presentation?.nodeEffects;
+  /* el texto nuevo de esta tarea pasa por FluyoI18n (decisión 261); el de siempre, como estaba */
+  const hint = own
+    ? "«" + own + "»"
+    : step.action === "SEND" && et
+      ? FluyoI18n.t("step.message.nowReads", "Ahora se lee «{name}»", { name: et.name })
+      : step.action !== "SEND" && fx?.message ? "Ahora el del evento: «" + fx.message + "»" : "Ahora sin mensaje";
   return { label: "Mensaje del paso…", hint, fn: () => scEditStepMessage(step.id, anchor), disabled: scIsTargetMissing(step) };
 }
 function scEditStepMessage(id, anchor) {
   if (!scEditable()) return;
   const step = scActiveScenario()?.steps.find((x) => x.id === id);
-  if (!step || step.action === "SEND") return;
+  if (!step) return;
   const p = scOpenPopover(anchor);
   if (!p) return;
   const own = scStepMessage(step),
-    fx = eventTypeById(step.eventTypeId)?.presentation?.nodeEffects;
+    et = eventTypeById(step.eventTypeId),
+    fx = et?.presentation?.nodeEffects,
+    send = step.action === "SEND";
   const label = scEl("label", "", "Mensaje de este paso"),
     input = scEl("input", "scMessageInput");
   input.value = own || "";
   input.maxLength = STEP_MESSAGE_MAX_LEN;
-  if (fx?.message) input.placeholder = fx.message;
+  /* de ejemplo, lo que se lee hoy: el globo del evento o, si no lo tiene (o es un envío), su frase */
+  const now = !send && fx?.message ? fx.message : et ? FluyoStory.sentence(P(), step, et) : "";
+  if (now) input.placeholder = now;
   label.appendChild(input);
-  p.append(label, scEl("p", "", "Se ve en el globo de este paso, en lugar del mensaje del evento. No cambia tiempos."));
+  p.append(label, scEl("p", "", send
+    ? FluyoI18n.t("step.message.helpSend", "Se lee al reproducir este paso, en lugar del nombre del evento. No cambia tiempos.")
+    : FluyoI18n.t("step.message.helpElement", "Se lee al reproducir este paso y en su globo, en lugar del texto del evento. No cambia tiempos.")));
   const save = () => {
     if (!input.value.trim()) {
       input.setCustomValidity("Escribe el mensaje, o usa «Quitar mensaje».");
@@ -1914,7 +1932,7 @@ function scSetStepMessage(id, message) {
   if (!scEditable()) return false;
   const sc = scActiveScenario(),
     s = sc && sc.steps.find((x) => x.id === id);
-  if (!s || s.action === "SEND") return false;
+  if (!s) return false;
   if ((scStepMessage(s) ?? null) === message) return false;
   pushUndo();
   setStepMessage(sc, id, message);

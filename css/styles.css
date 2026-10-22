@@ -963,6 +963,11 @@ body.presenting .scNow{display:none;}
 .scLive{display:inline-block; width:7px; height:7px; border-radius:50%; background:#C9D2AE; animation:scLive 1.4s ease-in-out infinite;}
 .scNow.done .scLive, .scNow.paused .scLive{animation:none; opacity:.55;}
 .scNowCaption{font:400 15px/1.2 var(--font-serif); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+/* PRODUCT-NARRATION-001 (decisión 258, D-PO-2): si el momento lleva una frase del autor (.narrated, editor-scenarios.js), no se corta:
+   pasa a otra línea (lo que cabe sigue midiendo 36 px) y el rótulo mide lo que su contenido (width:max-content, como #presentStory:
+   con left:50% el ajuste al contenido solo tendría medio lienzo). Sin frase, el rótulo de siempre (una línea, «…»). */
+.scNow:has(.scNowCaption.narrated){width:max-content;}
+.scNowCaption.narrated{overflow:visible; text-overflow:clip; white-space:normal; overflow-wrap:anywhere; padding:6px 0;}
 .scNowCaption:empty{display:none;}
 .scNowProgress{flex:none; font:500 var(--fs-label)/1 var(--font-mono); color:rgba(242,237,227,.62); letter-spacing:.04em; font-variant-numeric:tabular-nums;}
 .scNowProgress:empty{display:none;}

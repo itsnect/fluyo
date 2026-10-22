@@ -295,8 +295,8 @@ test("alcance · entre los archivos servidos solo cambian model.js, geometry.js,
   for (const f of ["js/config.js", "js/safe-svg.js", "js/scenario-engine.js", "js/scenario-playback.js", "js/story-playback.js", "js/document-integrity.js", "js/story-authoring.js",
     "js/story-clock.js", "js/skin.js", "js/viewer.js", "js/export.js", "js/state.js", "js/selection.js", "js/editor-scenarios.js", "s/index.html"]) assert.equal(undo4b(f, undo3(f, read(f))), before(f), f);
   const sw = undo3("sw.js", read("sw.js"));
-  assert.match(sw, /const CACHE = "fluyo-static-v105";/);
-  assert.equal(sw.replace('"fluyo-static-v105"', '"fluyo-static-v' + (94 - 1) + '"'), before("sw.js"), "sw.js: solo sube CACHE (sin archivos nuevos)");
+  assert.match(sw, /const CACHE = "fluyo-static-v106";/);
+  assert.equal(sw.replace('"fluyo-static-v106"', '"fluyo-static-v' + (94 - 1) + '"'), before("sw.js"), "sw.js: solo sube CACHE (sin archivos nuevos)");
   /* UNKNOWN sigue fuera (D3): el kernel solo admite UP/DOWN */
   assert.match(read("js/model.js"), /const SCENARIO_STATES=new Set\(\["UP","DOWN"\]\);/);
   assert.match(read("js/scenario-engine.js"), /const VALID_STATES = new Set\(\["UP", "DOWN"\]\);/);

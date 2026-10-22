@@ -92,7 +92,7 @@ const check = (ok, what) => { results.push([!!ok, what]); console.log(`${ok ? " 
       console.log("\nB) docs/ (asset servido): tools del contrato y precache v72");
       const sw = fs.readFileSync(path.join(root, "sw.js"), "utf8");
       const cache = /const CACHE = "([^"]+)"/.exec(sw)[1];
-      check(cache === "fluyo-static-v105", `sw.js: CACHE = ${cache}`);
+      check(cache === "fluyo-static-v106", `sw.js: CACHE = ${cache}`);
       check(sw.includes('"./docs/"'), "sw.js precachea ./docs/");
       const ctx = await newCtx();
       const pg = watch(await ctx.newPage());
@@ -115,8 +115,8 @@ const check = (ok, what) => { results.push([!!ok, what]); console.log(`${ok ? " 
         await pg.waitForTimeout(200);
       }
       const keys = await pg.evaluate(() => caches.keys());
-      check(JSON.stringify(keys) === '["fluyo-static-v105"]', `la caché instalada es solo fluyo-static-v105 (${keys.join()})`);
-      const cached = await pg.evaluate(async (b) => !!(await (await caches.open("fluyo-static-v105")).match(b + "/docs/")), base);
+      check(JSON.stringify(keys) === '["fluyo-static-v106"]', `la caché instalada es solo fluyo-static-v106 (${keys.join()})`);
+      const cached = await pg.evaluate(async (b) => !!(await (await caches.open("fluyo-static-v106")).match(b + "/docs/")), base);
       check(cached, "el SW (v72) tiene ./docs/ en caché");
       await ctx.setOffline(true);
       const off = watch(await ctx.newPage());

@@ -126,9 +126,14 @@ function undoMsg(file, src) {
 }
 const undoMsg6 = (file, src) => undo6(file, undoMsg(file, src));
 const undoMsg56 = (file, src) => undo56(file, undoMsg(file, src));
-/* Los alcances antiguos usan las CLAVES de PIECES para saber qué archivos deshace undoMsg: también los de FLUYO-018.29 (undo029). */
+/* Los alcances antiguos usan las CLAVES de PIECES para saber qué archivos deshace undoMsg: también los de FLUYO-018.29 (undo029), los
+   de FLUYO-018.30 (undo030) y los de PRODUCT-NARRATION-001, que undo030 deshace antes (undoNarr). */
 const { PIECES: PIECES029 } = require("./fluyo-018-29-undo.cjs");
 const { PIECES: PIECES030 } = require("./fluyo-018-30-undo.cjs");
 /* FLUYO-I18N-001: sus archivos también, salvo sw.js (los alcances antiguos ya lo cuentan aparte por CACHE; su precache lo deshace undoI18n). */
 const { "sw.js": _swI18n, ...PIECESI18N } = require("./fluyo-i18n-001-undo.cjs").PIECES;
-module.exports = { undoMsg, undoMsg6, undoMsg56, BASE_MSG, PIECES: Object.assign({}, PIECESI18N, PIECES030, PIECES029, PIECES) };
+/* FLUYO-PRODUCT-NARRATION-001 va encima de I18N: undoI18n la deshace antes (undoNarr); sus claves también. */
+/* Salvo los archivos que I18N crea (js/i18n-en.js): no existen en las bases antiguas, que ya los excluyen (NEW_FILES). */
+const { PIECES_NARR, NEW_FILES: NEW_I18N } = require("./fluyo-i18n-001-undo.cjs");
+const PIECESNARR = Object.fromEntries(Object.entries(PIECES_NARR).filter(([f]) => !NEW_I18N.includes(f)));
+module.exports = { undoMsg, undoMsg6, undoMsg56, BASE_MSG, PIECES: Object.assign({}, PIECESNARR, PIECESI18N, PIECES030, PIECES029, PIECES) };

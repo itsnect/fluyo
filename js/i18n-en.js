@@ -76,5 +76,9 @@ FLUYO_LOCALES.en={
   "viewer.error.invalidDocument":"The shared document isn't a valid Fluyo diagram.",
   "viewer.error.unsupportedVersion":"This diagram needs a newer version of Fluyo.",
   "viewer.error.unavailable":"Couldn't load the diagram right now. Please try again later.",
-  "page.untitled":"Page {n}"
+  "page.untitled":"Page {n}",
+  /* Historia · «Mensaje del paso…» en un envío (FLUYO-PRODUCT-NARRATION-001) */
+  "step.message.nowReads":"Now it reads «{name}»",
+  "step.message.helpSend":"Shown while this step plays, instead of the event's name. Timing doesn't change.",
+  "step.message.helpElement":"Shown while this step plays and in its bubble, instead of the event's text. Timing doesn't change."
 };

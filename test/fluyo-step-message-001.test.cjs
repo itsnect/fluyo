@@ -83,8 +83,9 @@ test("A1 · validatePersistedStep: message en OCCURRENCE y SET_STATE (cualquier 
   assert.equal(v(down(1, 0, U, { message: "en v1" }), 1), "ok", "como eventTypeId, vale en un SET_STATE de una Historia v1");
   for (const m of ["", " ", "   ", "\t\n ", "x".repeat(121), s119 + emoji, null, 42, true, {}, ["x"]])
     assert.equal(v(occ(1, 0, U, { message: m })), "invalid_document", JSON.stringify(m));
-  for (const s of [send(1, 0, 4, { message: "hola" }), send(1, 0, 4, { message: "hola", reverse: true }), send(1, 0, 4, { message: "" })])
-    assert.equal(v(s), "invalid_document", "SEND: " + JSON.stringify(s));
+  /* PRODUCT-NARRATION-001 (decisión 258): un SEND también admite message; las mismas reglas de texto */
+  for (const s of [send(1, 0, 4, { message: "hola" }), send(1, 0, 4, { message: "hola", reverse: true })]) assert.equal(v(s), "ok", "SEND: " + JSON.stringify(s));
+  assert.equal(v(send(1, 0, 4, { message: "" })), "invalid_document", "SEND con \"\"");
   assert.equal(v({ id: 1, at: 0, action: "OCCURRENCE", nodeId: 1, message: "sin evento" }), "ok", "un paso sin eventTypeId también");
 });
 
@@ -97,14 +98,15 @@ test("A2 · carga: sin message, lo de siempre; con message, ida y vuelta EXACTA 
   const raw = project([occ(1, 0, U, { message: "  hola   " }), occ(2, 1000, A, { message: "שלום 😀" })]);
   assert.deepEqual(run(`${LOAD}.doc.pages[0].scenarios[0].steps.map(s => s.message)`, raw), ["  hola   ", "שלום 😀"]);
   for (const m of ["", "   ", "x".repeat(121), null]) assert.equal(loads(project([occ(1, 0, U, { message: m })])), "invalid_document", JSON.stringify(m));
-  assert.equal(loads(project([send(1, 0, 4, { message: "x" })])), "invalid_document", "SEND");
+  assert.equal(loads(project([send(1, 0, 4, { message: "x" })])), "abre", "SEND (decisión 258)");
 });
 
 test("A3 · stepDefinitionForEvent y setStepMessage: solo eventos de elemento; null quita la clave; nada más cambia", () => {
   assert.deepEqual(run(`stepDefinitionForEvent(__a[1], 1, 0, undefined, "hola")`, ETS), { at: 0, eventTypeId: 2, action: "OCCURRENCE", nodeId: 1, message: "hola" });
   assert.deepEqual(run(`stepDefinitionForEvent(__a[2], 1, 0, undefined, "cae")`, ETS), { at: 0, eventTypeId: 3, action: "SET_STATE", nodeId: 1, state: "DOWN", message: "cae" });
   assert.deepEqual(run(`stepDefinitionForEvent(__a[1], 1, 0)`, ETS), { at: 0, eventTypeId: 2, action: "OCCURRENCE", nodeId: 1 }, "sin message, sin clave");
-  for (const [i, m] of [[0, "hola"], [1, ""], [1, "  "], [1, "x".repeat(121)], [1, null]])
+  assert.deepEqual(run(`stepDefinitionForEvent(__a[0], 4, 0, undefined, "hola")`, ETS), { at: 0, eventTypeId: 1, action: "SEND", edgeId: 4, message: "hola" }, "FLOW (decisión 258)");
+  for (const [i, m] of [[1, ""], [1, "  "], [1, "x".repeat(121)], [1, null]])
     assert.deepEqual(err(`stepDefinitionForEvent(__a[${i}], 1, 0, undefined, ${JSON.stringify(m)})`, ETS), { code: "invalid_document" }, `${i} ${JSON.stringify(m)}`);
   const r = run(`(()=>{ const d = ${LOAD}.doc, sc = d.pages[0].scenarios[0], before = JSON.stringify(sc);
     const a = JSON.stringify(setStepMessage(sc, 5, "nuevo")), b = JSON.stringify(setStepMessage(sc, 1, null)), c = JSON.stringify(setStepMessage(sc, 4, "otro"));
@@ -113,7 +115,7 @@ test("A3 · stepDefinitionForEvent y setStepMessage: solo eventos de elemento; n
   assert.deepEqual(JSON.parse(r.a), occ(5, 2000, A, { message: "nuevo" }));
   assert.deepEqual(JSON.parse(r.b), occ(1, 0, U), "null quita la clave");
   assert.deepEqual(JSON.parse(r.c), down(4, 2000, D, { message: "otro" }));
-  assert.deepEqual(r.errs, ["invalid_document", "invalid_document", "invalid_document", "invalid_document", "step_not_found", "invalid_document", "invalid_document"]);
+  assert.deepEqual(r.errs, ["ok", "invalid_document", "invalid_document", "invalid_document", "step_not_found", "invalid_document", "invalid_document"], "el SEND (2) ya admite message (decisión 258)");
   assert.deepEqual(r.steps.map(({ message, ...s }) => s), STEPS.map(({ message, ...s }) => s), "id, at, orden, objetivo y evento intactos");
 });
 
@@ -123,8 +125,9 @@ test("B1 · motor: message es presentación en pasos de elemento (no es un campo
   const S = { nodes: [{ id: 1 }, { id: 2 }], edges: [{ id: 3, from: 1, to: 2 }] };
   const ok = run(`FluyoScenarios.runScenario(__a.s, [], __a.sc)`, { s: S, sc: scen([{ id: 1, at: 0, action: "OCCURRENCE", nodeId: 1, message: "x" }, { id: 2, at: 0, action: "SET_STATE", nodeId: 2, state: "DOWN", message: "y" }]) });
   assert.equal(ok.ok, true);
-  const bad = run(`FluyoScenarios.runScenario(__a.s, [], __a.sc).errors.map(e => [e.code, e.reason])`, { s: S, sc: scen([{ id: 1, at: 0, action: "SEND", edgeId: 3, message: "x" }]) });
-  assert.deepEqual(bad, [["invalid_scenario", "extra_fields"]]);
+  /* PRODUCT-NARRATION-001 (decisión 258): en un SEND ya no es un campo de más */
+  const sendOk = run(`FluyoScenarios.runScenario(__a.s, [], __a.sc).ok`, { s: S, sc: scen([{ id: 1, at: 0, action: "SEND", edgeId: 3, message: "x" }]) });
+  assert.equal(sendOk, true);
 });
 
 test("B2 · FluyoIntegrity: un message inválido es invalid_step del paso; uno válido no es un error", () => {
@@ -134,7 +137,8 @@ test("B2 · FluyoIntegrity: un message inválido es invalid_step del paso; uno v
     const r = check(project([occ(1, 0, U), occ(2, 10, A, { message: m })]));
     assert.deepEqual(r.errors.map((e) => [e.code, e.stepId]), [["invalid_step", 2]], JSON.stringify(m));
   }
-  assert.deepEqual(check(project([send(1, 0, 4, { message: "x" })])).errors.map((e) => [e.code, e.stepId]), [["invalid_step", 1]]);
+  assert.deepEqual(check(project([send(1, 0, 4, { message: "x" })])).errors, [], "SEND (decisión 258)");
+  assert.deepEqual(check(project([send(1, 0, 4, { message: " " })])).errors.map((e) => [e.code, e.stepId]), [["invalid_step", 1]]);
 });
 
 /* ═══════════════ C. Playback (editor, Present y Viewer): el globo; nada temporal cambia ═══════════════ */
@@ -157,7 +161,8 @@ test("C2 · la frase y el título del momento (Present, Viewer) siguen siendo lo
     return {sentences: sc.steps.map(s => FluyoStory.sentence(pg, s, eventTypeById(s.eventTypeId))),
             labels: FluyoStory.describe("ready", sc, null, () => "", () => null).moments.map(x => x.label)}; })()`, project(STEPS));
   assert.deepEqual(out.sentences, ["Usuario pregunta", "Usuario pide a API", "API pide a DB", "DB cae", "API pregunta"]);
-  assert.deepEqual(out.labels, ["Pregunta", "Pide", "Pide", "Cae · Pregunta"]);
+  /* PRODUCT-NARRATION-001 (decisión 258): el título de un momento dice el message de cada paso que lo tiene; el resto, su evento */
+  assert.deepEqual(out.labels, ["¿Cuál es mi saldo?", "Pide", "Pide", "La BD no responde · Pregunta"]);
 });
 
 test("C3 · la reproducción (FluyoStory.start → tick, la receta de editor, Present y Viewer) pinta el texto del paso en el globo de su nodo", () => {
@@ -230,8 +235,8 @@ test("E1 · add_step {message}: en eventos de elemento (al final y en el mismo m
   assert.deepEqual(r.steps.find((s) => s.id === 7), down(7, 0, A, { message: "API cae" }));
   assert.ok(!("message" in r.changes[0]), "la respuesta no repite el texto");
   r = apply(p, [sop("add_step", { eventTypeId: 1, target: { edgeId: 4 }, message: "hola" })]);
-  assert.deepEqual(r.errors.map((e) => [e.code, e.field]), [["INVALID_OPERATION", "message"]]);
-  assert.match(r.errors[0].message, /un envío no tiene globo/);
+  assert.ok(r.ok, "FLOW (decisión 258)");
+  assert.deepEqual(r.steps.at(-1), send(6, 3000, 4, { message: "hola" }));
   for (const m of ["", "   ", "x".repeat(121), null, 5]) {
     r = apply(p, [sop("add_step", { eventTypeId: 2, target: { nodeId: D }, message: m })]);
     assert.deepEqual(r.errors.map((e) => [e.code, e.field]), [["INVALID_FIELD", "message"]], JSON.stringify(m));
@@ -255,13 +260,11 @@ test("E2 · set_step_message: fija, cambia y quita (null); igual → changed:fal
   r = apply(pd, [sop("set_step_message", { stepId: 4, message: "otra" })]);
   assert.deepEqual(r.steps.map(({ message, ...s }) => s), STEPS.map(({ message, ...s }) => s), "ids, at, orden, objetivos y eventos");
   assert.deepEqual(r.deps, deps.arrivalDependencies, "dependencias");
+  /* PRODUCT-NARRATION-001 (decisión 258): un SEND también */
   r = apply(p, [sop("set_step_message", { stepId: 2, message: "x" })]);
-  assert.deepEqual(r.errors.map((e) => [e.code, e.field]), [["INVALID_OPERATION", "message"]], "SEND");
-  for (const m of ["x", null]) {
-    const e = apply(p, [sop("set_step_message", { stepId: 2, message: m })]).errors;
-    assert.deepEqual(e.map((x) => [x.code, x.field]), [["INVALID_OPERATION", "message"]], "SEND: " + JSON.stringify(m));
-    assert.match(e[0].message, /un envío no tiene globo/, "y lo explica: " + JSON.stringify(m));
-  }
+  assert.ok(r.ok, "SEND");
+  assert.deepEqual(r.steps.find((s) => s.id === 2), send(2, 900, 4, { message: "x" }));
+  assert.equal(apply(p, [sop("set_step_message", { stepId: 2, message: null })]).changes[0].changed, false, "SEND sin message: quitar no cambia nada");
   for (const m of ["", "  ", "x".repeat(121), 3]) assert.deepEqual(apply(p, [sop("set_step_message", { stepId: 1, message: m })]).errors.map((e) => e.code), ["INVALID_FIELD"], JSON.stringify(m));
   assert.deepEqual(apply(p, [sop("set_step_message", { stepId: 1 })]).errors.map((e) => [e.code, e.field]), [["INVALID_OPERATION", "message"]], "sin message");
   assert.deepEqual(apply(p, [sop("set_step_message", { stepId: 9, message: "x" })]).errors.map((e) => e.code), ["STEP_NOT_FOUND"]);
@@ -349,6 +352,8 @@ function editor(src = read("js/editor-scenarios.js"), fns = ED_FNS) {
     document: { createElement: fakeNode, createTextNode: (t) => ({ textContent: t, children: [] }) } });
   const R = (code) => vm.runInContext(code, ctx);
   for (const f of KERNEL.slice(0, 9)) vm.runInContext(read("js/" + f), ctx, { filename: f });
+  /* los textos nuevos de «Mensaje del paso…» pasan por FluyoI18n (decisión 261): el runtime real, en español */
+  vm.runInContext(read("js/i18n.js"), ctx, { filename: "i18n.js" });
   R(`var selN=new Set(), selE=new Set(), clip=null, scPlayback=null, scStatus="idle", scActive=1, scPlacement=null, scContext=null, scSelectedStep=null, __commits=0, __menu=null, __notices=[];
      function confirm(){ return true; } function alert(){} function refreshPanel(){} function renderTabs(){} function scheduleAutosave(){}
      function isScenarioPlaybackActive(){ return scStatus==="running"; } function scActiveScenario(){ return P().scenarios.find(s=>s.id===scActive) || null; }
@@ -373,7 +378,9 @@ test("G1 · menú: «Mensaje del paso…» solo en eventos de elemento, justo de
   assert.deepEqual(e.menu(1)[1][1], { label: "Mensaje del paso…", hint: "Ahora el del evento: «Caída»", disabled: false });
   e.load(project(STEPS));
   for (const id of [1, 4, 5]) assert.deepEqual(e.menu(id).map((sec) => sec.filter((it) => it.label !== "Mensaje del paso…")), base.menu(id), "el resto del menú, como en " + BASE);
-  assert.deepEqual(e.menu(2), base.menu(2), "un SEND no la tiene: su menú es el de " + BASE);
+  /* PRODUCT-NARRATION-001 (decisión 258): un SEND también la tiene, tras «Invertir sentido»; el resto, como en la base */
+  assert.deepEqual(e.menu(2)[1].map((it) => it.label), ["Cambiar dónde ocurre…", "Invertir sentido", "Mensaje del paso…"]);
+  assert.deepEqual(e.menu(2).map((sec) => sec.filter((it) => it.label !== "Mensaje del paso…")), base.menu(2), "SEND: el resto del menú, como en " + BASE);
 });
 
 test("G2 · editar, cambiar y quitar: UNA entrada de Undo cada vez; Undo/Redo exactos; la selección no cambia; sin cambio, nada", () => {
@@ -392,7 +399,7 @@ test("G2 · editar, cambiar y quitar: UNA entrada de Undo cada vez; Undo/Redo ex
   e.R("undo()"); assert.deepEqual(e.steps(), s1, "Undo: vuelve el mensaje");
   e.R("undo()"); assert.deepEqual(e.steps(), s0, "Undo: el original exacto");
   e.R("redo()"); e.R("redo()"); assert.deepEqual(e.steps()[0], occ(1, 0, U)); assert.equal(e.steps()[4].message, "Nuevo texto");
-  assert.equal(e.R(`scSetStepMessage(2, "x")`), false, "SEND");
+  assert.equal(e.R(`scSetStepMessage(2, "x")`), true, "SEND (decisión 258)");
   assert.equal(e.R(`scSetStepMessage(4, null)`), true);
   assert.equal(e.R(`scSetStepMessage(4, null)`), false, "quitar lo que no hay: nada");
 });
@@ -471,9 +478,9 @@ test("H3 · un lector anterior (" + BASE + ") RECHAZA un documento con message (
 test("I1 · versiones: engineVersion 2 y version 5 (NO v3); sw.js sube a v102; motor solo filtra la clave; reloj, Viewer y Present sin diff", () => {
   assert.equal(run("FluyoScenarios.ENGINE_VERSION"), 2);
   assert.equal(run("projectToSerializable({}, {}).version"), 5);
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v105";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v106";/);
   const { undoI18n } = require("./fluyo-i18n-001-undo.cjs");   /* FLUYO-I18N-001 añade al precache js/i18n-en.js y js/i18n.js */
-  assert.equal(undoI18n("sw.js", read("sw.js")).replace('"fluyo-static-v105"', '"fluyo-static-v' + (102 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante");
+  assert.equal(undoI18n("sw.js", read("sw.js")).replace('"fluyo-static-v106"', '"fluyo-static-v' + (102 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante");
   const { undo029 } = require("./fluyo-018-29-undo.cjs"), { undo030 } = require("./fluyo-018-30-undo.cjs");   /* FLUYO-018.29 (R1 + G1) y FLUYO-018.30 van encima: se deshacen antes */
   for (const f of ["js/story-clock.js", "js/scenario-playback.js", "js/render.js", "js/viewer.js", "js/present-story.js", "js/link-codec.js", "js/share-url.js", "js/document-integrity.js", "index.html", "s/index.html"])
     assert.equal(undo029(f, undo030(f, undoI18n(f, read(f)))), atBase(f), f + " sin cambios");   /* FLUYO-I18N-001 encima de 018.30 */

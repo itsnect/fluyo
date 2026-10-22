@@ -352,6 +352,8 @@ function storyRefresh(){
   const d=FluyoStoryClock.describe(phase, sc, story && story.playback, storyNodeName, id=>edgeById(id));
   storySet("stKicker","text",phase==="ready" ? FluyoI18n.t("story.group","Historia") : FluyoI18n.t("story.kicker","Historia · {name}",{name:sc.name}));
   storySet("stTitle","text",d.title);
+  /* PRODUCT-NARRATION-001 (D-PO-2): solo el título con una frase del autor puede crecer en vez de cortarse (share.css) */
+  storySet("stTitle","className","stTitle"+(phase!=="ready" && d.moments[d.idx] && d.moments[d.idx].narrated ? " narrated" : ""));
   storySet("stCaption","text",storyError || (paused ? (d.caption ? FluyoI18n.t("story.pausedCaption","En pausa · {caption}",{caption:d.caption}) : FluyoI18n.t("story.paused","En pausa")) : d.caption));
   storySet("stSummary","text",d.summary);
   storySet("stProgress","text",phase!=="ready" && d.moments.length>1 ? Math.max(0,d.idx+1)+" / "+d.moments.length : "");

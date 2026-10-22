@@ -55,11 +55,15 @@ const PIECES = {
     ]
   ]
 };
+/* FLUYO-PRODUCT-NARRATION-001 va encima de esta tarea: se deshace antes (undoNarr), y los alcances antiguos siguen recibiendo su base. */
+const { undoNarr, PIECES: PIECES_NARR } = require("./fluyo-product-narration-001-undo.cjs");
 function undoI18n(file, src) {
+  src = undoNarr(file, src);
   const f = file.replace(/\\/g, "/"), pieces = PIECES[f];
   if (!pieces) return src;
   let out = src.replace(/\r\n/g, "\n");
   for (const [mine, base] of pieces) if (out.includes(mine)) out = out.replace(mine, () => base);
   return out;
 }
-module.exports = { undoI18n, BASE_I18N, PIECES, NEW_FILES };
+/* PIECES = solo los de esta tarea (los vigila test/fluyo-i18n-001.test.cjs); undoMsg suma las claves de PRODUCT-NARRATION-001 (PIECES_NARR). */
+module.exports = { undoI18n, BASE_I18N, PIECES, NEW_FILES, PIECES_NARR };

@@ -118,11 +118,9 @@ var FluyoAuthoring = (function(){
     if(typeof v!=="string" || !v.trim() || v.length>120) throw reject("INVALID_NAME", "El nombre debe ser un texto de 1 a 120 caracteres.", {field:"name"});
     return v;
   }
-  /* FLUYO-MCP-STEP-MESSAGE-001: el texto del globo de un paso de elemento. La regla es la de model.js (stepMessageValid); aquí solo se
-     explica el rechazo. `spec` = la acción del paso (eventTypeActionSpec o el propio Step). */
-  const NO_SEND_MESSAGE = "message solo existe en pasos de elemento (OCCURRENCE, SET_STATE): un envío no tiene globo.";
-  function messageOf(v, spec){
-    if(spec.action==="SEND") throw reject("INVALID_OPERATION", NO_SEND_MESSAGE, {field:"message"});
+  /* FLUYO-MCP-STEP-MESSAGE-001 y PRODUCT-NARRATION-001: la frase propia de un paso, de cualquier evento (decisiones 255 y 258). La
+     regla es la de model.js (stepMessageValid); aquí solo se explica el rechazo. */
+  function messageOf(v){
     if(!stepMessageValid(v)) throw reject("INVALID_FIELD", `message debe ser un texto de 1 a ${STEP_MESSAGE_MAX_LEN} caracteres que no sea solo espacios.`, {field:"message"});
     return v;
   }
@@ -824,7 +822,7 @@ var FluyoAuthoring = (function(){
       const spec = eventTypeActionSpec(et);
       if(!spec) throw reject("EVENT_TYPE_NOT_FOUND", `El evento ${et.id} no tiene una primitiva válida.`, {eventTypeId:et.id});
       const tgt = targetOf(ctx, op, pg, spec.target, op.target);
-      const message = op.message===undefined ? undefined : messageOf(op.message, spec);
+      const message = op.message===undefined ? undefined : messageOf(op.message);
       const before = clone(sc.steps);
       let step;
       if(op.placement===undefined){
@@ -921,14 +919,13 @@ var FluyoAuthoring = (function(){
       return Object.assign({entityKind:"step", entityId:st.id, storyId:sc.id, from, to:tgt.id}, previousReverse || tgt.reverse ? {reverse:tgt.reverse, previousReverse} : {},
         {affects:storyAffect(op.pageIndex, sc, {stepIds:[st.id]})});
     },
-    /* FLUYO-MCP-STEP-MESSAGE-001: fija (texto) o quita (null) el mensaje de un paso de elemento con la autoridad del editor
-       (setStepMessage). No toca at, orden, evento, objetivo, sentido ni dependencias: solo afecta a ese paso. */
+    /* FLUYO-MCP-STEP-MESSAGE-001 y PRODUCT-NARRATION-001: fija (texto) o quita (null) la frase de un paso, de cualquier evento, con la
+       autoridad del editor (setStepMessage). No toca at, orden, evento, objetivo, sentido ni dependencias: solo afecta a ese paso. */
     set_step_message(ctx, op, pg){
       const sc = storyOf(ctx, op, pg, true);
       const st = stepOf(ctx, sc, op.stepId, "stepId", op.pageIndex);
       if(op.message===undefined) throw reject("INVALID_OPERATION", "set_step_message necesita «message»: el texto, o null para quitarlo.", {field:"message"});
-      if(st.action==="SEND") throw reject("INVALID_OPERATION", NO_SEND_MESSAGE, {field:"message", stepId:st.id});
-      const to = op.message===null ? null : messageOf(op.message, st);
+      const to = op.message===null ? null : messageOf(op.message);
       const from = st.message===undefined ? null : st.message;
       setStepMessage(sc, st.id, to);
       touch(ctx, op.pageIndex, sc);

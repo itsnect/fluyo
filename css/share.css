@@ -105,6 +105,13 @@ body.presenting #story{ display:none; }
 .stNow .stKicker{ font:500 var(--fs-micro)/1.3 var(--font-mono); letter-spacing:.02em; color:#C9D2AE; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .stNow .stLine{ display:flex; align-items:baseline; gap:8px; min-width:0; white-space:nowrap; }
 .stNow .stTitle{ font:400 16px/1.25 var(--font-serif); min-width:0; overflow:hidden; text-overflow:ellipsis; flex:0 1 auto; }
+/* PRODUCT-NARRATION-001 (decisión 258, D-PO-2): si el momento lleva una frase del autor (.narrated, viewer.js), su título nunca se
+   corta: pasa a varias líneas y el mensaje y el progreso bajan a la siguiente (como #psTitle en Present). El rótulo mide entonces lo
+   que su contenido (width:max-content, como #presentStory): con left:50% el ajuste al contenido solo tendría medio lienzo. Sin frase,
+   el rótulo es el de siempre (una fila, «…»). */
+.stNow:has(.stTitle.narrated){ width:max-content; }
+.stNow .stLine:has(.stTitle.narrated){ flex-wrap:wrap; gap:2px 8px; }
+.stNow .stTitle.narrated{ overflow:visible; text-overflow:clip; white-space:normal; overflow-wrap:anywhere; }
 .stNow .stCaption, .stNow .stSummary{ font:400 var(--fs-label)/1.3 var(--font-mono); color:rgba(242,237,227,.78); min-width:0; overflow:hidden; text-overflow:ellipsis; flex:0 1 auto; }
 .stNow .stCaption:empty, .stNow .stSummary:empty, .stNow .stProgress:empty{ display:none; }
 .stNow .stProgress{ margin-left:auto; flex:none; font:500 var(--fs-label)/1 var(--font-mono); color:rgba(242,237,227,.62); font-variant-numeric:tabular-nums; }

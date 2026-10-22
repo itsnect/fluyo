@@ -305,15 +305,16 @@ test("carga: diccionario → runtime → config.js en el editor y en el Viewer; 
     assert.ok(at("i18n-en.js") > 0 && at("i18n-en.js") < at("i18n.js") && at("i18n.js") < at("config.js"), page);
   }
   const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v105";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v106";/);
   assert.ok(sw.includes('"./js/i18n-en.js"') && sw.includes('"./js/i18n.js"'));
   assert.doesNotMatch(read("s/index.html"), /<script>(?!\s*$)/, "el Viewer sigue sin script en línea (CSP)");
 });
 
 test("alcance: el documento, el formato y el kernel del MCP no cambian; i18n no es kernel; nada se guarda en el documento", () => {
+  const { undoNarr } = require("./fluyo-product-narration-001-undo.cjs");   /* FLUYO-PRODUCT-NARRATION-001 va encima (kernel): se deshace antes */
   for (const f of ["js/config.js", "js/safe-svg.js", "js/model.js", "js/scenario-engine.js", "js/scenario-playback.js", "js/story-playback.js",
     "js/document-integrity.js", "js/story-authoring.js", "js/story-clock.js", "js/flow-semantics.js", "js/render.js", "js/export.js", "js/state.js",
-    "js/deeplink.js", "js/share-url.js", "js/link-codec.js", "js/share-loader.js"]) assert.equal(read(f), atBase(f), f + " sin cambios");
+    "js/deeplink.js", "js/share-url.js", "js/link-codec.js", "js/share-loader.js"]) assert.equal(undoNarr(f, read(f)), atBase(f), f + " sin cambios");
   const src = read("js/i18n.js");
   assert.doesNotMatch(src, /\bdoc\b|settings|projectToSerializable|scheduleAutosave/, "el runtime no lee ni escribe el documento");
   assert.match(src, /STORAGE_KEY="fluyo\.ui\.lang"/, "la preferencia es del navegador, como fluyo.ui.theme");
@@ -325,7 +326,7 @@ test("undoI18n (para los alcances de slices anteriores) devuelve EXACTOS a la ba
   assert.deepEqual(Object.keys(PIECES).sort(), ["index.html", "js/editor-scenarios.js", "js/present-story.js", "js/ui.js", "js/viewer.js", "s/index.html", "sw.js"]);
   for (const f of Object.keys(PIECES)) {
     let out = undoI18n(f, read(f));
-    if (f === "sw.js") out = out.replace('"fluyo-static-v105"', '"fluyo-static-v' + (105 - 1) + '"');
+    if (f === "sw.js") out = out.replace('"fluyo-static-v106"', '"fluyo-static-v' + (105 - 1) + '"');
     assert.equal(out, atBase(f), f);
   }
   assert.deepEqual(NEW_FILES, ["js/i18n.js", "js/i18n-en.js"]);

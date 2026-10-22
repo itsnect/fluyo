@@ -4,7 +4,7 @@
     "js/config.js": 143,
     "js/deeplink.js": 6,
     "js/document-integrity.js": 12,
-    "js/editor-scenarios.js": 238,
+    "js/editor-scenarios.js": 237,
     "js/editor-share.js": 16,
     "js/examples.js": 12,
     "js/export.js": 26,
@@ -19,7 +19,7 @@
     "js/share-loader.js": 6,
     "js/skin.js": 1,
     "js/state.js": 2,
-    "js/story-authoring.js": 124,
+    "js/story-authoring.js": 123,
     "js/story-playback.js": 23,
     "js/ui.js": 88,
     "js/viewer.js": 5

@@ -8,6 +8,7 @@
    undoMsg6 = undo6 ∘ undoMsg y undoMsg56 = undo56 ∘ undoMsg (lo que antes era undo6 y undo56 a secas). */
 const BASE_MSG = "2da088e";
 const { undo6, undo56 } = require("./fluyo-scenarios-semantics-6-undo.cjs");
+const { undo029 } = require("./fluyo-018-29-undo.cjs");
 
 /* [texto de esta tarea, texto de la base]. Si el texto de esta tarea no está (otra versión del archivo), no se toca nada. */
 const PIECES = {
@@ -110,7 +111,9 @@ const PIECES = {
     ],
   ],
 };
+/* FLUYO-018.29 va encima de esta tarea: se deshace antes (undo029), y los alcances antiguos siguen recibiendo su base sin cambiar. */
 function undoMsg(file, src) {
+  src = undo029(file, src);
   const f = file.replace(/\\/g, "/"), pieces = PIECES[f];
   if (!pieces) return src;
   let out = src.replace(/\r\n/g, "\n");
@@ -119,4 +122,6 @@ function undoMsg(file, src) {
 }
 const undoMsg6 = (file, src) => undo6(file, undoMsg(file, src));
 const undoMsg56 = (file, src) => undo56(file, undoMsg(file, src));
-module.exports = { undoMsg, undoMsg6, undoMsg56, BASE_MSG, PIECES };
+/* Los alcances antiguos usan las CLAVES de PIECES para saber qué archivos deshace undoMsg: también los de FLUYO-018.29 (undo029). */
+const { PIECES: PIECES029 } = require("./fluyo-018-29-undo.cjs");
+module.exports = { undoMsg, undoMsg6, undoMsg56, BASE_MSG, PIECES: Object.assign({}, PIECES029, PIECES) };

@@ -117,7 +117,24 @@ var FluyoStoryClock = (function(){
     const started = start(page, scenario, t - times[k]);
     if(!started.ok) return started;
     FluyoScenarioPlayback.tick(started.playback, t);
+    /* FLUYO-018.29 (G1): saltar EN PAUSA es para mirar ese momento, que se ve entero ya (ver reveal). Reproduciendo, nada cambia. */
+    if(isPaused(c)) started.playback.revealAt = times[k];
     return {ok:true, playback:started.playback, index:k, at:times[k]};
+  }
+
+  /* FLUYO-018.29 (G1). Presentación, no transporte: el reloj sigue exactamente en `at`, y el Trace, el horario, la duración y
+     la salida de cada cue no cambian. Solo los cues del momento al que se saltó en pausa (`revealAt`) se saltan su entrada
+     (CUE_FADE_IN_MS): globo, `message`, símbolo y resaltado salen completos. Al reanudar siguen completos (no reaparecen
+     desde 0) y, pasada esa entrada, la envolvente normal ya daría lo mismo. Mientras dura la entrada la salida no ha empezado
+     (cada fade se acota a un tercio de la duración, cueEnvelope), así que completo = alpha 1. Recibe la proyección de
+     FluyoStory.renderState y devuelve la misma, con esos cues copiados (los del Playback no se tocan). */
+  function reveal(rs, playback){
+    const at = playback && playback.revealAt;
+    if(typeof at!=="number" || !rs || !rs.activeNodeEffects) return rs;
+    const ids = new Set();
+    for(const fx of playback.activeNodeEffects) if(fx.virtualAt===at) ids.add(fx.stepId);
+    if(ids.size) rs.activeNodeEffects = rs.activeNodeEffects.map(fx => ids.has(fx.stepId) && fx.enter<1 ? Object.assign({}, fx, {alpha:1, enter:1}) : fx);
+    return rs;
   }
 
   /* El texto de Present, el Viewer y el editor (FluyoStory.describe) con el momento en curso según el instante VISIBLE. */
@@ -128,7 +145,7 @@ var FluyoStoryClock = (function(){
     return Object.assign({}, d, {idx, title: idx>=0 && d.moments[idx] && d.moments[idx].label ? d.moments[idx].label : scenario.name});
   }
 
-  return {create, now, isPaused, pause, resume, momentTimes, momentIndex, prevTarget, nextTarget, seek,
+  return {create, now, isPaused, pause, resume, momentTimes, momentIndex, prevTarget, nextTarget, seek, reveal,
           arrivalDependencies, arrivalCandidates, stepWaits, momentWaits, pruneArrivalDependencies, withArrivalWait,
           withoutArrivalWaits, copyArrivalWaits, travelMs, schedule, visibleTrace, start, visibleAt, describe};
 })();

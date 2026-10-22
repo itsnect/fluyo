@@ -117,7 +117,8 @@ function renderViewerFrame(){
   /* La Historia se pinta con el mismo runtime que el editor (story-playback.js), con el reloj de story-clock.js: en pausa,
      la proyección se queda quieta. */
   if(story){
-    rs.scenarioRuntime=FluyoStory.renderState(story.playback, story.scenario, storyNow());
+    /* FLUYO-018.29 (G1): el momento al que se saltó en pausa se ve entero ya (story-clock.js) */
+    rs.scenarioRuntime=FluyoStoryClock.reveal(FluyoStory.renderState(story.playback, story.scenario, storyNow()), story.playback);
     /* SCENARIOS-SEMANTICS-001 FASE 5 (D7): lo que el lienzo pinta de la ruta observada, la misma receta que el editor y Present */
     const flow=storyFlowOverlay();
     if(flow) rs.scenarioRuntime.flow=flow;

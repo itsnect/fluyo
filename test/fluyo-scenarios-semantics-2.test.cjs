@@ -303,7 +303,8 @@ test("alcance · FASE 2 solo añade js/flow-semantics.js: ningún archivo servid
   for (const f of ONLY_REV) assert.equal(undo3(f, read(f)), execFileSync("git", ["-C", gitRoot, "show", MAIN + ":" + f], { encoding: "utf8" }).replace(/\r\n/g, "\n"), f + " = " + MAIN + " fuera de STEP-REVERSE-002");
   /* SCENARIOS-SEMANTICS-001 FASE 5 añade el Viewer, Present, la exportación SVG, share.css y docs: su alcance lo vigila test/fluyo-scenarios-semantics-5.test.cjs */
   const ONLY5 = ["css/share.css", "docs/index.html", "js/export.js", "js/present-story.js", "js/viewer.js", "s/index.html"];
-  assert.deepEqual([...new Set([...changed, ...untracked])].filter((f) => !FASE1.includes(f) && !ONLY4B.includes(f) && !ONLY3.includes(f) && !ONLY_REV.includes(f) && !ONLY5.includes(f)).sort(), ["js/flow-semantics.js"]);
+  const { undo029 } = require("./fluyo-018-29-undo.cjs"), ONLY029 = ["js/story-clock.js"].filter((f) => undo029(f, read(f)) === execFileSync("git", ["-C", gitRoot, "show", MAIN + ":" + f], { encoding: "utf8" }).replace(/\r\n/g, "\n"));   /* FLUYO-018.29 (G1) solo añade reveal al reloj: deshecho (undo029) es el de la base */
+  assert.deepEqual([...new Set([...changed, ...untracked])].filter((f) => !FASE1.includes(f) && !ONLY4B.includes(f) && !ONLY3.includes(f) && !ONLY_REV.includes(f) && !ONLY5.includes(f) && !ONLY029.includes(f)).sort(), ["js/flow-semantics.js"]);
   for (const f of ["index.html", "s/index.html", "sw.js"]) assert.ok(!undo3(f, read(f)).includes("flow-semantics"), f + " no carga ni precachea el módulo (fuera de FASE 3)");
   const lines = (args, f) => execFileSync("git", ["-C", gitRoot, "diff", "-U0", ...args, "--", f], { encoding: "utf8" }).replace(/\r\n/g, "\n").split("\n")
     .filter((l) => /^[-+]/.test(l) && !/^(---|\+\+\+) /.test(l) && !/const CACHE = /.test(l));

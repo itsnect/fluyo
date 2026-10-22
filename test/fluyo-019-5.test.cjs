@@ -174,6 +174,6 @@ test("alcance · kernel (model, config, motor, playback, integridad, autoría), 
     .split("\n").filter(Boolean).sort();
   /* FLUYO-019-HIT-TEST cambia a propósito editor-scenarios.js e interaction.js (acierto, puerto y foco): su alcance lo vigila test/fluyo-019-hit-test.test.cjs */
   assert.deepEqual(changed, ["js/editor-scenarios.js", "js/export.js", "js/geometry.js", "js/interaction.js", "js/render.js", "sw.js"]);
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v102";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v103";/);
   for (const f of ["./js/geometry.js", "./js/render.js", "./js/export.js"]) assert.ok(read("sw.js").includes(`"${f}"`) || read("sw.js").includes(`'${f}'`) || read("sw.js").includes(f.slice(1)), "precacheado: " + f);
 });

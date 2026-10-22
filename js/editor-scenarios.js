@@ -600,7 +600,9 @@ function scTick() {
 
 function buildScenarioRenderState() {
   if (!scPlayback) return null;
-  const rs = FluyoStory.renderState(scPlayback, scActiveScenario(), scNow());
+  let rs = FluyoStory.renderState(scPlayback, scActiveScenario(), scNow());
+  /* FLUYO-018.29 (G1): el momento al que se saltó en pausa se ve entero ya (story-clock.js) */
+  if (typeof FluyoStoryClock !== "undefined") rs = FluyoStoryClock.reveal(rs, scPlayback);
   /* SCENARIOS-SEMANTICS-001 FASE 4: lo que el lienzo pinta de la ruta observada (null sin ruta; FASE 5: también en Present) */
   const flow = scFlowOverlay();
   if (flow) rs.flow = flow;

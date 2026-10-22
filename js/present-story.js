@@ -144,6 +144,28 @@ function presentStoryRefresh(){
   if(route){ psSet("psFlow","text",route.text); psSet("psFlow","className","psFlow is"+route.status); }
 }
 
+/* FLUYO-018.29 (R1): borde inferior del encabezado en su forma MÁS ALTA, medido (0 si no hay encabezado). Lista, el encabezado
+   no tiene aún mensaje, cierre ni línea de la ruta; reproduciendo y terminada, sí (la ruta, decisión 246). Para que Reproducir no
+   tape la fila de arriba ni obligue a reencajar, se mide con esas filas desde el inicio: el mensaje y el cierre de «terminada»
+   (los del mismo modelo, FluyoStory.describe, sobre el Trace de la Historia: el cierre solo existe si algún envío falla) y la
+   línea de la ruta, si la Historia la tiene. Son filas sonda (mismas clases, aria-hidden), puestas y quitadas en la misma
+   tarea: nunca se pintan. Un mensaje de consecuencia más largo que una línea no se reserva (no se conoce hasta reproducir). */
+function presentHeaderBottom(){
+  const ps=$("presentStory");
+  if(!ps || ps.hidden || !ps.offsetHeight) return 0;
+  const probes=[];
+  const probe=(cls, text)=>{ const el=document.createElement("div"); el.className=cls; el.textContent=text; el.setAttribute("aria-hidden","true"); ps.appendChild(el); probes.push(el); };
+  const sc=presentHasStory() ? scActiveScenario() : null, run=sc ? FluyoStory.run(P(), sc) : null;
+  const end=run && run.ok ? FluyoStory.describe("finished", sc, {logEvents:run.trace.events, cursorVirtual:0}, ()=>"", ()=>null) : null;
+  if(!$("psCaption").textContent) probe("psCaption", end ? end.caption : "En pausa");
+  if(end && end.summary && !$("psSummary").textContent) probe("psSummary", end.summary);
+  const route=$("psFlow").hidden && sc && typeof scFlowPresentLine==="function" ? scFlowPresentLine() : null;
+  if(route) probe("psFlow is"+route.status, route.text);
+  const bottom=ps.getBoundingClientRect().bottom;
+  for(const el of probes) el.remove();
+  return bottom;
+}
+
 /* Encaja el diagrama en el espacio libre de la escena: deja aire alrededor y
    reserva el hueco del encabezado y de la barra. No toca la geometría. */
 function fitViewPresent(maxZoom=2.5){
@@ -154,9 +176,12 @@ function fitViewPresent(maxZoom=2.5){
   const b=getBounds();
   if(b.w<=0 || b.h<=0) return;
   const small=r.width<520;
+  /* el encabezado y el mando se miden con lo que ya muestra ESTA página (al cambiar de diapositiva aún tenían la anterior) */
+  presentStoryRefresh();
   /* el mando puede ocupar dos filas en vertical (Historia y páginas, FLUYO-018.18): se reserva su alto real */
   const bar=$("presentBar"), barH=bar && bar.offsetHeight ? bar.offsetHeight+28 : 0;
-  const side=small?12:32, top=presentHasStory()?(small?84:84):24, bottom=Math.max(small?76:88, barH);
+  /* FLUYO-018.29 (R1): el encabezado, por su alto real en su forma más alta (la caja del diagrama ya lleva su aire, getBounds) */
+  const side=small?12:32, top=Math.max(24, presentHeaderBottom()-r.top), bottom=Math.max(small?76:88, barH);
   const aw=Math.max(40,r.width-side*2), ah=Math.max(40,r.height-top-bottom);
   viewZoom=clamp(Math.min(aw/b.w, ah/b.h), 0.05, maxZoom);
   viewX=side+(aw-b.w*viewZoom)/2 - b.x*viewZoom;

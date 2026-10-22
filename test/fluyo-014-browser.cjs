@@ -356,8 +356,11 @@ const LARGO = `(() => { ${RESET}
         await inView("#stStop"); await noHScroll("reproduciendo");
         await p.waitForFunction(() => story.playback.activeSends.length > 0 || story.playback.activeNodeEffects.length > 0, null, { timeout: 8000 });
         await p.waitForTimeout(400); await shot(p, `r-${label}-${w}-play`);
-        /* tokens dentro del canvas visible */
-        const tok = await p.evaluate(() => { const r = document.getElementById("sv").getBoundingClientRect(), b = getBounds(), z = view.zoom;
+        /* tokens dentro del canvas visible. FLUYO-018.30: si la cámara sigue la Historia (el diagrama entero no se lee: teléfono en
+           vertical), lo que debe verse entero es el momento en curso, no todo el diagrama */
+        await p.waitForFunction(() => !window.__viewer.follow.moving, null, { timeout: 4000 });
+        const tok = await p.evaluate(() => { const r = document.getElementById("sv").getBoundingClientRect(), z = view.zoom;
+          const b = window.__viewer.follow.zoom !== null ? followBoxes()[Math.max(0, storyNav().index)] : getBounds();
           return { l: b.x * z + view.x, rt: (b.x + b.w) * z + view.x, t: b.y * z + view.y, bt: (b.y + b.h) * z + view.y, w: r.width, h: r.height }; });
         assert.ok(tok.l >= -1 && tok.rt <= tok.w + 1 && tok.t >= -1 && tok.bt <= tok.h + 1, "diagrama visible en el canvas: " + JSON.stringify(tok));
         await waitStory(p, "completed", 40000);

@@ -41,6 +41,12 @@ function setViewerPhase(phase){
    barra del navegador, la banda de la Historia) vuelve a encajar el diagrama. Encajar, cambiar de página o presentar lo
    devuelven a «no». */
 let viewMoved=false, wrapObserver=null, preMoved=false;
+/* FLUYO-018.30: la cámara de la Historia. followOn = la cámara sigue el momento en curso (Reproducir, Repetir, ⏭/⏮ la encienden;
+   arrastrar, pellizcar, la rueda, −/+, Encajar y Detener la apagan); solo actúa si el diagrama entero no se lee
+   (viewportFollowZoom). followApplied = ya movió la vista (Detener la devuelve entonces al diagrama entero). camera = transición en
+   curso {from,to,t0,dur}, que avanza en cada fotograma. */
+let followOn=false, followApplied=false, followKey=null, camera=null, followMemo={scenario:null, page:null, boxes:null};
+const CAMERA_MS=450, FOLLOW_MARGIN=16;
 
 /* ───────────────────────────── Estados ───────────────────────────── */
 
@@ -65,6 +71,7 @@ function clearViewerDocument(){
   }
   viewerPointers.clear();viewerPinch=null;
   story=null;storyError=null;storyLast={};
+  followOn=followApplied=false;followKey=camera=null;followMemo={scenario:null, page:null, boxes:null};
   $("story").hidden=true;
   $("stNow").hidden=true;
   storyHome();
@@ -113,6 +120,9 @@ function viewerRenderState(){
 function renderViewerFrame(){
   resizeCanvas(sv, $("wrap"));
   canvasDirty=true;
+  /* FLUYO-018.30: la cámara antes de pintar, para que el lienzo y el rótulo (storyPlace) usen la misma vista */
+  storyFollow();
+  cameraStep();
   const rs=viewerRenderState();
   /* La Historia se pinta con el mismo runtime que el editor (story-playback.js), con el reloj de story-clock.js: en pausa,
      la proyección se queda quieta. */
@@ -167,6 +177,7 @@ function storyPlay(){
   const started=FluyoStoryClock.start(P(), sc, FluyoStoryClock.now(clock, performance.now()));
   if(!started.ok){ storyError=started.errors[0]||null; storyRefresh(); return; }
   story={scenario:sc, playback:started.playback, status:"running", clock};
+  followOn=true; followKey=null;
   storyRefresh();
 }
 function storyPaused(){ return !!story && story.status==="running" && FluyoStoryClock.isPaused(story.clock); }
@@ -188,13 +199,118 @@ function storySeek(i){
   const r=FluyoStoryClock.seek(story.clock, performance.now(), P(), story.scenario, i);
   if(!r.ok) return;
   story.playback=r.playback; story.status="running";
+  /* saltar es pedir ver ESE momento: la cámara vuelve a seguir aunque se hubiera movido la vista */
+  followOn=true; followKey=null;
   storyRefresh();
 }
 function storyPrev(){ storySeek(storyNav().prev); }
 function storyNext(){ storySeek(storyNav().next); }
 function storyReset(){
   story=null; storyError=null;
+  followOn=followApplied=false; followKey=null; camera=null;
   if(viewerPhase==="ready") storyRefresh();
+}
+/* Detener: si la cámara de la Historia llegó a acercarse (aunque luego quien mira moviera la vista), vuelve al diagrama entero: el
+   estado de antes de reproducir. Donde no hizo falta seguir (escritorio), la vista no se toca. */
+function storyStop(){
+  const back=followApplied;
+  storyReset();
+  if(back && viewerPhase==="ready"){ viewMoved=false; cameraTo(fitTarget()); }
+}
+
+/* ─────────────────────── Cámara de la Historia (FLUYO-018.30) ───────────────────────
+   En un teléfono en vertical el diagrama entero sale a zoom 0,26–0,44 (etiquetas de 3–7 px) y no cambia en toda la Historia:
+   se ve DÓNDE pasa algo, pero no QUÉ. Reproduciendo, si el diagrama entero no se lee (viewportFollowZoom), la cámara se acerca
+   a un zoom legible (≥ 0,6, ≤ 1, el mismo en toda la Historia) y, al cambiar de momento, se desplaza para enseñarlo entero en la
+   zona libre (bajo el rótulo y, presentando, sobre el mando) solo si no se ve ya. Nunca en cada fotograma: solo al cambiar de
+   momento, al saltar y al cambiar el tamaño del lienzo. Donde el diagrama entero se lee (escritorio, tableta) nada cambia. */
+function viewerFreeRect(){
+  const r=$("wrap").getBoundingClientRect();
+  const card=$("stNow"), top=card && !card.hidden && card.offsetHeight ? card.offsetHeight+20 : 0;
+  const bottom=presenting && !$("prBar").hidden && $("prBar").offsetHeight ? $("prBar").offsetHeight+28 : 0;
+  return {left:0, top, width:r.width, height:Math.max(40, r.height-top-bottom)};
+}
+/* La caja de cada momento (mismo orden que FluyoStoryClock.momentTimes): sus elementos, los dos extremos y el trazado de sus
+   conexiones, con aire para el globo (encima) y la etiqueta de icono/imagen (debajo). focus = su primer elemento (o el punto
+   medio de su primera conexión), lo que se centra si el momento no cabe. */
+function followBoxes(){
+  const pg=P(), sc=story.scenario;
+  if(followMemo.scenario===sc && followMemo.page===pg) return followMemo.boxes;
+  const times=FluyoStoryClock.momentTimes(sc);
+  const boxes=times.map(at=>{
+    let x0=Infinity, y0=Infinity, x1=-Infinity, y1=-Infinity, focus=null;
+    const addNode=nd=>{ if(!nd) return; x0=Math.min(x0,nd.x-nd.w/2); y0=Math.min(y0,nd.y-nd.h/2); x1=Math.max(x1,nd.x+nd.w/2); y1=Math.max(y1,nd.y+nd.h/2); };
+    for(const st of sc.steps){
+      if(st.at!==at) continue;
+      if(st.edgeId){
+        const e=edgeById(st.edgeId); if(!e) continue;
+        addNode(nodeById(e.from)); addNode(nodeById(e.to));
+        const pts=edgePoints(e)||[];
+        for(const p of pts){ x0=Math.min(x0,p.x); y0=Math.min(y0,p.y); x1=Math.max(x1,p.x); y1=Math.max(y1,p.y); }
+        if(!focus && pts.length) focus={x:(pts[0].x+pts[pts.length-1].x)/2, y:(pts[0].y+pts[pts.length-1].y)/2, hw:0, hh:0, edge:true};
+      } else {
+        const nd=nodeById(st.nodeId); addNode(nd);
+        if(nd && (!focus || focus.edge)) focus={x:nd.x, y:nd.y, hw:nd.w/2+12, hh:nd.h/2+24};
+      }
+    }
+    if(!Number.isFinite(x0)) return null;
+    x0-=12; x1+=12; y0-=40; y1+=24;
+    return {x:x0, y:y0, w:x1-x0, h:y1-y0, focus};
+  });
+  followMemo={scenario:sc, page:pg, boxes};
+  return boxes;
+}
+/* El encuadre del diagrama entero, sin aplicarlo (lo que haría fitView). */
+function fitTarget(){
+  const r=$("wrap").getBoundingClientRect(), f=viewerFreeRect();
+  const vp=fitViewportToBounds({x:0, y:0, zoom:view.zoom}, getBounds(), r.width, f.height);
+  vp.y+=f.top;
+  return vp;
+}
+function prefersReducedMotion(){ try{ return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches); }catch(e){ return false; } }
+function cameraTo(target, instant){
+  if(!target || ![target.x,target.y,target.zoom].every(Number.isFinite)) return;
+  if(instant || prefersReducedMotion()){ camera=null; Object.assign(view, {x:target.x, y:target.y, zoom:target.zoom}); return; }
+  camera={from:{x:view.x, y:view.y, zoom:view.zoom}, to:{x:target.x, y:target.y, zoom:target.zoom}, t0:performance.now(), dur:CAMERA_MS};
+}
+function cameraStep(){
+  if(!camera) return;
+  const k=Math.min(1, Math.max(0, (performance.now()-camera.t0)/camera.dur)), e=k<.5 ? 4*k*k*k : 1-Math.pow(-2*k+2,3)/2;
+  const r=$("wrap").getBoundingClientRect();
+  Object.assign(view, lerpViewport(camera.from, camera.to, e, r.width/2, r.height/2));
+  if(k>=1) camera=null;
+}
+/* Quien mira toma la cámara: la Historia deja de moverla hasta Reproducir/Repetir o ⏭/⏮. */
+function takeCamera(){ viewMoved=true; followOn=false; camera=null; }
+/* ¿Sigue la cámara AHORA? Devuelve el zoom de seguimiento o null. */
+function followZoomNow(){
+  if(!story || !followOn) return null;
+  return viewportFollowZoom(followBoxes(), viewerFreeRect(), fitTarget().zoom, FOLLOW_MARGIN);
+}
+/* Encuadra el momento en curso (o el primero, si aún no ha llegado ninguno), solo si no se ve ya entero. instant: sin transición
+   (al cambiar el tamaño del lienzo). */
+function followFrame(instant){
+  const z=followZoomNow();
+  if(z===null) return false;
+  const boxes=followBoxes(), i=Math.max(0, storyNav().index), box=boxes[i] || boxes.find(Boolean);
+  if(!box) return false;
+  const from=camera ? camera.to : view;
+  const target=viewportFrameBox(from, box, viewerFreeRect(), z, FOLLOW_MARGIN, box.focus);
+  followApplied=true; viewMoved=false;
+  if(target) cameraTo(target, instant);
+  return true;
+}
+function storyFollow(){
+  if(!story || !followOn) return;
+  const key=storyNav().index+"";
+  if(key===followKey) return;
+  followKey=key;
+  followFrame(false);
+}
+/* El lienzo cambió de tamaño (girar, la barra del navegador): seguir encuadrando el momento o, si no se sigue, el diagrama entero. */
+function viewerReframe(){
+  if(followOn && followZoomNow()!==null){ camera=null; followFrame(true); return; }
+  if(!viewMoved) fitView();
 }
 function storySet(id, prop, value){
   const key=id+"."+prop;
@@ -379,16 +495,14 @@ function prevSlide(){ goPage(doc.cur-1); }
 /* FLUYO-018.18: se encaja en el lienzo REAL (después de colocar la banda de la Historia) y se reserva arriba el rótulo de la
    Historia y, presentando, abajo el mando: el diagrama no nace debajo de ninguno de los dos. */
 function fitView(){
-  const r=$("wrap").getBoundingClientRect();
-  const card=$("stNow"), top=card && !card.hidden && card.offsetHeight ? card.offsetHeight+20 : 0;
-  const bottom=presenting && !$("prBar").hidden && $("prBar").offsetHeight ? $("prBar").offsetHeight+28 : 0;
-  fitViewportToBounds(view, getBounds(), r.width, Math.max(40, r.height-top-bottom));
-  view.y+=top;
+  /* la zona libre y el encuadre los calcula fitTarget (FLUYO-018.30: la misma zona que usa la cámara de la Historia) */
+  Object.assign(view, fitTarget());
+  camera=null;
   viewMoved=false;
   if(![view.x,view.y,view.zoom].every(Number.isFinite)) throw projectDataError();
 }
 function zoomAtClient(factor, clientX, clientY){
-  viewMoved=true;
+  takeCamera();
   const r=sv.getBoundingClientRect();
   zoomViewportAt(view, clientX-r.left, clientY-r.top, factor);
 }
@@ -401,7 +515,7 @@ function wireViewport(){
   sv.addEventListener("wheel", ev=>{
     if(viewerPhase!=="ready") return;
     ev.preventDefault();
-    viewMoved=true;
+    takeCamera();
     if(ev.ctrlKey || ev.metaKey) zoomAtClient(ev.deltaY>0? 0.9 : 1.1, ev.clientX, ev.clientY);
     else panViewportBy(view, -ev.deltaX, -ev.deltaY);
   }, {passive:false});
@@ -427,13 +541,13 @@ function wireViewport(){
     const prev=pointers.get(ev.pointerId);
     if(!prev) return;
     if(pointers.size===1){
-      if(ev.clientX!==prev.x || ev.clientY!==prev.y) viewMoved=true;
+      if(ev.clientX!==prev.x || ev.clientY!==prev.y) takeCamera();
       panViewportBy(view, ev.clientX-prev.x, ev.clientY-prev.y);
     }else if(viewerPinch && pointers.size===2){
       pointers.set(ev.pointerId, {x:ev.clientX, y:ev.clientY});
       const [a,b]=localPointers();
       if(viewerPinch.distance===0) viewerPinch=beginViewportPinch(view,a,b);
-      viewMoved=true;
+      takeCamera();
       updateViewportPinch(view,viewerPinch,a,b);
       return;
     }
@@ -457,7 +571,10 @@ function updatePresentBar(){
 }
 function enterPresent(){
   if(viewerPhase!=="ready" || presenting) return;
+  /* si la cámara seguía la Historia, al salir se vuelve al diagrama entero, no al momento en que se entró */
+  const followed=followApplied;
   storyReset();
+  if(followed) fitView();
   preView={x:view.x, y:view.y, zoom:view.zoom}; preMoved=viewMoved;
   presenting=true;
   document.body.classList.add("presenting");
@@ -589,7 +706,8 @@ async function bootViewer(){
     // El primer render sucede aún en loading: sin ready ni analytics anticipados.
     renderViewerFrame();
     wireViewport();
-    $("btnFit").onclick=fitView;
+    /* Encajar enseña el diagrama entero también reproduciendo: la cámara deja de seguir hasta ⏭/⏮ o Reproducir (FLUYO-018.30) */
+    $("btnFit").onclick=()=>{ followOn=false; followApplied=false; fitView(); };
     $("btnZoomIn").onclick=()=>{ zoomAtClient(1.25, ...centerClient()); };
     $("btnZoomOut").onclick=()=>{ zoomAtClient(0.8, ...centerClient()); };
     $("btnPresent").onclick=enterPresent;
@@ -599,7 +717,7 @@ async function bootViewer(){
     $("btnOpen").onclick=openInFluyo;
     $("stOpen").onclick=openInFluyo;
     $("stPlay").onclick=storyPlay;
-    $("stStop").onclick=storyReset;
+    $("stStop").onclick=storyStop;
     $("stPause").onclick=storyTogglePause;
     $("stPrev").onclick=storyPrev;
     $("stNext").onclick=storyNext;
@@ -611,7 +729,7 @@ async function bootViewer(){
     resizeCanvas(sv, $("wrap"));
     fitView();
     if(!wrapObserver && typeof ResizeObserver==="function"){
-      wrapObserver=new ResizeObserver(()=>{ if(viewerPhase==="ready" && !viewMoved && !presentationRaf){ try{ resizeCanvas(sv, $("wrap")); fitView(); }catch(e){ showShareError("invalid_document"); } } });
+      wrapObserver=new ResizeObserver(()=>{ if(viewerPhase==="ready" && (followOn || !viewMoved) && !presentationRaf){ try{ resizeCanvas(sv, $("wrap")); viewerReframe(); }catch(e){ showShareError("invalid_document"); } } });
       wrapObserver.observe($("wrap"));
     }
     setStatus("");
@@ -641,5 +759,7 @@ window.__viewer={
   get cur(){ return doc.cur; },
   get pages(){ return doc.pages.length; },
   get shareViewed(){ return shareViewed; },
-  get story(){ return story ? story.status : (storyScenario() ? "ready" : "none"); }
+  get story(){ return story ? story.status : (storyScenario() ? "ready" : "none"); },
+  /* FLUYO-018.30: la cámara de la Historia */
+  get follow(){ return {on:followOn, applied:followApplied, moving:!!camera, zoom:story && followOn ? followZoomNow() : null}; }
 };

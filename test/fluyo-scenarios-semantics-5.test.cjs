@@ -126,6 +126,7 @@ function viewer({ withFlow = true } = {}) {
   const v = read("js/viewer.js");
   R(`var viewerPhase="ready", story=null, storyError=null, storyLast={}, storyFlowMemo={playback:null, page:null, value:null}, __rs=null, __routes=0, __frames=0;
      function resizeCanvas(){} function storyPlace(){} function viewerRenderState(){ return {}; } function now(){ return 0; } var sctx={}, sv={};
+     function storyFollow(){} function cameraStep(){}   /* FLUYO-018.30: la cámara de la Historia no es de esta prueba */
      function render(c, t, o){ __rs = o.renderState; __frames++; } function storyNow(){ return __now; } var __now=0;`);
   if (withFlow) R("const __route = FluyoFlow.flowRoute; FluyoFlow.flowRoute = function(){ __routes++; return __route.apply(this, arguments); };");
   for (const n of VIEWER_FNS) vm.runInContext(extract(v, n), ctx, { filename: "js/viewer.js#" + n });
@@ -525,8 +526,8 @@ test("G3 · alcance frente a " + BASE + ": solo los archivos de FASE 5 y sw.js (
   assert.deepEqual([...new Set([...changed, ...untracked])].filter((f) => !(f in PIECES6 || f in PIECESM) || read5(f) !== atBase(f)).sort(), FILES.concat("sw.js").sort());
   assert.deepEqual(Object.keys(PIECES).sort(), FILES);
   for (const f of FILES) assert.equal(undo5(f, read5(f)), atBase(f), f + ": undo5 exacto");
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v103";/);
-  assert.equal(read("sw.js").replace('"fluyo-static-v103"', '"fluyo-static-v' + (100 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante; flow-semantics.js, viewer.js y s/ ya se precachean");
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v104";/);
+  assert.equal(read("sw.js").replace('"fluyo-static-v104"', '"fluyo-static-v' + (100 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante; flow-semantics.js, viewer.js y s/ ya se precachean");
   for (const f of ["js/model.js", "js/scenario-engine.js", "js/scenario-playback.js", "js/story-playback.js", "js/story-clock.js", "js/geometry.js", "js/skin.js", "js/interaction.js", "js/ui.js", "js/state.js", "js/share-url.js", "js/editor-share.js", "js/deeplink.js"])
     assert.equal(read5(f), atBase(f), f + " intacto (modelo, motor, reloj, geometría, piel, Share y #d= sin cambios)");
   /* FASE 2/3/4 intactas en flow-semantics.js: FASE 5 solo añade al final (y una nota en la cabecera) */

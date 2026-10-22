@@ -39,7 +39,7 @@ test("alcance: kernel (model, config, motor, playback, story-playback, integrida
 
 test("story-clock.js: fuera del kernel, cargado por el editor y el Viewer tras story-playback.js, precacheado; CACHE v77", () => {
   const sw = read("sw.js"), html = read("index.html"), viewer = read("s/index.html");
-  assert.match(sw, /const CACHE = "fluyo-static-v103";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v104";/);
   assert.ok(sw.includes('"./js/story-clock.js"'), "precacheado");
   assert.ok(html.indexOf('src="js/story-playback.js"') < html.indexOf('src="js/story-clock.js"') && html.indexOf('src="js/story-clock.js"') < html.indexOf('src="js/editor-scenarios.js"'), "editor: tras story-playback y antes de editor-scenarios");
   assert.ok(viewer.indexOf('src="../js/story-playback.js"') < viewer.indexOf('src="../js/story-clock.js"') && viewer.indexOf('src="../js/story-clock.js"') < viewer.indexOf('src="../js/viewer.js"'), "Viewer: tras story-playback y antes de viewer.js");
@@ -297,7 +297,8 @@ test("viewer.js / s/index.html / share.css: encaje tras la banda y al cambiar de
   /* D9: se encaja DESPUÉS de colocar la banda, de forma síncrona (no solo cuando llegue la primera observación del ResizeObserver) */
   assert.ok(/storyRefresh\(\);\n(?:\s*\/\*[\s\S]*?\*\/\n)?\s*resizeCanvas\(sv, \$\("wrap"\)\);\n\s*fitView\(\);\n\s*if\(!wrapObserver/.test(boot), "D9: se encaja DESPUÉS de colocar la banda");
   assert.ok(boot.includes("new ResizeObserver(") && boot.includes("!viewMoved"), "y otra vez si el lienzo cambia de tamaño y nadie movió la vista");
-  assert.ok(between(vj, "function fitView(){", "\n}\n").includes("view.y+=top;"), "reserva arriba el rótulo de la Historia");
+  /* FLUYO-018.30: el encuadre lo calcula fitTarget (la misma zona libre que usa la cámara de la Historia) y fitView lo aplica */
+  assert.ok(between(vj, "function fitTarget(){", "\n}\n").includes("vp.y+=f.top;") && between(vj, "function viewerFreeRect(){", "\n}\n").includes("card.offsetHeight+20"), "reserva arriba el rótulo de la Historia");
   assert.ok(element(html, "wrap").includes('id="stNow"'), "el momento sobre el lienzo");
   assert.ok(element(html, "story").includes('id="stActions"') && !element(html, "story").includes('id="stTitle"'), "la banda es solo el transporte");
   assert.match(css, /#story\{\n  display:flex; flex-direction:row; align-items:center; justify-content:center; flex:none;\n  height:calc\(var\(--ctl-h-touch\) \+ 20px\);/, "alto fijo");

@@ -650,8 +650,8 @@ test("E2 · alcance frente a " + BASE + ": solo cambian render.js, editor-scenar
   const PIECESM = require("./fluyo-step-message-001-undo.cjs").PIECES;   /* FLUYO-MCP-STEP-MESSAGE-001, igual */
   const mine = [...new Set([...changed, ...untracked])].filter((f) => !((Object.keys(PIECES5).includes(f) || Object.keys(PIECES6).includes(f) || Object.keys(PIECESM).includes(f)) && read4(f) === atBase(f)));
   assert.deepEqual(mine.sort(), ["css/styles.css", "index.html", "js/editor-scenarios.js", "js/flow-semantics.js", "js/render.js", "sw.js"]);
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v103";/);
-  assert.equal(read("sw.js").replace('"fluyo-static-v103"', '"fluyo-static-v' + (99 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante (el precache no cambia)");
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v104";/);
+  assert.equal(read("sw.js").replace('"fluyo-static-v104"', '"fluyo-static-v' + (99 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante (el precache no cambia)");
   for (const f of ["js/model.js", "js/scenario-engine.js", "js/scenario-playback.js", "js/story-playback.js", "js/story-clock.js", "js/document-integrity.js", "js/story-authoring.js",
     "js/viewer.js", "js/present-story.js", "js/export.js", "js/geometry.js", "js/skin.js", "js/interaction.js", "js/ui.js", "s/index.html"])
     assert.equal(read4(f), atBase(f), f + " intacto (kernel del MCP, Viewer, Present y exportación)");

@@ -149,7 +149,10 @@ const PIECES = {
     ],
   ],
 };
+/* FLUYO-SW-VIEWER-001 va encima de esta tarea: se deshace antes (undoSwv), y los alcances antiguos siguen recibiendo su base. */
+const { undoSwv } = require("./fluyo-sw-viewer-001-undo.cjs");
 function undoNarr(file, src) {
+  src = undoSwv(file, src);
   const f = file.replace(/\\/g, "/"), pieces = PIECES[f];
   if (!pieces) return src;
   let out = src.replace(/\r\n/g, "\n");

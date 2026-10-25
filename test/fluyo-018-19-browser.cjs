@@ -392,7 +392,7 @@ async function serviceWorker(browser, base) {
   await page.goto(base + "/"); await page.waitForFunction(() => typeof renderTabs === "function");
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
   const keys = await page.evaluate(() => caches.keys());
-  check(keys.length === 1 && keys[0] === "fluyo-static-v106", "caché instalada: fluyo-static-v106 " + JSON.stringify(keys));
+  check(keys.length === 1 && keys[0] === "fluyo-static-v107", "caché instalada: fluyo-static-v107 " + JSON.stringify(keys));
   await ctx.setOffline(true);
   await page.reload(); await page.waitForFunction(() => typeof isSideSheet === "function");
   check(await page.evaluate(() => isSideSheet() && document.getElementById("pagesBar").parentElement.tagName === "HEADER"), "sin red: el apaisado nuevo se sirve desde la caché");

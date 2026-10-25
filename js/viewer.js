@@ -753,6 +753,18 @@ else
   bootViewer();
 window.addEventListener("hashchange",()=>{bootViewer();});
 
+/* FLUYO-SW-VIEWER-001: quien solo abre un enlace también tiene el enlace sin red desde su segunda apertura. Mismo service worker
+   y mismo ámbito que el editor (../sw.js, «/»); instalado desde aquí precachea solo lo del Viewer (sw.js, VIEWER_ASSETS), sin
+   gif.js ni terceros. Como en el editor (FLUYO-004): solo en http/https y tras «load», para no competir con la primera carga. */
+function registerViewerServiceWorker(){
+  if(location.protocol!=="http:" && location.protocol!=="https:") return;
+  if(typeof navigator==="undefined" || !("serviceWorker" in navigator)) return;
+  const register=()=> navigator.serviceWorker.register("../sw.js").catch(console.error);
+  if(document.readyState==="complete") register();
+  else window.addEventListener("load", register, {once:true});
+}
+registerViewerServiceWorker();
+
 /* Gancho de inspección para tests y depuración. Expone sólo estado de
    vista; el documento se lee del modelo compartido. */
 window.__viewer={

@@ -11,7 +11,7 @@
    estaba sirviendo al iframe una copia vieja de js/interaction.js. Por eso ese
    test ahora desregistra el SW antes de cargar nada — y por eso esta versión
    sube también cuando solo cambia el contenido. */
-const CACHE = "fluyo-static-v106";
+const CACHE = "fluyo-static-v107";
 /* Núcleo: si algo de aquí falla, la instalación falla (cache.addAll es atómico)
    y es lo correcto, porque sin estos archivos la app no funciona. */
 const ASSETS = [
@@ -88,14 +88,63 @@ const CDN_ASSETS = [
   GIF_CDN + "gif.worker.js"
 ];
 
+/* FLUYO-SW-VIEWER-001: lo que necesita quien SOLO abre un enlace compartido (/s/#d=…) para abrirlo y reproducirlo sin red: la
+   página del Viewer, sus tres hojas de estilo, las tres tipografías que pide system.css y los scripts de s/index.html, en su
+   orden. Nada del editor, ninguna página estática y nada de terceros (sin gif.js). test/fluyo-sw-viewer-001.test.cjs exige que
+   esta lista sea exactamente lo que carga s/index.html. El documento viaja en el #d= y nunca llega aquí. */
+const VIEWER_ASSETS = [
+  "./s/",
+  "./css/identity.css",
+  "./css/system.css",
+  "./css/share.css",
+  "./assets/fonts/ibm-plex-mono-latin-400.woff2",
+  "./assets/fonts/ibm-plex-mono-latin-500.woff2",
+  "./assets/fonts/playfair-display-latin-400.woff2",
+  "./js/i18n-en.js",
+  "./js/i18n.js",
+  "./js/config.js",
+  "./js/safe-svg.js",
+  "./js/model.js",
+  "./js/link-codec.js",
+  "./js/geometry.js",
+  "./js/skin.js",
+  "./js/render.js",
+  "./js/scenario-engine.js",
+  "./js/scenario-playback.js",
+  "./js/story-playback.js",
+  "./js/story-clock.js",
+  "./js/flow-semantics.js",
+  "./js/analytics.js",
+  "./js/share-loader.js",
+  "./js/viewer-viewport.js",
+  "./js/viewer.js"
+];
+const VIEWER_PAGE = "./s/";
+const viewerPath = (pathname) => {
+  const base = new URL(VIEWER_PAGE, self.location).pathname;
+  return pathname === base || pathname === base + "index.html";
+};
+
+/* ¿Instalación del editor? Si hay una ventana del editor abierta (quien registra es el editor, o está abierto al actualizar) o la
+   caché anterior ya tenía el editor (actualización de quien lo usa), se precachea lo de siempre. Si no, solo el Viewer. */
+function editorInstall() {
+  return self.clients.matchAll({ type: "window", includeUncontrolled: true })
+    .then((list) => list.some((c) => !viewerPath(new URL(c.url).pathname)))
+    .then((open) => open || caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE)
+      .map((k) => caches.open(k).then((c) => c.match("./index.html").then((r) => !!r || c.match("./").then((r2) => !!r2))))))
+      .then((had) => had.some(Boolean)));
+}
+
 self.addEventListener("install", (ev) => {
   ev.waitUntil(
-    caches.open(CACHE)
-      .then((cache) => Promise.all([
-        cache.addAll(ASSETS),
-        cache.addAll(PAGE_ASSETS).catch((err) => console.warn("pages precache:", err)),
-        cache.addAll(CDN_ASSETS).catch((err) => console.warn("gif.js precache:", err))
-      ]))
+    Promise.all([caches.open(CACHE), editorInstall()])
+      .then(([cache, editor]) => editor
+        ? Promise.all([
+          cache.addAll(ASSETS),
+          cache.addAll(PAGE_ASSETS).catch((err) => console.warn("pages precache:", err)),
+          cache.addAll(CDN_ASSETS).catch((err) => console.warn("gif.js precache:", err))
+        ])
+        : cache.addAll(VIEWER_ASSETS))
       .then(() => self.skipWaiting())
   );
 });
@@ -130,6 +179,13 @@ self.addEventListener("fetch", (ev) => {
   }
 
   if (url.origin !== self.location.origin) return;
+
+  /* FLUYO-SW-VIEWER-001 (D4-A): abrir /s/ con cualquier query (?lang=en, ?s=…) es la misma página del Viewer: se sirve ./s/ de la
+     caché ignorando la query (el idioma lo lee i18n.js de location.search) y, sin red, el respaldo es ./s/, nunca el editor. */
+  if (ev.request.mode === "navigate" && viewerPath(url.pathname)) {
+    ev.respondWith(cacheFirst(new Request(VIEWER_PAGE), VIEWER_PAGE));
+    return;
+  }
 
   ev.respondWith(cacheFirst(ev.request, "./index.html"));
 });

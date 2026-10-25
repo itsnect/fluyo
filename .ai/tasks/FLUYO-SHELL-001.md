@@ -1,6 +1,6 @@
 # FLUYO-SHELL-001 — Product Shell de las páginas públicas
 
-Estado: **IMPLEMENTADO — READY FOR REVIEW**. Sin commit, push ni deploy.
+Estado: **CLOSED / VERIFIED / IN PRODUCTION**. Commit `97b3271` en `main`, push y deploy de Vercel (fluyo.space sirve `fluyo-static-v108`). Ver § Producción.
 Fecha: 25 de octubre de 2026.
 Owner/agente actual: libre.
 
@@ -152,10 +152,38 @@ el `404.html` precacheado), aplazada aquí para no cambiar el comportamiento del
   - construye sobre `.gallery`/`.card` y `.btn.primary`;
   - su *undo* irá encima de `undoShell`.
 
+## Producción (25 de octubre de 2026)
+
+- **Commit** `97b3271`, con push a `main` (`53552a2..97b3271`). Vercel lo desplegó en ≈ 10 s: `https://fluyo.space/sw.js` sirve
+  `fluyo-static-v108`.
+- **Mismos bytes**: los 21 archivos servidos de esta tarea (más `system.css` e `identity.css`) son idénticos en producción y en el
+  commit. No hay diferencias entre local y producción.
+- **404 real**: una ruta inexistente responde `404`, `text/html`, con `404.html`. Vercel sirve el 404 propio, como se había
+  emulado en local.
+- **Smoke de Chrome contra producción**: **56 ✔ / 0 ✘**. Es un script de la sesión, fuera del repo; solo lee, y bloquea la telemetría
+  para no tocar las métricas reales.
+  - Las 8 páginas a 1440 y a 375 con dedo: 200, papel, Plex Mono y Playfair cargadas, cabecera de 50 px en una fila, sin scroll
+    horizontal, marca, theme-color, favicon, pie y objetivos de 44 px o más.
+  - El 404 real, en español y en inglés con la preferencia guardada.
+  - El editor con `?lang=en`.
+  - Ejemplos: «Abrir en el editor» carga el funnel con 8 nodos.
+  - Present: entra y sale.
+  - Share: se abre el diálogo y se genera el enlace `/s/#d=`.
+  - Viewer: abre el enlace en inglés, instala el SW con v108 y, sin red, el enlace vuelve a abrir.
+  - Editor: instala v108 con las páginas públicas, y sin red abren `/ejemplos/`, `/privacidad/` y el propio editor.
+  - 0 errores de consola o página. Las únicas peticiones fallidas son las de telemetría que bloquea el test.
+- **Tests de alcance tras el commit**: los 6 alcances relativos a `HEAD` ya pasan en el repo real (018.19, 018.21, 018.23, 018.24 y
+  018.29: 95/95; el contrato de 018.25, también). Los 9 fallos que quedan en `fluyo-018-25.test.cjs` son de la línea base.
+
 ## Handoff
 
-- **Próximo paso concreto**: revisión del PO. Si se aprueba, un commit con los archivos de § Archivos. Quedan fuera los cambios ajenos
-  de `.ai/tasks/` (018.29, 018.30, I18N-001, STEP-MESSAGE-001, PRODUCT-NARRATION-001, SCENARIOS-SEMANTICS-001, STEP-REVERSE-003,
-  SW-VIEWER-001, y 019.4, EXAMPLES-001 e I18N-002 sin seguimiento).
-- Push y deploy, aparte. Tras el deploy, comprobar en fluyo.space que Vercel sirve `/404.html` en una ruta inexistente; en local se
-  emuló con el servidor del test.
+- **Qué queda**:
+  - **D8** (404 sin red, defecto previo): pendiente de decisión.
+  - **Índice de Docs**: tarea de contenido.
+  - **`mcp.fluyo.space`** (D7): deuda, en otro repo.
+- **Próximo CACHE libre: v109.** FLUYO-I18N-002 y FLUYO-EXAMPLES-001 · EX-1 contaban con v108: la primera que entre usa v109.
+- **Cómo construir encima**: EXAMPLES-001 parte de `.gallery`, `.card` y `.btn.primary`, y su *undo* va encima de `undoShell`.
+  I18N-002 · S4/S7 parte de los tokens `--case-kicker`/`--track-kicker` y de las claves `shell.*`/`notfound.*`.
+- **Fuera de este commit**: los cambios ajenos de `.ai/tasks/` siguen en el árbol de trabajo (018.29, 018.30, I18N-001,
+  STEP-MESSAGE-001, PRODUCT-NARRATION-001, SCENARIOS-SEMANTICS-001, STEP-REVERSE-003, SW-VIEWER-001; sin seguimiento: 019.4,
+  EXAMPLES-001, I18N-002).

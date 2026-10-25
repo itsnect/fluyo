@@ -32,7 +32,7 @@ const VOICE_SHAPES = '  return skinOn && typeof skinHasSkin==="function" && skin
 const SIG = '+"|"+skinHitOn();   /* la piel cambia la voz (F9) */';
 /* [nombre, suite, archivo, desde, hasta] — o [nombre, suite, archivo, [[desde, hasta], …]] para una mutación de varios puntos */
 const MUTATIONS = [
-  ["U0 CACHE no sube (sigue v94)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v107";', 'const CACHE = "fluyo-static-v94";'],
+  ["U0 CACHE no sube (sigue v94)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v108";', 'const CACHE = "fluyo-static-v94";'],
   ["U1 sin área de caras (vuelve F8)", UNIT, INT, FACES, "  const X=null;"],
   ["U2 sin pasada final (las marcas no salen con la piel)", UNIT, REN, PASS, ""],
   ["U3 predicado desacoplado (el acierto ignora el umbral de zoom)", UNIT, RT, PRED, 'function editorSkinOn(){ return editorSkin()==="built"; }'],

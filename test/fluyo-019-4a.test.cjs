@@ -397,8 +397,8 @@ test("alcance · frente a 22f82eb solo cambian skin.js (aterrizaje), render.js (
     "js/editor-scenarios.js", "js/present-story.js", "js/share-url.js", "js/deeplink.js", "index.html", "s/index.html", "css/styles.css", "css/system.css"])
     if (fs.existsSync(path.join(root, f))) assert.equal(undoSemantics(f, undo4b(f, undo3(f, read(f)))), atBase(f), f + " idéntico");
   const sw = undo3("sw.js", read("sw.js"));
-  assert.match(sw, /const CACHE = "fluyo-static-v107";/);
-  assert.equal(sw.replace('"fluyo-static-v107"', '"fluyo-static-v' + (93 - 1) + '"'), atBase("sw.js"), "sw.js: solo cambia CACHE");
+  assert.match(sw, /const CACHE = "fluyo-static-v108";/);
+  assert.equal(sw.replace('"fluyo-static-v108"', '"fluyo-static-v' + (93 - 1) + '"'), atBase("sw.js"), "sw.js: solo cambia CACHE");
   /* la piel en sí no cambia: mismas capas, extensión, orden, voz y anillo */
   const fn = (src, name) => { const i = src.indexOf("function " + name + "("); assert.ok(i >= 0, name); const j = src.indexOf("\n}\n", i); return src.slice(i, j); };
   for (const name of ["skinNode", "skinExtent", "skinPaintOrder", "skinLabelFont", "skinEdgePort", "skinTones", "skinColor", "skinFaces", "skinHasSkin", "skinActive"])

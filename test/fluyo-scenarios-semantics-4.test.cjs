@@ -15,6 +15,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs"), path = require("node:path"), vm = require("node:vm");
 const { execFileSync } = require("node:child_process");
+const { shellOnly } = require("./fluyo-shell-001-undo.cjs");   /* FLUYO-SHELL-001 (páginas públicas, favicon, manifest): lo suyo se descuenta */
 const root = path.resolve(__dirname, "..");
 const read = (f) => fs.readFileSync(path.join(root, f), "utf8").replace(/\r\n/g, "\n");
 const gitRoot = process.env.FLUYO_GIT_ROOT || root;
@@ -643,7 +644,7 @@ const { undoMsg6: undo6 } = require("./fluyo-step-message-001-undo.cjs");   /* F
 const read4 = (f) => undo5(f, undo6(f, read(f)));
 test("E2 · alcance frente a " + BASE + ": solo cambian render.js, editor-scenarios.js, flow-semantics.js, index.html, styles.css y sw.js (CACHE v99)", () => {
   const SERVED = ["js", "s", "css", "index.html", "sw.js", "manifest.webmanifest", "docs", "ejemplos", "privacidad", "privacy", "soporte", "support", "terminos", "terms"];
-  const changed = execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean);
+  const changed = execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean).filter((f) => !shellOnly(f, read, atBase));
   const untracked = execFileSync("git", ["-C", gitRoot, "ls-files", "--others", "--exclude-standard", "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean);
   /* lo que solo cambia FASE 5 no cuenta aquí (su alcance lo vigila test/fluyo-scenarios-semantics-5.test.cjs) */
   const PIECES6 = require("./fluyo-scenarios-semantics-6-undo.cjs").PIECES;   /* FASE 6 (B1): lo suyo se descuenta igual */
@@ -651,8 +652,8 @@ test("E2 · alcance frente a " + BASE + ": solo cambian render.js, editor-scenar
   const { NEW_FILES: NEW_I18N, undoI18n } = require("./fluyo-i18n-001-undo.cjs");   /* FLUYO-I18N-001 añade js/i18n.js y js/i18n-en.js (no existen en la base) */
   const mine = [...new Set([...changed, ...untracked])].filter((f) => !NEW_I18N.includes(f)).filter((f) => !((Object.keys(PIECES5).includes(f) || Object.keys(PIECES6).includes(f) || Object.keys(PIECESM).includes(f)) && read4(f) === atBase(f)));
   assert.deepEqual(mine.sort(), ["css/styles.css", "index.html", "js/editor-scenarios.js", "js/flow-semantics.js", "js/render.js", "sw.js"]);
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v107";/);
-  assert.equal(undoI18n("sw.js", read("sw.js")).replace('"fluyo-static-v107"', '"fluyo-static-v' + (99 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante (el precache no cambia)");
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v108";/);
+  assert.equal(undoI18n("sw.js", read("sw.js")).replace('"fluyo-static-v108"', '"fluyo-static-v' + (99 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante (el precache no cambia)");
   for (const f of ["js/model.js", "js/scenario-engine.js", "js/scenario-playback.js", "js/story-playback.js", "js/story-clock.js", "js/document-integrity.js", "js/story-authoring.js",
     "js/viewer.js", "js/present-story.js", "js/export.js", "js/geometry.js", "js/skin.js", "js/interaction.js", "js/ui.js", "s/index.html"])
     assert.equal(read4(f), atBase(f), f + " intacto (kernel del MCP, Viewer, Present y exportación)");

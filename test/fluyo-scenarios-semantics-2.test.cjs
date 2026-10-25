@@ -21,6 +21,7 @@ const { undoReverse } = require("./fluyo-step-reverse-002-undo.cjs");   /* FLUYO
 const { undoReverseUi } = require("./fluyo-step-reverse-003-undo.cjs");   /* FLUYO-STEP-REVERSE-003 añade «Invertir sentido» a editor-scenarios.js: se deshace aquí, antes que 002; su alcance lo vigila test/fluyo-step-reverse-003.test.cjs */
 const { undo4: undo4only } = require("./fluyo-scenarios-semantics-4-undo.cjs");   /* SCENARIOS-SEMANTICS-001 FASE 4 va encima de STEP-REVERSE-003: se deshace antes; su alcance lo vigila test/fluyo-scenarios-semantics-4.test.cjs */
 const { undoMsg56: undo5 } = require("./fluyo-step-message-001-undo.cjs");   /* SCENARIOS-SEMANTICS-001 FASE 5 va encima de FASE 4: se deshace antes; su alcance lo vigila test/fluyo-scenarios-semantics-5.test.cjs */
+const { shellOnly } = require("./fluyo-shell-001-undo.cjs");   /* FLUYO-SHELL-001 (páginas públicas, favicon, manifest): lo suyo se descuenta */
 const undo4 = (f, src) => undo4only(f, undo5(f, src));
 const undo3 = (f, src) => undo3only(f, undoReverse(f, undoReverseUi(f, undo4(f, src))));
 const J = (v) => JSON.parse(JSON.stringify(v));
@@ -289,7 +290,7 @@ test("alcance · FASE 2 solo añade js/flow-semantics.js: ningún archivo servid
      parche de FASE 1 (el de 59588a9 sobre ce8e699, línea a línea; en sw.js, salvo la CACHE); FASE 2 solo añade el módulo */
   const FASE1 = ["css/styles.css", "index.html", "js/geometry.js", "js/model.js", "js/render.js", "js/ui.js", "sw.js"];
   const changed = execFileSync("git", ["-C", gitRoot, "diff", "--name-only", MAIN, "--", "js", "s", "css", "index.html", "sw.js", "manifest.webmanifest", "docs", "ejemplos"], { encoding: "utf8" })
-    .split("\n").filter(Boolean);
+    .split("\n").filter(Boolean).filter((f) => !shellOnly(f, read, (g) => execFileSync("git", ["-C", gitRoot, "show", MAIN + ":" + g], { encoding: "utf8" }).replace(/\r\n/g, "\n")));
   const untracked = execFileSync("git", ["-C", gitRoot, "ls-files", "--others", "--exclude-standard", "--", "js", "s", "css", "index.html", "sw.js"], { encoding: "utf8" }).split("\n").filter(Boolean);
   /* FLUYO-019.4b toca además interaction.js, editor-runtime.js y state.js: deshechos, son los de MAIN */
   const ONLY4B = ["js/editor-runtime.js", "js/interaction.js", "js/state.js"];

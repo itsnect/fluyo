@@ -80,5 +80,21 @@ FLUYO_LOCALES.en={
   /* Historia · «Mensaje del paso…» en un envío (FLUYO-PRODUCT-NARRATION-001) */
   "step.message.nowReads":"Now it reads «{name}»",
   "step.message.helpSend":"Shown while this step plays, instead of the event's name. Timing doesn't change.",
-  "step.message.helpElement":"Shown while this step plays and in its bubble, instead of the event's text. Timing doesn't change."
+  "step.message.helpElement":"Shown while this step plays and in its bubble, instead of the event's text. Timing doesn't change.",
+  /* Páginas públicas sin idioma en la URL: cabecera y pie del shell, y el 404 (FLUYO-SHELL-001). Las páginas con URL
+     propia (/privacy/, /support/…) llevan su texto escrito en su idioma y no usan el diccionario. */
+  "shell.skip":"Skip to content",
+  "shell.sections":"Sections",
+  "shell.examples":"Examples",
+  "shell.docs":"Docs",
+  "shell.open":"Open Fluyo",
+  "shell.license":"Fluyo · free software, MIT licence",
+  "shell.legal":"Legal and project",
+  "shell.privacy":"Privacy",
+  "shell.terms":"Terms",
+  "shell.support":"Support",
+  "notfound.docTitle":"Page not found · Fluyo",
+  "notfound.title":"This page doesn't exist",
+  "notfound.body":"The link may be mistyped, or the page may no longer exist. Your diagrams are still in your browser.",
+  "notfound.examples":"See examples"
 };

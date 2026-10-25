@@ -18,25 +18,33 @@
 <meta name="twitter:title" content="Documentación de Fluyo">
 <meta name="twitter:description" content="Guía completa de Fluyo: features del editor, el formato .fluyo.json y el servidor MCP.">
 <meta name="twitter:image" content="https://fluyo.space/assets/og-image.png">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23161616'/%3E%3Ccircle cx='18' cy='32' r='7' fill='%23d08b5b'/%3E%3Ccircle cx='40' cy='32' r='5' fill='%23d08b5b' opacity='.65'/%3E%3Ccircle cx='54' cy='32' r='3.4' fill='%23d08b5b' opacity='.35'/%3E%3C/svg%3E">
-<meta name="theme-color" content="#111213">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23F2EDE3'/%3E%3Ccircle cx='18' cy='32' r='7' fill='%23A33A22'/%3E%3Ccircle cx='40' cy='32' r='5' fill='%23A33A22' opacity='.65'/%3E%3Ccircle cx='54' cy='32' r='3.4' fill='%23A33A22' opacity='.35'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#F2EDE3">
+<link rel="preload" href="../assets/fonts/ibm-plex-mono-latin-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="../css/identity.css">
+<link rel="stylesheet" href="../css/system.css">
 <link rel="stylesheet" href="../css/pages.css">
 </head>
 <body>
 
-<header class="topbar">
-  <div class="inner">
+<svg class="sprite" width="0" height="0" aria-hidden="true" focusable="false">
+<symbol id="i-edit" viewBox="0 0 24 24"><path d="M14.5 5.5l4 4M4 20l1-4.5L15.5 5a2 2 0 0 1 2.8 0l.7.7a2 2 0 0 1 0 2.8L8.5 19z"/></symbol>
+<symbol id="i-arrow" viewBox="0 0 24 24"><path d="M8 16L16 8M9.5 8H16v6.5"/></symbol>
+</svg>
+<a class="skip" href="#main">Ir al contenido</a>
+
+<header class="siteHead">
+  <div class="bar">
     <a class="logo" href="../">flu<b>yo</b><span class="dots" aria-hidden="true"><span></span><span></span><span></span></span></a>
-    <nav>
-      <a href="../">Editor</a>
+    <nav class="siteNav" aria-label="Secciones">
       <a href="../ejemplos/">Ejemplos</a>
       <a href="./" aria-current="page">Docs</a>
-      <a href="https://github.com/itsnect/fluyo" target="_blank" rel="noopener">GitHub</a>
     </nav>
+    <a class="btn siteOpen" href="../"><svg class="ic" aria-hidden="true"><use href="#i-edit"/></svg><span>Abrir Fluyo</span></a>
   </div>
 </header>
 
-<main class="wrap">
+<main class="wrap" id="main">
 
 <h1>Documentación</h1>
 <p class="lead">Todo lo que hace Fluyo, en una página que se lee entera.</p>
@@ -186,7 +194,7 @@ python -m http.server 8000</code></pre>
 <h3>Conectarlo</h3>
 <p>Hay <strong>dos transportes</strong> sobre el mismo núcleo. Las quince tools, sus schemas y el renderer son idénticos en ambos; lo único que cambia es por dónde entran los mensajes.</p>
 
-<h4 style="font-size:14px;text-transform:none;letter-spacing:0;color:var(--text);margin-top:20px">Como conector remoto</h4>
+<h4>Como conector remoto</h4>
 <p>Lo más rápido: no hay nada que instalar. Pega esta URL donde tu cliente MCP pida un servidor remoto.</p>
 <pre><code>https://mcp.fluyo.space/mcp</code></pre>
 <p><strong>Sin autenticación y sin cuenta:</strong> no hay que registrarse, ni pedir una clave, ni autorizar nada por OAuth. Pegas la URL y ya está.</p>
@@ -194,7 +202,7 @@ python -m http.server 8000</code></pre>
 <p>En <strong>ChatGPT</strong> el conector está <strong>en proceso de revisión</strong>. Hasta que se apruebe, la vía que funciona ahí es el proceso local por stdio, que se explica justo debajo.</p>
 <p>El endpoint remoto tiene topes que la versión local no tiene: 1 MB por petición, 200 KB por respuesta de herramienta y 30 peticiones por minuto y por IP. Un diagrama con imágenes incrustadas puede pasarse de los dos primeros.</p>
 
-<h4 style="font-size:14px;text-transform:none;letter-spacing:0;color:var(--text);margin-top:20px">Como proceso local</h4>
+<h4>Como proceso local</h4>
 <p>Sin red de por medio y sin ningún tope. El servidor sí tiene paso de compilación — la restricción de «cero build» es del editor, no de esta herramienta:</p>
 <pre><code>git clone https://github.com/itsnect/fluyo-mcp.git
 cd fluyo-mcp
@@ -260,10 +268,19 @@ npm run build</code></pre>
   <li>¿Una idea que no vas a implementar ahora? Va a <a href="https://github.com/itsnect/fluyo/blob/main/ideas.md" target="_blank" rel="noopener">ideas.md</a>.</li>
 </ul>
 
-<footer class="pagefoot">
-  <p>Fluyo es software libre con licencia MIT · <a href="../">Editor</a> · <a href="../ejemplos/">Ejemplos</a> · <a href="../privacidad/">Privacidad</a> · <a href="../terminos/">Términos</a> · <a href="../soporte/">Soporte</a> · <a href="https://github.com/itsnect/fluyo" target="_blank" rel="noopener">GitHub</a> · <a href="https://github.com/itsnect/fluyo-mcp" target="_blank" rel="noopener">MCP</a></p>
-</footer>
-
 </main>
+
+<footer class="siteFoot">
+  <div class="bar">
+    <p>Fluyo · software libre, licencia MIT</p>
+    <nav aria-label="Legal y proyecto">
+      <a href="../privacidad/">Privacidad</a>
+      <a href="../terminos/">Términos</a>
+      <a href="../soporte/">Soporte</a>
+      <a href="https://github.com/itsnect/fluyo" target="_blank" rel="noopener">GitHub<svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+      <a href="https://github.com/itsnect/fluyo-mcp" target="_blank" rel="noopener">MCP<svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+    </nav>
+  </div>
+</footer>
 </body>
 </html>

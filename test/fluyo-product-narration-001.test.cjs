@@ -17,6 +17,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs"), path = require("node:path"), vm = require("node:vm");
 const { execFileSync } = require("node:child_process");
+const { shellOnly, undoShell } = require("./fluyo-shell-001-undo.cjs");   /* FLUYO-SHELL-001 (páginas públicas, favicon, manifest): lo suyo se descuenta */
 const root = path.resolve(__dirname, "..");
 const read = (f) => fs.readFileSync(path.join(root, f), "utf8").replace(/\r\n/g, "\n");
 const gitRoot = process.env.FLUYO_GIT_ROOT || root;
@@ -385,22 +386,22 @@ test("G1 · caso real: con 2 eventos y message se lee la MISMA Historia que con 
 test("H1 · versiones: engineVersion 2 y version 5 (NO v3); sw.js sube a v106 y solo cambia la constante", () => {
   assert.equal(run("FluyoScenarios.ENGINE_VERSION"), 2);
   assert.equal(run("projectToSerializable({}, {}).version"), 5);
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v107";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v108";/);
   /* FLUYO-SW-VIEWER-001 va encima: su instalación del Viewer y sus navegaciones a /s/ se deshacen antes (undoSwv) */
   const { undoSwv } = require("./fluyo-sw-viewer-001-undo.cjs");
-  assert.equal(undoSwv("sw.js", read("sw.js")).replace('"fluyo-static-v107"', '"fluyo-static-v' + (106 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante (el precache no cambia)");
+  assert.equal(undoSwv("sw.js", read("sw.js")).replace('"fluyo-static-v108"', '"fluyo-static-v' + (106 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante (el precache no cambia)");
 });
 
 test("H2 · alcance frente a " + BASE + ": solo cambian estos archivos servidos (index.html y s/index.html, no) y undoNarr los devuelve EXACTOS", () => {
   const SERVED = ["js", "s", "css", "index.html", "sw.js", "manifest.webmanifest", "docs", "ejemplos", "privacidad", "privacy", "soporte", "support", "terminos", "terms"];
-  const changed = execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean);
+  const changed = execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean).filter((f) => !shellOnly(f, read, atBase));
   const untracked = execFileSync("git", ["-C", gitRoot, "ls-files", "--others", "--exclude-standard", "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean);
   const { undoNarr, PIECES } = require("./fluyo-product-narration-001-undo.cjs");
   const FILES = ["css/share.css", "css/styles.css", "docs/index.html", "js/editor-scenarios.js", "js/i18n-en.js", "js/model.js", "js/present-story.js", "js/scenario-engine.js", "js/story-authoring.js", "js/story-playback.js", "js/viewer.js"];
   assert.deepEqual(Object.keys(PIECES).sort(), FILES);
   assert.deepEqual([...new Set([...changed, ...untracked])].sort(), [...FILES, "sw.js"].sort());
   for (const f of FILES) assert.equal(undoNarr(f, read(f)), atBase(f), f);
-  for (const f of ["js/viewer-viewport.js", "js/render.js", "js/scenario-playback.js", "js/story-clock.js", "index.html", "s/index.html"]) assert.equal(read(f), atBase(f), f + " sin cambios");
+  for (const f of ["js/viewer-viewport.js", "js/render.js", "js/scenario-playback.js", "js/story-clock.js", "index.html", "s/index.html"]) assert.equal(undoShell(f, read(f)), atBase(f), f + " sin cambios (FLUYO-SHELL-001, encima, solo cambia el favicon)");
   const { undoI18n } = require("./fluyo-i18n-001-undo.cjs");
   assert.ok(read("test/fluyo-i18n-001-undo.cjs").includes("src = undoNarr(file, src);"), "undoI18n deshace antes esta tarea");
   for (const f of FILES) assert.equal(undoI18n(f, read(f)), undoI18n(f, atBase(f)), "undoI18n la lleva debajo: " + f);

@@ -48,8 +48,8 @@ LICENSE                 MIT.
 ideas.md                Ideas parqueadas que aún no se implementan.
 
 assets/
-  logo.svg              Logo del proyecto.
-  og-image.png          Imagen de previsualización social (1200x630).
+  logo.svg              Logo del proyecto (hueso y terracota: el mismo dibujo que el favicon).
+  og-image.png          Imagen de previsualización social (1200x630), papel y tinta.
   icon-192.png          Icono de la PWA.
   icon-512.png          Icono de la PWA.
   fonts/                Playfair Display e IBM Plex Mono (woff2, subset latin) y sus licencias OFL.
@@ -58,7 +58,8 @@ css/
   identity.css          Identidad compartida editor/Viewer (el Viewer solo usa esta y share.css).
   system.css            Sistema visual del editor: tipografías, tokens y componentes.
   styles.css            Layout del editor (dónde va cada cosa; los valores salen de system.css).
-  pages.css             Estilos de las páginas estáticas (/docs, /ejemplos).
+  pages.css             Product Shell de las páginas públicas (/ejemplos, /docs, legales, soporte, 404): carga
+                        después de identity.css y system.css y solo coloca y fija la escala de lectura.
 
 js/
   analytics.js          Telemetría: condición de carga y helper trackEvent().
@@ -95,7 +96,8 @@ Los archivos de `js/` se cargan como scripts clásicos en orden de dependencia (
 | Comportamiento offline | `sw.js` |
 | Colores, tipografías, radios, alturas, botones, campos y menús del editor | `css/system.css` (tokens) |
 | Colocación y responsive del editor | `css/styles.css` |
-| Aspecto de /docs y /ejemplos | `css/pages.css` |
+| Aspecto de /ejemplos, /docs, las legales, soporte y el 404 (cabecera, pie, lectura) | `css/pages.css` (sobre los tokens de `css/system.css`) |
+| Página de error 404 | `404.html` (rutas absolutas; el hosting la sirve en cualquier ruta inexistente) |
 
 ## Qué PRs son bienvenidas
 

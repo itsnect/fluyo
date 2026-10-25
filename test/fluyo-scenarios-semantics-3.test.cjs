@@ -19,6 +19,7 @@ const atBase = (f) => execFileSync("git", ["-C", gitRoot, "show", BASE + ":" + f
 const J = (v) => JSON.parse(JSON.stringify(v));
 const { undo4: undo4only } = require("./fluyo-scenarios-semantics-4-undo.cjs");   /* SCENARIOS-SEMANTICS-001 FASE 4 va encima de STEP-REVERSE-003: se deshace antes; su alcance lo vigila test/fluyo-scenarios-semantics-4.test.cjs */
 const { undoMsg56: undo5 } = require("./fluyo-step-message-001-undo.cjs");   /* SCENARIOS-SEMANTICS-001 FASE 5 va encima de FASE 4: se deshace antes; su alcance lo vigila test/fluyo-scenarios-semantics-5.test.cjs */
+const { shellOnly } = require("./fluyo-shell-001-undo.cjs");   /* FLUYO-SHELL-001 (páginas públicas, favicon, manifest): lo suyo se descuenta */
 const undo4 = (f, src) => undo4only(f, undo5(f, src));
 
 const KERNEL = ["config.js", "safe-svg.js", "model.js", "scenario-engine.js", "scenario-playback.js", "story-playback.js", "story-clock.js", "flow-semantics.js", "document-integrity.js", "story-authoring.js"];
@@ -497,13 +498,13 @@ test("D2 · carga: el editor carga flow-semantics.js (tras story-clock.js) y lo 
   assert.ok(i("story-clock.js") < i("flow-semantics.js") && i("flow-semantics.js") < i("editor-scenarios.js") && i("flow-semantics.js") > 0);
   assert.ok(!undo4("s/index.html", read("s/index.html")).includes("flow-semantics"), "Viewer sin cambios en FASE 3 (lo carga FASE 5: undo5, dentro de undo4)");
   const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v107";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v108";/);
   assert.ok(sw.includes('"./js/story-clock.js",\n  "./js/flow-semantics.js",\n  "./js/document-integrity.js",'));
 });
 
 test("D3 · alcance frente a " + BASE + ": solo cambian estos archivos servidos; render, Viewer, Present y exportación intactos", () => {
   const SERVED = ["js", "s", "css", "index.html", "sw.js", "manifest.webmanifest", "docs", "ejemplos"];
-  const changed = execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean);
+  const changed = execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean).filter((f) => !shellOnly(f, read, atBase));
   const untracked = execFileSync("git", ["-C", gitRoot, "ls-files", "--others", "--exclude-standard", "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean);
   /* FLUYO-STEP-REVERSE-002 cambia además el motor, el playback, render.js y selection.js: deshechos (undoReverse), son los de BASE */
   const { undoReverse } = require("./fluyo-step-reverse-002-undo.cjs");
@@ -529,7 +530,7 @@ test("D5 · undo3 (para los alcances de slices anteriores) deshace EXACTAMENTE F
   const { undoReverseUi } = require("./fluyo-step-reverse-003-undo.cjs");   /* y 003 encima de 002 */
   for (const f of Object.keys(REGIONS)) {
     let back = undo3(f, undoReverse(f, undoReverseUi(f, undo4(f, read(f)))));
-    if (f === "sw.js") back = back.replace('"fluyo-static-v107"', '"fluyo-static-v' + (96 - 1) + '"');
+    if (f === "sw.js") back = back.replace('"fluyo-static-v108"', '"fluyo-static-v' + (96 - 1) + '"');
     assert.equal(back, atBase(f), f);
   }
 });

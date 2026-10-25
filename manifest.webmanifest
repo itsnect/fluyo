@@ -9,8 +9,8 @@
   "scope": ".",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#111213",
-  "theme_color": "#111213",
+  "background_color": "#F2EDE3",
+  "theme_color": "#F2EDE3",
   "categories": ["productivity", "developer", "graphics"],
   "icons": [
     {

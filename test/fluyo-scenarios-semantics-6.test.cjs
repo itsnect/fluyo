@@ -16,6 +16,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs"), path = require("node:path"), vm = require("node:vm");
 const { execFileSync } = require("node:child_process");
+const { shellOnly } = require("./fluyo-shell-001-undo.cjs");   /* FLUYO-SHELL-001 (páginas públicas, favicon, manifest): lo suyo se descuenta */
 const root = path.resolve(__dirname, "..");
 const read = (f) => fs.readFileSync(path.join(root, f), "utf8").replace(/\r\n/g, "\n");
 const gitRoot = process.env.FLUYO_GIT_ROOT || root;
@@ -240,15 +241,15 @@ test("C1 · B7: ningún archivo servido (todo lo de js/, css/, las páginas y sw
 const FILES6 = ["css/styles.css", "docs/index.html", "index.html", "js/editor-scenarios.js", "js/model.js", "js/present-story.js", "js/render.js", "js/selection.js", "js/ui.js"];
 const lines = (s) => s.split("\n").filter(Boolean);
 test("C2 · alcance frente a " + BASE + ": B1 (model.js, selection.js), «Automática · nombre» (styles.css), la bandera retirada (ui.js, editor-scenarios.js y comentarios), docs y sw.js (CACHE v101); undo6 los devuelve EXACTOS", () => {
-  const changed = lines(execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...SERVED], { encoding: "utf8" }));
+  const changed = lines(execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...SERVED], { encoding: "utf8" })).filter((f) => !shellOnly(f, read, atBase));
   const untracked = lines(execFileSync("git", ["-C", gitRoot, "ls-files", "--others", "--exclude-standard", "--", ...SERVED], { encoding: "utf8" }));
   const { PIECES } = require("./fluyo-scenarios-semantics-6-undo.cjs"), { undoMsg6: undo6, undoMsg, PIECES: PIECESM } = require("./fluyo-step-message-001-undo.cjs"), readM = (f) => undoMsg(f, read(f));   /* FLUYO-MCP-STEP-MESSAGE-001 va encima: se deshace antes */
   const { NEW_FILES: NEW_I18N, undoI18n } = require("./fluyo-i18n-001-undo.cjs");   /* FLUYO-I18N-001 añade js/i18n.js y js/i18n-en.js (no existen en la base) */
   assert.deepEqual([...new Set([...changed, ...untracked])].filter((f) => !NEW_I18N.includes(f)).filter((f) => !(f in PIECESM) || FILES6.includes(f) || undo6(f, read(f)) !== atBase(f)).sort(), FILES6.concat("sw.js").sort());
   assert.deepEqual(Object.keys(PIECES).sort(), FILES6);
   for (const f of FILES6) assert.equal(undo6(f, read(f)), atBase(f), f + ": undo6 exacto");
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v107";/);
-  assert.equal(undoI18n("sw.js", read("sw.js")).replace('"fluyo-static-v107"', '"fluyo-static-v' + (101 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante (el precache no cambia)");
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v108";/);
+  assert.equal(undoI18n("sw.js", read("sw.js")).replace('"fluyo-static-v108"', '"fluyo-static-v' + (101 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante (el precache no cambia)");
   /* en model.js solo cambia cloneStructureIn (y su nota en la cabecera de autoría) */
   const fn = (s) => s.slice(s.indexOf("function cloneStructureIn("), s.indexOf("const DUPLICATE_CONNECTIONS"));
   assert.equal(readM("js/model.js").replace(fn(readM("js/model.js")), "").replace(/ Los Behaviors que se copian pasan la regla de carga\n[\s\S]*?\(SCENARIOS-SEMANTICS-001 FASE 6, B1\)\.\n/, "\n"),

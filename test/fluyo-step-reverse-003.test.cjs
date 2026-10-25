@@ -9,6 +9,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs"), path = require("node:path"), vm = require("node:vm");
 const { execFileSync } = require("node:child_process");
+const { shellOnly } = require("./fluyo-shell-001-undo.cjs");   /* FLUYO-SHELL-001 (páginas públicas, favicon, manifest): lo suyo se descuenta */
 const root = path.resolve(__dirname, "..");
 const read = (f) => fs.readFileSync(path.join(root, f), "utf8").replace(/\r\n/g, "\n");
 const gitRoot = process.env.FLUYO_GIT_ROOT || root;
@@ -277,7 +278,7 @@ test("D1 · Share #d= después de invertir: el enlace lleva el Step invertido; V
 /* ═══════════════ E. Alcance frente a 702f269 ═══════════════ */
 test("E1 · alcance: solo cambian js/editor-scenarios.js y sw.js (CACHE v98); undoReverseUi los devuelve EXACTOS a " + BASE, () => {
   const SERVED = ["index.html", "s", "css", "js", "sw.js", "manifest.webmanifest"];
-  const changed = execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean);
+  const changed = execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean).filter((f) => !shellOnly(f, read, atBase));
   const untracked = execFileSync("git", ["-C", gitRoot, "ls-files", "--others", "--exclude-standard", "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean);
   const { undo4: undo4only, PIECES: PIECES4 } = require("./fluyo-scenarios-semantics-4-undo.cjs"), { undoMsg56: undo5 } = require("./fluyo-step-message-001-undo.cjs"), undo4 = (f, src) => undo4only(f, undo5(f, src));   /* SCENARIOS-SEMANTICS-001 FASE 4 va encima: se deshace antes */
   const PIECES5 = require("./fluyo-scenarios-semantics-5-undo.cjs").PIECES;   /* SCENARIOS-SEMANTICS-001 FASE 5: lo suyo se descuenta como lo de FASE 4 */
@@ -286,8 +287,8 @@ test("E1 · alcance: solo cambian js/editor-scenarios.js y sw.js (CACHE v98); un
   const { NEW_FILES: NEW_I18N, undoI18n } = require("./fluyo-i18n-001-undo.cjs");   /* FLUYO-I18N-001 añade js/i18n.js y js/i18n-en.js (no existen en la base) */
   assert.deepEqual([...new Set([...changed, ...untracked])].filter((f) => !NEW_I18N.includes(f)).filter((f) => f === "js/editor-scenarios.js" || (!Object.keys(PIECES4).includes(f) && !Object.keys(PIECES5).includes(f) && !Object.keys(PIECES6).includes(f) && !Object.keys(PIECESM).includes(f))).sort(), ["js/editor-scenarios.js", "sw.js"]);
   for (const f of Object.keys(PIECES4)) if (f !== "js/editor-scenarios.js") assert.equal(undo4(f, read(f)), atBase(f), f + ": solo FASE 4");
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v107";/);
-  assert.equal(undoI18n("sw.js", read("sw.js")).replace('"fluyo-static-v107"', '"fluyo-static-v' + (98 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante");
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v108";/);
+  assert.equal(undoI18n("sw.js", read("sw.js")).replace('"fluyo-static-v108"', '"fluyo-static-v' + (98 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante");
   const { undoReverseUi } = require("./fluyo-step-reverse-003-undo.cjs");
   assert.equal(undoReverseUi("js/editor-scenarios.js", undo4("js/editor-scenarios.js", read("js/editor-scenarios.js"))), atBase("js/editor-scenarios.js"));
   assert.equal((read("js/editor-scenarios.js").match(/Invertir sentido/g) || []).length, 2, "el rótulo, una vez (más el comentario)");

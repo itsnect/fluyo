@@ -12,6 +12,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs"), path = require("node:path"), vm = require("node:vm");
 const { execFileSync } = require("node:child_process");
+const { shellOnly } = require("./fluyo-shell-001-undo.cjs");   /* FLUYO-SHELL-001 (páginas públicas, favicon, manifest): lo suyo se descuenta */
 const root = path.resolve(__dirname, "..");
 const read = (f) => fs.readFileSync(path.join(root, f), "utf8").replace(/\r\n/g, "\n");
 const gitRoot = process.env.FLUYO_GIT_ROOT || root;
@@ -532,9 +533,9 @@ test("I1 · versiones: engineVersion 2 y version 5 (NO v3); sw.js sube a v97; Vi
   assert.equal(run("FluyoScenarios.ENGINE_VERSION"), 2);
   assert.equal(run("SCENARIO_ENGINE_VERSION"), 2);
   assert.equal(run("projectToSerializable({}, {}).version"), 5);
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v107";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v108";/);
   const { undoI18n } = require("./fluyo-i18n-001-undo.cjs");   /* FLUYO-I18N-001 añade al precache js/i18n-en.js y js/i18n.js */
-  assert.equal(undoI18n("sw.js", read("sw.js")).replace('"fluyo-static-v107"', '"fluyo-static-v' + (97 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante");
+  assert.equal(undoI18n("sw.js", read("sw.js")).replace('"fluyo-static-v108"', '"fluyo-static-v' + (97 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante");
   const { undo4: undo4only, PIECES: PIECES4 } = require("./fluyo-scenarios-semantics-4-undo.cjs"), { undoMsg56: undo5 } = require("./fluyo-step-message-001-undo.cjs"), undo4 = (f, src) => undo4only(f, undo5(f, src));   /* SCENARIOS-SEMANTICS-001 FASE 4 va encima: se deshace antes */
   for (const f of ["js/viewer.js", "js/present-story.js", "js/story-clock.js", "js/flow-semantics.js", "js/link-codec.js", "js/share-url.js", "index.html", "s/index.html", "css/styles.css"])
     assert.equal(undo4(f, read(f)), atBase(f), f + " sin cambios");
@@ -554,7 +555,7 @@ test("I2 · una sola regla: fuera de traversalEnds nadie deduce el recorrido de 
 
 test("I3 · alcance frente a " + BASE + ": solo cambian estos archivos servidos, y undoReverse (para los alcances antiguos) los devuelve EXACTOS a la base", () => {
   const SERVED = ["js", "s", "css", "index.html", "sw.js", "manifest.webmanifest", "docs", "ejemplos", "privacidad", "privacy", "soporte", "support", "terminos", "terms"];
-  const changed = execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean);
+  const changed = execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean).filter((f) => !shellOnly(f, read, atBase));
   const untracked = execFileSync("git", ["-C", gitRoot, "ls-files", "--others", "--exclude-standard", "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean);
   const { undoReverse, REGIONS } = require("./fluyo-step-reverse-002-undo.cjs");
   const { undoReverseUi } = require("./fluyo-step-reverse-003-undo.cjs");   /* STEP-REVERSE-003 va encima: se deshace antes */

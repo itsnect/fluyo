@@ -345,6 +345,9 @@ index.html ── css/identity.css ── css/system.css ───────�
 s/index.html ─ css/identity.css ── css/share.css   (el Viewer NO carga system.css)
 ```
 
+> Desde 018.14a el Viewer carga `identity.css` + `system.css` + `share.css`; desde FLUYO-SHELL-001 las páginas públicas cargan
+> `identity.css` + `system.css` + `pages.css` (ver «Product Shell» al final).
+
 - Dos capas: el chrome es papel hueso con tinta; el lienzo es la superficie de trabajo y su tema es del documento (`doc.theme`, `config.js`, sin cambios). El chrome lo enmarca (`.stage` + `#wrap`: aire, filete de tinta, radio, sombra interior); en ≤700 px va a sangre.
 - Tokens: primitivas `--c-*` (hueso, tinta, oliva, terracota, grafito, piedra) → semánticos (`--surface*`, `--ink*`, `--rule*`, `--active*` = oliva, `--attention*` = terracota, `--font-serif`, `--font-mono`, `--fs-*`, `--r-*`, `--ctl-h` de 30 px que pasa a 40 px con `pointer:coarse`). Los nombres de `identity.css` (`--bg`, `--panel`, `--text`, `--muted`, `--accent`…) se redefinen sobre los tokens: Historias y los diálogos pasan al sistema sin reescribirse.
 - Componentes: `button` secundario por defecto, `.btnGhost`, `.primary` (terracota), `.iconBtn`, `.danger`; campos mono; casillas como interruptor (`.row`, menú «Más»); `.tabs`; `.badge`; `.menu`/`.menuSection`/`.menuKicker`/`.menuItem` (también `.scPopover` y `.moreMenu`); `[data-tip]`; `.inverse` (mando y rótulo de Present, también por id porque `present-story.js` reescribe el `className` del mando).
@@ -858,3 +861,33 @@ Decisiones 245–249. Sin cambios de contrato: D5, D-Ruta, `observedFlow`, AVAIL
     - SW v99 → v100.
   - En fluyo-mcp: `test/fluyo-scenarios-semantics-5.test.ts` y `scripts/mutate-scenarios-semantics-5.ts` (30).
   - Los alcances de slices anteriores descuentan FASE 5 con `test/fluyo-scenarios-semantics-5-undo.cjs` (`undo5`, antes que `undo4`).
+
+## Product Shell de las páginas públicas (FLUYO-SHELL-001)
+
+```text
+docs/ · ejemplos/ · privacidad/ · privacy/ · terminos/ · terms/ · soporte/ · support/ · 404.html
+   └─ css/identity.css ── css/system.css ── css/pages.css
+                          (tokens y voces    (shell: cabecera, pie, columna de lectura, escala de
+                           del producto)      lectura, botones para enlaces, galería, estado 404)
+```
+
+- Las páginas usan los tokens del editor y del Viewer: papel `--surface`, tinta, oliva = activo (página actual, foco), terracota = la
+  acción de la vista (como mucho una). Playfair para títulos, IBM Plex Mono para el cuerpo de lectura (14,5 px, interlineado 1,7).
+  `pages.css` no tiene ningún color fuera de `:root`; su único hex es `--canvas-dark` (= `THEMES.dark.bg`), el fondo de un diagrama.
+- No siguen la interfaz oscura (`fluyo.ui.theme`, decisión 134), como el Viewer.
+- Marcado común copiado en cada HTML (no hay build): `.siteHead` (marca · Ejemplos · Docs · «Abrir Fluyo»), `.siteFoot` (licencia,
+  Privacidad · Términos · Soporte · GitHub · MCP, e idioma hermano con `hreflang`), sprite con `i-edit` e `i-arrow` (iguales a los de
+  `s/index.html` e `index.html`), «Ir al contenido» y `<main id="main">`.
+- Ancho: contenedor `min(1120px, 100% − 2·gutter)`; columna de lectura `38rem`; la galería usa el ancho completo. Cabecera de
+  50 px con el filete dentro, como el editor y el Viewer; a ≤ 440 px «Abrir Fluyo» se queda en icono; con `pointer:coarse`,
+  objetivos de 44 px. Propiedades lógicas (preparado para RTL).
+- Idiomas: las páginas con URL propia llevan su texto escrito en su idioma; `404.html` (sin idioma en la URL) usa `data-i18n` +
+  `js/i18n.js` (decisión 261) y entra en el catálogo de `test/i18n-scan.cjs`. Las pilas CJK y los rótulos sin mayúsculas son de
+  FLUYO-I18N-002 · S4 (`--case-kicker`, `--track-kicker` son tokens que S4 puede redefinir bajo `:lang()`).
+- `404.html` va con rutas absolutas porque el hosting la sirve en cualquier ruta. El service worker no cambia: sin red, una ruta
+  inexistente sigue respondiendo con el editor.
+- Marca: favicon (data URI en las 10 páginas, editor y Viewer incluidos), `assets/logo.svg`, iconos PWA y `og-image.png` en hueso y
+  terracota; `manifest.webmanifest` con `background_color`/`theme_color` `#F2EDE3`.
+- Tests: `test/fluyo-shell-001.test.cjs` (estático y alcance), `test/fluyo-shell-001-browser.cjs` (Chrome real: 1440, 375 con dedo y
+  320; navegación; 404; Ejemplos → editor; SW v108 sin red; comparación con editor y Viewer). Los alcances de slices anteriores lo
+  descuentan con `test/fluyo-shell-001-undo.cjs` (`undoShell`, debajo de `undoSwv`; `shellOnly` para las listas de archivos).

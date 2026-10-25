@@ -1,7 +1,8 @@
 "use strict";
 /* FLUYO-I18N-001 — Escáner del texto de la interfaz (sin dependencias). Lo usa test/fluyo-i18n-001.test.cjs; no registra tests.
    · catalog(): las claves en uso y su texto base (español) —llamadas FluyoI18n.t("clave", "texto") de js/*.js y elementos marcados
-     data-i18n / data-i18n-<atributo> de index.html y s/index.html—.
+     data-i18n / data-i18n-<atributo> de index.html, s/index.html y 404.html (FLUYO-SHELL-001: la única página pública sin idioma
+     en la URL)—.
    · hardcoded(): cuánto texto humano queda SIN migrar por archivo (heurística: literales de JS con aspecto de frase o de palabra
      con mayúscula; nodos de texto y atributos visibles del HTML sin marca). Es la base del trinquete: puede bajar, nunca subir.
    · unmarked(html, desde, hasta): el texto sin marca de una región ya migrada (debe ser 0).
@@ -14,7 +15,7 @@ const vm = require("node:vm");
 const root = path.join(__dirname, "..");
 const read = (p) => fs.readFileSync(path.join(root, p), "utf8").replace(/\r\n/g, "\n");
 const I18N_FILES = ["js/i18n.js", "js/i18n-en.js"];
-const HTML_FILES = ["index.html", "s/index.html"];
+const HTML_FILES = ["index.html", "s/index.html", "404.html"];
 const BRAND = /^(Fluyo|flu|yo)$/;
 const OWN = /^([^\p{L}\p{N}]*)([\s\S]*?)(\s*)$/u;
 /* atributo visible → su marca (la que lee FluyoI18n.applyDom) */

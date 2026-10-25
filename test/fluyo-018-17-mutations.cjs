@@ -13,7 +13,7 @@ const UNIT = ["--test", "test/fluyo-018-17.test.cjs"];
 const BROWSER = ["test/fluyo-018-17-browser.cjs"];
 /* [nombre, suite, archivo, desde, hasta, ONLY del browser test] */
 const MUTATIONS = [
-  ["U1 CACHE no sube (sigue v75)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v107";', 'const CACHE = "fluyo-static-v75";'],
+  ["U1 CACHE no sube (sigue v75)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v108";', 'const CACHE = "fluyo-static-v75";'],
   ["U2 los objetivos críticos vuelven a 40 px", UNIT, "css/system.css", "  --ctl-h-touch:44px;", "  --ctl-h-touch:40px;"],
   ["U3 los campos con dedo vuelven a 12 px (zoom de iOS)", UNIT, "css/system.css", "@media (pointer:coarse){ input[type=number], input[type=text], input[type=search], input:not([type]), textarea, select{ font-size:16px; } }\n", ""],
   ["U4 la hoja de Propiedades vuelve a 52dvh", UNIT, "css/styles.css", "height:clamp(220px, 40dvh, 360px); z-index:45;", "height:clamp(260px, 52dvh, 560px); z-index:45;"],

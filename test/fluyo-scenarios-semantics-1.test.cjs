@@ -27,6 +27,7 @@ const { undoReverse } = require("./fluyo-step-reverse-002-undo.cjs");   /* FLUYO
 const { undoReverseUi } = require("./fluyo-step-reverse-003-undo.cjs");   /* FLUYO-STEP-REVERSE-003 añade «Invertir sentido» a editor-scenarios.js: se deshace aquí, antes que 002; su alcance lo vigila test/fluyo-step-reverse-003.test.cjs */
 const { undo4: undo4only } = require("./fluyo-scenarios-semantics-4-undo.cjs");   /* SCENARIOS-SEMANTICS-001 FASE 4 va encima de STEP-REVERSE-003: se deshace antes; su alcance lo vigila test/fluyo-scenarios-semantics-4.test.cjs */
 const { undoMsg56: undo5 } = require("./fluyo-step-message-001-undo.cjs");   /* SCENARIOS-SEMANTICS-001 FASE 5 va encima de FASE 4: se deshace antes; su alcance lo vigila test/fluyo-scenarios-semantics-5.test.cjs */
+const { shellOnly } = require("./fluyo-shell-001-undo.cjs");   /* FLUYO-SHELL-001 (páginas públicas, favicon, manifest): lo suyo se descuenta */
 const undo4 = (f, src) => undo4only(f, undo5(f, src));
 const undo3 = (f, src) => undo3only(f, undoReverse(f, undoReverseUi(f, undo4(f, src))));
 const J = (v) => JSON.parse(JSON.stringify(v));
@@ -275,7 +276,7 @@ test("alcance · entre los archivos servidos solo cambian model.js, geometry.js,
   /* FASE 1 y FASE 2 se reintegran juntas sobre BASE: js/flow-semantics.js es de FASE 2 (no servido; su alcance lo vigila
      test/fluyo-scenarios-semantics-2.test.cjs) y aquí se descuenta */
   const changed = execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", "js", "s", "css", "index.html", "sw.js", "manifest.webmanifest", "docs", "ejemplos"], { encoding: "utf8" })
-    .split("\n").filter((f) => f && f !== "js/flow-semantics.js").sort();
+    .split("\n").filter((f) => f && f !== "js/flow-semantics.js").filter((f) => !shellOnly(f, read, before)).sort();
   /* FLUYO-019.4b añade interaction.js, editor-runtime.js y state.js: deshechos, son los de BASE */
   const ONLY4B = ["js/editor-runtime.js", "js/interaction.js", "js/state.js"];
   for (const f of ONLY4B) assert.equal(undo4b(f, undo3(f, read(f))), before(f), f + " = " + BASE + " fuera de 019.4b");
@@ -295,8 +296,8 @@ test("alcance · entre los archivos servidos solo cambian model.js, geometry.js,
   for (const f of ["js/config.js", "js/safe-svg.js", "js/scenario-engine.js", "js/scenario-playback.js", "js/story-playback.js", "js/document-integrity.js", "js/story-authoring.js",
     "js/story-clock.js", "js/skin.js", "js/viewer.js", "js/export.js", "js/state.js", "js/selection.js", "js/editor-scenarios.js", "s/index.html"]) assert.equal(undo4b(f, undo3(f, read(f))), before(f), f);
   const sw = undo3("sw.js", read("sw.js"));
-  assert.match(sw, /const CACHE = "fluyo-static-v107";/);
-  assert.equal(sw.replace('"fluyo-static-v107"', '"fluyo-static-v' + (94 - 1) + '"'), before("sw.js"), "sw.js: solo sube CACHE (sin archivos nuevos)");
+  assert.match(sw, /const CACHE = "fluyo-static-v108";/);
+  assert.equal(sw.replace('"fluyo-static-v108"', '"fluyo-static-v' + (94 - 1) + '"'), before("sw.js"), "sw.js: solo sube CACHE (sin archivos nuevos)");
   /* UNKNOWN sigue fuera (D3): el kernel solo admite UP/DOWN */
   assert.match(read("js/model.js"), /const SCENARIO_STATES=new Set\(\["UP","DOWN"\]\);/);
   assert.match(read("js/scenario-engine.js"), /const VALID_STATES = new Set\(\["UP", "DOWN"\]\);/);

@@ -3,7 +3,7 @@
    el SW con su conjunto mínimo, y desde la segunda apertura el enlace funciona SIN RED (D1), sin pedir nunca gif.js ni nada a cdnjs (D2),
    sin cachear el editor (D3), y con cualquier query de /s/ sirviendo el Viewer, nunca el editor (D4-A).
    · Escritorio 1440×900, móvil vertical 390×844 y apaisado 844×390: online /s/?lang=en (inglés, Historia, frase del autor sin traducir)
-     → instalación (caché v107 = exactamente VIEWER_ASSETS) → sin red: recarga, /s/ en español, ?lang=fr (cae a español), ?s=demo (no el
+     → instalación (caché v108 = exactamente VIEWER_ASSETS) → sin red: recarga, /s/ en español, ?lang=fr (cae a español), ?s=demo (no el
      editor), preferencia guardada en inglés, enlace creado con el editor de e82c821 (antes de I18N y Narration).
    · Red: ninguna petición a terceros (cdnjs/Cloudflare incluido) ni a gif.js en toda la vida del Viewer, también la del propio SW.
    · Actualización: con el SW del Viewer instalado, un deploy (CACHE nueva) → la primera apertura es la versión anterior entera, la caché

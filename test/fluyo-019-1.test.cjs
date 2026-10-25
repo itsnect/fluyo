@@ -210,7 +210,7 @@ test("alcance · kernel (salvo model.js), geometría, Historias y Share idéntic
   assert.ok(html.indexOf('<script src="js/geometry.js">') < html.indexOf('<script src="js/skin.js">') && html.indexOf('<script src="js/skin.js">') < html.indexOf('<script src="js/render.js">'), "editor: geometry → skin → render");
   assert.ok(viewer.indexOf('<script src="../js/geometry.js">') < viewer.indexOf('<script src="../js/skin.js">') && viewer.indexOf('<script src="../js/skin.js">') < viewer.indexOf('<script src="../js/render.js">'), "Viewer (019.2): geometry → skin → render");
   assert.ok(!/^\s*import\s/m.test(read("js/skin.js")), "script clásico, sin import");
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v107";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v108";/);
   assert.ok(read("sw.js").includes('"./js/skin.js",'), "skin.js precacheado");
   /* skin.js va justo después de geometry.js también en la lista precacheada (el orden de carga del editor) */
   const sw = read("sw.js");

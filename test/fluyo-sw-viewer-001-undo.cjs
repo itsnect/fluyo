@@ -26,7 +26,10 @@ const PIECES = {
     ],
   ],
 };
+/* FLUYO-SHELL-001 va encima de esta tarea: se deshace antes (undoShell), y los alcances antiguos siguen recibiendo su base. */
+const { undoShell } = require("./fluyo-shell-001-undo.cjs");
 function undoSwv(file, src) {
+  src = undoShell(file, src);
   const f = file.replace(/\\/g, "/"), pieces = PIECES[f];
   if (!pieces) return src;
   let out = src.replace(/\r\n/g, "\n");

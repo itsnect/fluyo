@@ -1,30 +1,14 @@
 "use strict";
-/* FLUYO-I18N-001 — English. Clave → texto; el español (idioma base) es el texto por defecto de cada llamada a
-   FluyoI18n.t() y del HTML marcado con data-i18n*. Términos: glosario de .ai/tasks/FLUYO-I18N-001.md.
-   test/fluyo-i18n-001.test.cjs exige exactamente las claves que usa el código, con los mismos marcadores {param}. */
+/* FLUYO-I18N-001 / I18N-002 (S0) — English · lo COMÚN: Viewer, Present, Historia y páginas públicas (s/index.html y 404.html
+   cargan solo este archivo; el editor, además, js/i18n-en-editor.js). Clave → texto; el español (idioma base) es el texto por
+   defecto de cada llamada a FluyoI18n.t() y del HTML marcado con data-i18n*. Términos: glosario de .ai/tasks/FLUYO-I18N-001.md.
+   Los tests de catálogo exigen solo claves en uso, con los mismos marcadores {param}, y que lo que usa el Viewer o el 404 esté
+   aquí y no en el archivo del editor. */
 var FLUYO_LOCALES=(typeof FLUYO_LOCALES==="object" && FLUYO_LOCALES) || {};
-FLUYO_LOCALES.en={
-  /* Cabecera del editor */
-  "editor.history":"Change history",
-  "editor.undo":"Undo",
-  "editor.undoHint":"Undo · Ctrl+Z",
-  "editor.redo":"Redo",
-  "editor.redoHint":"Redo · Ctrl+Y",
-  "editor.mode":"Working mode",
-  "editor.modeEdit":"Edit",
-  "editor.modeStories":"Stories",
-  "editor.canvas":"Canvas",
-  "editor.canvasHint":"Canvas settings: theme, background, typography and grid",
-  "editor.export":"Export",
-  "editor.share":"Share",
-  "editor.presentHint":"Present mode (P): full screen, one page per slide",
-  "editor.properties":"Properties",
-  "editor.more":"More options",
-
+FLUYO_LOCALES.en=Object.assign(FLUYO_LOCALES.en || {}, {
   /* Historia (editor, Present y Viewer) */
   "story.group":"Story",
   "story.kicker":"Story · {name}",
-  "story.play":"Play",
   "story.playStory":"Play story",
   "story.replay":"Replay",
   "story.pause":"Pause",
@@ -37,23 +21,13 @@ FLUYO_LOCALES.en={
 
   /* Present (editor y Viewer) */
   "present.start":"Present",
-  "present.playHint":"Play the story (Space)",
-  "present.pauseHint":"Pause or resume (Space)",
-  "present.stopHint":"Stop (Esc)",
   "present.pages":"Pages",
   "present.prev":"Previous",
   "present.next":"Next",
   "present.pagePrev":"Previous page",
   "present.pageNext":"Next page",
-  "present.pagePrevHint":"Previous page (←)",
-  "present.pageNextHint":"Next page (→)",
   "present.exit":"Exit",
   "present.exitLong":"Exit presentation",
-  "present.exitHint":"Exit presentation (Esc)",
-  "present.skinFlat":"Flat",
-  "present.skinBuilt":"Built",
-  "present.skinFlatHint":"Flat look · press B for the built look",
-  "present.skinBuiltHint":"Built look (2.5D) · press B for the flat look",
 
   /* Viewer (/s/) */
   "viewer.docTitle":"Shared diagram · Fluyo",
@@ -77,10 +51,7 @@ FLUYO_LOCALES.en={
   "viewer.error.unsupportedVersion":"This diagram needs a newer version of Fluyo.",
   "viewer.error.unavailable":"Couldn't load the diagram right now. Please try again later.",
   "page.untitled":"Page {n}",
-  /* Historia · «Mensaje del paso…» en un envío (FLUYO-PRODUCT-NARRATION-001) */
-  "step.message.nowReads":"Now it reads «{name}»",
-  "step.message.helpSend":"Shown while this step plays, instead of the event's name. Timing doesn't change.",
-  "step.message.helpElement":"Shown while this step plays and in its bubble, instead of the event's text. Timing doesn't change.",
+
   /* Páginas públicas sin idioma en la URL: cabecera y pie del shell, y el 404 (FLUYO-SHELL-001). Las páginas con URL
      propia (/privacy/, /support/…) llevan su texto escrito en su idioma y no usan el diccionario. */
   "shell.skip":"Skip to content",
@@ -97,4 +68,4 @@ FLUYO_LOCALES.en={
   "notfound.title":"This page doesn't exist",
   "notfound.body":"The link may be mistyped, or the page may no longer exist. Your diagrams are still in your browser.",
   "notfound.examples":"See examples"
-};
+});

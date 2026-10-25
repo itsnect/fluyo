@@ -69,7 +69,7 @@ test("VIEWER_ASSETS es exactamente lo que carga s/index.html: la página, sus ho
   assert.deepEqual(V.filter((f) => f.startsWith("assets/")).sort(), [...fonts].sort(), "las tipografías que piden esas hojas");
   assert.equal(V[0], "s/", "la página del Viewer");
   assert.equal(V.length, 1 + sheets.length + fonts.length + scripts.length, "nada más");
-  assert.equal(V.length, 25);
+  assert.equal(V.length, 25 + 3, "25 + los diccionarios comunes fr, ja y zh (FLUYO-I18N-002 S0)");
   assert.ok(!/cdnjs|gif\.js|https?:/.test(read("sw.js").match(/const VIEWER_ASSETS = \[[\s\S]*?\];/)[0]), "sin terceros ni gif.js");
   const editor = new Set([...list("ASSETS"), ...list("PAGE_ASSETS")]);
   assert.ok(V.every((f) => editor.has(f)), "todo lo del Viewer ya estaba en la caché del editor (el editor no cambia)");
@@ -83,7 +83,7 @@ test("instalación desde el Viewer (solo /s/ abierto, sin caché anterior): solo
     const V = list("VIEWER_ASSETS").map((f) => s.abs("./" + f));
     assert.deepEqual(s.added, V, JSON.stringify(clients) + ": exactamente el conjunto del Viewer");
     assert.ok(!s.added.some((u) => /cdnjs|gif/.test(u)), "sin gif.js ni cdnjs");
-    assert.deepEqual([...s.stores.keys()], ["fluyo-static-v108"]);
+    assert.deepEqual([...s.stores.keys()], ["fluyo-static-v109"]);
   }
 });
 
@@ -116,20 +116,20 @@ test("D4-A · /s/ con cualquier query sirve el Viewer de la caché; sin red y si
     assert.equal((await s.navigate(u)).body, "net:" + viewer, u + ": sin red, el Viewer");
   }
   /* caché vacía (p. ej. editor ya instalado antes sin /s/), sin red: respaldo ./s/ si existe, si no nada; NUNCA index.html */
-  const e = sw({ clients: ["/"], online: false, oldCaches: { "fluyo-static-v108": ["./index.html", "./s/"] } });
+  const e = sw({ clients: ["/"], online: false, oldCaches: { "fluyo-static-v109": ["./index.html", "./s/"] } });
   const r1 = await e.navigate("/s/?lang=en");
   assert.equal(r1.body, "old:./s/", "con el editor instalado y sin red: el Viewer, no el editor");
-  const empty = sw({ online: false, oldCaches: { "fluyo-static-v108": ["./index.html"] } });
+  const empty = sw({ online: false, oldCaches: { "fluyo-static-v109": ["./index.html"] } });
   assert.equal(await empty.navigate("/s/?lang=en"), undefined, "sin Viewer en caché y sin red: nada (nunca el editor)");
   /* con red y sin caché: se pide la página del Viewer y se guarda como ./s/ (una sola clave para todas las queries) */
-  const on = sw({ oldCaches: { "fluyo-static-v108": [] } });
+  const on = sw({ oldCaches: { "fluyo-static-v109": [] } });
   await on.navigate("/s/?lang=en");
   assert.deepEqual(on.fetched, [s.abs("./s/")], "se pide ./s/, sin la query");
   assert.ok((await on.navigate("/s/?lang=fr")).body.endsWith("/s/"));
 });
 
 test("el editor y gif.js, como antes: navegación al editor sin red → ./index.html; gif.js cache-first; terceros, sin tocar", async () => {
-  const s = sw({ clients: ["/"], online: false, oldCaches: { "fluyo-static-v108": ["./index.html"] } });
+  const s = sw({ clients: ["/"], online: false, oldCaches: { "fluyo-static-v109": ["./index.html"] } });
   assert.equal((await s.navigate("/?ejemplo=nope")).body, "old:./index.html", "editor sin red: su index.html");
   assert.equal((await s.navigate("/docs/")).body, "old:./index.html", "otra página sin red: como antes");
   /* gif.js: lo pide el editor al exportar; cache-first como siempre (de la red la primera vez, guardado) */
@@ -174,11 +174,11 @@ test("alcance frente a db380d3: solo cambian sw.js y js/viewer.js; undoSwv da la
   assert.equal(BASE_SWV, BASE);
   assert.deepEqual(Object.keys(PIECES).sort(), ["js/viewer.js", "sw.js"]);
   assert.equal(undoSwv("js/viewer.js", read("js/viewer.js")), atBase("js/viewer.js"));
-  assert.equal(undoSwv("sw.js", read("sw.js")).replace("fluyo-static-v108", "fluyo-static-v" + (107 - 1)), atBase("sw.js"));
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v108";/);
+  assert.equal(undoSwv("sw.js", read("sw.js")).replace("fluyo-static-v109", "fluyo-static-v" + (107 - 1)), atBase("sw.js"));
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v109";/);
   for (const n of ["ASSETS", "PAGE_ASSETS", "CDN_ASSETS"]) {
     const grab = (s) => (s.match(new RegExp("const " + n + " = \\[[\\s\\S]*?\\];")) || [])[0];
-    assert.equal(grab(read("sw.js")), grab(atBase("sw.js")), n + ": la lista del editor no cambia");
+    assert.equal(grab(undoShell("sw.js", read("sw.js"))), grab(atBase("sw.js")), n + ": la lista del editor no cambia (I18N-002 S0, encima, se deshace antes)");
   }
   assert.ok(read("test/fluyo-product-narration-001-undo.cjs").includes("src = undoSwv(file, src);"), "undoNarr deshace antes esta tarea");
 });

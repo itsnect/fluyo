@@ -8,7 +8,8 @@ const read=p=>fs.readFileSync(path.join(__dirname,'..',p),'utf8');
 
 const VIEWER_SCRIPTS=[
   /* FLUYO-I18N-001: el idioma de la interfaz, antes que quien pinta texto (como en s/index.html) */
-  'js/i18n-en.js','js/i18n.js',
+  /* FLUYO-I18N-002 S0: los diccionarios comunes de todos los idiomas, como s/index.html */
+  'js/i18n-en.js','js/i18n-fr.js','js/i18n-ja.js','js/i18n-zh.js','js/i18n.js',
   'js/config.js','js/safe-svg.js','js/model.js','js/link-codec.js','js/geometry.js','js/skin.js','js/render.js','js/scenario-engine.js','js/scenario-playback.js','js/story-playback.js','js/story-clock.js',
   /* SCENARIOS-SEMANTICS-001 FASE 5 (D7): el módulo puro de la ruta observada, entre story-clock.js y viewer.js */
   'js/flow-semantics.js',

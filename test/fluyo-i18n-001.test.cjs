@@ -25,18 +25,21 @@ const read = scan.read;
 const BASE = "e82c821";
 const atBase = (f) => execFileSync("git", ["-C", gitRoot, "show", BASE + ":" + f], { encoding: "utf8" }).replace(/\r\n/g, "\n");
 
+/* FLUYO-I18N-002 S0: los diccionarios son js/i18n-<idioma>.js (común) + js/i18n-<idioma>-editor.js; el editor carga todos. */
+const DICT_FILES = fs.readdirSync(path.join(root, "js")).map((f) => "js/" + f).filter((f) => scan.DICT.test(f)).sort();
 /* El runtime en un contexto propio: location/localStorage/document opcionales. */
 function i18n({ search = "", stored = null, languages = [], document, withEn = true } = {}) {
   const store = new Map(stored === null ? [] : [["fluyo.ui.lang", stored]]);
   const ctx = vm.createContext({ URLSearchParams, Intl, location: { search }, navigator: { languages },
     localStorage: { getItem: (k) => store.has(k) ? store.get(k) : null, setItem: (k, v) => store.set(k, String(v)) }, document });
-  if (withEn) vm.runInContext(read("js/i18n-en.js"), ctx);
+  if (withEn) for (const f of DICT_FILES) vm.runInContext(read(f), ctx);
   vm.runInContext(read("js/i18n.js"), ctx);
   ctx.store = store;
   ctx.I = vm.runInContext("FluyoI18n", ctx);   /* const de nivel superior: no es propiedad del contexto */
   return ctx;
 }
-const EN = (() => { const c = vm.createContext({}); vm.runInContext(read("js/i18n-en.js"), c); return c.FLUYO_LOCALES.en; })();
+const EN = (() => { const d = scan.dictionaries().en; return { ...d.common, ...d.editor }; })();
+const EN_SRC = read("js/i18n-en.js") + read("js/i18n-en-editor.js");
 
 /* ───────────── runtime ───────────── */
 
@@ -75,12 +78,13 @@ test("runtime · idioma de la carga: ?lang › preferencia de este navegador ›
   assert.equal(i18n({ search: "?lang=en", stored: "es" }).I.locale(), "en", "la URL manda en esta carga");
   assert.equal(i18n({ search: "?lang=EN-us" }).I.locale(), "en", "etiqueta BCP 47 normalizada");
   assert.equal(i18n({ stored: "en" }).I.locale(), "en", "la preferencia guardada");
-  assert.equal(i18n({ search: "?lang=fr", stored: "en" }).I.locale(), "en", "un idioma sin diccionario se ignora");
-  assert.equal(i18n({ search: "?lang=fr" }).I.locale(), "es");
-  assert.equal(i18n({ languages: ["en-US", "en"] }).I.locale(), "es", "AUTO_DETECT apagado: nadie ve una interfaz a medias sin pedirla");
+  assert.equal(i18n({ search: "?lang=de", stored: "en" }).I.locale(), "en", "un idioma sin diccionario se ignora");
+  assert.equal(i18n({ search: "?lang=de" }).I.locale(), "es");
+  /* FLUYO-I18N-002 S0: la detección solo elige idiomas PUBLICADOS; mientras solo lo esté el español, nadie ve una interfaz a medias sin pedirla */
+  assert.equal(i18n({ languages: ["en-US", "en"] }).I.locale(), "es", "el inglés aún no está publicado: la detección no lo elige");
   assert.equal(i18n({ search: "?lang=en", withEn: false }).I.locale(), "es", "sin el diccionario cargado, español");
-  assert.deepEqual([...i18n().I.supported()], ["es", "en"]);
-  assert.match(read("js/i18n.js"), /const AUTO_DETECT=false;/);
+  assert.deepEqual([...i18n().I.supported()], ["es", "en", "fr", "ja", "zh"]);
+  assert.deepEqual([...i18n().I.released()], ["es"]);
 });
 
 test("runtime · setLocale: persist guarda la preferencia (solo en este navegador); sin persist, no", () => {
@@ -266,7 +270,7 @@ function present(lang, phase) {
     scActiveScenario: () => ({ name: "Pago", steps: [{}] }), scStatus: phase === "ready" ? "idle" : phase === "finished" ? "completed" : "running",
     scIsPaused: () => phase === "paused", scErrors: [], scPlayback: null, scNodeFallback: () => "", edgeById: () => null, doc: { pages: [{}, {}] },
     FluyoPresentStory: { MAX_DOTS: 12 }, FluyoStory: { describe: () => ({ title: "Pago", moments: [{ label: "a" }], idx: 0, caption: "Cliente paga", summary: "" }) } });
-  vm.runInContext(read("js/i18n-en.js"), ctx);
+  vm.runInContext(EN_SRC, ctx);
   vm.runInContext(read("js/i18n.js"), ctx);
   vm.runInContext(read("js/present-story.js"), ctx);
   vm.runInContext("presentStoryRefresh()", ctx);
@@ -289,7 +293,7 @@ test("Present: el botón de aspecto (ui.js) en inglés y en español", () => {
     ["es", ["Plano", "Aspecto plano · pulsa B para ver el construido"], ["Construido", "Aspecto construido (2.5D) · pulsa B para ver el plano"]]]) {
     const b = { textContent: "", title: "", attrs: {}, setAttribute(k, v) { this.attrs[k] = v; } };
     const ctx = vm.createContext({ URLSearchParams, Intl, location: { search: "?lang=" + lang }, settings: {}, $: () => b, projectSkin: (st) => st.skin === "built" ? "built" : "flat" });
-    vm.runInContext(read("js/i18n-en.js") + read("js/i18n.js") + slice, ctx);
+    vm.runInContext(EN_SRC + read("js/i18n.js") + slice, ctx);
     vm.runInContext("syncPresentSkinButton()", ctx);
     assert.deepEqual([b.textContent, b.title], flat, lang);
     vm.runInContext('settings.skin="built"; syncPresentSkinButton()', ctx);
@@ -305,7 +309,7 @@ test("carga: diccionario → runtime → config.js en el editor y en el Viewer; 
     assert.ok(at("i18n-en.js") > 0 && at("i18n-en.js") < at("i18n.js") && at("i18n.js") < at("config.js"), page);
   }
   const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v108";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v109";/);
   assert.ok(sw.includes('"./js/i18n-en.js"') && sw.includes('"./js/i18n.js"'));
   assert.doesNotMatch(read("s/index.html"), /<script>(?!\s*$)/, "el Viewer sigue sin script en línea (CSP)");
 });
@@ -326,7 +330,7 @@ test("undoI18n (para los alcances de slices anteriores) devuelve EXACTOS a la ba
   assert.deepEqual(Object.keys(PIECES).sort(), ["index.html", "js/editor-scenarios.js", "js/present-story.js", "js/ui.js", "js/viewer.js", "s/index.html", "sw.js"]);
   for (const f of Object.keys(PIECES)) {
     let out = undoI18n(f, read(f));
-    if (f === "sw.js") out = out.replace('"fluyo-static-v108"', '"fluyo-static-v' + (105 - 1) + '"');
+    if (f === "sw.js") out = out.replace('"fluyo-static-v109"', '"fluyo-static-v' + (105 - 1) + '"');
     assert.equal(out, atBase(f), f);
   }
   assert.deepEqual(NEW_FILES, ["js/i18n.js", "js/i18n-en.js"]);

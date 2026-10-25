@@ -194,3 +194,15 @@ function fitViewPresent(maxZoom=2.5){
   viewX=side+(aw-b.w*viewZoom)/2 - b.x*viewZoom;
   viewY=top+(ah-b.h*viewZoom)/2 - b.y*viewZoom;
 }
+
+/* FLUYO-I18N-002 (S0): cambiar de idioma en vivo. Lo marcado en el HTML ya lo traduce FluyoI18n; aquí se repinta lo que pone JS
+   en Present (mando, encabezado, botón de aspecto) y el transporte de Historias. Lo demás del editor se suscribe al migrarlo
+   (S1–S3). La sesión, Deshacer y la reproducción siguen igual; el documento no cambia. */
+if(typeof FluyoI18n==="object") FluyoI18n.onChange(()=>{
+  psLast={};
+  presentStoryRefresh();
+  /* fuera de Present el mando está oculto y presentStoryRefresh no lo pinta: sus dos glifos, al día para la próxima vez */
+  if(!presenting){ psGlyph("psPlay","▶","g-play",FluyoI18n.t("story.play","Reproducir")); psGlyph("psStop","■","g-stop",FluyoI18n.t("story.stop","Detener")); }
+  if(typeof syncPresentSkinButton==="function") syncPresentSkinButton();
+  if(typeof scRenderButtons==="function") scRenderButtons();
+});

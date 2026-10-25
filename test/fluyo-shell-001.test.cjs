@@ -16,6 +16,9 @@ const { execFileSync } = require("node:child_process");
 const root = path.resolve(__dirname, "..");
 const read = (p) => fs.readFileSync(path.join(root, p), "utf8").replace(/\r\n/g, "\n");
 const { undoShell, PIECES, NEW_FILES, BASE_SHELL } = require("./fluyo-shell-001-undo.cjs");
+/* FLUYO-I18N-002 S0 va encima: el alcance de esta tarea se mide sobre el texto sin sus cambios (undoS0) y sin sus archivos nuevos. */
+const { undoS0, PIECES: PIECES_S0, NEW_FILES: NEW_S0 } = require("./fluyo-i18n-002-s0-undo.cjs");
+const readS = (f) => undoS0(f, read(f));
 const BASE = "53552a2";
 
 const PAGES = [
@@ -147,8 +150,9 @@ test("alcance frente a " + BASE + ": solo los archivos de esta tarea; undoShell 
   assert.equal(BASE_SHELL, BASE);
   assert.deepEqual(NEW_FILES, ["404.html"]);
   const SERVED = ["js", "s", "css", "assets", "index.html", "404.html", "sw.js", "manifest.webmanifest", "docs", "ejemplos", "privacidad", "privacy", "soporte", "support", "terminos", "terms"];
-  const changed = execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean);
-  const untracked = execFileSync("git", ["-C", gitRoot, "ls-files", "--others", "--exclude-standard", "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean);
+  const changed = execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean)
+    .filter((f) => !NEW_S0.includes(f) && !(PIECES_S0[f] && !NEW_FILES.includes(f) && readS(f) === atBase(f)));   /* lo que solo cambia I18N-002 S0 */
+  const untracked = execFileSync("git", ["-C", gitRoot, "ls-files", "--others", "--exclude-standard", "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean).filter((f) => !NEW_S0.includes(f));
   const FILES = Object.keys(PIECES).sort();
   assert.deepEqual(FILES, ["assets/logo.svg", "css/pages.css", "docs/index.html", "ejemplos/index.html", "index.html", "js/i18n-en.js", "manifest.webmanifest",
     "privacidad/index.html", "privacy/index.html", "s/index.html", "soporte/index.html", "support/index.html", "terminos/index.html", "terms/index.html"]);
@@ -156,13 +160,13 @@ test("alcance frente a " + BASE + ": solo los archivos de esta tarea; undoShell 
   for (const f of FILES) assert.equal(undoShell(f, read(f)), atBase(f), f + ": undoShell exacto");
   /* index.html y s/index.html: solo la línea del favicon; i18n-en.js: solo claves nuevas al final */
   for (const f of ["index.html", "s/index.html"]) {
-    const a = atBase(f).split("\n"), b = read(f).split("\n");
+    const a = atBase(f).split("\n"), b = readS(f).split("\n");
     assert.equal(a.length, b.length, f);
     assert.deepEqual(b.map((l, i) => (l === a[i] ? null : l)).filter(Boolean).map((l) => l.slice(0, 16)), ['<link rel="icon"'], f + ": solo el favicon");
   }
-  assert.ok(read("js/i18n-en.js").startsWith(atBase("js/i18n-en.js").replace(/\n\};\n$/, "")), "i18n-en.js: nada cambia, solo se añaden claves");
-  assert.equal(read("sw.js").replace('"fluyo-static-v108"', '"fluyo-static-v' + (108 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante (sin cambio de comportamiento)");
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v108";/);
-  for (const f of ["css/system.css", "css/styles.css", "css/share.css", "css/identity.css", "js/i18n.js", "ejemplos/data/funnel-de-ventas.fluyo.json"]) assert.equal(read(f), atBase(f), f + " sin cambios");
-  for (const f of fs.readdirSync(path.join(root, "js")).filter((x) => x.endsWith(".js") && x !== "i18n-en.js")) assert.equal(read("js/" + f), atBase("js/" + f), "js/" + f + " sin cambios");
+  assert.ok(readS("js/i18n-en.js").startsWith(atBase("js/i18n-en.js").replace(/\n\};\n$/, "")), "i18n-en.js: nada cambia, solo se añaden claves");
+  assert.equal(readS("sw.js").replace('"fluyo-static-v109"', '"fluyo-static-v' + (108 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante (sin cambio de comportamiento)");
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v109";/);
+  for (const f of ["css/system.css", "css/styles.css", "css/share.css", "css/identity.css", "js/i18n.js", "ejemplos/data/funnel-de-ventas.fluyo.json"]) assert.equal(readS(f), atBase(f), f + " sin cambios");
+  for (const f of fs.readdirSync(path.join(root, "js")).filter((x) => x.endsWith(".js") && x !== "i18n-en.js" && !NEW_S0.includes("js/" + x))) assert.equal(readS("js/" + f), atBase("js/" + f), "js/" + f + " sin cambios");
 });

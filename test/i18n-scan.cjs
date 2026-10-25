@@ -14,7 +14,11 @@ const vm = require("node:vm");
 
 const root = path.join(__dirname, "..");
 const read = (p) => fs.readFileSync(path.join(root, p), "utf8").replace(/\r\n/g, "\n");
-const I18N_FILES = ["js/i18n.js", "js/i18n-en.js"];
+/* El runtime y los diccionarios (js/i18n-<idioma>.js lo común, js/i18n-<idioma>-editor.js lo del editor; FLUYO-I18N-002 S0):
+   no son texto de interfaz por migrar. */
+const DICT = /^js\/i18n-([a-z]{2,3})(-editor)?\.js$/;
+const I18N_FILES = ["js/i18n.js"];
+const isI18nFile = (f) => I18N_FILES.includes(f) || DICT.test(f);
 const HTML_FILES = ["index.html", "s/index.html", "404.html"];
 const BRAND = /^(Fluyo|flu|yo)$/;
 const OWN = /^([^\p{L}\p{N}]*)([\s\S]*?)(\s*)$/u;
@@ -22,7 +26,18 @@ const OWN = /^([^\p{L}\p{N}]*)([\s\S]*?)(\s*)$/u;
 const TEXT_ATTRS = { title: "data-i18n-title", "aria-label": "data-i18n-aria-label", "data-tip": "data-i18n-tip", placeholder: "data-i18n-placeholder", alt: null };
 
 function jsFiles() {
-  return fs.readdirSync(path.join(root, "js")).filter((f) => f.endsWith(".js")).map((f) => "js/" + f).filter((f) => !I18N_FILES.includes(f)).sort();
+  return fs.readdirSync(path.join(root, "js")).filter((f) => f.endsWith(".js")).map((f) => "js/" + f).filter((f) => !isI18nFile(f)).sort();
+}
+/* Diccionarios por idioma, cada parte por separado: { en: { common: {...}, editor: {...} }, ... }. */
+function dictionaries() {
+  const out = {};
+  for (const f of fs.readdirSync(path.join(root, "js")).map((x) => "js/" + x).filter((x) => DICT.test(x)).sort()) {
+    const [, code, ed] = f.match(DICT);
+    const ctx = vm.createContext({});
+    vm.runInContext(read(f), ctx);
+    (out[code] ||= { common: {}, editor: {} })[ed ? "editor" : "common"] = { ...(ctx.FLUYO_LOCALES[code] || {}) };
+  }
+  return out;
 }
 
 /* ───────────── JS: llamadas FluyoI18n.t ───────────── */
@@ -147,7 +162,7 @@ function hardcoded() {
 }
 const placeholders = (s) => [...String(typeof s === "object" ? Object.values(s).join(" ") : s).matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort();
 
-module.exports = { read, jsFiles, calls, strings, looksHuman, jsHardcoded, scanHtml, unmarked, catalog, hardcoded, placeholders, BASELINE: "test/fluyo-i18n-001-baseline.json" };
+module.exports = { read, jsFiles, dictionaries, DICT, calls, strings, looksHuman, jsHardcoded, scanHtml, unmarked, catalog, hardcoded, placeholders, BASELINE: "test/fluyo-i18n-001-baseline.json" };
 
 if (require.main === module) {
   const h = hardcoded(), c = catalog();

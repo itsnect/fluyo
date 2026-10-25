@@ -20,6 +20,8 @@ const root = path.resolve(process.env.FLUYO_ROOT || path.join(__dirname, ".."));
 const read = (f) => fs.readFileSync(path.join(root, f), "utf8");
 const CACHE = /const CACHE = "([^"]+)";/.exec(read("sw.js"))[1];
 const VIEWER = [...read("sw.js").match(/const VIEWER_ASSETS = \[([\s\S]*?)\];/)[1].matchAll(/"\.\/([^"]*)"/g)].map((m) => m[1]);
+/* los scripts del Viewer: 18 hasta I18N-002 S0, que añade los diccionarios comunes de fr, ja y zh */
+const VIEWER_JS = VIEWER.filter((f) => f.startsWith("js/")).length;
 const MESSAGE = "Cliente solicita el checkout";
 const NAR = JSON.parse(read("test/fixtures/fluyo-017-1-cliente-kafka-comercio.fluyo.json"));
 NAR.doc.pages[0].scenarios.find((s) => s.steps.length).steps.find((s) => s.action === "SEND").message = MESSAGE;
@@ -112,7 +114,7 @@ async function until(p, fn, ms = 20000) { const t = Date.now(); while (Date.now(
       check(back && isLang(s, EN) && s.controlled, `${vp.key} SIN RED, recargar /s/?lang=en: sigue siendo el Viewer en inglés, no el editor («${s.title}»)`);
       pl = await play(a.p);
       check(pl.title === MESSAGE && pl.status === "running", `${vp.key} sin red: la Historia se reproduce con la frase del autor («${pl.title}»)`);
-      for (const [label, url, L] of [["/s/#d= (español)", "/s/#d=" + LINK, ES], ["/s/?lang=fr (idioma desconocido → español)", "/s/?lang=fr#d=" + LINK, ES], ["/s/?s=demo#d=", "/s/?s=demo#d=" + LINK, ES]]) {
+      for (const [label, url, L] of [["/s/#d= (español)", "/s/#d=" + LINK, ES], ["/s/?lang=de (idioma desconocido → español; fr ya es un idioma de Fluyo desde I18N-002 S0)", "/s/?lang=de#d=" + LINK, ES], ["/s/?s=demo#d=", "/s/?s=demo#d=" + LINK, ES]]) {
         const b = await page(ctx, url); const st = b.ok ? await state(b.p) : { title: b.navErr };
         check(b.ok && isLang(st, L), `${vp.key} sin red ${label}: el Viewer («${st.title}»)`);
         if (b.ok && label.startsWith("/s/#d=")) { const t = await play(b.p); check(t.title === MESSAGE, `${vp.key} sin red, español: frase del autor intacta («${t.title}»)`); }
@@ -145,14 +147,14 @@ async function until(p, fn, ms = 20000) { const t = Date.now(); while (Date.now(
       VER = 2;   // deploy: otra CACHE en sw.js y archivos nuevos
       const b = await page(ctx, "/s/?lang=en#d=" + LINK);
       const s1 = await state(b.p);
-      check(b.ok && s1.html === "1" && s1.js.join() === "1" && s1.nJs === 18 && isLang(s1, EN), `primera apertura tras el deploy: la versión anterior ENTERA (HTML y los 18 scripts v1, sin mezcla) y funciona`);
+      check(b.ok && s1.html === "1" && s1.js.join() === "1" && s1.nJs === VIEWER_JS && isLang(s1, EN), `primera apertura tras el deploy: la versión anterior ENTERA (HTML y los ${VIEWER_JS} scripts v1, sin mezcla) y funciona`);
       const swapped = await until(b.p, async () => { const k = await caches.keys(); return k.length === 1 && k[0].endsWith("-deploy"); }, 25000);
       const cs = await cacheState(b.p);
       check(swapped !== false && Object.keys(cs).join() === CACHE + "-deploy", `la caché anterior se borra y queda solo la nueva (${Object.keys(cs).join()})`);
       check(JSON.stringify((cs[CACHE + "-deploy"] || []).sort()) === JSON.stringify(expected), `la nueva vuelve a ser solo la del Viewer (${(cs[CACHE + "-deploy"] || []).length} recursos)`);
       await b.p.reload(); await b.p.waitForFunction(() => window.__viewer && window.__viewer.phase === "ready", null, { timeout: 8000 }).catch(() => {});
       const s2 = await state(b.p);
-      check(s2.html === "2" && s2.js.join() === "2" && s2.nJs === 18, `la siguiente apertura: la versión nueva ENTERA`);
+      check(s2.html === "2" && s2.js.join() === "2" && s2.nJs === VIEWER_JS, `la siguiente apertura: la versión nueva ENTERA`);
       await ctx.setOffline(true);
       await b.p.reload().catch(() => {}); await b.p.waitForFunction(() => window.__viewer && window.__viewer.phase === "ready", null, { timeout: 8000 }).catch(() => {});
       const s3 = await state(b.p);
@@ -169,7 +171,7 @@ async function until(p, fn, ms = 20000) { const t = Date.now(); while (Date.now(
       await e.goto(base + "/");
       await e.waitForFunction(() => typeof applyProjectData === "function");
       if (await e.locator("#autosaveModal").isVisible().catch(() => false)) await e.locator("#autosaveDiscard").click();
-      await until(e, async () => (await caches.keys()).length === 1 && (await (await caches.open((await caches.keys())[0])).keys()).length > 40);
+      await until(e, async () => (await caches.keys()).length === 1 && (await (await caches.open((await caches.keys())[0])).keys()).length > 60);   /* lo que se comprueba abajo: con I18N-002 S0, ASSETS solo ya pasa de 40 */
       const cs = await cacheState(e);
       const list = cs[CACHE] || [];
       check(list.includes("/index.html") && list.includes("/js/export.js") && list.includes("/s/") && list.length > 60, `editor: su instalación de siempre (${list.length} recursos, index.html, export.js y el Viewer)`);

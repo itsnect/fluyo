@@ -891,3 +891,35 @@ docs/ · ejemplos/ · privacidad/ · privacy/ · terminos/ · terms/ · soporte/
 - Tests: `test/fluyo-shell-001.test.cjs` (estático y alcance), `test/fluyo-shell-001-browser.cjs` (Chrome real: 1440, 375 con dedo y
   320; navegación; 404; Ejemplos → editor; SW v108 sin red; comparación con editor y Viewer). Los alcances de slices anteriores lo
   descuentan con `test/fluyo-shell-001-undo.cjs` (`undoShell`, debajo de `undoSwv`; `shellOnly` para las listas de archivos).
+
+## Idioma de la interfaz (FLUYO-I18N-001 · I18N-002 S0)
+
+Solo el texto que pone Fluyo; nunca el contenido del autor ni nada del documento (decisión 260). Sin build ni dependencias (261).
+
+```text
+js/i18n-<xx>.js          lo COMÚN de un idioma: Viewer, Present, Historia, shell, 404   ← s/index.html y 404.html cargan solo estos
+js/i18n-<xx>-editor.js   lo del EDITOR                                                  ← index.html carga los dos de cada idioma
+   (ambos: FLUYO_LOCALES.<xx> = Object.assign(FLUYO_LOCALES.<xx> || {}, {...}))
+js/i18n.js               FluyoI18n: LANGS · t · num · setLocale · onChange · applyDom · languages · missing
+JS                       FluyoI18n.t("clave", "texto base en español", {param})
+HTML                     data-i18n="clave" · data-i18n-title|aria-label|tip|placeholder
+```
+
+- `LANGS` (en `js/i18n.js`): `code` (diccionario y `?lang`), `tag` BCP 47 (`<html lang>`, `Intl`, `:lang()`; `zh-Hans`), `name` en su
+  idioma (no se traduce) y `released`. Hoy solo `es` está publicado; `en`, `fr`, `ja`, `zh` se cargan pero solo se ven con `?lang`.
+- Idioma de la carga: `?lang` (técnico, no se guarda) › `fluyo.ui.lang` (preferencia del navegador) › idioma del sistema **entre
+  los publicados** (primero de `navigator.languages` publicado; si ninguno, inglés si está publicado) › español.
+- Reserva: idioma › inglés › español; lo que falta se anota en `missing()`. Plurales con `Intl.PluralRules` del idioma del texto
+  que se usa. Números: `FluyoI18n.num(n, opts)`.
+- En vivo: `setLocale(code, {persist})` traduce el HTML marcado y avisa a `onChange(fn)`; cada superficie que pinta desde JS se
+  suscribe (hoy: Viewer en `viewer.js`; Present y transporte de Historias en `present-story.js`). Sin recargar.
+- Escritura (`css/system.css`): `--font-cjk` (sans CJK del sistema) dentro de `--font-mono` y `--font-serif`, antes de la genérica;
+  `:root:lang(ja)` / `:root:lang(zh)` reordenan `--font-cjk` y ajustan tokens (`--fs-micro`, `--fs-label`, `--fs-field`,
+  `--track-micro`, `--case-kicker`) y anulan `text-transform`. Sin webfonts CJK.
+- Offline: todos los diccionarios en `ASSETS`; los comunes, en `VIEWER_ASSETS`.
+- Añadir un idioma: sus dos archivos, sus `<script>` (editor: los dos; Viewer y 404: el común), `sw.js` y una fila en `LANGS`.
+- Tests: `test/fluyo-i18n-001.test.cjs`, `test/fluyo-i18n-002-s0.test.cjs` (catálogo de todos los idiomas, puerta de publicación,
+  carga, offline, peso, escritura, en vivo, alcance), `test/fluyo-i18n-002-s0-browser.cjs` (Chrome real, cinco idiomas, fuentes que
+  el navegador usa de verdad por CDP), `test/i18n-scan.cjs` (catálogo, trinquete y `dictionaries()`), `test/i18n-pseudo.cjs`
+  (pseudo-idioma `qps` de pruebas, nunca publicado). Los alcances anteriores descuentan esta tarea con
+  `test/fluyo-i18n-002-s0-undo.cjs` (`undoS0`, debajo de `undoShell`).

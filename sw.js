@@ -11,7 +11,7 @@
    estaba sirviendo al iframe una copia vieja de js/interaction.js. Por eso ese
    test ahora desregistra el SW antes de cargar nada — y por eso esta versión
    sube también cuando solo cambia el contenido. */
-const CACHE = "fluyo-static-v108";
+const CACHE = "fluyo-static-v109";
 /* Núcleo: si algo de aquí falla, la instalación falla (cache.addAll es atómico)
    y es lo correcto, porque sin estos archivos la app no funciona. */
 const ASSETS = [
@@ -32,7 +32,15 @@ const ASSETS = [
   "./js/link-codec.js",
   "./js/share-url.js",
   "./js/editor-share.js",
+  /* Idioma de la interfaz (FLUYO-I18N-002 S0): todos los diccionarios, comunes y del editor; cambiar de idioma no necesita red. */
   "./js/i18n-en.js",
+  "./js/i18n-en-editor.js",
+  "./js/i18n-fr.js",
+  "./js/i18n-fr-editor.js",
+  "./js/i18n-ja.js",
+  "./js/i18n-ja-editor.js",
+  "./js/i18n-zh.js",
+  "./js/i18n-zh-editor.js",
   "./js/i18n.js",
   "./js/config.js",
   "./js/safe-svg.js",
@@ -101,6 +109,9 @@ const VIEWER_ASSETS = [
   "./assets/fonts/ibm-plex-mono-latin-500.woff2",
   "./assets/fonts/playfair-display-latin-400.woff2",
   "./js/i18n-en.js",
+  "./js/i18n-fr.js",
+  "./js/i18n-ja.js",
+  "./js/i18n-zh.js",
   "./js/i18n.js",
   "./js/config.js",
   "./js/safe-svg.js",

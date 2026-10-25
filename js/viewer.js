@@ -99,10 +99,12 @@ function clearViewerDocument(){
     canvasDirty=false;
   }
 }
+let shareErrorCode=null;
 function showShareError(code){
   viewerGeneration++;viewerInputKey=null;
   setViewerPhase("error");
   clearViewerDocument();
+  shareErrorCode=code;
   setStatus(SHARE_ERROR_MESSAGES[code]||SHARE_ERROR_MESSAGES.unavailable);
 }
 
@@ -752,6 +754,13 @@ if(document.readyState==="loading")
 else
   bootViewer();
 window.addEventListener("hashchange",()=>{bootViewer();});
+/* FLUYO-I18N-002 (S0): cambiar de idioma en vivo. Lo marcado en el HTML ya lo traduce FluyoI18n; aquí se repinta lo que pone JS
+   (pestañas, banda de la Historia, aviso de estado). El lienzo se repinta en cada fotograma. El documento no cambia. */
+if(typeof FluyoI18n==="object") FluyoI18n.onChange(()=>{
+  if(viewerPhase==="ready"){ buildTabs(); storyRefresh(); }
+  else if(viewerPhase==="error") setStatus(SHARE_ERROR_MESSAGES[shareErrorCode]||SHARE_ERROR_MESSAGES.unavailable);
+  else if(viewerPhase==="loading") setStatus(FluyoI18n.t("viewer.loading","Cargando diagrama…"));
+});
 
 /* FLUYO-SW-VIEWER-001: quien solo abre un enlace también tiene el enlace sin red desde su segunda apertura. Mismo service worker
    y mismo ámbito que el editor (../sw.js, «/»); instalado desde aquí precachea solo lo del Viewer (sw.js, VIEWER_ASSETS), sin

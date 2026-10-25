@@ -67,9 +67,15 @@
   --hover-veil:rgba(22,21,15,.06);
   --press-veil:rgba(22,21,15,.11);
 
-  /* ---- Voces ---- */
-  --font-serif:"Playfair Display","Iowan Old Style","Palatino Linotype",Palatino,serif;
-  --font-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  /* ---- Voces ----
+     FLUYO-I18N-002 (S0): Playfair y Plex solo traen latín (unicode-range), así que cada glifo japonés o chino cae a
+     --font-cjk, la sans CJK del sistema, ANTES que la genérica (monospace/serif): sin ella el navegador elige una
+     mono o una mincho de mapa de bits, ilegibles a 10–12 px. Sin webfonts CJK (pesarían megas y romperían el offline
+     del Viewer). La lista base sirve al contenido del autor en cualquier idioma; :lang(ja) y :lang(zh) la ordenan
+     para su escritura (más abajo). */
+  --font-cjk:"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic UI","Yu Gothic",Meiryo,"PingFang SC","Microsoft YaHei UI","Microsoft YaHei","Noto Sans CJK JP","Noto Sans JP","Noto Sans CJK SC","Noto Sans SC";
+  --font-serif:"Playfair Display","Iowan Old Style","Palatino Linotype",Palatino,var(--font-cjk),serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,var(--font-cjk),monospace;
   --fs-micro:10px;    /* rótulos en mayúsculas */
   --fs-label:11px;    /* etiquetas de campo, metadatos */
   --fs-ui:12px;       /* controles */
@@ -131,6 +137,27 @@
   --ui-font:400 var(--fs-ui)/1.5 var(--font-mono);
   color-scheme:light;
 }
+/* ===================== Escritura por idioma (FLUYO-I18N-002 S0) =====================
+   js/i18n.js pone en <html lang> la etiqueta del idioma de la interfaz (ja, zh-Hans…): con ella el navegador elige los
+   glifos Han de cada escritura y estas reglas ajustan los TOKENS, nunca componentes. Japonés y chino:
+   · la sans de su escritura primero (los títulos en Playfair caen también a ella: una mincho/song a 14–17 px es demasiado fina);
+   · un punto más en los rótulos pequeños (los trazos CJK no se leen a 10–11 px);
+   · sin espaciado de letras ni mayúsculas artificiales (no existen en estas escrituras; --case-kicker es de pages.css).
+   El espaciado vertical sale de los mismos tokens: test/fluyo-i18n-002-s0-browser.cjs mide que nada se corte. */
+:root:lang(ja){
+  --font-cjk:"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic UI","Yu Gothic",Meiryo,"Noto Sans CJK JP","Noto Sans JP","Source Han Sans JP";
+}
+:root:lang(zh){
+  --font-cjk:"PingFang SC","Hiragino Sans GB","Microsoft YaHei UI","Microsoft YaHei","Noto Sans CJK SC","Noto Sans SC","Source Han Sans SC";
+}
+:root:lang(ja), :root:lang(zh){
+  --fs-micro:11px; --fs-label:12px; --fs-field:12px;
+  --track-micro:0; --case-kicker:none;
+}
+/* Los rótulos en mayúsculas (kickers) llevan su text-transform escrito en cada regla: aquí se anula de una vez para que una
+   palabra latina dentro de un rótulo japonés o chino («Fluyo», un nombre del autor) no salga en mayúsculas. */
+:root:lang(ja) *, :root:lang(zh) *{ text-transform:none !important; }
+
 /* Material inverso: lo que flota sobre el lienzo en Present (mando y rótulo). Por id además de por clase:
    present-story.js reescribe el className del mando en cada fase. */
 .inverse, #presentBar, #presentStory{

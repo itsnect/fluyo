@@ -22,7 +22,7 @@ $("fileIn").onchange=ev=>{
       centerView();
       saveAutosave(true);
       trackEvent("file_imported",{source:"file",format:"fluyo_json"});   // dentro del try: un archivo inválido no cuenta
-    }catch(e){ alert("El archivo no es un diagrama Fluyo válido."); }
+    }catch(e){ alert(FluyoI18n.t("file.invalid","El archivo no es un diagrama Fluyo válido.")); }
   });
   ev.target.value="";
 };
@@ -33,7 +33,7 @@ $("autosaveRestore").onclick=()=>{
   }catch(e){
     clearAutosave();
     closeRestorePrompt();
-    alert("No se pudo restaurar la sesión guardada.");
+    alert(FluyoI18n.t("autosave.restoreFailed","No se pudo restaurar la sesión guardada."));
   }
 };
 $("autosaveDiscard").onclick=()=>{
@@ -454,12 +454,9 @@ function gifEncoderReady(){ return typeof GIF==="function"; }
 $("exGo").onclick=()=>{
   const fmt=$("exFmt").value, scale=+$("exRes").value, skin=$("exSkin").value==="built"? "built" : "flat";
   exModal.style.display="none";
-  if(P().nodes.length===0){ alert("La página está vacía."); return; }
+  if(P().nodes.length===0){ alert(FluyoI18n.t("export.emptyPage","La página está vacía.")); return; }
   if(fmt==="gif" && !gifEncoderReady()){
-    alert("No se puede generar el GIF: la librería que lo codifica (gif.js) no se cargó.\n\n"+
-          "Lo más habitual es un bloqueador de anuncios o una primera visita sin conexión. "+
-          "Prueba a recargar la página con el bloqueador desactivado.\n\n"+
-          "PNG, JPG y SVG no dependen de esa librería y funcionan igual.");
+    alert(FluyoI18n.t("export.gifLibMissing","No se puede generar el GIF: la librería que lo codifica (gif.js) no se cargó.\n\nLo más habitual es un bloqueador de anuncios o una primera visita sin conexión. Prueba a recargar la página con el bloqueador desactivado.\n\nPNG, JPG y SVG no dependen de esa librería y funcionan igual."));
     return;
   }
   /* FLUYO-018.14a: GIF/PNG/JPG se rasterizan en un lienzo propio, que solo usa las
@@ -503,10 +500,9 @@ function stopGifWatchdog(){ clearTimeout(gifWatchdog); gifWatchdog=null; }
    así que solo salta si de verdad no avanza nada. */
 function armGifWatchdog(){
   stopGifWatchdog();
-  gifWatchdog=setTimeout(()=>abortGIF(
-    "La generación del GIF se detuvo: no respondió en "+(GIF_STALL_MS/1000)+" segundos.\n\n"+
-    "Prueba con una duración más corta, menos FPS o una escala menor. "+
-    "PNG y SVG no usan el codificador y siempre funcionan."), GIF_STALL_MS);
+  gifWatchdog=setTimeout(()=>abortGIF(FluyoI18n.t("export.gifStalled",
+    "La generación del GIF se detuvo: no respondió en {seconds} segundos.\n\nPrueba con una duración más corta, menos FPS o una escala menor. PNG y SVG no usan el codificador y siempre funcionan.",
+    {seconds:GIF_STALL_MS/1000})), GIF_STALL_MS);
 }
 function closeProgress(){
   stopGifWatchdog();
@@ -538,7 +534,7 @@ async function exportGIF(scale, transparent, skin){
   const exSpeed=cycles/flowDur, realSpeed=settings.speed;
 
   const ov=$("progOv"), fill=$("barFill"), msg=$("ovMsg");
-  ov.style.display="flex"; fill.style.width="0%"; msg.textContent="Renderizando fotogramas…";
+  ov.style.display="flex"; fill.style.width="0%"; msg.textContent=FluyoI18n.t("export.rendering","Renderizando fotogramas…");
   gifCancelled=false;
   armGifWatchdog();
   try{
@@ -571,7 +567,7 @@ async function exportGIF(scale, transparent, skin){
       }
     }
     settings.speed=realSpeed;
-    msg.textContent="Codificando GIF…";
+    msg.textContent=FluyoI18n.t("export.encoding","Codificando GIF…");
     gif.on("progress",p=>{ fill.style.width=(40+p*60)+"%"; armGifWatchdog(); });
     gif.on("finished",blob=>{
       if(gifCancelled || !blob) return;
@@ -587,7 +583,7 @@ async function exportGIF(scale, transparent, skin){
   }catch(err){
     settings.speed=realSpeed;
     closeProgress();
-    alert("No se pudo generar el GIF: "+err.message);
+    alert(FluyoI18n.t("export.gifFailed","No se pudo generar el GIF: {error}",{error:err.message}));
   }
 }
 

@@ -40,7 +40,7 @@ test("alcance: kernel, identity.css y el formato intactos (git HEAD)", () => {
 
 test("sw.js: CACHE v73; los archivos que toca 018.14b ya estaban en el precache", () => {
   const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v109";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v110";/);
   for (const f of ["./index.html", "./css/system.css", "./css/styles.css", "./js/ui.js", "./js/editor-scenarios.js", "./js/editor-share.js", "./js/interaction.js"]) assert.ok(sw.includes('"' + f + '"'), f + " precacheado");
 });
 
@@ -120,7 +120,8 @@ test("ids únicos y sprite coherente: cada <use> resuelve, ningún símbolo repe
   const rail = html.slice(html.indexOf('<nav class="rail"'), html.indexOf("</nav>", html.indexOf('<nav class="rail"')));
   const buttons = rail.match(/<button[\s\S]*?<\/button>/g);
   assert.equal(buttons.length, 12);
-  for (const b of buttons) { assert.match(b, /data-tip="[^"]+" data-tip-pos="right"/); assert.match(b, /<span class="lbl">[^<]+<\/span>/); assert.doesNotMatch(b, / title="/); }
+  /* (FLUYO-I18N-002 S1: el rótulo y el tooltip llevan su marca data-i18n / data-i18n-tip) */
+  for (const b of buttons) { assert.match(b, /data-tip="[^"]+" data-tip-pos="right"/); assert.match(b, /<span class="lbl"(?: data-i18n="[^"]+")?>[^<]+<\/span>/); assert.doesNotMatch(b, / title="/); }
 });
 
 test("panel: grupos plegables con los abiertos de B6 y todas las propiedades dentro (inventario)", () => {

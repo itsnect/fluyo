@@ -79,7 +79,10 @@ const PIECES = {
     ],
   ],
 };
+/* FLUYO-I18N-002 S1 va encima de esta tarea: se deshace antes (undoS1), y los alcances antiguos siguen recibiendo su base. */
+const { undoS1 } = require("./fluyo-i18n-002-s1-undo.cjs");
 function undoS0(file, src) {
+  src = undoS1(file, src);
   const f = file.replace(/\\/g, "/"), pieces = PIECES[f];
   if (!pieces) return src;
   let out = src.replace(/\r\n/g, "\n");

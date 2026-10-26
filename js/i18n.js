@@ -127,8 +127,9 @@ const FluyoI18n=(()=>{
   /* El texto PROPIO del elemento: su primer nodo de texto con letras, partido en marco (glifo y espacios de alrededor) y
      cuerpo: «▶ Reproducir historia» → «▶ » + «Reproducir historia». Se lee UNA vez, del HTML base; al cambiar de idioma solo
      cambia el cuerpo y el marco se conserva tal cual, así una traducción que empieza por puntuación («（Fluyo）») no se toma
-     por un glifo al volver. Los hijos (iconos, <span class="lblRest">) no se tocan. */
-  const OWN=/^([^\p{L}\p{N}]*)([\s\S]*?)(\s*)$/u;
+     por un glifo al volver. La puntuación de apertura («¿», «¡», «“», «(»…) es del texto, no del marco: «¿Qué quieres
+     compartir?» → «What do you want to share?» (FLUYO-I18N-002 S1). Los hijos (iconos, <span class="lblRest">) no se tocan. */
+  const OWN=/^([^\p{L}\p{N}¿¡«“"'(\[]*)([\s\S]*?)(\s*)$/u;
   const LETTER=/[\p{L}\p{N}]/u;
   function ownText(el){
     for(const n of el.childNodes||[]){

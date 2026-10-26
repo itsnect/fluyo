@@ -12,16 +12,35 @@ function shareStory(){
 function selectedShareKind(){
   return shareStory() && shareControl("shareKindDiagram").checked ? "diagram" : "story";
 }
+/* FLUYO-I18N-002 S1: los textos del diálogo que dependen del estado se guardan como función y se pintan con shareText(): así,
+   si el idioma cambia con el diálogo abierto, se repintan en el nuevo (onChange, abajo). El nombre de la Historia es contenido
+   del autor: viaja como parámetro y nunca se traduce. */
+const shareTexts={};
+function shareText(id, fn, prop="textContent"){
+  shareTexts[id]={paint:()=>{ shareControl(id)[prop]=fn(); }};
+  shareTexts[id].paint();
+}
+/* La frase de «Compartir historia»: la plantilla se traduce ENTERA y el nombre (contenido del autor) va en su propio nodo, sin
+   reinterpretarse, como siempre: «…suceder: «» · nombre · «».». */
+function shareStoryHint(name){
+  shareTexts.shareStoryName={paint:()=>{
+    const parts=FluyoI18n.t("share.storyHint","Quien abra el enlace podrá verla suceder: «{name}».",{name:"\u0000"}).split("\u0000");
+    const span=document.createElement("span"); span.textContent=name;
+    shareControl("shareStoryName").replaceChildren(document.createTextNode(parts[0]), span, document.createTextNode(parts.slice(1).join("")));
+  }};
+  shareTexts.shareStoryName.paint();
+}
 function showShareDialog(){
   if(typeof isScenarioPlaybackActive==="function" && isScenarioPlaybackActive()){
-    shareControl("shareMessage").textContent=typeof scStatus!=="undefined" && scStatus==="completed"
-      ?"Pulsa «Detener» antes de compartir."
-      :"Detén la reproducción de la historia antes de compartir.";
+    const done=typeof scStatus!=="undefined" && scStatus==="completed";
+    shareText("shareMessage", ()=>done
+      ?FluyoI18n.t("share.stopFirst","Pulsa «Detener» antes de compartir.")
+      :FluyoI18n.t("share.stopPlayback","Detén la reproducción de la historia antes de compartir."));
     shareControl("shareConfirm").hidden=true;
     shareControl("shareResult").hidden=true;
     shareControl("shareCreate").hidden=true;
     shareControl("shareCopy").hidden=true;
-    shareControl("shareClose").textContent="Cerrar";
+    shareText("shareClose", ()=>FluyoI18n.t("common.close","Cerrar"));
     shareDialog.showModal();
     return;
   }
@@ -31,18 +50,18 @@ function showShareDialog(){
   shareControl("shareCopy").hidden=true;
   shareControl("shareCreate").hidden=false;
   shareControl("shareCreate").disabled=false;
-  shareControl("shareClose").textContent="Cancelar";
+  shareText("shareClose", ()=>FluyoI18n.t("common.cancel","Cancelar"));
   shareControl("shareLink").value="";
   const story=shareStory();
   shareControl("shareKind").hidden=!story;
-  shareControl("shareTitle").textContent=story?"Compartir":"Compartir diagrama";
+  shareText("shareTitle", ()=>story?FluyoI18n.t("share.title","Compartir"):FluyoI18n.t("share.titleDiagram","Compartir diagrama"));
   if(story){
-    shareControl("shareStoryName").textContent=story.name;
+    shareStoryHint(story.name);
     shareControl("shareKindStory").checked=true;
     shareControl("shareKindDiagram").checked=false;
   }
   /* Desde un archivo local el enlace apunta al visor público: se avisa, no se bloquea. */
-  shareControl("shareMessage").textContent=isWebOrigin(location.href)? "" : "Estás usando Fluyo desde un archivo local: el enlace se creará para el visor público (fluyo.space).";
+  shareText("shareMessage", ()=>isWebOrigin(location.href)? "" : FluyoI18n.t("share.localFile","Estás usando Fluyo desde un archivo local: el enlace se creará para el visor público (fluyo.space)."));
   shareDialog.showModal();
 }
 async function confirmShare(){
@@ -50,7 +69,7 @@ async function confirmShare(){
   shareBusy=true;
   shareControl("shareCreate").disabled=true;
   shareControl("shareClose").disabled=true;
-  shareControl("shareMessage").textContent="Creando enlace…";
+  shareText("shareMessage", ()=>FluyoI18n.t("share.creating","Creando enlace…"));
   try{
     commitEditBox();
     let project;
@@ -58,22 +77,23 @@ async function confirmShare(){
     const kind=selectedShareKind(), story=shareStory();
     /* La unidad que se comparte es la Historia seleccionada; sin Historia con momentos, sólo el diagrama. */
     const url=await createShareUrl(project,location.href,story?{kind,scenarioId:story.id}:{kind:"diagram"});
-    shareControl("shareResultNote").textContent=kind==="story"&&story
-      ?"Quien abra este enlace verá el diagrama y podrá reproducir la historia. Los cambios posteriores no modificarán este enlace."
-      :"Este enlace contiene una copia del diagrama actual. Los cambios posteriores no modificarán este enlace.";
+    shareText("shareResultNote", ()=>kind==="story"&&story
+      ?FluyoI18n.t("share.noteStory","Quien abra este enlace verá el diagrama y podrá reproducir la historia. Los cambios posteriores no modificarán este enlace.")
+      :FluyoI18n.t("share.noteDiagram","Este enlace contiene una copia del diagrama actual. Los cambios posteriores no modificarán este enlace."));
     shareControl("shareLink").value=url;
     shareControl("shareConfirm").hidden=true;
     shareControl("shareResult").hidden=false;
     shareControl("shareCreate").hidden=true;
     shareControl("shareCopy").hidden=false;
-    shareControl("shareClose").textContent="Cerrar";
-    shareControl("shareMessage").textContent=isWebOrigin(location.href)? "" : "El enlace abre el visor público de fluyo.space.";
+    shareText("shareClose", ()=>FluyoI18n.t("common.close","Cerrar"));
+    shareText("shareMessage", ()=>isWebOrigin(location.href)? "" : FluyoI18n.t("share.publicViewer","El enlace abre el visor público de fluyo.space."));
     trackEvent("share_created");
     shareControl("shareCopy").focus();
   }catch(e){
-    shareControl("shareMessage").textContent=e.code==="too_large" && e.stage==="url"
-      ? "Este diagrama es demasiado grande para compartir mediante enlace. Puedes exportarlo como archivo por ahora."
-      : "No se pudo crear el enlace. Puedes exportar el diagrama como archivo.";
+    const tooLarge=e.code==="too_large" && e.stage==="url";
+    shareText("shareMessage", ()=>tooLarge
+      ? FluyoI18n.t("share.tooLarge","Este diagrama es demasiado grande para compartir mediante enlace. Puedes exportarlo como archivo por ahora.")
+      : FluyoI18n.t("share.failed","No se pudo crear el enlace. Puedes exportar el diagrama como archivo."));
     shareControl("shareCreate").disabled=false;
   }finally{
     shareBusy=false;
@@ -86,12 +106,14 @@ async function copyShareLink(){
   try{
     if(typeof navigator.clipboard?.writeText!=="function") throw new Error("clipboard_unavailable");
     await navigator.clipboard.writeText(field.value);
-    shareControl("shareMessage").textContent="Enlace copiado.";
+    shareText("shareMessage", ()=>FluyoI18n.t("share.copied","Enlace copiado."));
   }catch(e){
     field.focus(); field.select();
-    shareControl("shareMessage").textContent="No se pudo copiar automáticamente. Selecciona y copia el enlace manualmente.";
+    shareText("shareMessage", ()=>FluyoI18n.t("share.copyFailed","No se pudo copiar automáticamente. Selecciona y copia el enlace manualmente."));
   }
 }
+/* Cambio de idioma en vivo con el diálogo abierto: cada texto pintado se vuelve a pintar en el nuevo idioma. */
+FluyoI18n.onChange(()=>{ for(const t of Object.values(shareTexts)) t.paint(); });
 shareControl("btnShare").onclick=showShareDialog;
 shareControl("shareCreate").onclick=confirmShare;
 shareControl("shareCopy").onclick=copyShareLink;

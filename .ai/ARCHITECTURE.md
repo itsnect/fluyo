@@ -903,7 +903,15 @@ js/i18n-<xx>-editor.js   lo del EDITOR                                          
 js/i18n.js               FluyoI18n: LANGS · t · num · setLocale · onChange · applyDom · languages · missing
 JS                       FluyoI18n.t("clave", "texto base en español", {param})
 HTML                     data-i18n="clave" · data-i18n-title|aria-label|tip|placeholder
+                         data-i18n-js="clave"  (texto que pinta JS con FluyoI18n.t; applyDom no lo toca)   · S1
+                         translate="no"        (atajos, repositorios, formatos, números: nunca se traducen)  · S1
 ```
+
+- Contenido del autor (nombres de página y de Historia, etiquetas, frases, mensajes) nunca es clave ni texto base de `t()`: solo
+  **parámetro** de una plantilla completa («Página {n} de {total}: {name}…»). Recuentos y plurales: plantilla externa completa con
+  piezas nominales completas («{nodes} y {edges} seleccionados»); nada de concatenar traducciones.
+- El marco que conserva `applyDom` es el glifo inicial («▶ », «■ ») y los espacios; la puntuación de apertura (¿ ¡ « “ ( [) es del
+  texto.
 
 - `LANGS` (en `js/i18n.js`): `code` (diccionario y `?lang`), `tag` BCP 47 (`<html lang>`, `Intl`, `:lang()`; `zh-Hans`), `name` en su
   idioma (no se traduce) y `released`. Hoy solo `es` está publicado; `en`, `fr`, `ja`, `zh` se cargan pero solo se ven con `?lang`.
@@ -923,3 +931,7 @@ HTML                     data-i18n="clave" · data-i18n-title|aria-label|tip|pla
   el navegador usa de verdad por CDP), `test/i18n-scan.cjs` (catálogo, trinquete y `dictionaries()`), `test/i18n-pseudo.cjs`
   (pseudo-idioma `qps` de pruebas, nunca publicado). Los alcances anteriores descuentan esta tarea con
   `test/fluyo-i18n-002-s0-undo.cjs` (`undoS0`, debajo de `undoShell`).
+- S1 (cromo del editor en inglés): `test/fluyo-i18n-002-s1.test.cjs`, `test/fluyo-i18n-002-s1-browser.cjs`,
+  `test/fluyo-i18n-002-s1-undo.cjs` (`undoS1`, debajo de `undoS0`). Los arneses vm que ejecutan trozos del editor cargan el idioma
+  con `test/i18n-vm.cjs` (`loadI18n(ctx)`), como la página. El suscriptor del cromo vive al final de `ui.js` (`paintChromeText` +
+  `onChange`); el de Compartir, en `editor-share.js`.

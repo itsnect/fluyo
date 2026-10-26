@@ -21,7 +21,7 @@ const I18N_FILES = ["js/i18n.js"];
 const isI18nFile = (f) => I18N_FILES.includes(f) || DICT.test(f);
 const HTML_FILES = ["index.html", "s/index.html", "404.html"];
 const BRAND = /^(Fluyo|flu|yo)$/;
-const OWN = /^([^\p{L}\p{N}]*)([\s\S]*?)(\s*)$/u;
+const OWN = /^([^\p{L}\p{N}¿¡«“"'(\[]*)([\s\S]*?)(\s*)$/u;   /* el mismo marco que js/i18n.js (la puntuación de apertura es del texto) */
 /* atributo visible → su marca (la que lee FluyoI18n.applyDom) */
 const TEXT_ATTRS = { title: "data-i18n-title", "aria-label": "data-i18n-aria-label", "data-tip": "data-i18n-tip", placeholder: "data-i18n-placeholder", alt: null };
 
@@ -41,16 +41,50 @@ function dictionaries() {
 }
 
 /* ───────────── JS: llamadas FluyoI18n.t ───────────── */
-const CALL = /FluyoI18n\.t\(\s*(?:"((?:[^"\\]|\\.)*)"|([^,)]*))\s*,\s*(?:"((?:[^"\\]|\\.)*)"|(\{[^{}]*\})|([^,)]*))/g;
+/* FLUYO-I18N-002 S1: un analizador mínimo en lugar de una expresión regular, para que el texto base pueda ser un plural
+   {one:"{count} nodo", other:"{count} nodos"} (llaves dentro de las cadenas). Lee un literal en src[i]: "…", '…' o {…};
+   devuelve [fuente, fin] o null. */
+function literalAt(src, i) {
+  while (/\s/.test(src[i] || "")) i++;
+  const c = src[i];
+  if (c === '"' || c === "'") {
+    let j = i + 1;
+    while (j < src.length && src[j] !== c) { if (src[j] === "\\") j++; j++; }
+    return [src.slice(i, j + 1), j + 1];
+  }
+  if (c === "{") {
+    let j = i, depth = 0, q = null;
+    for (; j < src.length; j++) {
+      const d = src[j];
+      if (q) { if (d === "\\") j++; else if (d === q) q = null; continue; }
+      if (d === '"' || d === "'") q = d; else if (d === "{") depth++; else if (d === "}" && --depth === 0) break;
+    }
+    return [src.slice(i, j + 1), j + 1];
+  }
+  return null;
+}
+/* Llamadas FluyoI18n.t(clave, texto base[, params]): clave y texto base deben ser literales (si no, quedan a null y el test lo
+   señala). `start`/`end` delimitan los argumentos ya leídos, que jsHardcoded no cuenta como texto sin migrar. */
 function calls(src) {
   const out = [];
-  for (const m of src.matchAll(CALL)) {
+  for (const m of src.matchAll(/FluyoI18n\.t\(/g)) {
     const line = src.slice(0, m.index).split("\n").length;
-    const key = m[1] !== undefined ? JSON.parse('"' + m[1] + '"') : null;
-    let es = null;
-    if (m[3] !== undefined) es = JSON.parse('"' + m[3] + '"');
-    else if (m[4] !== undefined) es = vm.runInNewContext("(" + m[4] + ")");
-    out.push({ key, es, line, raw: m[0] });
+    const start = m.index + m[0].length;
+    let key = null, es = null, end = start;
+    const k = literalAt(src, start);
+    if (k && /^["']/.test(k[0])) {
+      key = vm.runInNewContext(k[0]); end = k[1];
+      let j = k[1]; while (/\s/.test(src[j] || "")) j++;
+      if (src[j] === ",") {
+        const e = literalAt(src, j + 1);
+        if (e) {
+          let after = e[1]; while (/\s/.test(src[after] || "")) after++;
+          end = e[1];
+          if (src[after] === "," || src[after] === ")") es = vm.runInNewContext("(" + e[0] + ")");
+        }
+      }
+    }
+    out.push({ key, es, line, raw: src.slice(m.index, end), start, end });
   }
   return out;
 }
@@ -105,7 +139,9 @@ function looksHuman(raw) {
 }
 /* El texto por defecto de una llamada FluyoI18n.t ya está migrado: no cuenta. */
 function jsHardcoded(src) {
-  const clean = src.replace(CALL, "FluyoI18n.t(0,0");
+  let clean = "", at = 0;
+  for (const c of calls(src)) { clean += src.slice(at, c.start) + "0,0"; at = c.end; }
+  clean += src.slice(at);
   return strings(clean).filter((x) => looksHuman(x.s));
 }
 
@@ -123,8 +159,13 @@ function scanHtml(html) {
       if (!/[\p{L}\p{N}]/u.test(text) || !stack.length) continue;
       const top = stack[stack.length - 1];
       if (top.name === "svg" || stack.some((e) => e.name === "svg" && e.attrs["aria-hidden"] === "true")) continue;
+      /* translate="no" (HTML estándar): lo que nunca se traduce —atajos de teclado, nombres de repositorio, formatos— */
+      if (stack.some((e) => e.attrs.translate === "no")) continue;
       const body = text.replace(OWN, "$2");
       if (top.attrs["data-i18n"] !== undefined && !top.seen) { top.seen = true; marks.push({ key: top.attrs["data-i18n"], es: body, where: "text" }); continue; }
+      /* data-i18n-js (FLUYO-I18N-002 S1): el texto lo pinta SIEMPRE JS con FluyoI18n.t(clave); el del HTML es el mismo texto
+         base y applyDom no lo toca (no pisa lo que el estado decide: «Cancelar»/«Cerrar», el título de la selección…). */
+      if (top.attrs["data-i18n-js"] !== undefined && !top.seen) { top.seen = true; marks.push({ key: top.attrs["data-i18n-js"], es: body, where: "js" }); continue; }
       if (BRAND.test(body.trim())) continue;
       issues.push({ kind: "text", owner: top.name + (top.attrs.id ? "#" + top.attrs.id : ""), text: body.trim() });
       continue;

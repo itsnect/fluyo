@@ -90,7 +90,8 @@ test("Playback: aceptar detiene el Playback (decisión 64) antes de borrar; sin 
 });
 
 test("ui.js: «Eliminar página» pasa por requestDeletePage; ni splice ni vaciado de pilas en ui.js; selection.js usa la autoridad del dominio", () => {
-  const ui = read("js/ui.js"), sel = read("js/selection.js");
+  /* FLUYO-I18N-002 S1 va encima (los rótulos del menú de página pasan por FluyoI18n.t): el código se compara sin ella (undoS1) */
+  const ui = require("./fluyo-i18n-002-s1-undo.cjs").undoS1("js/ui.js", read("js/ui.js")), sel = read("js/selection.js");
   /* FLUYO-018.18 (D11): la ✕ de la pestaña se retiró; la única puerta de la interfaz es «Eliminar página» del menú de la página. */
   assert.match(ui, /item\("Eliminar página", \(\)=>\{ closePageMenu\(false\); requestDeletePage\(i\); \}, "scMenuDanger"\)/);
   assert.equal((ui.match(/requestDeletePage\(/g) || []).length, 1, "no hay otra vía en ui.js");

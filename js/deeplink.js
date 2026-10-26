@@ -95,9 +95,9 @@ function loadDeepLinkFromURL(){
   decodeDeepLink(DEEP_LINK_PAYLOAD)
     .then(d=>{
       presentIncomingDocument(d, {
-        titulo:"Tienes trabajo sin guardar",
-        abrirLabel:"Abrir el diagrama y descartar la sesión",
-        paginaLabel:"Añadir el diagrama como página nueva",
+        titulo:FluyoI18n.t("incoming.title","Tienes trabajo sin guardar"),
+        abrirLabel:FluyoI18n.t("incoming.openDiagram","Abrir el diagrama y descartar la sesión"),
+        paginaLabel:FluyoI18n.t("incoming.addDiagram","Añadir el diagrama como página nueva"),
         onResuelto:eleccion=>{
           recordarEnlaceResuelto();
           /* Mismo evento que abrir un archivo, porque es lo mismo que hace la
@@ -116,8 +116,8 @@ function loadDeepLinkFromURL(){
          este evento eso es invisible, porque la persona ve un aviso y se va. */
       trackEvent("link_failed",{reason:motivo});
       alert(motivo==="unsupported"
-        ? "Este navegador no puede abrir diagramas incrustados en un enlace. Actualízalo, o pide el archivo .fluyo.json y ábrelo con «Abrir»."
-        : "El enlace no contiene un diagrama Fluyo válido. Puede que se haya cortado al copiarlo o al enviarlo.");
+        ? FluyoI18n.t("link.unsupported","Este navegador no puede abrir diagramas incrustados en un enlace. Actualízalo, o pide el archivo .fluyo.json y ábrelo con «Abrir».")
+        : FluyoI18n.t("link.invalid","El enlace no contiene un diagrama Fluyo válido. Puede que se haya cortado al copiarlo o al enviarlo."));
       /* ui.js se calló el prompt de restauración esperando a este documento. Un
          enlace roto no puede costarle a nadie la sesión anterior. */
       offerRestoreIfIdle();

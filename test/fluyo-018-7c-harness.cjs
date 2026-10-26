@@ -28,6 +28,7 @@ function editor() {
   const el = () => ({ children: [], style: {}, appendChild(c) { this.children.push(c); return c; }, set innerHTML(v) { this.children = []; }, get innerHTML() { return ""; }, replaceChildren(...c) { this.children = c; }, focus() {}, querySelector() { return null; }, getBoundingClientRect() { return { left: 0, top: 0, width: 0, height: 0 }; }, setAttribute() {}, classList: { add() {}, remove() {}, toggle() {} }, });
   const bar = el(), menu = el();
   const ctx = vm.createContext({ TextEncoder, TextDecoder, atob, btoa, URL, console, __bar: bar, __menu: menu, GRID: 20, innerWidth: 1280, innerHeight: 800 });
+  require("./i18n-vm.cjs").loadI18n(ctx);   /* FLUYO-I18N-002 S1: el cromo (renderTabs) pasa por FluyoI18n.t, como en la página */
   const run = (code) => vm.runInContext(code, ctx);
   for (const f of ["config.js", "safe-svg.js", "model.js", "scenario-engine.js", "scenario-playback.js", "story-playback.js", "document-integrity.js"]) vm.runInContext(read("js/" + f), ctx, { filename: f });
   run(`var selN=new Set(), selE=new Set(), clip=null, __confirms=[], __confirmAnswer=true, __playing=false, __resets=0, __autosaves=0;

@@ -1,8 +1,9 @@
-# FLUYO-I18N-002 — Localización completa del producto (es · en · fr · ja · zh): auditoría, plan y S0
+# FLUYO-I18N-002 — Localización completa del producto (es · en · fr · ja · zh): auditoría, plan, S0 y S1
 
-Estado: **EN CURSO** — **S0 implementada y verificada** (aprobada por el PO; commit local, **sin push ni deploy**). S1–S7
-pendientes; I18N-002 no se cierra hasta completarlas.
-Base de S0: `main` = `origin/main` = `bb7881a` (FLUYO-SHELL-001 cerrada; fluyo.space sirve `CACHE` v108). S0 usa **`CACHE` v109**.
+Estado: **EN CURSO** — **S0** (`41361b5`) y **S1** implementadas, verificadas y aprobadas por el PO; publicadas en `main`.
+S2–S7 pendientes; I18N-002 no se cierra hasta completarlas.
+Base de S0: `main` = `origin/main` = `bb7881a` (FLUYO-SHELL-001 cerrada; fluyo.space sirve `CACHE` v108). S0 usa **`CACHE` v109**;
+S1, **`CACHE` v110**.
 Contexto previo: FLUYO-I18N-001 (decisiones 260 y 261), FLUYO-SW-VIEWER-001 (262) y FLUYO-SHELL-001 (263–268).
 El plan original (auditoría sobre `53552a2`) sigue debajo de la sección S0, sin cambios salvo lo que S0 ya resolvió.
 
@@ -135,6 +136,126 @@ Tests:
   cuando la interfaz esté migrada); `fr`, `ja`, `zh` no publicados (infraestructura y traducciones preparadas, pendientes de
   revisión nativa). Ninguno llega a usuarios por detección ni por selector; solo por `?lang` (técnico).
 - **EXAMPLES-001 no empieza todavía**: los Ejemplos se construirán sobre esta infraestructura de localización.
+
+## S1 · Cromo del editor en inglés (2026-10-25)
+
+Encargo del PO: con `en`, todo el chrome estático principal del editor en inglés; sin selector, sin detección, sin publicar
+fr/ja/zh; sin tocar kernel, MCP, formato, Share (comportamiento), Narration ni Historias; el contenido del autor nunca pasa por
+`FluyoI18n.t`; las concatenaciones que impidan traducir bien se registran, no se parchean.
+
+### Alcance migrado
+
+| Superficie | Qué |
+|---|---|
+| Cabecera | ya estaba (I18N-001); ahora también el menú **Lienzo** entero (tema, fondo propio, tipografía, aspecto, cuadrícula, rejilla, animación del lienzo y sus ayudas) y **Más** (Archivo: Ejemplo, Abrir, Guardar, Limpiar página; Interfaz; títulos de Ayuda; Proyecto y enlaces) |
+| Rail y cajones | herramientas (rótulos y tooltips), cajón de iconos (rótulos de grupo) y de GIFs (título y ayuda) |
+| Lienzo | pista del lienzo vacío (el editor la pasa a `render`; `render.js` no cambia), «Editar texto», papelera y **barra táctil** (botones, «Toca el elemento de destino», «N seleccionados») |
+| Panel | cabecera (título sin selección, «N elementos», Orden de capas y su menú, Eliminar, Plegar/Cerrar), **estado vacío**, **selección múltiple** (Copiar/Cortar/Duplicar/Eliminar y «N nodos y M flechas seleccionados») |
+| Barra inferior | vista (Alejar/Acercar/100 %/Encajar), modos («Historias», «Contar el sistema»), **pestañas y menú de página** (opciones, nueva, renombrar, eliminar, error de nombre) |
+| Present | ya estaba (I18N-001) |
+| Compartir | diálogo entero y todos sus avisos (detener la reproducción, archivo local, creando, nota del resultado, demasiado grande, error, copiado) |
+| Exportar | diálogo entero, progreso del GIF y sus avisos (página vacía, gif.js no cargó, se detuvo, error) |
+| Diálogos | sesión guardada, enlace/ejemplo entrante, archivo no válido, imagen no compatible/sin tamaño/ilegible, enlace sin diagrama, no se pudo restaurar |
+
+**Cifras**: claves en uso **83 → 280** (+197), usos 128 → 368. Texto sin migrar: `index.html` **555 → 372**, JS **757 → 700**
+(`editor-share.js` 16 → 0, `export.js` 26 → 13, `ui.js` 88 → 72, `deeplink.js` 6 → 1, `examples.js` 12 → 9, `interaction.js`
+15 → 12, `state.js` 2 → 1). Trinquete reescrito.
+
+### Lo que queda fuera de S1 (registrado; los tests lo fijan y no puede crecer)
+
+| Qué | Dónde | Por qué | Slice |
+|---|---|---|---|
+| Ayuda «Atajos y gestos» (13 líneas, 64 fragmentos) | `index.html` `.helpList` | cada frase mezcla texto con `<kbd>`/`<b>` («Pasa el ratón sobre un nodo y **arrastra el punto** que…»): traducir por trozos rompe el orden de las palabras. Necesita texto con marcado (D-S1-1) | S1b o S2 |
+| Propiedades de la selección (154 en HTML; ≈ 60 en `ui.js`: colores, formas, segmentados, «Conexión · id → id», «Caja sin texto»…) | `#selBody`, `ui.js` | Propiedades completas | S2 |
+| Historias (152 en HTML; 237 en `editor-scenarios.js`; «Reproduciendo»; «Reducir/Ampliar la hoja de Historias») | panel y modal de Historias | Historias | S2 |
+| Confirmaciones de borrar página y selección | `selection.js` | componen listas y plurales con Historias y momentos («La página «X» tiene 3 elementos, 2 conexiones y 1 Historia:», «• Pago — 2 momentos (A → B)»): necesitan plantillas completas e `Intl.ListFormat` | S2 |
+| Nombres sembrados: «Página 1», nombres de icono/GIF que pasan a la etiqueta del nodo, el ejemplo incorporado, el demo | `model.js`, `config.js`, `export.js`, `share-loader.js` | valores que se guardan en el documento | S3 |
+| Títulos de ejemplos | `examples.js` | contenido de los ejemplos | S7 |
+| `<title>`, meta, Open Graph, JSON-LD | `<head>` | SEO | S7 |
+| `config.js` | kernel | nombres de icono/paleta (sembrados) y fuentes/marcas | S3 |
+| Falsos positivos que siguen contando | nombres de tecla, fuentes, `console.*`, claves de datos (`"Estados"` como clave de grupo) | no son interfaz | — |
+
+### Separación contenido / interfaz (criterio de calidad)
+
+- **Interfaz estática** → `data-i18n*` en el HTML o `FluyoI18n.t("clave", "texto base")` en JS, siempre con clave y texto literales
+  (el test lo exige).
+- **Contenido del autor** (nombres de página y de Historia, etiquetas) → nunca clave ni texto base; solo **parámetro** de una
+  plantilla completa («Página {n} de {total}: {name}. Cambiar de página», «…suceder: «{name}».»). El test prohíbe `.name`, `.label`
+  o `.message` como argumento de `t()`, y Chrome comprueba que pestañas, título del panel y la frase de Compartir llevan el texto del
+  autor tal cual en los dos idiomas.
+- **Lo que nunca se traduce** → `translate="no"` (atributo HTML estándar): atajos (`Ctrl+S`), repositorios (`itsnect/fluyo`,
+  `fluyo-mcp`), formatos (`PNG`, `JPG`, `SVG`, `FPS`) y lecturas numéricas (`100%`, 15/20/25). El escáner lo respeta.
+- **Texto que pinta JS** → `data-i18n-js="clave"` (nuevo, solo para el escáner): el HTML lleva el mismo texto base que el
+  `FluyoI18n.t` de su JS, y `applyDom` no lo toca (no pisa lo que decide el estado: «Cancelar»/«Cerrar», el título del panel con
+  una selección, el modal de enlace entrante). 9 elementos.
+- **Plurales y recuentos**: plantilla externa completa con piezas nominales completas («{nodes} y {edges} seleccionados» con
+  «{count} nodo/nodos»): el orden lo decide cada idioma; ninguna concatenación de traducciones.
+
+### Cambio de idioma en vivo
+
+`ui.js` repinta pestañas, panel, barra táctil, cajones, el botón de la animación y los grupos de tipografía (y cierra el menú de
+página); `editor-share.js` repinta cada texto del diálogo abierto. Chrome: es → en → es con el fixture complejo deja documento,
+Deshacer, selección, título del panel y pestañas intactos.
+
+### Defectos encontrados y corregidos
+
+1. **«¿» tomado por glifo**: el marco de `applyDom` (decisión 273) trataba la puntuación de apertura como glifo; «¿Qué quieres
+   compartir?» habría salido «¿What do you want to share?». Ahora «¿ ¡ « “ ( [» son del texto (`js/i18n.js` y el escáner).
+2. **Título del panel en español con la interfaz en inglés** al arrancar sin selección (JS no lo pintaba): `paintChromeText` lo pinta
+   (solo el texto; en español no cambia nada, sin añadir `title`).
+3. `step.message.nowReads` (Narration) llevaba « » en inglés: ahora “ ” (solo el inglés, sin publicar).
+
+### Términos nuevos para el glosario (inglés; ver `.ai/I18N-GLOSSARY.md`)
+
+Aparición (animación del lienzo) → **Reveal** («Animate reveal», «Reveal interval»; distinto de la aparición = paso de una Historia) ·
+Flecha (herramienta) → **Arrow** (la conexión semántica sigue siendo *Connection*) · Aspecto → **Look** · Contar el sistema →
+**Tell the system** (D-S1-2) · Interfaz · este navegador → **Interface · this browser** · Fondo propio → **Custom background** ·
+Plegar el panel → **Collapse the panel** · Orden de capas → **Layer order** (Bring to front / Bring forward / Send backward / Send
+to back) · Rombo / Decisión → **Diamond / Decision** · BD → **DB**.
+
+### Archivos
+
+Servidos (`CACHE` v109 → **v110**; sin archivos nuevos): `index.html` (marcas), `js/ui.js`, `js/editor-share.js`, `js/export.js`,
+`js/deeplink.js`, `js/examples.js`, `js/state.js`, `js/interaction.js`, `js/editor-runtime.js` (`FluyoI18n.t`), `js/i18n.js`
+(marco de glifo), `js/i18n-en-editor.js` (+197 claves), `sw.js` (solo `CACHE`). Sin cambios: kernel, `render.js`, `selection.js`,
+`editor-scenarios.js`, `present-story.js`, `viewer.js`, `s/index.html`, `404.html`, CSS, diccionarios comunes y fr/ja/zh.
+
+Tests: nuevos `test/fluyo-i18n-002-s1.test.cjs` (10), `test/fluyo-i18n-002-s1-browser.cjs` (Chrome), `test/fluyo-i18n-002-s1-undo.cjs`
+(`undoS1`, debajo de `undoS0`), `test/i18n-vm.cjs` (carga el idioma en contextos vm, como la página). `test/i18n-scan.cjs`: lector
+de llamadas sin expresión regular (plurales con llaves), `translate="no"`, `data-i18n-js` y el marco con puntuación de apertura.
+Contextos vm que ejecutan trozos del cromo cargan el idioma (`fluyo-018-7c-harness`, `fluyo-018-8-harness`, `analytics`,
+`fluyo-018-12`, `fluyo-018-7a-f1`); comparaciones de literales de marcado/código antiguas, sobre el texto sin S1 (`fluyo-018-13`,
+`fluyo-018-7c`, `fluyo-019-2`) o con la marca admitida (`fluyo-018-14b`); alcances de S0 y SHELL descuentan lo de S1; el smoke de S0
+acepta que fr/ja/zh caigan al **inglés** en las claves de S1 (nunca al español); `CACHE` v110 en 76 tests; trinquete reescrito.
+
+### Verificación (sin commit)
+
+- Propios: `fluyo-i18n-002-s1` **10/10**, `-s0` 20/20, `fluyo-i18n-001` 20/20, `fluyo-shell-001` 9/9, `fluyo-sw-viewer-001` 7/7.
+- **Suite completa** en un clon desechable con S1 commiteado sobre `41361b5`: **1 701 tests, los mismos 83 fallos** de la base por
+  nombre, **0 nuevos**, 0 arreglados (los 10 nuevos pasan). Sin commit, además, las guardas transitorias «idénticos a HEAD».
+- **Chrome real** `fluyo-i18n-002-s1-browser`: **181 ✔ · 0 ✘** — es y en a 1440 y 390: cabecera, Lienzo y Más abiertos, rail,
+  vacío del panel, selección múltiple, pestañas y menú de página (renombrar y su error), barra táctil, Compartir con Historia (frase
+  con el nombre del autor; enlace creado), Exportar (PNG descargado), Deshacer/Rehacer, Present, sesión guardada y enlace entrante;
+  sin desbordes ni recortes; en vivo es → en → es con documento, Deshacer, selección y contenido del autor intactos; pseudo-idioma:
+  ningún texto de las superficies de S1 fuera de FluyoI18n (salvo contenido del autor y la ayuda registrada).
+- **Español píxel a píxel** frente a `41361b5` (cabecera, rail, panel vacío, barra inferior, Lienzo y Más abiertos, selección
+  múltiple, menú de página, Compartir, Exportar, barra táctil; 1440 y 390): **idéntico** en las 18 zonas salvo el ruido de captura que
+  la base también tiene contra sí misma (116 píxeles del borde de Compartir sobre el fondo desenfocado, Δ ≤ 2/255).
+- Regresiones en Chrome: S0 (cinco idiomas, Viewer, 404, offline, Share, documentos) **385/0**; `fluyo-i18n-001-browser` **78/0**;
+  `fluyo-shell-001-browser` **139/0**; `fluyo-sw-viewer-001-browser` **63/0**; `fluyo-014-browser` **OK** (13 bloques: Share con
+  Historia, Viewer, offline y actualización del SW v56 → v110).
+- Para que el español sea idéntico también a 390 px, la frase de «Compartir historia» se pinta como antes en tres nodos (texto ·
+  nombre del autor · texto) a partir de UNA plantilla traducida entera.
+
+### Decisiones abiertas para el PO
+
+- **D-S1-1** Ayuda «Atajos y gestos»: propongo texto con marcado seguro (p. ej. `{kbd:Ctrl+C}` / `{b:arrastra el punto}` dentro de
+  una frase completa, pintado con nodos, sin `innerHTML`), en una mini-slice S1b o al empezar S2. Hasta entonces se ve en español.
+- **D-S1-2** Glosario: confirmar los términos nuevos (en particular **Reveal** y **Tell the system**).
+- **D-S1-3** Confirmaciones de borrar página/selección (Historias y momentos) en S2 con `Intl.ListFormat` (recomendado).
+- **D-S1-4** Diálogos nativos (`alert`/`confirm`): su texto ya se traduce, pero los botones Aceptar/Cancelar los pone el navegador
+  en su idioma (D-DIALOG del plan): ¿diálogos propios más adelante?
+- Riesgo: con +40 % (pseudo-idioma) «Más» desborda 5 px; en inglés no. A medir en S4/S5 con francés.
 
 ## Objetivo
 

@@ -294,6 +294,6 @@ function restoreMineOrWarn(){
   try{ if(restoreAutosaveSession()) return true; }
   catch(e){}
   clearAutosave();
-  alert("No se pudo restaurar la sesión guardada.");
+  alert(FluyoI18n.t("autosave.restoreFailed","No se pudo restaurar la sesión guardada."));
   return false;
 }

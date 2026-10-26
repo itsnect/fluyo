@@ -2,15 +2,14 @@
   "js": {
     "js/analytics.js": 1,
     "js/config.js": 143,
-    "js/deeplink.js": 6,
+    "js/deeplink.js": 1,
     "js/document-integrity.js": 12,
     "js/editor-scenarios.js": 237,
-    "js/editor-share.js": 16,
-    "js/examples.js": 12,
-    "js/export.js": 26,
+    "js/examples.js": 9,
+    "js/export.js": 13,
     "js/flow-semantics.js": 3,
     "js/geometry.js": 1,
-    "js/interaction.js": 15,
+    "js/interaction.js": 12,
     "js/link-codec.js": 2,
     "js/model.js": 10,
     "js/present-story.js": 1,
@@ -18,14 +17,14 @@
     "js/selection.js": 22,
     "js/share-loader.js": 6,
     "js/skin.js": 1,
-    "js/state.js": 2,
+    "js/state.js": 1,
     "js/story-authoring.js": 123,
     "js/story-playback.js": 23,
-    "js/ui.js": 88,
+    "js/ui.js": 72,
     "js/viewer.js": 5
   },
   "html": {
-    "index.html": 555,
+    "index.html": 372,
     "s/index.html": 0,
     "404.html": 3
   }

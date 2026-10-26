@@ -37,6 +37,7 @@ function fullEditor({ stored } = {}) {
     alert: (m) => alerts.push(m), confirm: () => true, prompt: () => null, innerWidth: 1280, innerHeight: 800,
   });
   const run = (code) => vm.runInContext(code, ctx);
+  require("./i18n-vm.cjs").loadI18n(ctx);   /* FLUYO-I18N-002 S1: el cromo (renderTabs, avisos de state.js…) pasa por FluyoI18n.t, como en la página */
   for (const f of ["config.js", "safe-svg.js", "model.js", "scenario-engine.js", "scenario-playback.js", "story-playback.js", "document-integrity.js", "geometry.js", "link-codec.js", "share-url.js"])
     vm.runInContext(read("js/" + f), ctx, { filename: f });
   run(`var __playing=false, __resets=0, __edits=0, __baselines=0;

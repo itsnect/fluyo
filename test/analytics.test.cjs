@@ -27,6 +27,7 @@ function editor(host='fluyo.space'){
     refreshPanel(){},renderTabs(){},edgePoints:()=>[],render(){},now:()=>0,
     makeReadOnlyRenderState:()=>({}),t0:0,pausedAt:0});
   const run=code=>vm.runInContext(code,context);
+  require('./i18n-vm.cjs').loadI18n(context);   // FLUYO-I18N-002 S1: los avisos de state.js/export.js pasan por FluyoI18n.t
   run(fuente('config.js'));run(fuente('safe-svg.js'));run(fuente('analytics.js'));run(fuente('editor-analytics.js'));run(fuente('model.js'));run(fuente('state.js'));run(fuente('selection.js'));
   run('resetAnalyticsBaseline()');
   const flush=()=>{

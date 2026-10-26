@@ -17,7 +17,7 @@ const ids = (html) => new Set([...html.matchAll(/\sid="([^"]+)"/g)].map((m) => m
 
 test("sw.js: CACHE v72 y todos los assets locales de index.html y s/index.html precacheados", () => {
   const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v109";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v110";/);
   const listed = new Set([...sw.matchAll(/"\.\/([^"]*)"/g)].map((m) => m[1]));
   const local = (html, prefix) => [...html.matchAll(/<(?:script|link)[^>]+(?:src|href)="([^"]+)"/g)].map((m) => m[1])
     .filter((u) => !/^(https?:|data:|#)/.test(u) && !/\.(png|ico|svg)$/.test(u)).map((u) => path.posix.normalize(prefix + u));
@@ -70,6 +70,7 @@ function tabsHarness() {
     prompt: (m, v) => { prompts.push(m); return "Nuevo"; }, alert() {}, PAGE_NAME_MAX: 80,
     doc: { cur: 0, pages: [{ name: "Uno" }, { name: "Dos" }] }, renamed: [],
   });
+  require("./i18n-vm.cjs").loadI18n(ctx);   /* FLUYO-I18N-002 S1: renderTabs pasa por FluyoI18n.t, como en la página */
   vm.runInContext(`var $=id=>document.getElementById(id); function clearSel(){} function scheduleAutosave(){} function addPage(){}
     function requestDeletePage(){} function renamePage(i,n){ renamed.push([i,n]); doc.pages[i].name=n; }`, ctx);
   vm.runInContext(ui.slice(a, b), ctx);

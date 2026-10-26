@@ -249,12 +249,12 @@ test("alcance · Viewer: s/index.html = HEAD + la carga de skin.js entre geometr
 });
 test("alcance · editor: presentSkin ya no existe; #skinSel vive en «Lienzo» (#canvasTools); sw.js v86 con skin.js precacheado", () => {
   for (const f of fs.readdirSync(path.join(root, "js")).map((f) => "js/" + f).concat(["index.html", "s/index.html"])) assert.ok(!/presentSkin/.test(read(f)), f + ": sin presentSkin");
-  const html = read("index.html");
+  const html = require("./fluyo-i18n-002-s1-undo.cjs").undoS1("index.html", read("index.html"));   /* FLUYO-I18N-002 S1 (marcas data-i18n*) va encima */
   const tools = html.slice(html.indexOf('<div id="canvasTools"'), html.indexOf('<span id="grpAnimHome"'));
   assert.match(tools, /<select id="skinSel"[^>]*>\s*<option value="flat">Plano<\/option>\s*<option value="built">Construido \(2\.5D\)<\/option>\s*<\/select>/, "control «Aspecto» con la lista cerrada, dentro de «Lienzo»");
   assert.ok(html.indexOf('id="fontGlobalSel"') < html.indexOf('id="skinSel"'), "junto a «Tipografía»");
   assert.match(html, /<button id="prSkin" type="button" aria-pressed="false"[^>]*>Plano<\/button>/, "la barra de Present arranca en plano (ausente = plano)");
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v109";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v110";/);
   assert.ok(read("sw.js").includes('"./js/skin.js",'), "skin.js precacheado (también lo usa el Viewer)");
   for (const f of ["js/editor-runtime.js", "js/ui.js", "js/export.js", "js/viewer.js", "js/state.js"]) assert.ok(read(f).includes("projectSkin(settings)"), f + " lee el aspecto por projectSkin");
   assert.ok(!/skin/.test(read("js/analytics.js")), "sin telemetría de la piel");

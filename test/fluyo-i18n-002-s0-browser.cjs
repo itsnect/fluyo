@@ -42,7 +42,16 @@ const info = (msg) => console.log("  ℹ " + msg);
 /* El texto esperado de una clave en un idioma: su diccionario o el español base. */
 const DICTS = scan.dictionaries();
 const BASE_TEXT = new Map(scan.catalog().uses.map((u) => [u.key, u.es]));
-const T = (lang, key) => lang === "es" ? BASE_TEXT.get(key) : ({ ...DICTS[lang].common, ...DICTS[lang].editor })[key];
+/* (la misma reserva que js/i18n.js: idioma › inglés › español) */
+const EN_ALL = { ...DICTS.en.common, ...DICTS.en.editor };
+const T = (lang, key) => lang === "es" ? BASE_TEXT.get(key) : ({ ...DICTS[lang].common, ...DICTS[lang].editor })[key] ?? EN_ALL[key] ?? BASE_TEXT.get(key);
+/* missing(): en español e inglés, vacío; en fr/ja/zh (sin publicar, sus claves de S1+ llegan en S5) lo que falta cae al INGLÉS,
+   nunca al español (FLUYO-I18N-002 S1). */
+async function checkMissing(page, lang, label = "") {
+  const miss = await page.evaluate(() => FluyoI18n.missing());
+  if (lang === "es" || lang === "en") check(miss.length === 0, label + "ninguna clave sin traducir (missing)");
+  else check(miss.every((m) => m.split(":")[1] in EN_ALL), `${label}lo que falta en ${lang} cae al inglés, nunca al español (${miss.length} claves de S1+)`);
+}
 const TAG = { es: "es", en: "en", fr: "fr", ja: "ja", zh: "zh-Hans" };
 const LANGS = ["es", "en", "fr", "ja", "zh"];
 /* Familias tal como las nombra el sistema; Windows añade el peso («Yu Gothic UI Semibold»). */
@@ -145,7 +154,7 @@ async function editor(browser, base, lang, vp) {
     await cjkFonts(page, lang, "#psCaption", "Present · rótulo");
   } else check(false, "el fixture tiene Historia en la primera página");
   await page.screenshot({ path: path.join(shots, `present-${lang}-${vp.width}.png`) });
-  check((await page.evaluate(() => FluyoI18n.missing())).length === 0, "ninguna clave sin traducir (missing)");
+  await checkMissing(page, lang);
   check(errors.length === 0, "sin errores de consola " + errors.join(" | "));
   await ctx.close();
 }
@@ -179,7 +188,7 @@ async function viewer(browser, base, lang, vp) {
   check(await page.$eval("#prExit", (b) => b.innerText.trim()) === T(lang, "present.exit"), "Present del Viewer · Salir");
   const pb = await clipping(page, "#prBar");
   check(pb.out.length === 0, "#prBar sin desbordes ni recortes " + pb.out.join(" | "));
-  check((await page.evaluate(() => FluyoI18n.missing())).length === 0, "ninguna clave sin traducir (missing)");
+  await checkMissing(page, lang);
   check(errors.length === 0, "sin errores de consola " + errors.join(" | "));
   await ctx.close();
 }
@@ -355,8 +364,8 @@ async function offlineFlow(browser, base) {
   const until = async (pg, fn, arg, ms = 30000) => { const t = Date.now(); while (Date.now() - t < ms) { if (await pg.evaluate(fn, arg).catch(() => false)) return true; await pg.waitForTimeout(250); } return false; };
   const swReady = (pg, l) => until(pg, async (l) => { const r = await navigator.serviceWorker.getRegistration();
     if (!(r && r.active && r.active.state === "activated" && navigator.serviceWorker.controller)) return false;
-    const k = await caches.keys(); if (k.length !== 1 || k[0] !== "fluyo-static-v109") return false;
-    const c = await caches.open("fluyo-static-v109");
+    const k = await caches.keys(); if (k.length !== 1 || k[0] !== "fluyo-static-v110") return false;
+    const c = await caches.open("fluyo-static-v110");
     return (await Promise.all(l.map((u) => c.match(location.origin + u)))).every(Boolean); }, l);
   const list = [...DICTS_ALL, "/js/i18n.js"];
   check(await swReady(page, list), `SW v109 activo y controlando el editor; los ${DICTS_ALL.length} diccionarios y el runtime, en caché`);
@@ -368,7 +377,7 @@ async function offlineFlow(browser, base) {
   await pj.goto(base + "/?lang=ja");
   await editorReady(pj);
   check(await txt(pj, "#btnShare .lbl") === T("ja", "editor.share"), "sin red: el editor abre en japonés");
-  check(await pj.evaluate(() => FluyoI18n.missing().length) === 0, "sin red: ninguna clave sin traducir");
+  await checkMissing(pj, "ja", "sin red: ");
   await pj.evaluate(() => localStorage.setItem("fluyo.ui.lang", "zh"));
   const v = await ctx.newPage();
   await v.goto(link);
@@ -384,7 +393,7 @@ async function offlineFlow(browser, base) {
   await pv.goto(link);
   await pv.waitForFunction(() => window.__viewer && window.__viewer.phase === "ready");
   check(await swReady(pv, [...DICTS_ALL.filter((u) => !u.includes("-editor")), "/js/i18n.js"]), "solo-Viewer: SW v109 activo, controlando, con los diccionarios comunes");
-  const vc = await pv.evaluate(async (list) => { const c = await caches.open("fluyo-static-v109"); return Promise.all(list.map(async (u) => !!(await c.match(location.origin + u)))); }, DICTS_ALL);
+  const vc = await pv.evaluate(async (list) => { const c = await caches.open("fluyo-static-v110"); return Promise.all(list.map(async (u) => !!(await c.match(location.origin + u)))); }, DICTS_ALL);
   const want = DICTS_ALL.map((u) => !u.includes("-editor"));
   check(JSON.stringify(vc) === JSON.stringify(want), "instalación solo-Viewer: los comunes sí, los del editor no");
   offline = true; await ctxV.setOffline(true);

@@ -206,87 +206,87 @@ try{ if(localStorage.getItem("fluyo.ui.props")==="folded") document.documentElem
   </button>
   <!-- «Lienzo» (FLUYO-018.14b): ajustes del DOCUMENTO. Cambiarlos cambia el .fluyo.json; por eso no están junto al tema de la
        interfaz, que vive en «Más» y nunca se guarda en el documento. En móvil #canvasTools viaja a «Más» (placeChrome). -->
-  <div id="canvasMenu" class="moreMenu canvasMenu" role="dialog" aria-label="Ajustes del lienzo" hidden>
+  <div id="canvasMenu" class="moreMenu canvasMenu" role="dialog" aria-label="Ajustes del lienzo" data-i18n-aria-label="canvas.settings" hidden>
     <div id="canvasTools" class="canvasTools">
-      <span class="menuKicker kCanvas">Lienzo · este documento</span>
-      <label class="fieldRow" for="themeSel"><span class="lbl">Tema</span>
-        <select id="themeSel" title="Tema del lienzo" aria-label="Tema del lienzo">
-          <option value="dark">Fondo oscuro</option>
-          <option value="crema">Fondo crema</option>
-          <option value="claro">Fondo claro</option>
+      <span class="menuKicker kCanvas" data-i18n="canvas.kicker">Lienzo · este documento</span>
+      <label class="fieldRow" for="themeSel"><span class="lbl" data-i18n="canvas.theme">Tema</span>
+        <select id="themeSel" title="Tema del lienzo" aria-label="Tema del lienzo" data-i18n-title="canvas.themeHint" data-i18n-aria-label="canvas.themeHint">
+          <option value="dark" data-i18n="canvas.themeDark">Fondo oscuro</option>
+          <option value="crema" data-i18n="canvas.themeCream">Fondo crema</option>
+          <option value="claro" data-i18n="canvas.themeLight">Fondo claro</option>
         </select>
       </label>
-      <label id="lblBg" class="hdrOpt" data-tip="Fondo personalizado">
-        <svg class="ic" aria-hidden="true"><use href="#i-swatch"/></svg><span class="lbl">Fondo propio</span><input type="color" id="bgCustom" value="#161616" aria-label="Color de fondo personalizado del lienzo">
-        <button id="btnBgClear" class="iconBtn btnGhost" type="button" title="Quitar fondo personalizado" aria-label="Quitar fondo personalizado">✕</button>
+      <label id="lblBg" class="hdrOpt" data-tip="Fondo personalizado" data-i18n-tip="canvas.customBgHint">
+        <svg class="ic" aria-hidden="true"><use href="#i-swatch"/></svg><span class="lbl" data-i18n="canvas.customBg">Fondo propio</span><input type="color" id="bgCustom" value="#161616" aria-label="Color de fondo personalizado del lienzo" data-i18n-aria-label="canvas.customBgColor">
+        <button id="btnBgClear" class="iconBtn btnGhost" type="button" title="Quitar fondo personalizado" aria-label="Quitar fondo personalizado" data-i18n-title="canvas.clearBg" data-i18n-aria-label="canvas.clearBg">✕</button>
       </label>
-      <label class="fieldRow" for="fontGlobalSel"><span class="lbl">Tipografía</span>
-        <select id="fontGlobalSel" title="Tipografía global — cambia la fuente de todo el diagrama" aria-label="Tipografía global"></select>
+      <label class="fieldRow" for="fontGlobalSel"><span class="lbl" data-i18n="canvas.font">Tipografía</span>
+        <select id="fontGlobalSel" title="Tipografía global — cambia la fuente de todo el diagrama" aria-label="Tipografía global" data-i18n-title="canvas.fontHint" data-i18n-aria-label="canvas.fontGlobal"></select>
       </label>
       <!-- FLUYO-019.2/019.4b: aspecto del DOCUMENTO (settings.skin): lienzo del editor, Present, exportación y Viewer. -->
-      <label class="fieldRow" for="skinSel"><span class="lbl">Aspecto</span>
-        <select id="skinSel" title="Aspecto del documento: lienzo, Present, exportación y Viewer" aria-label="Aspecto del documento">
-          <option value="flat">Plano</option>
-          <option value="built">Construido (2.5D)</option>
+      <label class="fieldRow" for="skinSel"><span class="lbl" data-i18n="canvas.skin">Aspecto</span>
+        <select id="skinSel" title="Aspecto del documento: lienzo, Present, exportación y Viewer" aria-label="Aspecto del documento" data-i18n-title="canvas.skinHint" data-i18n-aria-label="canvas.skinLabel">
+          <option value="flat" data-i18n="skin.flat">Plano</option>
+          <option value="built" data-i18n="skin.builtLong">Construido (2.5D)</option>
         </select>
       </label>
       <label id="lblGrid" class="hdrOpt">
-        <svg class="ic" aria-hidden="true"><use href="#i-grid"/></svg><span class="lbl">Cuadrícula</span><input type="checkbox" id="chkGrid" checked>
+        <svg class="ic" aria-hidden="true"><use href="#i-grid"/></svg><span class="lbl" data-i18n="canvas.grid">Cuadrícula</span><input type="checkbox" id="chkGrid" checked>
       </label>
       <label id="lblSnap" class="hdrOpt">
-        <svg class="ic" aria-hidden="true"><use href="#i-magnet"/></svg><span class="lbl">Ajustar a rejilla</span><input type="checkbox" id="chkSnap">
+        <svg class="ic" aria-hidden="true"><use href="#i-magnet"/></svg><span class="lbl" data-i18n="canvas.snap">Ajustar a rejilla</span><input type="checkbox" id="chkSnap">
       </label>
     </div>
     <!-- FLUYO-018.23 (D3): la animación ambiental del lienzo es un ajuste del DOCUMENTO: vive en «Lienzo» en escritorio y en «Más» en
          móvil (M1). El mismo nodo viaja con placeChrome (js/ui.js) entre #grpAnimHome y #animSection. -->
     <span id="grpAnimHome" hidden></span>
     <details class="pgroup" id="grpAnim" data-group="Animación del lienzo">
-      <summary><span class="pgTitle">Animación del lienzo</span></summary>
+      <summary><span class="pgTitle" data-i18n="canvas.anim">Animación del lienzo</span></summary>
       <div class="pgBody">
     <!-- FLUYO-018.12 (D6): la animación ambiental se pausa aquí y no en la cabecera (reproducir es de las Historias). Espacio la alterna. -->
-    <div class="row"><label for="btnPlay">Puntos en movimiento</label><button id="btnPlay" class="toggled" type="button" title="Pausar o reanudar los puntos que fluyen (Espacio)"><svg class="ic icPause" aria-hidden="true"><use href="#i-pause"/></svg><svg class="ic icPlay" aria-hidden="true"><use href="#i-play"/></svg><span class="lbl">Pausa</span></button></div>
-    <div class="row"><label for="speedIn">Velocidad de flujo</label><input type="range" id="speedIn" min="0.2" max="2" step="0.1" value="0.5"></div>
-    <div class="row"><label for="dotsIn">Puntos por flecha</label><input type="range" id="dotsIn" min="1" max="6" step="1" value="3"></div>
-    <div class="row" title="Una sola pelota recorre la cadena entera (nodo 1 → nodo 2 → nodo 3) en vez de puntos sueltos en cada flecha; en las bifurcaciones se parte y sigue por todas las ramas">
-      <label for="chkSingle">Una pelota por ruta</label><input type="checkbox" id="chkSingle">
+    <div class="row"><label for="btnPlay" data-i18n="canvas.animDots">Puntos en movimiento</label><button id="btnPlay" class="toggled" type="button" title="Pausar o reanudar los puntos que fluyen (Espacio)" data-i18n-title="canvas.animPauseHint"><svg class="ic icPause" aria-hidden="true"><use href="#i-pause"/></svg><svg class="ic icPlay" aria-hidden="true"><use href="#i-play"/></svg><span class="lbl" data-i18n-js="canvas.animPause">Pausa</span></button></div>
+    <div class="row"><label for="speedIn" data-i18n="canvas.speed">Velocidad de flujo</label><input type="range" id="speedIn" min="0.2" max="2" step="0.1" value="0.5"></div>
+    <div class="row"><label for="dotsIn" data-i18n="canvas.dotsPerArrow">Puntos por flecha</label><input type="range" id="dotsIn" min="1" max="6" step="1" value="3"></div>
+    <div class="row" title="Una sola pelota recorre la cadena entera (nodo 1 → nodo 2 → nodo 3) en vez de puntos sueltos en cada flecha; en las bifurcaciones se parte y sigue por todas las ramas" data-i18n-title="canvas.singleHint">
+      <label for="chkSingle" data-i18n="canvas.single">Una pelota por ruta</label><input type="checkbox" id="chkSingle">
     </div>
-    <div class="row"><label for="buildChk">Animar aparición</label><input type="checkbox" id="buildChk"></div>
-    <div class="row"><label for="staggerIn">Intervalo aparición</label><input type="range" id="staggerIn" min="0.2" max="1.2" step="0.1" value="0.45"></div>
-    <p class="hint">La aparición usa el «orden» de cada nodo. Las flechas aparecen cuando ambos nodos son visibles.</p>
-    <p class="hint">Con «una pelota por ruta» las flechas se encadenan: sale una pelota de cada nodo de origen y recorre el diagrama entero. Al llegar a un nodo que se abre en varias ramas, la pelota se parte y sigue por todas a la vez.</p>
+    <div class="row"><label for="buildChk" data-i18n="canvas.build">Animar aparición</label><input type="checkbox" id="buildChk"></div>
+    <div class="row"><label for="staggerIn" data-i18n="canvas.stagger">Intervalo aparición</label><input type="range" id="staggerIn" min="0.2" max="1.2" step="0.1" value="0.45"></div>
+    <p class="hint" data-i18n="canvas.buildNote">La aparición usa el «orden» de cada nodo. Las flechas aparecen cuando ambos nodos son visibles.</p>
+    <p class="hint" data-i18n="canvas.singleNote">Con «una pelota por ruta» las flechas se encadenan: sale una pelota de cada nodo de origen y recorre el diagrama entero. Al llegar a un nodo que se abre en varias ramas, la pelota se parte y sigue por todas a la vez.</p>
       </div>
     </details>
   </div>
   <!-- Menú «Más» (FLUYO-018.12, D8; 018.14b): Archivo, Interfaz y los enlaces del proyecto. Lo destructivo (Limpiar página)
        va al final de Archivo y en terracota. A ≤700 px recibe además Exportar y la sección Lienzo. -->
-  <div id="moreMenu" class="moreMenu" role="dialog" aria-label="Más opciones" hidden>
+  <div id="moreMenu" class="moreMenu" role="dialog" aria-label="Más opciones" data-i18n-aria-label="editor.more" hidden>
     <div id="moreTools" class="moreTools">
       <div id="hdrTools" class="hdrTools">
-        <span class="menuKicker hdrKicker kDoc">Archivo</span>
-        <button id="btnDemo" class="btnGhost" type="button" title="Abre un diagrama de ejemplo en una página nueva"><svg class="ic" aria-hidden="true"><use href="#i-spark"/></svg><span class="lbl">Ejemplo</span></button>
-        <button id="btnJsonIn" class="btnGhost" type="button" aria-label="Abrir archivo guardado"><svg class="ic" aria-hidden="true"><use href="#i-open"/></svg><span class="lbl">Abrir…</span></button>
-        <button id="btnJsonOut" class="btnGhost" type="button" aria-label="Guardar archivo .fluyo.json"><svg class="ic" aria-hidden="true"><use href="#i-save"/></svg><span class="lbl">Guardar</span><kbd class="menuHint">Ctrl+S</kbd></button>
-        <button id="btnClear" class="btnGhost hdrDanger" type="button" aria-label="Limpiar página"><svg class="ic" aria-hidden="true"><use href="#i-eraser"/></svg><span class="lbl">Limpiar<span class="lblRest"> página</span></span></button>
+        <span class="menuKicker hdrKicker kDoc" data-i18n="more.file">Archivo</span>
+        <button id="btnDemo" class="btnGhost" type="button" title="Abre un diagrama de ejemplo en una página nueva" data-i18n-title="more.exampleHint"><svg class="ic" aria-hidden="true"><use href="#i-spark"/></svg><span class="lbl" data-i18n="more.example">Ejemplo</span></button>
+        <button id="btnJsonIn" class="btnGhost" type="button" aria-label="Abrir archivo guardado" data-i18n-aria-label="more.openHint"><svg class="ic" aria-hidden="true"><use href="#i-open"/></svg><span class="lbl" data-i18n="more.open">Abrir…</span></button>
+        <button id="btnJsonOut" class="btnGhost" type="button" aria-label="Guardar archivo .fluyo.json" data-i18n-aria-label="more.saveHint"><svg class="ic" aria-hidden="true"><use href="#i-save"/></svg><span class="lbl" data-i18n="more.save">Guardar</span><kbd class="menuHint" translate="no">Ctrl+S</kbd></button>
+        <button id="btnClear" class="btnGhost hdrDanger" type="button" aria-label="Limpiar página" data-i18n-aria-label="more.clearPage"><svg class="ic" aria-hidden="true"><use href="#i-eraser"/></svg><span class="lbl" data-i18n="more.clearShort">Limpiar<span class="lblRest" data-i18n="more.clearRest"> página</span></span></button>
       </div>
     </div>
     <!-- FLUYO-018.17 (M1): en móvil, la animación ambiental del lienzo (#grpAnim) es un ajuste del DOCUMENTO y vive aquí, junto a
          la sección Lienzo. El mismo nodo viaja con placeChrome (js/ui.js); en escritorio vuelve a «Lienzo» (FLUYO-018.23, D3). -->
-    <section id="animSection" class="menuSection animSection" aria-label="Animación del lienzo" hidden></section>
+    <section id="animSection" class="menuSection animSection" aria-label="Animación del lienzo" data-i18n-aria-label="canvas.anim" hidden></section>
     <!-- Interfaz (FLUYO-018.14b, B4): preferencia de ESTE navegador. No cambia el lienzo ni se guarda en el documento. -->
-    <section id="uiSection" class="menuSection uiSection" aria-label="Interfaz">
-      <span class="menuKicker">Interfaz · este navegador</span>
+    <section id="uiSection" class="menuSection uiSection" aria-label="Interfaz" data-i18n-aria-label="more.ui">
+      <span class="menuKicker" data-i18n="more.uiKicker">Interfaz · este navegador</span>
       <label id="lblUiDark" class="hdrOpt">
-        <svg class="ic" aria-hidden="true"><use href="#i-moon"/></svg><span class="lbl">Interfaz oscura</span><input type="checkbox" id="chkUiDark">
+        <svg class="ic" aria-hidden="true"><use href="#i-moon"/></svg><span class="lbl" data-i18n="more.uiDark">Interfaz oscura</span><input type="checkbox" id="chkUiDark">
       </label>
-      <p class="hint moreNote">Solo cambia la aplicación. El tema del lienzo está en «Lienzo».</p>
+      <p class="hint moreNote" data-i18n="more.uiNote">Solo cambia la aplicación. El tema del lienzo está en «Lienzo».</p>
     </section>
     <!-- FLUYO-018.17 (M2) y 018.23 (D3): la ayuda de atajos y gestos (#grpHelp) no es una propiedad de la selección: vive aquí en
          todas las anchuras. Propiedades habla solo de lo seleccionado. -->
-    <section id="helpSection" class="menuSection helpSection" aria-label="Ayuda y gestos">
-      <span class="menuKicker">Ayuda y gestos</span>
+    <section id="helpSection" class="menuSection helpSection" aria-label="Ayuda y gestos" data-i18n-aria-label="more.help">
+      <span class="menuKicker" data-i18n="more.help">Ayuda y gestos</span>
       <span id="grpHelpHome" hidden></span>
       <details class="pgroup pgHelp" id="grpHelp" data-group="Atajos y gestos">
-        <summary><span class="pgTitle">Atajos y gestos</span></summary>
+        <summary><span class="pgTitle" data-i18n="more.shortcuts">Atajos y gestos</span></summary>
         <div class="pgBody">
       <ul class="helpList">
         <li>Forma del menú izquierdo → clic en el lienzo.</li>
@@ -306,25 +306,25 @@ try{ if(localStorage.getItem("fluyo.ui.props")==="folded") document.documentElem
         </div>
       </details>
     </section>
-    <section class="moreLinks menuSection" aria-label="Proyecto">
+    <section class="moreLinks menuSection" aria-label="Proyecto" data-i18n-aria-label="more.project">
       <span class="menuKicker">Fluyo</span>
-      <nav id="siteLinks" aria-label="Enlaces del proyecto">
-        <a class="menuItem" href="docs/"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg>Docs</a>
-        <a class="menuItem" href="ejemplos/"><svg class="ic" aria-hidden="true"><use href="#i-layers"/></svg>Ejemplos</a>
-        <a class="menuItem" href="privacidad/"><svg class="ic" aria-hidden="true"><use href="#i-shield"/></svg>Privacidad</a>
-        <a class="menuItem" href="soporte/"><svg class="ic" aria-hidden="true"><use href="#i-help"/></svg>Soporte</a>
+      <nav id="siteLinks" aria-label="Enlaces del proyecto" data-i18n-aria-label="more.links">
+        <a class="menuItem" href="docs/" data-i18n="shell.docs"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg>Docs</a>
+        <a class="menuItem" href="ejemplos/" data-i18n="shell.examples"><svg class="ic" aria-hidden="true"><use href="#i-layers"/></svg>Ejemplos</a>
+        <a class="menuItem" href="privacidad/" data-i18n="shell.privacy"><svg class="ic" aria-hidden="true"><use href="#i-shield"/></svg>Privacidad</a>
+        <a class="menuItem" href="soporte/" data-i18n="shell.support"><svg class="ic" aria-hidden="true"><use href="#i-help"/></svg>Soporte</a>
       </nav>
       <a class="menuItem ossLink" href="https://github.com/itsnect/fluyo" target="_blank" rel="noopener">
         <svg class="ic" aria-hidden="true"><use href="#i-github"/></svg>
-        <span class="ossText"><b>itsnect/fluyo</b><span class="meta">Contribuye en GitHub</span></span>
+        <span class="ossText"><b translate="no">itsnect/fluyo</b><span class="meta" data-i18n="more.contribute">Contribuye en GitHub</span></span>
         <svg class="ic ossOut" aria-hidden="true"><use href="#i-arrow"/></svg>
       </a>
       <a class="menuItem ossLink" href="https://github.com/itsnect/fluyo-mcp" target="_blank" rel="noopener">
         <svg class="ic" aria-hidden="true"><use href="#i-mcp"/></svg>
-        <span class="ossText"><b>fluyo-mcp</b><span class="meta">Úsalo con tu IA vía MCP</span></span>
+        <span class="ossText"><b translate="no">fluyo-mcp</b><span class="meta" data-i18n="more.mcp">Úsalo con tu IA vía MCP</span></span>
         <svg class="ic ossOut" aria-hidden="true"><use href="#i-arrow"/></svg>
       </a>
-      <p class="hint moreNote">Fluyo es libre y de código abierto. Tu contribución es bienvenida.</p>
+      <p class="hint moreNote" data-i18n="more.oss">Fluyo es libre y de código abierto. Tu contribución es bienvenida.</p>
     </section>
   </div>
 </header>
@@ -334,37 +334,37 @@ try{ if(localStorage.getItem("fluyo.ui.props")==="folded") document.documentElem
 <main>
   <!-- FLUYO-018.14b (B7): solo icono. El nombre sigue en el DOM (.lbl, nombre accesible) y el tooltip lo enseña al pasar.
        En modo Historia el rail se oculta: se narra, no se construye. -->
-  <nav class="rail" aria-label="Herramientas">
-    <button data-mode="select" class="toggled" data-tip="Seleccionar / mover (V)" data-tip-pos="right">
-      <svg viewBox="0 0 24 24"><path d="M6 3l12 9-5.5 1L10 19z"/></svg><span class="lbl">Mover</span>
+  <nav class="rail" aria-label="Herramientas" data-i18n-aria-label="rail.tools">
+    <button data-mode="select" class="toggled" data-tip="Seleccionar / mover (V)" data-tip-pos="right" data-i18n-tip="rail.selectHint">
+      <svg viewBox="0 0 24 24"><path d="M6 3l12 9-5.5 1L10 19z"/></svg><span class="lbl" data-i18n="rail.select">Mover</span>
     </button>
-    <button data-mode="connect" data-tip="Conectar con clics (C)" data-tip-pos="right">
-      <svg viewBox="0 0 24 24"><circle cx="5" cy="19" r="2.4"/><circle cx="19" cy="5" r="2.4"/><path d="M7 17L17 7"/></svg><span class="lbl">Flecha</span>
+    <button data-mode="connect" data-tip="Conectar con clics (C)" data-tip-pos="right" data-i18n-tip="rail.connectHint">
+      <svg viewBox="0 0 24 24"><circle cx="5" cy="19" r="2.4"/><circle cx="19" cy="5" r="2.4"/><path d="M7 17L17 7"/></svg><span class="lbl" data-i18n="rail.connect">Flecha</span>
     </button>
     <hr>
-    <button data-shape="rect" data-tip="Caja" data-tip-pos="right"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="3"/></svg><span class="lbl">Caja</span></button>
-    <button data-shape="cylinder" data-tip="Base de datos" data-tip-pos="right"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/></svg><span class="lbl">BD</span></button>
-    <button data-shape="diamond" data-tip="Decisión" data-tip-pos="right"><svg viewBox="0 0 24 24"><path d="M12 3l9 9-9 9-9-9z"/></svg><span class="lbl">Rombo</span></button>
-    <button data-shape="circle" data-tip="Círculo" data-tip-pos="right"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/></svg><span class="lbl">Círculo</span></button>
-    <button data-shape="hex" data-tip="Hexágono" data-tip-pos="right"><svg viewBox="0 0 24 24"><path d="M7 4h10l4 8-4 8H7l-4-8z"/></svg><span class="lbl">Hex</span></button>
-    <button data-shape="text" data-tip="Solo texto" data-tip-pos="right"><svg viewBox="0 0 24 24"><path d="M5 6h14M12 6v13"/></svg><span class="lbl">Texto</span></button>
-    <button data-shape="code" data-tip="Bloque de código con palabras clave resaltadas" data-tip-pos="right"><svg viewBox="0 0 24 24"><path d="M9 8l-4 4 4 4M15 8l4 4-4 4"/></svg><span class="lbl">Código</span></button>
+    <button data-shape="rect" data-tip="Caja" data-tip-pos="right" data-i18n-tip="rail.box"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="3"/></svg><span class="lbl" data-i18n="rail.box">Caja</span></button>
+    <button data-shape="cylinder" data-tip="Base de datos" data-tip-pos="right" data-i18n-tip="rail.dbHint"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/></svg><span class="lbl" data-i18n="rail.db">BD</span></button>
+    <button data-shape="diamond" data-tip="Decisión" data-tip-pos="right" data-i18n-tip="rail.diamondHint"><svg viewBox="0 0 24 24"><path d="M12 3l9 9-9 9-9-9z"/></svg><span class="lbl" data-i18n="rail.diamond">Rombo</span></button>
+    <button data-shape="circle" data-tip="Círculo" data-tip-pos="right" data-i18n-tip="rail.circle"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/></svg><span class="lbl" data-i18n="rail.circle">Círculo</span></button>
+    <button data-shape="hex" data-tip="Hexágono" data-tip-pos="right" data-i18n-tip="rail.hexHint"><svg viewBox="0 0 24 24"><path d="M7 4h10l4 8-4 8H7l-4-8z"/></svg><span class="lbl" data-i18n="rail.hex">Hex</span></button>
+    <button data-shape="text" data-tip="Solo texto" data-tip-pos="right" data-i18n-tip="rail.textHint"><svg viewBox="0 0 24 24"><path d="M5 6h14M12 6v13"/></svg><span class="lbl" data-i18n="rail.text">Texto</span></button>
+    <button data-shape="code" data-tip="Bloque de código con palabras clave resaltadas" data-tip-pos="right" data-i18n-tip="rail.codeHint"><svg viewBox="0 0 24 24"><path d="M9 8l-4 4 4 4M15 8l4 4-4 4"/></svg><span class="lbl" data-i18n="rail.code">Código</span></button>
     <hr>
-    <button id="btnIcons" aria-expanded="false" aria-controls="iconDrawer" data-tip="Iconos cloud (GCP, AWS, Azure…)" data-tip-pos="right">
-      <svg viewBox="0 0 24 24"><path d="M7 17a4 4 0 0 1 0-8 5.5 5.5 0 0 1 10.6 1.4A3.5 3.5 0 0 1 17 17z"/></svg><span class="lbl">Iconos</span>
+    <button id="btnIcons" aria-expanded="false" aria-controls="iconDrawer" data-tip="Iconos cloud (GCP, AWS, Azure…)" data-tip-pos="right" data-i18n-tip="rail.iconsHint">
+      <svg viewBox="0 0 24 24"><path d="M7 17a4 4 0 0 1 0-8 5.5 5.5 0 0 1 10.6 1.4A3.5 3.5 0 0 1 17 17z"/></svg><span class="lbl" data-i18n="rail.icons">Iconos</span>
     </button>
-    <button id="btnImg" data-tip="Insertar imagen (o pega con Ctrl+V)" data-tip-pos="right">
-      <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l5-5 4 4 3-3 4 4"/></svg><span class="lbl">Imagen</span>
+    <button id="btnImg" data-tip="Insertar imagen (o pega con Ctrl+V)" data-tip-pos="right" data-i18n-tip="rail.imageHint">
+      <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l5-5 4 4 3-3 4 4"/></svg><span class="lbl" data-i18n="rail.image">Imagen</span>
     </button>
-    <button id="btnAnims" aria-expanded="false" aria-controls="animDrawer" data-tip="GIFs animados (cargando, error, éxito…)" data-tip-pos="right">
-      <svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9" /><path d="M12 7v5l3 2"/></svg><span class="lbl">GIFs</span>
+    <button id="btnAnims" aria-expanded="false" aria-controls="animDrawer" data-tip="GIFs animados (cargando, error, éxito…)" data-tip-pos="right" data-i18n-tip="rail.gifsHint">
+      <svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9" /><path d="M12 7v5l3 2"/></svg><span class="lbl" data-i18n="rail.gifs">GIFs</span>
     </button>
   </nav>
 
   <div class="stage">
     <div id="wrap">
       <canvas id="cv" width="2560" height="1440"></canvas>
-      <textarea id="editBox" rows="1" wrap="off" spellcheck="false" aria-label="Editar texto"></textarea>
+      <textarea id="editBox" rows="1" wrap="off" spellcheck="false" aria-label="Editar texto" data-i18n-aria-label="canvas.editText"></textarea>
       <!-- FLUYO-018.18 (D4): el momento activo, SOBRE el lienzo y en una línea (antes, un recuadro «Reproduciendo» en la hoja
            o la columna). Mismo contenido que lee Present (FluyoStory.describe). Lo coloca scPlaceNow (editor-scenarios.js):
            arriba de la zona libre, o al pie si el destino del momento queda debajo. -->
@@ -374,8 +374,8 @@ try{ if(localStorage.getItem("fluyo.ui.props")==="folded") document.documentElem
         <span id="scNowProgress" class="scNowProgress"></span>
       </div>
     </div>
-    <div id="iconDrawer" role="dialog" aria-label="Iconos"></div>
-    <div id="animDrawer" role="dialog" aria-label="GIFs animados"></div>
+    <div id="iconDrawer" role="dialog" aria-label="Iconos" data-i18n-aria-label="rail.icons"></div>
+    <div id="animDrawer" role="dialog" aria-label="GIFs animados" data-i18n-aria-label="drawer.gifs"></div>
     <!--
       Borrar con el dedo. El botón «Eliminar» del panel de propiedades funciona
       en móvil desde que el panel dejó de ocultarse, pero está a cuatro pasos:
@@ -388,7 +388,7 @@ try{ if(localStorage.getItem("fluyo.ui.props")==="folded") document.documentElem
       tecla y el panel ya bastan, y un botón permanente sobre el lienzo sería
       ruido. Ver js/ui.js, syncTouchDelete().
     -->
-    <button id="btnDelTouch" type="button" title="Eliminar la selección" aria-label="Eliminar la selección">
+    <button id="btnDelTouch" type="button" title="Eliminar la selección" aria-label="Eliminar la selección" data-i18n-title="touch.delete" data-i18n-aria-label="touch.delete">
       <svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg>
     </button>
     <!--
@@ -399,13 +399,13 @@ try{ if(localStorage.getItem("fluyo.ui.props")==="folded") document.documentElem
       en el que cada toque suma o quita. Los dos se cancelan desde la propia
       barra. Ver js/ui.js, syncTouchBar(), y js/interaction.js.
     -->
-    <div id="touchBar" class="touchBar" role="toolbar" aria-label="Acciones de la selección" hidden>
+    <div id="touchBar" class="touchBar" role="toolbar" aria-label="Acciones de la selección" data-i18n-aria-label="touch.actions" hidden>
       <span id="tbMsg" class="tbMsg" role="status" aria-live="polite"></span>
-      <button id="tbConnect" type="button" class="btnGhost"><svg class="ic" aria-hidden="true"><use href="#i-connect"/></svg>Conectar</button>
-      <button id="tbMulti" type="button" class="btnGhost"><svg class="ic" aria-hidden="true"><use href="#i-multi"/></svg>Seleccionar varios</button>
-      <button id="tbAll" type="button" class="btnGhost"><svg class="ic" aria-hidden="true"><use href="#i-all"/></svg>Todo</button>
-      <button id="tbDone" type="button" class="primary"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg>Listo</button>
-      <button id="tbCancel" type="button"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg>Cancelar</button>
+      <button id="tbConnect" type="button" class="btnGhost" data-i18n="touch.connect"><svg class="ic" aria-hidden="true"><use href="#i-connect"/></svg>Conectar</button>
+      <button id="tbMulti" type="button" class="btnGhost" data-i18n="touch.multi"><svg class="ic" aria-hidden="true"><use href="#i-multi"/></svg>Seleccionar varios</button>
+      <button id="tbAll" type="button" class="btnGhost" data-i18n="touch.all"><svg class="ic" aria-hidden="true"><use href="#i-all"/></svg>Todo</button>
+      <button id="tbDone" type="button" class="primary" data-i18n="touch.done"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg>Listo</button>
+      <button id="tbCancel" type="button" data-i18n="common.cancel"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg>Cancelar</button>
     </div>
   </div>
 
@@ -422,37 +422,37 @@ try{ if(localStorage.getItem("fluyo.ui.props")==="folded") document.documentElem
   <aside id="propPanel">
     <div id="propSheetHead" class="sheetHead selHead">
       <div class="selHeadText">
-        <span id="selTitle" class="sheetTitle">Propiedades</span>
+        <span id="selTitle" class="sheetTitle" data-i18n-js="editor.properties">Propiedades</span>
         <span id="selMeta" class="selMeta" hidden></span>
       </div>
       <span id="rowZ" class="orderWrap" hidden>
-        <button id="btnOrder" class="iconBtn btnGhost" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="orderMenu" aria-label="Orden de capas" data-tip="Orden de capas" data-tip-pos="end"><svg class="ic" aria-hidden="true"><use href="#i-layers"/></svg></button>
-        <div id="orderMenu" class="menu orderMenu" role="menu" aria-label="Orden de capas" hidden>
-          <button id="btnFront" class="menuItem" type="button" role="menuitem"><svg class="ic" aria-hidden="true"><use href="#i-front"/></svg>Al frente</button>
-          <button id="btnForward" class="menuItem" type="button" role="menuitem"><svg class="ic" aria-hidden="true"><use href="#i-up"/></svg>Subir una capa</button>
-          <button id="btnBackward" class="menuItem" type="button" role="menuitem"><svg class="ic" aria-hidden="true"><use href="#i-down"/></svg>Bajar una capa</button>
-          <button id="btnBack" class="menuItem" type="button" role="menuitem"><svg class="ic" aria-hidden="true"><use href="#i-back"/></svg>Al fondo</button>
+        <button id="btnOrder" class="iconBtn btnGhost" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="orderMenu" aria-label="Orden de capas" data-tip="Orden de capas" data-tip-pos="end" data-i18n-aria-label="panel.order" data-i18n-tip="panel.order"><svg class="ic" aria-hidden="true"><use href="#i-layers"/></svg></button>
+        <div id="orderMenu" class="menu orderMenu" role="menu" aria-label="Orden de capas" data-i18n-aria-label="panel.order" hidden>
+          <button id="btnFront" class="menuItem" type="button" role="menuitem" data-i18n="panel.front"><svg class="ic" aria-hidden="true"><use href="#i-front"/></svg>Al frente</button>
+          <button id="btnForward" class="menuItem" type="button" role="menuitem" data-i18n="panel.forward"><svg class="ic" aria-hidden="true"><use href="#i-up"/></svg>Subir una capa</button>
+          <button id="btnBackward" class="menuItem" type="button" role="menuitem" data-i18n="panel.backward"><svg class="ic" aria-hidden="true"><use href="#i-down"/></svg>Bajar una capa</button>
+          <button id="btnBack" class="menuItem" type="button" role="menuitem" data-i18n="panel.back"><svg class="ic" aria-hidden="true"><use href="#i-back"/></svg>Al fondo</button>
         </div>
       </span>
-      <button id="btnDel" class="iconBtn btnGhost danger" type="button" aria-label="Eliminar (Supr)" data-tip="Eliminar · Supr" data-tip-pos="end" hidden><svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg></button>
+      <button id="btnDel" class="iconBtn btnGhost danger" type="button" aria-label="Eliminar (Supr)" data-tip="Eliminar · Supr" data-tip-pos="end" data-i18n-aria-label="panel.deleteAria" data-i18n-tip="panel.deleteHint" hidden><svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg></button>
       <!-- Hoja (≤700 px, apaisado táctil): cierra y vuelve al lienzo. Columna: pliega el panel (preferencia del navegador, D2). -->
-      <button id="btnPanelClose" class="iconBtn btnGhost sheetClose" type="button" aria-label="Cerrar panel" data-tip="Plegar el panel" data-tip-pos="end">
+      <button id="btnPanelClose" class="iconBtn btnGhost sheetClose" type="button" aria-label="Cerrar panel" data-tip="Plegar el panel" data-tip-pos="end" data-i18n-aria-label="panel.close" data-i18n-tip="panel.fold">
         <svg class="ic icClose" aria-hidden="true"><use href="#i-x"/></svg><svg class="ic icFold" aria-hidden="true"><use href="#i-fold"/></svg>
       </button>
     </div>
     <div id="panelProperties">
     <section class="selSection">
       <div id="noSel" class="hint emptySel">
-        <p class="emptyTitle">Nada seleccionado.</p>
-        <p class="emptyLead">Elige una forma del rail y toca el lienzo, o selecciona un elemento para ver sus propiedades.</p>
-        <p class="emptyLead emptyHelp">Atajos y gestos: en «Más».</p>
+        <p class="emptyTitle" data-i18n="panel.empty">Nada seleccionado.</p>
+        <p class="emptyLead" data-i18n="panel.emptyLead">Elige una forma del rail y toca el lienzo, o selecciona un elemento para ver sus propiedades.</p>
+        <p class="emptyLead emptyHelp" data-i18n="panel.emptyHelp">Atajos y gestos: en «Más».</p>
       </div>
       <div id="multiSel" style="display:none">
         <div class="btnGrid">
-          <button id="mCopy">Copiar</button>
-          <button id="mCut">Cortar</button>
-          <button id="mDup">Duplicar</button>
-          <button id="mDel" class="danger"><svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg>Eliminar</button>
+          <button id="mCopy" data-i18n="panel.copy">Copiar</button>
+          <button id="mCut" data-i18n="panel.cut">Cortar</button>
+          <button id="mDup" data-i18n="panel.duplicate">Duplicar</button>
+          <button id="mDel" class="danger" data-i18n="panel.delete"><svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg>Eliminar</button>
         </div>
         <p class="hint multiCount" id="multiCount"></p>
       </div>
@@ -927,20 +927,20 @@ try{ if(localStorage.getItem("fluyo.ui.props")==="folded") document.documentElem
   <footer id="pagesBar"></footer>
   <!-- FLUYO-018.13: la vista del lienzo, a mano (solo >700 px; en móvil, el pellizco). Zoom alrededor del centro y
        encajar la página; no tocan el documento. js/ui.js, zoomBy()/syncZoomReadout(). -->
-  <div id="viewCtl" class="viewCtl" role="group" aria-label="Vista del lienzo">
-    <button id="zoomOut" class="iconBtn btnGhost" type="button" aria-label="Alejar" data-tip="Alejar · Ctrl+rueda" data-tip-pos="up end"><svg class="ic" aria-hidden="true"><use href="#i-minus"/></svg></button>
-    <button id="zoomPct" class="btnGhost zoomPct" type="button" aria-label="Zoom al 100 %" data-tip="Zoom al 100 %" data-tip-pos="up end">100%</button>
-    <button id="zoomIn" class="iconBtn btnGhost" type="button" aria-label="Acercar" data-tip="Acercar · Ctrl+rueda" data-tip-pos="up end"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></button>
-    <button id="zoomFit" class="iconBtn btnGhost" type="button" aria-label="Encajar la página" data-tip="Encajar la página" data-tip-pos="up end"><svg class="ic" aria-hidden="true"><use href="#i-fit"/></svg></button>
+  <div id="viewCtl" class="viewCtl" role="group" aria-label="Vista del lienzo" data-i18n-aria-label="view.canvas">
+    <button id="zoomOut" class="iconBtn btnGhost" type="button" aria-label="Alejar" data-tip="Alejar · Ctrl+rueda" data-tip-pos="up end" data-i18n-aria-label="view.zoomOut" data-i18n-tip="view.zoomOutHint"><svg class="ic" aria-hidden="true"><use href="#i-minus"/></svg></button>
+    <button id="zoomPct" class="btnGhost zoomPct" type="button" translate="no" aria-label="Zoom al 100 %" data-tip="Zoom al 100 %" data-tip-pos="up end" data-i18n-aria-label="view.zoomReset" data-i18n-tip="view.zoomReset">100%</button>
+    <button id="zoomIn" class="iconBtn btnGhost" type="button" aria-label="Acercar" data-tip="Acercar · Ctrl+rueda" data-tip-pos="up end" data-i18n-aria-label="view.zoomIn" data-i18n-tip="view.zoomInHint"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></button>
+    <button id="zoomFit" class="iconBtn btnGhost" type="button" aria-label="Encajar la página" data-tip="Encajar la página" data-tip-pos="up end" data-i18n-aria-label="view.fitPage" data-i18n-tip="view.fitPage"><svg class="ic" aria-hidden="true"><use href="#i-fit"/></svg></button>
   </div>
   <!-- Solo a ≤700 px: los dos modos de contar el sistema, a mano del pulgar. Presentar (#btnPresent) llega aquí desde la
        cabecera (placeChrome, js/ui.js); Historias abre su superficie. -->
-  <nav id="modeBar" class="modeBar" aria-label="Contar el sistema">
-    <button id="btnStories" type="button" class="btnGhost" aria-controls="propPanel" aria-expanded="false"><svg class="ic" aria-hidden="true"><use href="#i-story"/></svg>Historias</button>
+  <nav id="modeBar" class="modeBar" aria-label="Contar el sistema" data-i18n-aria-label="editor.tell">
+    <button id="btnStories" type="button" class="btnGhost" aria-controls="propPanel" aria-expanded="false" data-i18n="editor.modeStories"><svg class="ic" aria-hidden="true"><use href="#i-story"/></svg>Historias</button>
   </nav>
 </div>
 <!-- Menú de la página activa (FLUYO-018.12): renombrar y eliminar sin doble clic. Lo abre el botón ▾ de la pestaña activa. -->
-<div id="pageMenu" class="scPopover pageMenu" role="dialog" aria-label="Página" hidden></div>
+<div id="pageMenu" class="scPopover pageMenu" role="dialog" aria-label="Página" data-i18n-aria-label="pages.menu" hidden></div>
 
 <!-- Mando del modo presentación: solo se muestra con body.presenting -->
 <!-- FLUYO-018.18 (D7, D8): dos grupos separados —la Historia y las páginas— y UNA salida. Tocar el lienzo no hace nada:
@@ -973,68 +973,68 @@ try{ if(localStorage.getItem("fluyo.ui.props")==="folded") document.documentElem
 </div>
 
 <dialog id="shareDialog" class="card" aria-labelledby="shareTitle">
-  <h2 id="shareTitle">Compartir diagrama</h2>
+  <h2 id="shareTitle" data-i18n-js="share.titleDiagram">Compartir diagrama</h2>
   <div id="shareConfirm">
     <fieldset id="shareKind" class="shareKind" hidden>
-      <legend>¿Qué quieres compartir?</legend>
+      <legend data-i18n="share.what">¿Qué quieres compartir?</legend>
       <label><input id="shareKindStory" type="radio" name="shareKind" value="story" checked>
-        <span><b>Compartir historia</b><small>Quien abra el enlace podrá verla suceder: «<span id="shareStoryName"></span>».</small></span></label>
+        <span><b data-i18n="share.story">Compartir historia</b><small id="shareStoryName"></small></span></label>
       <label><input id="shareKindDiagram" type="radio" name="shareKind" value="diagram">
-        <span><b>Compartir sólo el diagrama</b><small>Sin la historia.</small></span></label>
+        <span><b data-i18n="share.diagramOnly">Compartir sólo el diagrama</b><small data-i18n="share.withoutStory">Sin la historia.</small></span></label>
     </fieldset>
-    <p>Se creará un enlace que contiene una copia de este diagrama.</p>
-    <p>Cualquiera que tenga el enlace podrá verlo.</p>
-    <p>Fluyo no almacenará esta copia en un servidor. El enlace no podrá revocarse desde Fluyo en esta versión.</p>
+    <p data-i18n="share.copyNote">Se creará un enlace que contiene una copia de este diagrama.</p>
+    <p data-i18n="share.anyone">Cualquiera que tenga el enlace podrá verlo.</p>
+    <p data-i18n="share.noServer">Fluyo no almacenará esta copia en un servidor. El enlace no podrá revocarse desde Fluyo en esta versión.</p>
   </div>
   <div id="shareResult" hidden>
-    <label for="shareLink">Enlace creado</label>
+    <label for="shareLink" data-i18n="share.created">Enlace creado</label>
     <textarea id="shareLink" readonly rows="3" spellcheck="false"></textarea>
-    <p id="shareResultNote">Este enlace contiene una copia del diagrama actual. Los cambios posteriores no modificarán este enlace.</p>
+    <p id="shareResultNote" data-i18n-js="share.noteDiagram">Este enlace contiene una copia del diagrama actual. Los cambios posteriores no modificarán este enlace.</p>
   </div>
   <p id="shareMessage" role="status" aria-live="polite"></p>
   <div class="actions">
-    <button id="shareClose" type="button">Cancelar</button>
-    <button id="shareCreate" type="button" class="primary">Crear enlace</button>
-    <button id="shareCopy" type="button" class="primary" hidden>Copiar enlace</button>
+    <button id="shareClose" type="button" data-i18n-js="common.cancel">Cancelar</button>
+    <button id="shareCreate" type="button" class="primary" data-i18n="share.create">Crear enlace</button>
+    <button id="shareCopy" type="button" class="primary" data-i18n="share.copy" hidden>Copiar enlace</button>
   </div>
 </dialog>
 
 <!-- Export modal -->
 <div class="overlay" id="exModal">
   <div class="card">
-    <h2>Exportar página actual</h2>
-    <div class="row"><label>Formato</label>
+    <h2 data-i18n="export.title">Exportar página actual</h2>
+    <div class="row"><label data-i18n="export.format">Formato</label>
       <select id="exFmt">
-        <option value="gif">GIF animado</option>
-        <option value="png">PNG</option>
-        <option value="jpg">JPG</option>
-        <option value="svg">SVG</option>
+        <option value="gif" data-i18n="export.gif">GIF animado</option>
+        <option value="png" translate="no">PNG</option>
+        <option value="jpg" translate="no">JPG</option>
+        <option value="svg" translate="no">SVG</option>
       </select>
     </div>
-    <div class="row"><label>Escala</label>
+    <div class="row"><label data-i18n="export.scale">Escala</label>
       <select id="exRes">
-        <option value="0.5">0.5x (Mitad)</option>
-        <option value="1" selected>1x (Normal)</option>
-        <option value="1.5">1.5x (Grande)</option>
-        <option value="2">2x (Muy grande)</option>
+        <option value="0.5" data-i18n="export.scaleHalf">0.5x (Mitad)</option>
+        <option value="1" selected data-i18n="export.scaleNormal">1x (Normal)</option>
+        <option value="1.5" data-i18n="export.scaleLarge">1.5x (Grande)</option>
+        <option value="2" data-i18n="export.scaleXL">2x (Muy grande)</option>
       </select>
     </div>
     <!-- FLUYO-019.1/019.2: aspecto de ESTA exportación; arranca con el del documento (settings.skin) y nunca lo escribe -->
-    <div class="row" id="exRowSkin"><label for="exSkin">Aspecto</label>
+    <div class="row" id="exRowSkin"><label for="exSkin" data-i18n="canvas.skin">Aspecto</label>
       <select id="exSkin">
-        <option value="built">Construido (2.5D)</option>
-        <option value="flat">Plano</option>
+        <option value="built" data-i18n="skin.builtLong">Construido (2.5D)</option>
+        <option value="flat" data-i18n="skin.flat">Plano</option>
       </select>
     </div>
-    <div class="row" id="exRowTr"><label>Fondo transparente</label><input type="checkbox" id="exTr"></div>
-    <div class="row" id="exRowFps"><label>FPS</label>
-      <select id="exFps"><option>15</option><option selected>20</option><option>25</option></select>
+    <div class="row" id="exRowTr"><label data-i18n="export.transparent">Fondo transparente</label><input type="checkbox" id="exTr"></div>
+    <div class="row" id="exRowFps"><label translate="no">FPS</label>
+      <select id="exFps" translate="no"><option>15</option><option selected>20</option><option>25</option></select>
     </div>
-    <div class="row" id="exRowDur"><label>Duración (s)</label><input type="number" id="exDur" min="1" max="15" step="0.5" value="3"></div>
-    <p class="hint" id="exHint">El loop de flujo se ajusta solo para que el GIF sea cíclico. La transparencia en GIF es de bordes duros (limitación del formato); para bordes suaves usa PNG.</p>
+    <div class="row" id="exRowDur"><label data-i18n="export.duration">Duración (s)</label><input type="number" id="exDur" min="1" max="15" step="0.5" value="3"></div>
+    <p class="hint" id="exHint" data-i18n="export.hint">El loop de flujo se ajusta solo para que el GIF sea cíclico. La transparencia en GIF es de bordes duros (limitación del formato); para bordes suaves usa PNG.</p>
     <div class="actions">
-      <button id="exCancel">Cancelar</button>
-      <button id="exGo" class="primary">Exportar</button>
+      <button id="exCancel" data-i18n="common.cancel">Cancelar</button>
+      <button id="exGo" class="primary" data-i18n="editor.export">Exportar</button>
     </div>
   </div>
 </div>
@@ -1042,22 +1042,22 @@ try{ if(localStorage.getItem("fluyo.ui.props")==="folded") document.documentElem
 <!-- Progress overlay -->
 <div class="overlay" id="progOv">
   <div class="card" style="text-align:center;">
-    <h2>Generando GIF…</h2>
-    <div class="hint" id="ovMsg">Renderizando fotogramas</div>
+    <h2 data-i18n="export.generating">Generando GIF…</h2>
+    <div class="hint" id="ovMsg" data-i18n-js="export.renderingIdle">Renderizando fotogramas</div>
     <div id="bar"><div id="barFill"></div></div>
     <div class="actions" style="justify-content:center;">
-      <button id="progCancel">Cancelar</button>
+      <button id="progCancel" data-i18n="common.cancel">Cancelar</button>
     </div>
   </div>
 </div>
 
 <div class="overlay" id="autosaveModal" style="display:none;">
   <div class="card">
-    <h2>Sesión guardada</h2>
-    <p class="hint">Se encontró una sesión guardada localmente. ¿Quieres restaurarla?</p>
+    <h2 data-i18n="autosave.title">Sesión guardada</h2>
+    <p class="hint" data-i18n="autosave.body">Se encontró una sesión guardada localmente. ¿Quieres restaurarla?</p>
     <div class="actions">
-      <button id="autosaveDiscard">Descartar</button>
-      <button id="autosaveRestore" class="primary">Restaurar</button>
+      <button id="autosaveDiscard" data-i18n="autosave.discard">Descartar</button>
+      <button id="autosaveRestore" class="primary" data-i18n="autosave.restore">Restaurar</button>
     </div>
   </div>
 </div>
@@ -1069,12 +1069,12 @@ try{ if(localStorage.getItem("fluyo.ui.props")==="folded") document.documentElem
      La opción destacada es la que no pierde nada. -->
 <div class="overlay" id="incomingModal" style="display:none;">
   <div class="card">
-    <h2 id="incomingTitle">Tienes trabajo sin guardar</h2>
-    <p class="hint">Este enlace trae un diagrama y en este navegador hay una sesión guardada. ¿Qué hago con ella?</p>
+    <h2 id="incomingTitle" data-i18n-js="incoming.title">Tienes trabajo sin guardar</h2>
+    <p class="hint" data-i18n="incoming.body">Este enlace trae un diagrama y en este navegador hay una sesión guardada. ¿Qué hago con ella?</p>
     <div class="actions stack">
-      <button id="incomingPage" class="primary">Añadirlo como página nueva</button>
-      <button id="incomingOpen">Abrir el diagrama y descartar la sesión</button>
-      <button id="incomingKeep">Seguir con mi sesión</button>
+      <button id="incomingPage" class="primary" data-i18n-js="incoming.addIt">Añadirlo como página nueva</button>
+      <button id="incomingOpen" data-i18n-js="incoming.openDiagram">Abrir el diagrama y descartar la sesión</button>
+      <button id="incomingKeep" data-i18n="incoming.keep">Seguir con mi sesión</button>
     </div>
   </div>
 </div>

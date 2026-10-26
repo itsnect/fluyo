@@ -35,7 +35,7 @@ test("tipografías: woff2 locales, licencia OFL incluida y @font-face sin tercer
 
 test("sw.js: CACHE v72, system.css y las tres fuentes precacheadas; nada de index.html queda fuera", () => {
   const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v109";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v110";/);
   const core = sw.slice(sw.indexOf("const ASSETS"), sw.indexOf("const PAGE_ASSETS"));
   for (const a of ["./css/system.css", ...FONTS.map((f) => "./assets/fonts/" + f)]) assert.ok(core.includes('"' + a + '"'), a + " en ASSETS (núcleo)");
   const html = read("index.html");
@@ -88,7 +88,8 @@ test("iconos: sprite único; cada <use> resuelve; los controles migrados no llev
 });
 
 test("cabecera: barra agrupada con filetes; enlaces y Open Source en «Más» por secciones; ids de 018.12 intactos", () => {
-  const html = read("index.html");
+  /* FLUYO-I18N-002 S1 va encima (marcas data-i18n* del cromo): el marcado se compara sin ellas (undoS1) */
+  const html = require("./fluyo-i18n-002-s1-undo.cjs").undoS1("index.html", read("index.html"));
   const header = html.slice(html.indexOf("<header>"), html.indexOf("</header>"));
   /* FLUYO-018.14b: tres zonas (marca · historial | modo ··· Lienzo | salida); Archivo vive en «Más» y el lienzo en «Lienzo ▾» */
   assert.equal((header.match(/class="vdivider hdrDiv/g) || []).length, 3, "tres filetes de grupo");

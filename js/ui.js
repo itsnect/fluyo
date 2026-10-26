@@ -55,12 +55,7 @@ function refreshPanel(){
   $("noSel").style.display = total===0 ? "block":"none";
   $("multiSel").style.display = total>1 ? "block":"none";
   $("selBody").style.display = s ? "block":"none";
-  if(total>1){
-    const parts=[];
-    if(selN.size) parts.push(selN.size+(selN.size===1?" nodo":" nodos"));
-    if(selE.size) parts.push(selE.size+(selE.size===1?" flecha":" flechas"));
-    $("multiCount").textContent=parts.join(" y ")+" seleccionados";
-  }
+  if(total>1) $("multiCount").textContent=multiCountText();
   syncSelHead(total, s);
   /* otra selección: las paletas desplegadas vuelven a su fila y el menú de orden se cierra */
   const key = s&&s.obj ? s.type+":"+s.obj.id : (total>1 ? "multi" : "");
@@ -167,21 +162,29 @@ function refreshPanel(){
    DOM mínimo. */
 const SHAPE_NAMES={rect:"Caja", cylinder:"BD", diamond:"Rombo", circle:"Círculo", hex:"Hexágono", text:"Texto", code:"Código", icon:"Icono", image:"Imagen", anim:"GIF"};
 const firstLine=t=>String(t||"").split("\n").map(x=>x.trim()).find(Boolean)||"";
+/* FLUYO-I18N-002 S1: cuántos nodos y flechas hay en la selección, con el plural de cada idioma. Las piezas son frases nominales
+   completas («2 nodos») y la plantilla de fuera decide el orden y el enlace («{nodes} y {edges} seleccionados»). */
+const selNodesText=n=>FluyoI18n.t("sel.nodes",{one:"{count} nodo", other:"{count} nodos"},{count:n});
+const selEdgesText=n=>FluyoI18n.t("sel.edges",{one:"{count} flecha", other:"{count} flechas"},{count:n});
+function multiCountText(){
+  if(selN.size && selE.size) return FluyoI18n.t("sel.countBoth","{nodes} y {edges} seleccionados",{nodes:selNodesText(selN.size), edges:selEdgesText(selE.size)});
+  return FluyoI18n.t("sel.count","{items} seleccionados",{items:selN.size ? selNodesText(selN.size) : selEdgesText(selE.size)});
+}
 function syncSelMeta(total, s){
   const m=$("selMeta"); if(!m) return;
   let txt="";
   if(total>1){
     const parts=[];
-    if(selN.size) parts.push(selN.size+(selN.size===1?" nodo":" nodos"));
-    if(selE.size) parts.push(selE.size+(selE.size===1?" flecha":" flechas"));
+    if(selN.size) parts.push(selNodesText(selN.size));
+    if(selE.size) parts.push(selEdgesText(selE.size));
     txt=parts.join(" · ");
   }
   else if(s && s.obj) txt = s.type==="node" ? (SHAPE_NAMES[s.obj.shape]||s.obj.shape)+" · id "+s.obj.id : "Conexión · "+s.obj.from+" → "+s.obj.to;
   m.textContent=txt; m.hidden=!txt;
 }
 function selTitleText(total, s){
-  if(total>1) return total+" elementos";
-  if(!s || !s.obj) return "Propiedades";
+  if(total>1) return FluyoI18n.t("sel.title",{one:"{count} elemento", other:"{count} elementos"},{count:total});
+  if(!s || !s.obj) return FluyoI18n.t("editor.properties","Propiedades");
   const o=s.obj, own=firstLine(o.label);
   if(own) return own;
   if(s.type==="node") return (SHAPE_NAMES[o.shape]||"Elemento")+" sin texto";
@@ -464,11 +467,12 @@ $("dotCustom").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); editEdge(
   /* FLUYO-018.14a: las voces del sistema arriba, las históricas debajo. Solo cambia
      dónde se ven: los valores (la pila CSS que guarda el documento) son los de FONTS. */
   const SYSTEM_FONTS=["Playfair Display","IBM Plex Mono"];
-  const groups=[["Fluyo", FONTS.filter(ft=>SYSTEM_FONTS.includes(ft.n))], ["Clásicas", FONTS.filter(ft=>!SYSTEM_FONTS.includes(ft.n))]];
+  const groups=[["Fluyo", FONTS.filter(ft=>SYSTEM_FONTS.includes(ft.n))], [FluyoI18n.t("canvas.fontsClassic","Clásicas"), FONTS.filter(ft=>!SYSTEM_FONTS.includes(ft.n))]];
   for(const sel of [per, glob]){
     for(const [label, list] of groups){
       if(!list.length) continue;
       const g=document.createElement("optgroup"); g.label=label;
+      if(label!=="Fluyo") g.setAttribute("data-classic","");   /* su rótulo se traduce al cambiar de idioma */
       list.forEach(ft=>{ const o=document.createElement("option"); o.value=ft.f; o.textContent=ft.n; o.style.fontFamily=ft.f; g.appendChild(o); });
       sel.appendChild(g);
     }
@@ -686,8 +690,8 @@ function syncTouchBar(){
   bar.hidden=!show;
   if(!show) return;
   const s=singleSel();
-  $("tbMsg").textContent = linking ? "Toca el elemento de destino"
-    : tm.multi ? (total ? total+(total===1?" seleccionado":" seleccionados") : "Toca elementos para seleccionarlos")
+  $("tbMsg").textContent = linking ? FluyoI18n.t("touch.pickTarget","Toca el elemento de destino")
+    : tm.multi ? (total ? FluyoI18n.t("touch.selected",{one:"{count} seleccionado", other:"{count} seleccionados"},{count:total}) : FluyoI18n.t("touch.tapToSelect","Toca elementos para seleccionarlos"))
     : "";
   /* FLUYO-018.17 (M3): en modo Historia se narra, no se construye (decisión 131): «Conectar» no se ofrece; «Seleccionar varios» sí. */
   $("tbConnect").hidden = linking || tm.multi || !(s && s.type==="node" && s.obj) || document.body.classList.contains("storyMode");
@@ -738,9 +742,11 @@ document.querySelectorAll(".rail button[data-mode],.rail button[data-shape]").fo
 });
 /* El icono lo decide la clase `toggled` (CSS); aquí solo cambia la palabra. */
 function setPlayLabel(txt){ const b=$("btnPlay"), l=b.querySelector && b.querySelector(".lbl"); if(l) l.textContent=txt; else b.textContent=txt; }
+/* La palabra del botón según el estado (la pinta siempre JS: data-i18n-js en el HTML). */
+const playLabelText=()=>playing ? FluyoI18n.t("canvas.animPause","Pausa") : FluyoI18n.t("canvas.animPlay","Play");
 function togglePlay(){
-  if(playing){ pausedAt=now(); playing=false; setPlayLabel("Play"); $("btnPlay").classList.remove("toggled"); }
-  else { t0=performance.now()-pausedAt*1000; playing=true; setPlayLabel("Pausa"); $("btnPlay").classList.add("toggled"); }
+  if(playing){ pausedAt=now(); playing=false; setPlayLabel(playLabelText()); $("btnPlay").classList.remove("toggled"); }
+  else { t0=performance.now()-pausedAt*1000; playing=true; setPlayLabel(playLabelText()); $("btnPlay").classList.add("toggled"); }
 }
 $("btnPlay").onclick=togglePlay;
 /* Estos cinco iban asignados dos veces por un merge: la segunda asignación,
@@ -761,7 +767,7 @@ $("bgCustom").oninput=()=>{ setThemeIn(doc,{customBg:$("bgCustom").value}); sche
 $("btnBgClear").onclick=()=>{ setThemeIn(doc,{customBg:""}); scheduleAutosave(); };
 $("btnClear").onclick=()=>{
   if(typeof isScenarioPlaybackActive==="function" && isScenarioPlaybackActive()){ if(typeof scReset==="function") scReset(); return; }
-  if(confirm("Limpiar página\n\nSe eliminarán los elementos y las historias de esta página.\n\nLos Eventos del proyecto se conservarán.\n\n¿Limpiar página?")){
+  if(confirm(FluyoI18n.t("more.clearConfirm","Limpiar página\n\nSe eliminarán los elementos y las historias de esta página.\n\nLos Eventos del proyecto se conservarán.\n\n¿Limpiar página?"))){
     if(typeof scReset==="function") scReset();
     pushUndo();
     clearPageContents(P());
@@ -772,13 +778,21 @@ $("btnClear").onclick=()=>{
 };
 
 /* ===================== Cajón de iconos ===================== */
+/* FLUYO-I18N-002 S1: el rótulo de cada grupo. La clave del grupo (ICONS[k].g, config.js) no cambia; GCP, AWS y Azure son
+   marcas. Los nombres de cada icono se copian a la etiqueta del nodo al crearlo (valor sembrado): son de S3. */
+function drawerGroupName(g){
+  if(g==="Estados") return FluyoI18n.t("drawer.groupStates","Estados");
+  if(g==="General") return FluyoI18n.t("drawer.groupGeneral","General");
+  if(g==="Varios") return FluyoI18n.t("drawer.groupMisc","Varios");
+  return g;
+}
 (function buildDrawer(){
   const dr=$("iconDrawer");
   const groups={};
   for(const k in ICONS){ (groups[ICONS[k].g]=groups[ICONS[k].g]||[]).push(k); }
   for(const g of ["Estados","General","Varios","GCP","AWS","Azure"]){
     if(!groups[g]) continue;
-    const h=document.createElement("h4"); h.textContent=g; dr.appendChild(h);
+    const h=document.createElement("h4"); h.setAttribute("data-group", g); h.textContent=drawerGroupName(g); dr.appendChild(h);
     const grid=document.createElement("div"); grid.className="iconGrid";
     for(const k of groups[g]){
       const b=document.createElement("button");
@@ -804,7 +818,7 @@ $("btnIcons").onclick=()=>{
 /* ===================== Cajón de GIFs animados ===================== */
 (function buildAnimDrawer(){
   const dr=$("animDrawer");
-  const h=document.createElement("h4"); h.textContent="GIFs animados"; dr.appendChild(h);
+  const h=document.createElement("h4"); h.id="animDrawerTitle"; h.textContent=FluyoI18n.t("drawer.gifs","GIFs animados"); dr.appendChild(h);
   const grid=document.createElement("div"); grid.className="iconGrid";
   for(const k in ANIMS){
     const b=document.createElement("button");
@@ -814,8 +828,8 @@ $("btnIcons").onclick=()=>{
     grid.appendChild(b);
   }
   dr.appendChild(grid);
-  const tip=document.createElement("p"); tip.className="hint"; tip.style.marginTop="8px";
-  tip.textContent="Se animan en el lienzo y en el GIF exportado. Cambia su color desde el panel.";
+  const tip=document.createElement("p"); tip.className="hint"; tip.id="animDrawerTip"; tip.style.marginTop="8px";
+  tip.textContent=FluyoI18n.t("drawer.gifsTip","Se animan en el lienzo y en el GIF exportado. Cambia su color desde el panel.");
   dr.appendChild(tip);
 })();
 $("btnAnims").onclick=()=>{
@@ -846,8 +860,8 @@ function renderTabs(){
       /* span con rol de botón: dentro de la pestaña, y sin convertirse en un segundo `#pagesBar button` (ese es «＋» para quien
          lo busca). Teclado: Enter y Espacio. Desde 018.18 se ve también con ratón: es la puerta a renombrar y eliminar. */
       more=document.createElement("span");
-      more.className="pgMore"; more.textContent="▾"; more.title="Opciones de la página"; more.tabIndex=0;
-      if(more.setAttribute){ more.setAttribute("role","button"); more.setAttribute("aria-haspopup","true"); more.setAttribute("aria-label","Opciones de la página "+pg.name); }
+      more.className="pgMore"; more.textContent="▾"; more.title=FluyoI18n.t("pages.options","Opciones de la página"); more.tabIndex=0;
+      if(more.setAttribute){ more.setAttribute("role","button"); more.setAttribute("aria-haspopup","true"); more.setAttribute("aria-label",FluyoI18n.t("pages.optionsOf","Opciones de la página {name}",{name:pg.name})); }
       more.onclick=ev=>{ ev.stopPropagation(); openPageMenu(i, more); };
       more.onkeydown=ev=>{ if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); ev.stopPropagation(); openPageMenu(i, more); } };
       t.appendChild(more);
@@ -873,7 +887,7 @@ function renderTabs(){
   });
   const add=document.createElement("button");
   /* FLUYO-018.13: el «＋» sigue en el texto (accesible, y es como lo buscan los tests); el trazo lo pinta .pgAdd (styles.css). */
-  add.textContent="＋"; add.title="Nueva página"; add.className="pgAdd btnGhost";
+  add.textContent="＋"; add.title=FluyoI18n.t("pages.new","Nueva página"); add.className="pgAdd btnGhost";
   add.onclick=()=>newPageFromUi();
   bar.appendChild(add);
   /* FLUYO-018.18 (D10): en el teléfono las páginas son UN selector con la activa por su nombre («03 Conciliación… ▾») que abre
@@ -882,7 +896,7 @@ function renderTabs(){
   const cur=doc.pages[doc.cur]||{name:""};
   const sel=document.createElement("button");
   sel.type="button"; sel.className="pgSelect btnGhost"; sel.id="pgSelect";
-  if(sel.setAttribute){ sel.setAttribute("aria-haspopup","true"); sel.setAttribute("aria-label","Página "+(doc.cur+1)+" de "+doc.pages.length+": "+cur.name+". Cambiar de página"); }
+  if(sel.setAttribute){ sel.setAttribute("aria-haspopup","true"); sel.setAttribute("aria-label",FluyoI18n.t("pages.selectAria","Página {n} de {total}: {name}. Cambiar de página",{n:doc.cur+1, total:doc.pages.length, name:cur.name})); }
   const idx=document.createElement("span"); idx.className="pgIdx"; idx.textContent=String(doc.cur+1).padStart(2,"0");
   const nm=document.createElement("span"); nm.className="pgName"; nm.textContent=cur.name;
   sel.appendChild(idx); sel.appendChild(nm);
@@ -950,14 +964,14 @@ function openPageMenu(i, anchor, opts){
       b.replaceChildren(n,t);
       if(j===doc.cur && b.setAttribute) b.setAttribute("aria-current","page");
     });
-    item("＋ Nueva página", ()=>{ closePageMenu(false); newPageFromUi(); }, "pgNew");
+    item("＋ "+FluyoI18n.t("pages.new","Nueva página"), ()=>{ closePageMenu(false); newPageFromUi(); }, "pgNew");
     const sep=document.createElement("div"); sep.className="scMenuSep"; m.appendChild(sep);
   } else if(m.classList) m.classList.remove("pageList");
   const head=document.createElement("div"); head.className="scMenuHead"; head.textContent=pg.name; m.appendChild(head);
-  const ren=item("Renombrar…", ()=>showPageRename(i));
+  const ren=item(FluyoI18n.t("pages.rename","Renombrar…"), ()=>showPageRename(i));
   /* como el doble clic: con una Historia reproduciéndose no se toca la página */
   ren.disabled=playing;
-  if(doc.pages.length>1) item("Eliminar página", ()=>{ closePageMenu(false); requestDeletePage(i); }, "scMenuDanger");
+  if(doc.pages.length>1) item(FluyoI18n.t("pages.delete","Eliminar página"), ()=>{ closePageMenu(false); requestDeletePage(i); }, "scMenuDanger");
   placePageMenu(anchor);
   const first=m.querySelector("button:not(:disabled)"); if(first) first.focus();
 }
@@ -965,16 +979,16 @@ function showPageRename(i){
   const m=$("pageMenu"), pg=doc.pages[i];
   if(!pg) return;
   m.replaceChildren();
-  const label=document.createElement("label"); label.textContent="Nombre de la página";
+  const label=document.createElement("label"); label.textContent=FluyoI18n.t("pages.name","Nombre de la página");
   const input=document.createElement("input");
   input.id="pageNameIn"; input.value=pg.name; input.maxLength=PAGE_NAME_MAX; input.autocomplete="off";
   label.appendChild(input); m.appendChild(label);
   const err=document.createElement("p"); err.className="pmError"; err.setAttribute("role","alert"); err.hidden=true; m.appendChild(err);
-  const save=document.createElement("button"); save.type="button"; save.id="pageNameSave"; save.textContent="Guardar nombre"; m.appendChild(save);
+  const save=document.createElement("button"); save.type="button"; save.id="pageNameSave"; save.textContent=FluyoI18n.t("pages.saveName","Guardar nombre"); m.appendChild(save);
   const commit=()=>{
     try{ renamePage(i, input.value); }
     catch(e){
-      if(e && e.code==="invalid_page_name"){ err.textContent=`Escribe un nombre de 1 a ${PAGE_NAME_MAX} caracteres.`; err.hidden=false; input.focus(); return; }
+      if(e && e.code==="invalid_page_name"){ err.textContent=FluyoI18n.t("pages.nameError","Escribe un nombre de 1 a {max} caracteres.",{max:PAGE_NAME_MAX}); err.hidden=false; input.focus(); return; }
       throw e;
     }
     closePageMenu(false); renderTabs(); scheduleAutosave();
@@ -1560,6 +1574,29 @@ $("zoomFit").onclick=()=>{ commitEditBox(); fitView(); };
 
 renderTabs();
 placeChrome();
+
+/* FLUYO-I18N-002 S1: el chrome del editor que pinta JS, en el idioma de la interfaz ahora y al cambiar de idioma en vivo
+   (FluyoI18n.onChange): pestañas, título y recuentos del panel, barra táctil, cajones, la palabra del botón de la animación y
+   el grupo de tipografías. El menú de la página se cierra (se reabre ya traducido). Lo marcado en el HTML lo traduce applyDom. */
+function paintChromeText(){
+  setPlayLabel(playLabelText());
+  /* sin selección, el título del panel (con selección lo pinta syncSelHead; aquí solo el texto: el title no existía al arrancar) */
+  const st=$("selTitle");
+  if(st && !(selN.size+selE.size)) st.textContent=selTitleText(0, null);
+  for(const h of document.querySelectorAll("#iconDrawer h4[data-group]")) h.textContent=drawerGroupName(h.getAttribute("data-group"));
+  const gt=$("animDrawerTitle"), gp=$("animDrawerTip");
+  if(gt) gt.textContent=FluyoI18n.t("drawer.gifs","GIFs animados");
+  if(gp) gp.textContent=FluyoI18n.t("drawer.gifsTip","Se animan en el lienzo y en el GIF exportado. Cambia su color desde el panel.");
+  for(const g of document.querySelectorAll("optgroup[data-classic]")) g.label=FluyoI18n.t("canvas.fontsClassic","Clásicas");
+}
+paintChromeText();
+FluyoI18n.onChange(()=>{
+  closePageMenu(false);
+  paintChromeText();
+  renderTabs();
+  refreshPanel();
+  syncTouchBar();
+});
 
 /* Ofrece restaurar la sesión guardada, si la hay. Se llama desde el arranque y
    también más tarde, desde quien traía un documento por la URL y no consiguió

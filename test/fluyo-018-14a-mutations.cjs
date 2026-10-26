@@ -12,7 +12,7 @@ const UNIT = ["--test", "test/fluyo-018-14a.test.cjs"];
 const BROWSER = ["test/fluyo-018-14a-browser.cjs"];
 /* [nombre, suite, archivo, desde, hasta, ONLY del browser test] */
 const MUTATIONS = [
-  ["U1 CACHE no sube (sigue v72)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v109";', 'const CACHE = "fluyo-static-v74";'],
+  ["U1 CACHE no sube (sigue v72)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v110";', 'const CACHE = "fluyo-static-v74";'],
   ["U2 el lienzo vuelve a la Bézier de 0,8 (doble geometría antigua)", UNIT, "js/render.js",
     "    c.beginPath(); traceSegments(c, seg.outline);\n",
     "    const {x,y,w,h}=n, ry=Math.min(16,h*.18), top=y-h/2, bot=y+h/2;\n    c.beginPath(); c.moveTo(x-w/2,top+ry); c.lineTo(x-w/2,bot-ry); c.bezierCurveTo(x-w/2,bot+ry*.8, x+w/2,bot+ry*.8, x+w/2,bot-ry); c.lineTo(x+w/2,top+ry); c.bezierCurveTo(x+w/2,top-ry*.8, x-w/2,top-ry*.8, x-w/2,top+ry);\n"],

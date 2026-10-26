@@ -78,9 +78,9 @@ function loadExampleFromURL(){
          modal de conflicto y la decisión es de quien está delante; si no la
          hay, entra directo como antes. */
       presentIncomingDocument(d, {
-        titulo:"Tienes trabajo sin guardar",
-        abrirLabel:"Abrir el ejemplo y descartar la sesión",
-        paginaLabel:"Añadir el ejemplo como página nueva",
+        titulo:FluyoI18n.t("incoming.title","Tienes trabajo sin guardar"),
+        abrirLabel:FluyoI18n.t("incoming.openExample","Abrir el ejemplo y descartar la sesión"),
+        paginaLabel:FluyoI18n.t("incoming.addExample","Añadir el ejemplo como página nueva"),
         /* El evento cuenta el ejemplo que se llegó a ver, no el que se pidió:
            si la respuesta fue «seguir con lo mío», aquí no se cargó nada. */
         onResuelto:eleccion=>{ if(eleccion!=="keep") trackEvent("example_loaded",{example:EXAMPLE_SLUG}); }

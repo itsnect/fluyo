@@ -30,6 +30,7 @@ function makeEditor() {
     confirm: () => true, alert() {}, prompt: () => null,
   };
   vm.createContext(ctx);
+  require("./i18n-vm.cjs").loadI18n(ctx);   /* FLUYO-I18N-002 S1: renderTabs pasa por FluyoI18n.t, como en la página */
   for (const f of ["js/config.js", "js/safe-svg.js", "js/model.js"]) vm.runInContext(read(f), ctx, { filename: f });
   vm.runInContext(`var selN=new Set(), selE=new Set(), clip=null;
     function refreshPanel(){} function scheduleAutosave(){} const $=(id)=>id==="pageMenu"?__menu:__bar;`, Object.assign(ctx, { __bar: bar, __menu: menu }));

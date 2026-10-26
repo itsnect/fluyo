@@ -531,8 +531,8 @@ test("G3 · alcance frente a " + BASE + ": solo los archivos de FASE 5 y sw.js (
   assert.deepEqual([...new Set([...changed, ...untracked])].filter((f) => !NEW_I18N.includes(f)).filter((f) => !(f in PIECES6 || f in PIECESM) || read5(f) !== atBase(f)).sort(), FILES.concat("sw.js").sort());
   assert.deepEqual(Object.keys(PIECES).sort(), FILES);
   for (const f of FILES) assert.equal(undo5(f, read5(f)), atBase(f), f + ": undo5 exacto");
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v109";/);
-  assert.equal(undoI18n("sw.js", read("sw.js")).replace('"fluyo-static-v109"', '"fluyo-static-v' + (100 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante; flow-semantics.js, viewer.js y s/ ya se precachean");
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v110";/);
+  assert.equal(undoI18n("sw.js", read("sw.js")).replace('"fluyo-static-v110"', '"fluyo-static-v' + (100 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante; flow-semantics.js, viewer.js y s/ ya se precachean");
   for (const f of ["js/model.js", "js/scenario-engine.js", "js/scenario-playback.js", "js/story-playback.js", "js/story-clock.js", "js/geometry.js", "js/skin.js", "js/interaction.js", "js/ui.js", "js/state.js", "js/share-url.js", "js/editor-share.js", "js/deeplink.js"])
     assert.equal(read5(f), atBase(f), f + " intacto (modelo, motor, reloj, geometría, piel, Share y #d= sin cambios)");
   /* FASE 2/3/4 intactas en flow-semantics.js: FASE 5 solo añade al final (y una nota en la cabecera) */

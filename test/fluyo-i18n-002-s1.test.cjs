@@ -34,6 +34,7 @@ const DICT_FILES = fs.readdirSync(path.join(root, "js")).map((f) => "js/" + f).f
 /* FLUYO-I18N-002 S2a va encima (la región de Historias): el HTML de S1 se mide sin ella (undoS2a) */
 const { undoS2a, PIECES: PIECES_S2A } = require("./fluyo-i18n-002-s2a-undo.cjs");
 const { PIECES: PIECES_S2B } = require("./fluyo-i18n-002-s2b-undo.cjs");   /* FLUYO-I18N-002 S2b va encima de S4 */
+const { PIECES: PIECES_S3A } = require("./fluyo-i18n-002-s3a-undo.cjs");   /* FLUYO-I18N-002 S3a va encima de S2b */
 const { PIECES: PIECES_S4 } = require("./fluyo-i18n-002-s4-undo.cjs");   /* FLUYO-I18N-002 S4 va encima de S2a (undoS2a la deshace antes) */
 const HTML = undoS2a("index.html", read("index.html"));
 const cut = (from, to) => { const a = HTML.indexOf(from), b = HTML.indexOf(to, a); assert.ok(a >= 0 && b > a, "región: " + from); return HTML.slice(a, b); };
@@ -178,13 +179,13 @@ test("alcance frente a " + BASE + ": solo el cromo del editor; undoS1 da la base
   assert.deepEqual(Object.keys(PIECES).sort(), FILES);
   const SERVED = ["js", "s", "css", "assets", "index.html", "404.html", "sw.js", "manifest.webmanifest", "docs", "ejemplos", "privacidad", "privacy", "soporte", "support", "terminos", "terms"];
   /* S2a va encima: lo que solo cambia S2a (sin S2a, igual que la base) no cuenta para el alcance de S1 */
-  const s2aOnly = (f) => (!!PIECES_S2A[f] || !!PIECES_S4[f] || !!PIECES_S2B[f]) && !FILES.includes(f) && undoS2a(f, read(f)) === atBase(f);
+  const s2aOnly = (f) => (!!PIECES_S2A[f] || !!PIECES_S4[f] || !!PIECES_S2B[f] || !!PIECES_S3A[f]) && !FILES.includes(f) && undoS2a(f, read(f)) === atBase(f);
   const changed = execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean).filter((f) => !s2aOnly(f));
   const untracked = execFileSync("git", ["-C", gitRoot, "ls-files", "--others", "--exclude-standard", "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean).filter((f) => !s2aOnly(f));
   assert.deepEqual([...new Set([...changed, ...untracked])].sort(), [...FILES, "sw.js"].sort());
   for (const f of FILES) assert.equal(undoS1(f, read(f)), atBase(f), f + ": undoS1 exacto");
-  assert.equal(read("sw.js").replace('"fluyo-static-v113"', '"fluyo-static-v' + (110 - 1) + '"'), atBase("sw.js"), "sw.js: solo CACHE (sin archivos nuevos)");
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v113";/);
+  assert.equal(read("sw.js").replace('"fluyo-static-v114"', '"fluyo-static-v' + (110 - 1) + '"'), atBase("sw.js"), "sw.js: solo CACHE (sin archivos nuevos)");
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v114";/);
   assert.ok(read("test/fluyo-i18n-002-s0-undo.cjs").includes("src = undoS1(file, src);"), "undoS0 deshace antes esta tarea");
   for (const f of ["js/config.js", "js/safe-svg.js", "js/model.js", "js/scenario-engine.js", "js/scenario-playback.js", "js/story-playback.js", "js/document-integrity.js", "js/story-authoring.js",
     "js/story-clock.js", "js/flow-semantics.js", "js/render.js", "js/selection.js", "js/editor-scenarios.js", "js/present-story.js", "js/viewer.js", "js/viewer-viewport.js", "js/share-url.js",

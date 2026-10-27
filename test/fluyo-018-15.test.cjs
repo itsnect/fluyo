@@ -115,7 +115,7 @@ test("ejemplos y fixtures existentes: los colores de cada nodo salen idénticos 
 
 test("editor: la herramienta de animaciones usa DEFAULT_NODE_COLOR; ningún nodo nuevo nace con PALETTE[0]", () => {
   const inter = read("js/interaction.js");
-  assert.match(inter, /label:ANIMS\[pendingAnim\]\.n, color:DEFAULT_NODE_COLOR\}\)/);
+  assert.match(inter, /label:animName\(pendingAnim\), color:DEFAULT_NODE_COLOR\}\)/);   // FLUYO-I18N-002 S3a: la etiqueta, en el idioma de la interfaz
   for (const f of fs.readdirSync(path.join(root, "js")).filter((f) => f.endsWith(".js"))) {
     const uses = (code(read("js/" + f)).match(/PALETTE\[0\]/g) || []).length;
     const allowed = { "model.js": 1, "render.js": 2, "skin.js": 1 }[f] || 0;   // normalizeProjectNode · respaldos de drawAnim y nodeTint (antes colHex; FLUYO-019.5) · respaldo de la piel (skinTones, FLUYO-019.3: el mismo de normalizeProjectNode/colHex)
@@ -164,6 +164,6 @@ test("fixture compartido con fluyo-mcp: idéntico si el repo hermano está al la
 
 test("sw.js: CACHE v74 (cambian config, model, render, ui, interaction y styles, todos ya precacheados)", () => {
   const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v113";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v114";/);
   for (const f of ["./js/config.js", "./js/model.js", "./js/render.js", "./js/ui.js", "./js/interaction.js", "./css/styles.css"]) assert.ok(sw.includes('"' + f + '"'), f + " precacheado");
 });

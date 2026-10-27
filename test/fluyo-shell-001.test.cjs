@@ -166,8 +166,8 @@ test("alcance frente a " + BASE + ": solo los archivos de esta tarea; undoShell 
     assert.deepEqual(b.map((l, i) => (l === a[i] ? null : l)).filter(Boolean).map((l) => l.slice(0, 16)), ['<link rel="icon"'], f + ": solo el favicon");
   }
   assert.ok(readS("js/i18n-en.js").startsWith(atBase("js/i18n-en.js").replace(/\n\};\n$/, "")), "i18n-en.js: nada cambia, solo se añaden claves");
-  assert.equal(readS("sw.js").replace('"fluyo-static-v113"', '"fluyo-static-v' + (108 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante (sin cambio de comportamiento)");
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v113";/);
+  assert.equal(readS("sw.js").replace('"fluyo-static-v114"', '"fluyo-static-v' + (108 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante (sin cambio de comportamiento)");
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v114";/);
   for (const f of ["css/system.css", "css/styles.css", "css/share.css", "css/identity.css", "js/i18n.js", "ejemplos/data/funnel-de-ventas.fluyo.json"]) assert.equal(readS(f), atBase(f), f + " sin cambios");
   for (const f of fs.readdirSync(path.join(root, "js")).filter((x) => x.endsWith(".js") && x !== "i18n-en.js" && !NEW_S0.includes("js/" + x))) assert.equal(readS("js/" + f), atBase("js/" + f), "js/" + f + " sin cambios");
 });

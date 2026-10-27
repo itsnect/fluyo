@@ -519,8 +519,9 @@ cv.addEventListener("pointerdown", ev=>{
   if(pendingShape || pendingIcon || pendingAnim){
     pushUndo();
     let n;
-    if(pendingIcon) n=newNode("icon",p.x,p.y,{icon:pendingIcon, label:ICONS[pendingIcon].n});
-    else if(pendingAnim) n=newNode("anim",p.x,p.y,{anim:pendingAnim, label:ANIMS[pendingAnim].n, color:DEFAULT_NODE_COLOR});
+    /* FLUYO-I18N-002 S3a (decisiones 282 y 284): la etiqueta nace con el nombre del cajón, en el idioma de la interfaz; después es contenido */
+    if(pendingIcon) n=newNode("icon",p.x,p.y,{icon:pendingIcon, label:iconName(pendingIcon)});
+    else if(pendingAnim) n=newNode("anim",p.x,p.y,{anim:pendingAnim, label:animName(pendingAnim), color:DEFAULT_NODE_COLOR});
     else n=newNode(pendingShape,p.x,p.y);
     /* se mide al colocar el nodo, no al elegirlo en el cajón: elegir solo arma
        la herramienta y el usuario puede no llegar a poner nada nunca */

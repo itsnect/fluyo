@@ -5,7 +5,15 @@
    Envoltorios de la autoridad de dominio (createNodeIn/createConnectionIn, model.js): aquí solo
    queda lo que es del editor —la página activa y el snap de la interacción—. */
 function newNode(shape,x,y,extra={}){
-  return createNodeIn(P(), Object.assign({shape, x:snapV(x), y:snapV(y)}, extra));
+  return createNodeIn(P(), Object.assign({shape, x:snapV(x), y:snapV(y)}, seedNodeLabel(shape), extra));
+}
+/* FLUYO-I18N-002 S3a (decisión 282): lo que siembra el editor nace en el idioma de la interfaz de quien crea y, guardado, es
+   contenido del autor: nunca se retraduce. La regla es la de createNodeIn (model.js: «Texto» para un texto, «Nodo» para una forma,
+   nada para código, icono, imagen y GIF); el kernel conserva su español, que es lo que siembra el MCP. Sin FluyoI18n (arneses de
+   prueba) no se pasa nada y el kernel siembra lo de siempre. */
+function seedNodeLabel(shape){
+  if(typeof FluyoI18n!=="object" || shape==="code" || shape==="icon" || shape==="image" || shape==="anim") return {};
+  return {label: shape==="text" ? FluyoI18n.t("seed.text","Texto") : FluyoI18n.t("seed.node","Nodo")};
 }
 function newEdge(a,b,opts={}){
   /* Una arista no puede salir y entrar en el mismo nodo: la regla es del dominio; el editor solo
@@ -30,8 +38,55 @@ function removeNodes(ids){ for(const id of ids) domainOrNull(()=>deleteNodeIn(P(
 
 /* Páginas (FLUYO-018.5): envoltorios de createPageIn/renamePageIn (model.js). El editor solo aporta la página activa
    (addPage la activa; el dominio no toca doc.cur). A diferencia de editNode, un nombre rechazado se propaga: la UI decide qué decir. */
-function addPage(){ const r=createPageIn(doc); doc.cur=r.pageIndex; return r.page; }
+function addPage(){ const r=createPageIn(doc, seedPageName(doc.pages.length+1)); doc.cur=r.pageIndex; return r.page; }
 function renamePage(index,name){ return renamePageIn(doc,index,name).page; }
+/* FLUYO-I18N-002 S3a (decisión 282): «Página {n}» de createPageIn, en el idioma de la interfaz (sin FluyoI18n, undefined: el del kernel). */
+function seedPageName(n){ return typeof FluyoI18n==="object" ? FluyoI18n.t("page.untitled","Página {n}",{n}) : undefined; }
+/* La primera página del documento en blanco con el que arranca el editor (model.js: «Página 1»). Se nombra aquí, antes de que nada
+   lo lea; restaurar la sesión, abrir un archivo, `#d=` o `?ejemplo=` sustituyen después el documento entero y lo que traen no se
+   toca. Cambiar de idioma más tarde tampoco la renombra: ya es contenido. */
+if(typeof FluyoI18n==="object" && doc.pages.length===1 && !doc.pages[0].nodes.length && !doc.pages[0].edges.length) renamePageIn(doc, 0, seedPageName(1));
+
+/* FLUYO-I18N-002 S3a (decisión 284): los nombres de config.js que ve la interfaz (cajones de iconos y GIFs, nombres de color de la
+   paleta) y la etiqueta con la que nace un icono o un GIF. config.js no cambia: es la fuente en español y lo que lista el MCP
+   (list_icons); aquí cada nombre se pide por su clave con ese mismo texto base (un test lo vigila). Las marcas y las siglas
+   universales no llevan clave: Kafka, K8s, Web, API, Cron, Webhook, CI / CD, CDN, DNS, Git, Docker y los grupos GCP, AWS y Azure
+   enteros se ven igual en todos los idiomas. Sin FluyoI18n, el nombre de config.js. */
+const ICON_NAME_KEYS={
+  db:()=>FluyoI18n.t("icon.db","BD"), queue:()=>FluyoI18n.t("icon.queue","Cola"), user:()=>FluyoI18n.t("icon.user","Usuario"),
+  users:()=>FluyoI18n.t("icon.users","Usuarios"), movil:()=>FluyoI18n.t("icon.movil","Móvil"), terminal:()=>FluyoI18n.t("icon.terminal","Terminal"),
+  cloud:()=>FluyoI18n.t("icon.cloud","Nube"), search:()=>FluyoI18n.t("icon.search","Búsqueda"), lock:()=>FluyoI18n.t("icon.lock","Seguridad"),
+  ai:()=>FluyoI18n.t("icon.ai","IA"),
+  ok:()=>FluyoI18n.t("icon.ok","Éxito"), err:()=>FluyoI18n.t("icon.err","Error"), warn:()=>FluyoI18n.t("icon.warn","Aviso"),
+  info:()=>FluyoI18n.t("icon.info","Info"), question:()=>FluyoI18n.t("icon.question","Duda"), blocked:()=>FluyoI18n.t("icon.blocked","Bloqueado"),
+  retry:()=>FluyoI18n.t("icon.retry","Reintento"), bug:()=>FluyoI18n.t("icon.bug","Bug"), bell:()=>FluyoI18n.t("icon.bell","Alerta"),
+  shield:()=>FluyoI18n.t("icon.shield","Escudo"), key:()=>FluyoI18n.t("icon.key","Clave"), firewall:()=>FluyoI18n.t("icon.firewall","Cortafuegos"),
+  cert:()=>FluyoI18n.t("icon.cert","Certificado"), vault:()=>FluyoI18n.t("icon.vault","Secretos"),
+  log:()=>FluyoI18n.t("icon.log","Registros"), test:()=>FluyoI18n.t("icon.test","Pruebas"), scale:()=>FluyoI18n.t("icon.scale","Autoescalado"),
+  file:()=>FluyoI18n.t("icon.file","Archivo"), folder:()=>FluyoI18n.t("icon.folder","Carpeta"), mail:()=>FluyoI18n.t("icon.mail","Correo"),
+  chat:()=>FluyoI18n.t("icon.chat","Mensajería"), clock:()=>FluyoI18n.t("icon.clock","Reloj"), gear:()=>FluyoI18n.t("icon.gear","Config"),
+  server:()=>FluyoI18n.t("icon.server","Servidor"), cache:()=>FluyoI18n.t("icon.cache","Cache"), balancer:()=>FluyoI18n.t("icon.balancer","Balanceador"),
+  filter:()=>FluyoI18n.t("icon.filter","Filtro"), stream:()=>FluyoI18n.t("icon.stream","Flujo"), table:()=>FluyoI18n.t("icon.table","Tabla"),
+  link:()=>FluyoI18n.t("icon.link","Integración"), trash:()=>FluyoI18n.t("icon.trash","Purga"), graph:()=>FluyoI18n.t("icon.graph","Métricas")
+};
+const ANIM_NAME_KEYS={
+  spinner:()=>FluyoI18n.t("anim.spinner","Cargando"), progress:()=>FluyoI18n.t("anim.progress","Progreso"), ticket:()=>FluyoI18n.t("anim.ticket","Ticket"),
+  errmove:()=>FluyoI18n.t("anim.errmove","Error"), check:()=>FluyoI18n.t("anim.check","Éxito anim"), typing:()=>FluyoI18n.t("anim.typing","Escribiendo"),
+  upload:()=>FluyoI18n.t("anim.upload","Subiendo"), pulse:()=>FluyoI18n.t("anim.pulse","Latido")
+};
+/* la paleta, por su color (PALETTE no tiene clave propia) */
+const PALETTE_NAME_KEYS={
+  "#6a9fb5":()=>FluyoI18n.t("palette.service","Servicio"), "#d08b5b":()=>FluyoI18n.t("palette.events","Eventos / Kafka"),
+  "#7fa66b":()=>FluyoI18n.t("palette.data","Datos"), "#9b7fb5":()=>FluyoI18n.t("palette.ai","IA"), "#c16a6a":()=>FluyoI18n.t("palette.alert","Alerta"),
+  "#8f8f8f":()=>FluyoI18n.t("palette.external","Externo"), "#c9b458":()=>FluyoI18n.t("palette.config","Config"),
+  "#5bb0a0":()=>FluyoI18n.t("palette.cache","Cache"), "#b5739b":()=>FluyoI18n.t("palette.queue","Cola"), "#6b78c9":()=>FluyoI18n.t("palette.network","Red"),
+  "#c98f5b":()=>FluyoI18n.t("palette.storage","Almacén"), "#7bb85b":()=>FluyoI18n.t("palette.success","Éxito"),
+  "#d0576a":()=>FluyoI18n.t("palette.error","Error"), "#5b9bd0":()=>FluyoI18n.t("palette.info","Info")
+};
+const configName=(table,key,fallback)=>typeof FluyoI18n==="object" && Object.prototype.hasOwnProperty.call(table,key) ? table[key]() : fallback;
+function iconName(k){ return configName(ICON_NAME_KEYS, k, ICONS[k].n); }
+function animName(k){ return configName(ANIM_NAME_KEYS, k, ANIMS[k].n); }
+function paletteName(p){ return configName(PALETTE_NAME_KEYS, p.c, p.n); }
 
 /* ===================== Viewport ===================== */
 const cv=document.getElementById("cv"), ctx=cv.getContext("2d");

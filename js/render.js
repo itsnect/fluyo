@@ -1526,7 +1526,9 @@ function render(c,t,opts={}){
   if(P().nodes.length===0 && !vp.presenting){
     c.fillStyle=theme==="crema"?"#00000055":"#ffffff44";
     /* voz editorial del chrome (css/system.css); sin ella cargada, cae a la serif del sistema */
-    const emptyHint = opts.emptyHint ?? "Elige una forma o icono a la izquierda y haz clic aquí — o pulsa «Ejemplo»";
+    /* FLUYO-I18N-002 S3a: el texto lo da quien pinta, ya en su idioma (editor-runtime.js: editor.emptyCanvas; viewer.js:
+       viewer.emptyPage). Sin reserva en español aquí: render.js lo carga también el Viewer y no conoce el diccionario del editor. */
+    const emptyHint = opts.emptyHint ?? "";
     c.font=(20/vp.zoom)+'px '+withCjkReserve('"Playfair Display", Georgia, serif', emptyHint); c.textAlign="center";
     c.fillText(emptyHint, (cw/2 - vp.x) / vp.zoom, (ch/2 - vp.y) / vp.zoom);
   }

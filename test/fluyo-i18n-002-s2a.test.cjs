@@ -48,7 +48,7 @@ function extract(src, name) {
   }
   throw new Error("sin cierre: " + name);
 }
-const ED_FNS = ["scNum", "scFormatTime", "formatRelativeDelay", "scNodeLabel", "scNodeFallback", "scEdgeLabel", "scEdgeSecondary", "scTargetLabel", "scIsTargetMissing",
+const ED_FNS = ["scNum", "scFormatTime", "formatRelativeDelay", "scNodeLabel", "scNodeFallback", "scSourceFallback", "scEdgeLabel", "scEdgeSecondary", "scTargetLabel", "scIsTargetMissing",
   "describeScenarioStep", "scSendFailText", "scWhereLabel", "scStepTitle", "scStepMessage", "scOrderedSteps", "scStoryMenu", "scReverseMenuItem", "scMessageMenuItem",
   "scArrivalNames", "scArrivalMenuItem", "scTemporalHint", "scUpdatePlacementBar", "scPlacementType", "scDeleteScenario"];
 const PROBE_KEYS = (() => { const m = new Map(); for (const u of scan.catalog().uses) m.set(u.key, u.es); return m; })();
@@ -328,10 +328,11 @@ test("A · alcance frente a " + BASE + ": solo estos archivos; undoS2a da la bas
   /* FLUYO-I18N-002 S4 va encima: lo que solo cambia S4 (sin S4 es igual que la base) no cuenta para el alcance de S2a */
   const { undoS4, PIECES: PIECES_S4 } = require("./fluyo-i18n-002-s4-undo.cjs");
   const { PIECES: PIECES_S2B } = require("./fluyo-i18n-002-s2b-undo.cjs");   /* S2b va encima de S4 (undoS4 la deshace antes) */
-  const s4Only = (f) => (!!PIECES_S4[f] || !!PIECES_S2B[f]) && undoS4(f, read(f)) === atBase(f);
+  const { PIECES: PIECES_S3A } = require("./fluyo-i18n-002-s3a-undo.cjs");   /* y S3a encima de S2b (undoS2b la deshace antes) */
+  const s4Only = (f) => (!!PIECES_S4[f] || !!PIECES_S2B[f] || !!PIECES_S3A[f]) && undoS4(f, read(f)) === atBase(f);
   assert.deepEqual([...new Set([...changed, ...untracked])].filter((f) => !s4Only(f) || FILES.includes(f)).sort(), [...FILES, "sw.js"].sort());
   for (const f of FILES) assert.equal(undoS2a(f, read(f)), atBase(f), f + ": undoS2a exacto");
-  assert.equal(read("sw.js").replace('"fluyo-static-v113"', '"fluyo-static-v' + (111 - 1) + '"'), atBase("sw.js"), "sw.js: solo CACHE (sin archivos nuevos)");
+  assert.equal(read("sw.js").replace('"fluyo-static-v114"', '"fluyo-static-v' + (111 - 1) + '"'), atBase("sw.js"), "sw.js: solo CACHE (sin archivos nuevos)");
   assert.ok(read("test/fluyo-i18n-002-s1-undo.cjs").includes("src = undoS2a(file, src);"), "undoS1 deshace antes esta tarea");
   for (const f of ["js/config.js", "js/safe-svg.js", "js/model.js", "js/scenario-engine.js", "js/scenario-playback.js", "js/story-playback.js", "js/document-integrity.js", "js/story-authoring.js",
     "js/story-clock.js", "js/render.js", "s/index.html", "404.html", "css/system.css", "css/styles.css", "css/share.css", "js/i18n-fr.js", "js/i18n-ja.js", "js/i18n-zh.js",

@@ -23,7 +23,7 @@ const NO_REGISTER = ["\nregisterViewerServiceWorker();", "\n"];
 const ON_FILE = ['  if(location.protocol!=="http:" && location.protocol!=="https:") return;\n  if(typeof navigator==="undefined"', '  if(typeof navigator==="undefined"'];
 /* [nombre, suite, archivo, desde, hasta] */
 const MUTATIONS = [
-  ["U1 CACHE no sube (sigue v106)", UNIT, SW, 'const CACHE = "fluyo-static-v113";', 'const CACHE = "fluyo-static-v106";'],
+  ["U1 CACHE no sube (sigue v106)", UNIT, SW, 'const CACHE = "fluyo-static-v114";', 'const CACHE = "fluyo-static-v106";'],
   ["U2 el Viewer instala la caché del editor", UNIT, SW, ...ALWAYS_EDITOR],
   ["B2 el Viewer instala la caché del editor", BROWSER, SW, ...ALWAYS_EDITOR],
   ["U3 la instalación del Viewer pide gif.js (cdnjs)", UNIT, SW, ...VIEWER_GIF],

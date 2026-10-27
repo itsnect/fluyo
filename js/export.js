@@ -76,30 +76,33 @@ $("incomingKeep").onclick=incomingKeepMine;
    atrás era Ctrl+Z: con el dedo, el trabajo se perdía. La página se crea con la
    misma autoridad que «＋» (createPageIn) y, como crear páginas, queda fuera de
    Undo: no destruye nada que haya que recuperar, y se elimina como cualquier otra. */
+/* FLUYO-I18N-002 S3a (decisiones 282 y 285): la página y las etiquetas del ejemplo nacen en el idioma de la interfaz; después son
+   contenido. El nombre libre se busca en ese idioma («Example», «Example 2»…). */
 function examplePageName(){
   const used=new Set(doc.pages.map(p=>p.name));
-  if(!used.has("Ejemplo")) return "Ejemplo";
-  let k=2; while(used.has("Ejemplo "+k)) k++;
-  return "Ejemplo "+k;
+  const first=FluyoI18n.t("example.page","Ejemplo");
+  if(!used.has(first)) return first;
+  let k=2; while(used.has(FluyoI18n.t("example.pageN","Ejemplo {n}",{n:k}))) k++;
+  return FluyoI18n.t("example.pageN","Ejemplo {n}",{n:k});
 }
 $("btnDemo").onclick=()=>{
   if(typeof isScenarioPlaybackActive==="function" && isScenarioPlaybackActive()){ if(typeof scReset==="function") scReset(); return; }
   const r=createPageIn(doc, examplePageName()); doc.cur=r.pageIndex; clearSel();
-  const T=newNode("text",1180,300,{label:"Funnel de ventas"}); T.color="#d08b5b"; T.w=620; T.order=0;
-  const A=newNode("icon",460,580,{icon:"users",label:"Visitantes"}); A.color="#6a9fb5"; A.order=1;
-  const B=newNode("rect",790,580);  B.label="Lead\nregistrado";  B.color="#6a9fb5"; B.order=2;
-  const C=newNode("diamond",1120,580); C.label="¿Califica?";     C.color="#c9b458"; C.order=3;
-  const D=newNode("rect",1480,580); D.label="Oportunidad";       D.color="#9b7fb5"; D.order=4;
-  const E2=newNode("rect",1810,580);E2.label="Propuesta\nenviada";E2.color="#9b7fb5";E2.order=5;
-  const F=newNode("circle",2130,580); F.label="Cliente";         F.color="#7bb85b"; F.pulse=true; F.order=6;
-  const G=newNode("rect",1120,900); G.label="Descartado";        G.color="#8f8f8f"; G.order=7;
+  const T=newNode("text",1180,300,{label:FluyoI18n.t("example.title","Funnel de ventas")}); T.color="#d08b5b"; T.w=620; T.order=0;
+  const A=newNode("icon",460,580,{icon:"users",label:FluyoI18n.t("example.visitors","Visitantes")}); A.color="#6a9fb5"; A.order=1;
+  const B=newNode("rect",790,580);  B.label=FluyoI18n.t("example.lead","Lead\nregistrado");  B.color="#6a9fb5"; B.order=2;
+  const C=newNode("diamond",1120,580); C.label=FluyoI18n.t("example.qualifies","¿Califica?");     C.color="#c9b458"; C.order=3;
+  const D=newNode("rect",1480,580); D.label=FluyoI18n.t("example.opportunity","Oportunidad");       D.color="#9b7fb5"; D.order=4;
+  const E2=newNode("rect",1810,580);E2.label=FluyoI18n.t("example.proposal","Propuesta\nenviada");E2.color="#9b7fb5";E2.order=5;
+  const F=newNode("circle",2130,580); F.label=FluyoI18n.t("example.customer","Cliente");         F.color="#7bb85b"; F.pulse=true; F.order=6;
+  const G=newNode("rect",1120,900); G.label=FluyoI18n.t("example.discarded","Descartado");        G.color="#8f8f8f"; G.order=7;
   let e;
-  e=newEdge(A.id,B.id);  e.label="visita";     e.fromSide="e"; e.toSide="w"; e.route="ortho";
-  e=newEdge(B.id,C.id);  e.label="formulario"; e.fromSide="e"; e.toSide="w"; e.route="ortho";
-  e=newEdge(C.id,D.id);  e.label="sí";         e.fromSide="e"; e.toSide="w"; e.route="ortho";
-  e=newEdge(D.id,E2.id); e.label="demo";       e.fromSide="e"; e.toSide="w"; e.route="ortho";
-  e=newEdge(E2.id,F.id); e.label="firma";      e.fromSide="e"; e.toSide="w"; e.route="ortho";
-  e=newEdge(C.id,G.id);  e.label="no";         e.fromSide="s"; e.toSide="n"; e.route="ortho"; e.dashed=true;
+  e=newEdge(A.id,B.id);  e.label=FluyoI18n.t("example.visit","visita");     e.fromSide="e"; e.toSide="w"; e.route="ortho";
+  e=newEdge(B.id,C.id);  e.label=FluyoI18n.t("example.form","formulario"); e.fromSide="e"; e.toSide="w"; e.route="ortho";
+  e=newEdge(C.id,D.id);  e.label=FluyoI18n.t("example.yes","sí");         e.fromSide="e"; e.toSide="w"; e.route="ortho";
+  e=newEdge(D.id,E2.id); e.label=FluyoI18n.t("example.demo","demo");       e.fromSide="e"; e.toSide="w"; e.route="ortho";
+  e=newEdge(E2.id,F.id); e.label=FluyoI18n.t("example.signature","firma");      e.fromSide="e"; e.toSide="w"; e.route="ortho";
+  e=newEdge(C.id,G.id);  e.label=FluyoI18n.t("example.no","no");         e.fromSide="s"; e.toSide="n"; e.route="ortho"; e.dashed=true;
   settings.build=true; t0=performance.now(); pausedAt=0; syncProjectControls();
   renderTabs();
   centerView();

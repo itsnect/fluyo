@@ -255,12 +255,13 @@ function buildNodeSwatches(containerId, field, extras){
       refreshPanel(); scheduleAutosave();
     };
     cont.appendChild(d);
+    return d;
   };
   (extras||[]).forEach(e=>mk(e.pattern, e.label, e.value, true));
   const seen=new Set();
   /* FLUYO-018.15: el color con el que nace un nodo encabeza su rejilla, para poder volver a él */
   if(field==="color"){ seen.add(DEFAULT_NODE_COLOR); mk(DEFAULT_NODE_COLOR,"Piedra (por defecto)",DEFAULT_NODE_COLOR); }
-  PALETTE.forEach(p=>{ if(!seen.has(p.c)){ seen.add(p.c); mk(p.c,p.n,p.c); } });
+  PALETTE.forEach(p=>{ if(!seen.has(p.c)){ seen.add(p.c); mk(p.c,paletteName(p),p.c).dataset.palette=p.c; } });   // FLUYO-I18N-002 S3a: nombre en el idioma de la interfaz; data-palette lo repinta
   SWATCH_COLORS.forEach(c=>{ if(!seen.has(c)){ seen.add(c); mk(c,c,c); } });
 }
 /* FLUYO-018.23 (D4): marca la muestra del valor actual. Un color propio que no está en la rejilla aparece como primera muestra
@@ -373,9 +374,10 @@ function buildEdgeSwatches(containerId, field){
     d.setAttribute("aria-label",title);
     d.onclick=()=>{ const e=singleEdge(); if(e){ pushUndo(); editEdge(e,{[field]:color}); refreshPanel(); } };
     cont.appendChild(d);
+    return d;
   };
   mk(null,"Auto");
-  PALETTE.forEach(p=>mk(p.c,p.n));
+  PALETTE.forEach(p=>{ mk(p.c,paletteName(p)).dataset.palette=p.c; });
 }
 buildEdgeSwatches("lineSw","lineColor");
 buildEdgeSwatches("dotSw","dotColor");
@@ -784,6 +786,10 @@ function drawerGroupName(g){
   if(g==="Estados") return FluyoI18n.t("drawer.groupStates","Estados");
   if(g==="General") return FluyoI18n.t("drawer.groupGeneral","General");
   if(g==="Varios") return FluyoI18n.t("drawer.groupMisc","Varios");
+  /* FLUYO-I18N-002 S3a (decisión 288, D-S3-12 = a): rótulos PREPARADOS. Hoy el cajón no pinta estos dos grupos (la lista de abajo no
+     los incluye; es un fallo aparte, fuera de I18N-002) y S3a no cambia esa lista. */
+  const prepared={Seguridad:()=>FluyoI18n.t("drawer.groupSecurity","Seguridad"), DevOps:()=>FluyoI18n.t("drawer.groupDevOps","DevOps")};
+  if(Object.prototype.hasOwnProperty.call(prepared,g)) return prepared[g]();
   return g;
 }
 (function buildDrawer(){
@@ -796,8 +802,10 @@ function drawerGroupName(g){
     const grid=document.createElement("div"); grid.className="iconGrid";
     for(const k of groups[g]){
       const b=document.createElement("button");
-      b.innerHTML=`<img src="${iconURL[k]}" alt=""><span>${ICONS[k].n}</span>`;
-      b.title=ICONS[k].n;
+      /* FLUYO-I18N-002 S3a: el nombre, en el idioma de la interfaz (iconName, state.js); data-icon para repintarlo */
+      b.dataset.icon=k;
+      b.innerHTML=`<img src="${iconURL[k]}" alt=""><span></span>`;
+      b.lastChild.textContent=b.title=iconName(k);
       b.onclick=()=>{ pendingIcon=k; pendingShape=null; pendingAnim=null; mode="select"; dr.style.display="none"; syncRail(); };
       grid.appendChild(b);
     }
@@ -822,8 +830,9 @@ $("btnIcons").onclick=()=>{
   const grid=document.createElement("div"); grid.className="iconGrid";
   for(const k in ANIMS){
     const b=document.createElement("button");
-    b.innerHTML=`<img src="${animURL[k]}" alt=""><span>${ANIMS[k].n}</span>`;
-    b.title=ANIMS[k].n;
+    b.dataset.anim=k;
+    b.innerHTML=`<img src="${animURL[k]}" alt=""><span></span>`;
+    b.lastChild.textContent=b.title=animName(k);
     b.onclick=()=>{ pendingAnim=k; pendingShape=null; pendingIcon=null; mode="select"; dr.style.display="none"; syncRail(); };
     grid.appendChild(b);
   }
@@ -1590,6 +1599,13 @@ function paintChromeText(){
   const st=$("selTitle");
   if(st && !(selN.size+selE.size)) st.textContent=selTitleText(0, null);
   for(const h of document.querySelectorAll("#iconDrawer h4[data-group]")) h.textContent=drawerGroupName(h.getAttribute("data-group"));
+  /* FLUYO-I18N-002 S3a: nombres de iconos, GIFs y colores de la paleta (los ya colocados en el lienzo son contenido: no se tocan) */
+  for(const b of document.querySelectorAll("#iconDrawer button[data-icon]")) b.lastChild.textContent=b.title=iconName(b.dataset.icon);
+  for(const b of document.querySelectorAll("#animDrawer button[data-anim]")) b.lastChild.textContent=b.title=animName(b.dataset.anim);
+  for(const sw of document.querySelectorAll(".swatch[data-palette]")){
+    const p=PALETTE.find(x=>x.c===sw.dataset.palette);
+    if(p){ const n=paletteName(p); sw.title=n; sw.setAttribute("aria-label",n); }
+  }
   const gt=$("animDrawerTitle"), gp=$("animDrawerTip");
   if(gt) gt.textContent=FluyoI18n.t("drawer.gifs","GIFs animados");
   if(gp) gp.textContent=FluyoI18n.t("drawer.gifsTip","Se animan en el lienzo y en el GIF exportado. Cambia su color desde el panel.");

@@ -129,7 +129,10 @@ const PIECES = {
     ]
   ]
 };
+/* FLUYO-I18N-002 S3a va encima de S2b (base 7305355): se deshace primero (fluyo-i18n-002-s3a-undo.cjs). */
+const { undoS3a } = require("./fluyo-i18n-002-s3a-undo.cjs");
 function undoS2b(file, src) {
+  src = undoS3a(file, src);
   const f = file.replace(/\\/g, "/"), pieces = PIECES[f];
   if (!pieces) return src;
   let out = src.replace(/\r\n/g, "\n");

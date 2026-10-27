@@ -246,7 +246,7 @@ function extract(src, name) {
   }
   throw new Error("sin cierre: " + name);
 }
-const ED_FNS = ["scNodeLabel", "scNodeFallback", "scEdgeLabel", "scEdgeSecondary", "scTargetLabel", "scIsTargetMissing", "describeScenarioStep",
+const ED_FNS = ["scNodeLabel", "scNodeFallback", "scSourceFallback", "scEdgeLabel", "scEdgeSecondary", "scTargetLabel", "scIsTargetMissing", "describeScenarioStep",
   "scWhereLabel", "scStepTitle", "scStoryMenu", "scReverseMenuItem", "scToggleStepReverse", "scEditable", "scOrderedSteps",
   "scDuplicateStep", "scSetArrivalDependencies", "scUseTarget", "scStepMessage", "scMessageMenuItem", "scSetStepMessage"];
 function editor(src = read("js/editor-scenarios.js")) {
@@ -266,7 +266,8 @@ function editor(src = read("js/editor-scenarios.js")) {
      function scVisibleAt(step){ return step.at; }`);
   R(read("js/state.js").split("/* ===================== Viewport")[0]);
   vm.runInContext(read("js/selection.js"), ctx, { filename: "js/selection.js" });
-  vm.runInContext(ED_FNS.map((n) => extract(src, n)).join("\n"), ctx, { filename: "js/editor-scenarios.js#extract" });
+  /* scSourceFallback (FLUYO-I18N-002 S3a) no existe en la base que da undoNarr (la cadena deshace también S3a) */
+  vm.runInContext(ED_FNS.filter((n) => n !== "scSourceFallback" || src.includes("\nfunction scSourceFallback(")).map((n) => extract(src, n)).join("\n"), ctx, { filename: "js/editor-scenarios.js#extract" });
   const load = (p) => R("doc=projectFromProjectData(" + JSON.stringify(p) + ").doc; undoStack.length=0; redoStack.length=0; __commits=0; scSelectedStep=null;");
   const menu = (id) => { R(`__menu=null; scStoryMenu(scActiveScenario().steps.find(s=>s.id===${id}), null)`);
     return J(R("__menu.sections.map(sec => sec.map(it => ({label: it.label, hint: it.hint || '', disabled: !!it.disabled})))")); };
@@ -386,10 +387,10 @@ test("G1 · caso real: con 2 eventos y message se lee la MISMA Historia que con 
 test("H1 · versiones: engineVersion 2 y version 5 (NO v3); sw.js sube a v106 y solo cambia la constante", () => {
   assert.equal(run("FluyoScenarios.ENGINE_VERSION"), 2);
   assert.equal(run("projectToSerializable({}, {}).version"), 5);
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v113";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v114";/);
   /* FLUYO-SW-VIEWER-001 va encima: su instalación del Viewer y sus navegaciones a /s/ se deshacen antes (undoSwv) */
   const { undoSwv } = require("./fluyo-sw-viewer-001-undo.cjs");
-  assert.equal(undoSwv("sw.js", read("sw.js")).replace('"fluyo-static-v113"', '"fluyo-static-v' + (106 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante (el precache no cambia)");
+  assert.equal(undoSwv("sw.js", read("sw.js")).replace('"fluyo-static-v114"', '"fluyo-static-v' + (106 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante (el precache no cambia)");
 });
 
 test("H2 · alcance frente a " + BASE + ": solo cambian estos archivos servidos (index.html y s/index.html, no) y undoNarr los devuelve EXACTOS", () => {

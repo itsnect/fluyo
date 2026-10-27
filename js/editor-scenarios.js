@@ -93,6 +93,11 @@ function scNodeLabel(id) {
 function scNodeFallback(id) {
   return scNodeLabel(id) || FluyoI18n.t("story.unnamed", "Elemento sin nombre");
 }
+/* FLUYO-I18N-002 S3a (decisión 282): un evento de elemento no tiene origen; si su frase usa {source}, renderEventSentence (model.js)
+   pone su reserva en español («Origen»). El editor le pasa esa reserva ya en el idioma de la interfaz. ({target} siempre llega.) */
+function scSourceFallback() {
+  return FluyoI18n.t("seed.source", "Origen");
+}
 
 /* «A → B» en el sentido del RECORRIDO (FLUYO-STEP-REVERSE-002): con `reverse`, «B → A». Una sola regla: traversalEnds. */
 function scEdgeLabel(id, reverse) {
@@ -129,7 +134,7 @@ function describeScenarioStep(step) {
   if (step.action === "SET_STATE") {
     const label = scNodeFallback(step.nodeId);
     if (et) {
-      const sentence = renderEventSentence(et, null, label);
+      const sentence = renderEventSentence(et, scSourceFallback(), label);
       return {
         primary: missing ? "⚠ " + sentence : sentence,
         targetType: "node",
@@ -155,7 +160,7 @@ function describeScenarioStep(step) {
   if (step.action === "OCCURRENCE") {
     const label = scNodeFallback(step.nodeId);
     if (et) {
-      const sentence = renderEventSentence(et, null, label);
+      const sentence = renderEventSentence(et, scSourceFallback(), label);
       return {
         primary: missing ? "⚠ " + sentence : sentence,
         targetType: "node",
@@ -2759,7 +2764,7 @@ function scUpdateEventPreview() {
   }
   $("scEventPreview").textContent = renderEventSentence(
     def,
-    connection ? FluyoI18n.t("event.preview.source", "Cliente") : null,
+    connection ? FluyoI18n.t("event.preview.source", "Cliente") : scSourceFallback(),
     connection ? FluyoI18n.t("event.preview.target", "Comercio") : FluyoI18n.t("event.preview.element", "Solicitud"),
   );
 }
@@ -3076,7 +3081,7 @@ function scSentenceAt(et, id) {
   const e = et.primitive === "FLOW" ? edgeById(id) : null;
   return renderEventSentence(
     et,
-    e ? scNodeFallback(e.from) : null,
+    e ? scNodeFallback(e.from) : scSourceFallback(),
     e ? scNodeFallback(e.to) : scNodeFallback(id),
   );
 }

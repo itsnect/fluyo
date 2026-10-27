@@ -1288,3 +1288,17 @@ body.scPlaybackOn #wrap::after{box-shadow:inset 0 0 0 2px var(--active), inset 0
   .scNow{max-width:min(calc(60% - 24px), 480px);}
   #scNowLabel{position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap;}
 }
+
+/* ===================== Escritura por idioma, S4 (FLUYO-I18N-002) =====================
+   Solo japonés y chino (español, inglés y francés no cambian). El bloque de tokens de css/system.css sube --fs-micro/--fs-label, pero
+   estas reglas escriben el tamaño a mano: un trazo CJK no se lee a 9–11 px. Suelo de 12 px (D-S4-5); los nombres de icono, el pie del
+   riel y las marcas de tamaño, a 11. Sin cursiva (ni Yu Gothic UI ni YaHei UI la tienen: el navegador inclinaría los glifos) y sin
+   espaciado de letras en las cabeceras en mayúsculas del modal de evento. */
+:root:is(:lang(ja), :lang(zh)) :is(.scFlowEnds, .scFlowRows, .scLibraryHint, .scTogether, .scWaits, .scStoryRepair, .scGroupWarning, .scPhraseInsert button, .scEventPreview h3){ font-size:12px; }
+:root:is(:lang(ja), :lang(zh)) :is(.rail button, .iconGrid button, .scVisualSeg .s1, .scDropLine span){ font-size:11px; }
+:root:is(:lang(ja), :lang(zh)) .scEventPreview h3{ letter-spacing:0; }
+:root:is(:lang(ja), :lang(zh)) .scStepMessage{ font-style:normal; }
+/* El campo de un segmento de la frase se dimensiona con `size` (nº de caracteres de ≈ 0,6 em): el texto CJK (1 em por carácter) se
+   recortaba. Con texto CJK el campo se ajusta al contenido (field-sizing, Chrome ≥ 123; Safari y Firefox conservan `size`). La marca
+   data-cjk la pone js/editor-scenarios.js (parche posterior a S2a); sin ella la regla no se activa y nada cambia. */
+.scPhrase input.scPhraseText[data-cjk]{ field-sizing:content; }

@@ -325,11 +325,14 @@ test("A · alcance frente a " + BASE + ": solo estos archivos; undoS2a da la bas
   const SERVED = ["js", "s", "css", "assets", "index.html", "404.html", "sw.js", "manifest.webmanifest", "docs", "ejemplos", "privacidad", "privacy", "soporte", "support", "terminos", "terms"];
   const changed = execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean);
   const untracked = execFileSync("git", ["-C", gitRoot, "ls-files", "--others", "--exclude-standard", "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean);
-  assert.deepEqual([...new Set([...changed, ...untracked])].sort(), [...FILES, "sw.js"].sort());
+  /* FLUYO-I18N-002 S4 va encima: lo que solo cambia S4 (sin S4 es igual que la base) no cuenta para el alcance de S2a */
+  const { undoS4, PIECES: PIECES_S4 } = require("./fluyo-i18n-002-s4-undo.cjs");
+  const s4Only = (f) => !!PIECES_S4[f] && undoS4(f, read(f)) === atBase(f);
+  assert.deepEqual([...new Set([...changed, ...untracked])].filter((f) => !s4Only(f) || FILES.includes(f)).sort(), [...FILES, "sw.js"].sort());
   for (const f of FILES) assert.equal(undoS2a(f, read(f)), atBase(f), f + ": undoS2a exacto");
-  assert.equal(read("sw.js").replace('"fluyo-static-v111"', '"fluyo-static-v' + (111 - 1) + '"'), atBase("sw.js"), "sw.js: solo CACHE (sin archivos nuevos)");
+  assert.equal(read("sw.js").replace('"fluyo-static-v112"', '"fluyo-static-v' + (111 - 1) + '"'), atBase("sw.js"), "sw.js: solo CACHE (sin archivos nuevos)");
   assert.ok(read("test/fluyo-i18n-002-s1-undo.cjs").includes("src = undoS2a(file, src);"), "undoS1 deshace antes esta tarea");
   for (const f of ["js/config.js", "js/safe-svg.js", "js/model.js", "js/scenario-engine.js", "js/scenario-playback.js", "js/story-playback.js", "js/document-integrity.js", "js/story-authoring.js",
     "js/story-clock.js", "js/render.js", "s/index.html", "404.html", "css/system.css", "css/styles.css", "css/share.css", "js/i18n-fr.js", "js/i18n-ja.js", "js/i18n-zh.js",
-    "js/i18n-fr-editor.js", "js/i18n-ja-editor.js", "js/i18n-zh-editor.js"]) assert.equal(read(f), atBase(f), f + " sin cambios (S2b: story-playback.js)");
+    "js/i18n-fr-editor.js", "js/i18n-ja-editor.js", "js/i18n-zh-editor.js"]) assert.equal(undoS4(f, read(f)), atBase(f), f + " sin cambios (S2b: story-playback.js; S4, encima, se deshace antes)");
 });

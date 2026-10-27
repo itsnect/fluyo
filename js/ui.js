@@ -994,7 +994,8 @@ function showPageRename(i){
     closePageMenu(false); renderTabs(); scheduleAutosave();
   };
   save.onclick=commit;
-  input.onkeydown=ev=>{ if(ev.key==="Enter"){ ev.preventDefault(); commit(); } };
+  /* FLUYO-I18N-002 S4: con un IME (japonés, chino) el Enter que ACEPTA la conversión llega con isComposing / keyCode 229 y no confirma el campo. */
+  input.onkeydown=ev=>{ if(ev.key==="Enter" && !ev.isComposing && ev.keyCode!==229){ ev.preventDefault(); commit(); } };
   placePageMenu(pageMenuAnchor);
   input.focus(); input.select();
 }

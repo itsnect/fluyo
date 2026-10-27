@@ -279,7 +279,7 @@ test("offline: todo diccionario en el precache del editor; los comunes, en el de
   const A = list("ASSETS"), V = list("VIEWER_ASSETS");
   for (const f of DICT_FILES) assert.ok(A.includes(f), "ASSETS: " + f);
   assert.deepEqual(V.filter((f) => scan.DICT.test(f)), CODES.filter((c) => c !== "es").map(COMMON), "VIEWER_ASSETS: solo los comunes");
-  assert.match(sw, /const CACHE = "fluyo-static-v111";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v112";/);
 });
 
 test("peso: presupuesto de diccionarios (Viewer ≤ 64 KB, editor ≤ 400 KB, sin comprimir); medido aquí, no lazy loading", () => {
@@ -306,8 +306,11 @@ test("escritura: la sans CJK del sistema antes que la genérica; :lang(ja) y :la
   assert.deepEqual([...both.matchAll(/(--[\w-]+):/g)].map((m) => m[1]).sort(), ["--case-kicker", "--fs-field", "--fs-label", "--fs-micro", "--track-micro"], "solo tokens");
   assert.match(css, /:root:lang\(ja\) \*, :root:lang\(zh\) \*\{ text-transform:none !important; \}/, "sin mayúsculas artificiales");
   const faces = [...css.matchAll(/@font-face\{[\s\S]*?\}/g)].map((m) => m[0]);
-  assert.equal(faces.length, 3, "las tres de siempre");
-  assert.ok(faces.every((f) => /unicode-range:U\+0000-00FF/.test(f)), "solo latín");
+  /* FLUYO-I18N-002 S4 añade dos caras con local() (sin descarga) para la puntuación CJK: las que se descargan siguen siendo las tres de siempre */
+  const served = faces.filter((f) => /src:url\(/.test(f));
+  assert.equal(served.length, 3, "las tres de siempre");
+  assert.ok(served.every((f) => /unicode-range:U\+0000-00FF/.test(f)), "solo latín");
+  assert.ok(faces.filter((f) => !/src:url\(/.test(f)).every((f) => /src:local\(/.test(f) && !/url\(/.test(f)), "las demás, solo local()");
   assert.doesNotMatch(read("sw.js"), /noto|cjk|hiragino|yahei/i, "ninguna fuente CJK en el precache");
 });
 
@@ -409,13 +412,14 @@ test("alcance frente a " + BASE + ": solo los archivos de esta tarea; undoS0 da 
   const { undoS1, PIECES: PIECES_S1, NEW_FILES: NEW_S1 } = require("./fluyo-i18n-002-s1-undo.cjs");
   /* FLUYO-I18N-002 S2a, encima de S1: undoS1 la deshace antes; lo que solo cambia S2a tampoco cuenta */
   const { PIECES: PIECES_S2A } = require("./fluyo-i18n-002-s2a-undo.cjs");
-  const s1Only = (f) => NEW_S1.includes(f) || ((!!PIECES_S1[f] || !!PIECES_S2A[f]) && !FILES.includes(f) && !NEW_FILES.includes(f) && undoS1(f, read(f)) === atBase(f));
+  const { PIECES: PIECES_S4 } = require("./fluyo-i18n-002-s4-undo.cjs");   /* FLUYO-I18N-002 S4, encima de S2a */
+  const s1Only = (f) => NEW_S1.includes(f) || ((!!PIECES_S1[f] || !!PIECES_S2A[f] || !!PIECES_S4[f]) && !FILES.includes(f) && !NEW_FILES.includes(f) && undoS1(f, read(f)) === atBase(f));
   const changed = execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean).filter((f) => !s1Only(f));
   const untracked = execFileSync("git", ["-C", gitRoot, "ls-files", "--others", "--exclude-standard", "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean).filter((f) => !s1Only(f));
   assert.deepEqual([...new Set([...changed, ...untracked])].sort(), [...FILES, ...NEW_FILES].sort());
   for (const f of FILES) {
     let out = undoS0(f, read(f));
-    if (f === "sw.js") out = out.replace('"fluyo-static-v111"', '"fluyo-static-v' + (109 - 1) + '"');
+    if (f === "sw.js") out = out.replace('"fluyo-static-v112"', '"fluyo-static-v' + (109 - 1) + '"');
     assert.equal(out, atBase(f), f + ": undoS0 exacto");
   }
   assert.ok(read("test/fluyo-shell-001-undo.cjs").includes("src = undoS0(file, src);"), "undoShell deshace antes esta tarea");

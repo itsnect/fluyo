@@ -1397,7 +1397,7 @@ function scRenameUI(anchor) {
   };
   p.appendChild(scButton(FluyoI18n.t("stories.saveName", "Guardar nombre"), save));
   input.onkeydown = (e) => {
-    if (e.key === "Enter") {
+    if (e.key === "Enter" && !e.isComposing && e.keyCode !== 229) {   // FLUYO-I18N-002 S4: el Enter de un IME no confirma
       /* Sin esto, el foco vuelve al botón ⋯ durante la misma pulsación y Enter lo activa: el menú se reabría. */
       e.preventDefault();
       save();
@@ -1922,7 +1922,7 @@ function scEditStepMessage(id, anchor) {
   };
   input.oninput = () => input.setCustomValidity("");
   input.onkeydown = (e) => {
-    if (e.key === "Enter") {
+    if (e.key === "Enter" && !e.isComposing && e.keyCode !== 229) {   // FLUYO-I18N-002 S4: el Enter de un IME no confirma
       e.preventDefault(); // como en «Renombrar»: el Enter no debe reabrir el menú
       save();
     }
@@ -2375,10 +2375,12 @@ function scRenderPhrase() {
       input.type = "text";
       input.value = part.text;
       input.size = Math.max(1, [...part.text].length);
+      if (typeof CJK_TEXT_RE !== "undefined" && CJK_TEXT_RE.test(part.text)) input.dataset.cjk = "1";   // FLUYO-I18N-002 S4: `size` cuenta caracteres de 0,6 em; el CJK mide 1 em (css/styles.css: field-sizing)
       input.setAttribute("aria-label", FluyoI18n.t("event.phraseSegment", "Texto de la frase, segmento {n}", { n: i + 1 }));
       input.oninput = () => {
         part.text = input.value;
         input.size = Math.max(1, [...input.value].length);
+        if (typeof CJK_TEXT_RE !== "undefined" && CJK_TEXT_RE.test(input.value)) input.dataset.cjk = "1"; else delete input.dataset.cjk;
         scUpdateEventPreview();
       };
       box.appendChild(input);

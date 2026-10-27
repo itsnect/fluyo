@@ -57,7 +57,10 @@ function traceSegments(c,segs){
 }
 /* `fo` (FLUYO-019.1): voz propuesta por la piel ({family, weight}); nunca pisa la fuente del nodo ni la negrita. */
 function objFont(o,fs,fo){
-  const fam=(fo&&fo.family)||(o&&o.font)||settings.font||"Georgia, serif";
+  const fam0=(fo&&fo.family)||(o&&o.font)||settings.font||"Georgia, serif";
+  /* FLUYO-I18N-002 S4: con texto CJK, la reserva tipográfica va detrás de la pila del documento (solo al dibujar y medir;
+     el documento no cambia). Sin CJK la cadena es la de siempre, byte a byte. */
+  const fam=o&&typeof o.label==="string" ? withCjkReserve(fam0,o.label) : fam0;
   const weight=o&&o.bold? "bold " : (fo&&fo.weight? fo.weight+" " : "");
   return `${weight}${fs}px ${fam}`;
 }
@@ -319,6 +322,141 @@ function nodeTextCues(cues){
   return out;   // del más reciente al más antiguo
 }
 const NODE_CUE_SYMBOL_PX = 22, NODE_CUE_GAP = 6, NODE_CUE_NODE_GAP = 8, NODE_CUE_PAD = 7;
+/* ===================== Texto CJK en el lienzo (FLUYO-I18N-002 S4) =====================
+   El japonés y el chino no llevan espacios entre palabras y sus glifos miden 1 em: el lienzo necesita (a) cortar líneas sin
+   depender de espacios y (b) una reserva tipográfica propia, porque la pila del documento (config.js, kernel) no trae familias
+   CJK y el navegador elegiría una por su cuenta (SimSun, MS Gothic o una mezcla Yu Gothic + YaHei con formas chinas).
+   Todo esto es SOLO de dibujo y medida: el documento y el kernel no cambian, y el texto sin CJK sale exactamente igual. */
+const CJK_TEXT_RE = /[⺀-〿぀-ヿ㄀-ㄯㆠ-ㇿ㐀-䶿一-鿿豈-﫿︰-﹏＀-￯]|[\u{20000}-\u{3FFFF}]/u;
+const CJK_KANA_RE = /[぀-ゟ゠-ヿㇰ-ㇿｦ-ﾟ]/;
+/* Mismos valores que --font-cjk-ja / --font-cjk-zh / --font-cjk de css/system.css (un test los compara). Se leen del CSS cuando hay
+   documento; esto es la reserva para pruebas sin DOM. */
+const CJK_RESERVE_DEFAULT = {
+  ja: '"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic UI","Yu Gothic",Meiryo,"Noto Sans CJK JP","Noto Sans JP","Source Han Sans JP"',
+  zh: '"PingFang SC","Hiragino Sans GB","Microsoft YaHei UI","Microsoft YaHei","Noto Sans CJK SC","Noto Sans SC","Source Han Sans SC"',
+  any: '"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic UI","Yu Gothic",Meiryo,"PingFang SC","Microsoft YaHei UI","Microsoft YaHei","Noto Sans CJK JP","Noto Sans JP","Noto Sans CJK SC","Noto Sans SC"'
+};
+const cjkReserveCache = new Map();
+function uiLangTag(){
+  try{ return (typeof document!=="undefined" && document.documentElement && document.documentElement.lang || "").toLowerCase(); }
+  catch(e){ return ""; }
+}
+function cjkReserveFor(kind){
+  /* "jahan": solo han con la interfaz en japonés (puede ser chino): lista japonesa y, detrás, la china, para que los hanzi
+     simplificados que Yu Gothic no tiene no caigan a SimSun */
+  if(kind==="jahan") return cjkReserveFor("ja") + "," + cjkReserveFor("zh");
+  const lang = uiLangTag(), key = lang + "|" + kind;
+  if(cjkReserveCache.has(key)) return cjkReserveCache.get(key);
+  let v = "";
+  try{
+    if(typeof document!=="undefined" && document.documentElement && typeof getComputedStyle==="function")
+      v = getComputedStyle(document.documentElement).getPropertyValue(kind==="any" ? "--font-cjk" : "--font-cjk-" + kind).trim();
+  }catch(e){}
+  v = v || CJK_RESERVE_DEFAULT[kind];
+  cjkReserveCache.set(key, v);
+  return v;
+}
+/* Escritura del texto, sin guardar nada en el documento (D-S4-2): con kana, japonés; solo con han, el idioma de la interfaz si es
+   japonés ("jahan": japonesa y, detrás, china) o chino; si no, la reserva neutra ("any"). null = el texto no tiene CJK. */
+function cjkScriptOf(text){
+  const s = String(text==null ? "" : text);
+  if(!CJK_TEXT_RE.test(s)) return null;
+  if(CJK_KANA_RE.test(s)) return "ja";
+  const ui = uiLangTag();
+  if(ui==="ja" || ui.startsWith("ja-")) return "jahan";
+  if(ui==="zh" || ui.startsWith("zh-")) return "zh";
+  return "any";
+}
+/* Las familias genéricas (serif, system-ui, monospace…) resuelven en el navegador a una fuente CON glifos CJK según el idioma de la
+   página (con <html lang="zh-Hans">, `serif` es SimSun): una reserva escrita detrás de ellas nunca llegaría a usarse. Por eso la
+   reserva va justo ANTES de la primera genérica de la pila (o al final si no hay ninguna). */
+const GENERIC_FAMILIES = new Set(["serif","sans-serif","monospace","cursive","fantasy","system-ui","ui-serif","ui-sans-serif","ui-monospace","ui-rounded","math","emoji","fangsong"]);
+function splitFamilyList(list){
+  const out = []; let cur = "", q = "";
+  for(const ch of String(list)){
+    if(q){ cur += ch; if(ch===q) q = ""; }
+    else if(ch==='"' || ch==="'"){ q = ch; cur += ch; }
+    else if(ch===","){ out.push(cur.trim()); cur = ""; }
+    else cur += ch;
+  }
+  if(cur.trim()) out.push(cur.trim());
+  return out;
+}
+function withCjkReserve(family, text){
+  const k = cjkScriptOf(text);
+  if(!k) return family;
+  const parts = splitFamilyList(family), at = parts.findIndex(p=>GENERIC_FAMILIES.has(p.toLowerCase()));
+  parts.splice(at < 0 ? parts.length : at, 0, cjkReserveFor(k));
+  return parts.join(", ");
+}
+/* Kinsoku: signos que no pueden abrir línea ni cerrarla (con \u: no son texto de interfaz y el escáner de textos sin migrar no debe verlos). */
+const CJK_NO_LINE_START = new Set([..."\u3001\u3002\uFF0C\uFF0E\u30FB\uFF1A\uFF1B\uFF01\uFF1F\uFF09\u3015\uFF3D\uFF5D\u3009\u300B\u300D\u300F\u3011\u3019\u3017\u301F\u2019\u201D\u309D\u309E\u3005\u30FC\u3041\u3043\u3045\u3047\u3049\u3063\u3083\u3085\u3087\u308E\u30A1\u30A3\u30A5\u30A7\u30A9\u30C3\u30E3\u30E5\u30E7\u30EE\u30F5\u30F6\u2010\u30A0\u2013\u301C\uFF5E\u2026\u2025),.;:!?]}%"]);
+const CJK_NO_LINE_END = new Set([..."\uFF08\u3014\uFF3B\uFF5B\u3008\u300A\u300C\u300E\u3010\u3018\u3016\u301D\u2018\u201C([{"]);
+function messageUnits(text, kind){
+  /* palabras: Intl.Segmenter (diccionario ja/zh); sin él, tiradas no CJK y un carácter por glifo CJK */
+  try{
+    if(typeof Intl!=="undefined" && typeof Intl.Segmenter==="function"){
+      const seg = new Intl.Segmenter(kind==="zh" ? "zh" : "ja", {granularity:"word"});
+      return [...seg.segment(text)].map(x=>x.segment);
+    }
+  }catch(e){}
+  return text.match(/[^\s⺀-〿぀-ヿ㄀-ㄯㆠ-ㇿ㐀-䶿一-鿿豈-﫿︰-﹏＀-￯]+|\s+|[^]/gu) || [];
+}
+function messageGraphemes(text){
+  try{
+    if(typeof Intl!=="undefined" && typeof Intl.Segmenter==="function")
+      return [...new Intl.Segmenter(undefined, {granularity:"grapheme"}).segment(text)].map(x=>x.segment);
+  }catch(e){}
+  return Array.from(text);
+}
+/* Líneas de un mensaje que caben en `limit` px. Sin CJK: el algoritmo de siempre (palabras separadas por espacios; una palabra
+   más ancha que la caja no se parte). Con CJK: palabras de Intl.Segmenter; una palabra que no cabe sola se parte por grafema;
+   los espacios se conservan dentro de la línea y se descartan en el corte; kinsoku al cortar. Sin pérdida: las líneas, sin
+   espacios, son el mensaje sin espacios. */
+function wrapCueMessage(message, limit, measureLine){
+  const text = String(message==null ? "" : message);
+  if(!CJK_TEXT_RE.test(text)){
+    const lines = [];
+    let line = "";
+    for(const w of text.split(/\s+/).filter(Boolean)){
+      const test = line ? line + " " + w : w;
+      if(measureLine(test) > limit && line){ lines.push(line); line = w; }
+      else line = test;
+    }
+    if(line) lines.push(line);
+    return lines;
+  }
+  const kind = cjkScriptOf(text);
+  const units = [];
+  for(const u of messageUnits(text.trim().replace(/\s+/g," "), kind)){
+    if(/^\s+$/.test(u)){ units.push(" "); continue; }
+    if(measureLine(u) <= limit) units.push(u);
+    else units.push(...messageGraphemes(u));       // ni sola cabe: por grafema
+  }
+  const first = s=>messageGraphemes(s)[0] || "";
+  const last = s=>{ const g = messageGraphemes(s); return g[g.length-1] || ""; };
+  const lines = [];
+  let line = "", pendingSpace = false;
+  for(const u of units){
+    if(u === " "){ if(line) pendingSpace = true; continue; }
+    const joined = line + (pendingSpace ? " " : "") + u;
+    if(!line || measureLine(joined) <= limit){ line = joined; pendingSpace = false; continue; }
+    /* corte antes de `u`: si abriría la línea con un signo de cierre o dejaría uno de apertura al final, se arrastra el último
+       grafema de la línea a la siguiente (como máximo 3 veces y solo si cabe) */
+    let carry = u;
+    for(let i = 0; i < 3 && messageGraphemes(line).length > 1; i++){
+      if(!(CJK_NO_LINE_START.has(first(carry)) || CJK_NO_LINE_END.has(last(line)))) break;
+      const g = last(line);
+      if(measureLine(g + carry) > limit) break;
+      line = line.slice(0, line.length - g.length);
+      carry = g + carry;
+    }
+    lines.push(line.replace(/\s+$/,""));
+    line = carry; pendingSpace = false;
+  }
+  if(line) lines.push(line);
+  return lines;
+}
 /* Layout puro de símbolo + mensaje de un nodo (sin dibujar). `measure(text,font)`
    devuelve el ancho en px. Símbolo y mensaje se componen juntos: nunca se
    superponen. Devuelve rectángulos en coordenadas de mundo. */
@@ -340,15 +478,8 @@ function computeNodeCueLayout(n, fx, token, measure, offset){
     const pad = NODE_CUE_PAD;
     const center = st.position === "center";
     const maxW = center ? Math.max(96, n.w - 10) : Math.min(260, Math.max(140, n.w + 60));
-    const font = st.weight + " " + st.px + "px " + st.family;
-    const lines = [];
-    let line = "";
-    for(const w of String(fx.message).split(/\s+/).filter(Boolean)){
-      const test = line ? line + " " + w : w;
-      if(measure(test,font) > maxW - pad*2 && line){ lines.push(line); line = w; }
-      else line = test;
-    }
-    if(line) lines.push(line);
+    const font = st.weight + " " + st.px + "px " + withCjkReserve(st.family, fx.message);
+    const lines = wrapCueMessage(fx.message, maxW - pad*2, text=>measure(text,font));
     const lineH = Math.round(st.px * 1.3);
     const w = Math.min(maxW, Math.max(0, ...lines.map(l=>measure(l,font))) + pad*2);
     const h = lines.length*lineH + pad*2 - 2;
@@ -1395,8 +1526,9 @@ function render(c,t,opts={}){
   if(P().nodes.length===0 && !vp.presenting){
     c.fillStyle=theme==="crema"?"#00000055":"#ffffff44";
     /* voz editorial del chrome (css/system.css); sin ella cargada, cae a la serif del sistema */
-    c.font=(20/vp.zoom)+'px "Playfair Display", Georgia, serif'; c.textAlign="center";
-    c.fillText(opts.emptyHint ?? "Elige una forma o icono a la izquierda y haz clic aquí — o pulsa «Ejemplo»", (cw/2 - vp.x) / vp.zoom, (ch/2 - vp.y) / vp.zoom);
+    const emptyHint = opts.emptyHint ?? "Elige una forma o icono a la izquierda y haz clic aquí — o pulsa «Ejemplo»";
+    c.font=(20/vp.zoom)+'px '+withCjkReserve('"Playfair Display", Georgia, serif', emptyHint); c.textAlign="center";
+    c.fillText(emptyHint, (cw/2 - vp.x) / vp.zoom, (ch/2 - vp.y) / vp.zoom);
   }
 
   c.restore();

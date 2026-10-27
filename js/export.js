@@ -198,7 +198,7 @@ function svgTextWidth(text, fs, family, bold){
    del mismo motor de fuentes que usa el lienzo. */
 function measureSvgLabel(n,fo){
   const lines=String(n.label==null?"":n.label).split("\n");
-  const family=(fo&&fo.family)||n.font||settings.font||DEFAULT_FONT, bold=!!n.bold;
+  const family=withCjkReserve((fo&&fo.family)||n.font||settings.font||DEFAULT_FONT, n.label), bold=!!n.bold;
   return fs=>Math.max(...lines.map(l=>svgTextWidth(l,fs,family,bold)),1);
 }
 function svgNodeFill(n, theme){
@@ -216,7 +216,8 @@ const SVG_ANCHOR={left:"start", right:"end", center:"middle"};
 function svgLabelLines(n, theme, fo){
   if(!n.label) return "";
   const T=THEMES[theme];
-  const family=(fo&&fo.family)||n.font||settings.font||DEFAULT_FONT, bold=!!n.bold;
+  /* FLUYO-I18N-002 S4: con texto CJK, reserva tipográfica detrás de la pila del documento (como el lienzo); sin CJK, igual que antes. */
+  const family=withCjkReserve((fo&&fo.family)||n.font||settings.font||DEFAULT_FONT, n.label), bold=!!n.bold;
   const weightAttr=bold? ' font-weight="bold"' : (fo&&fo.weight? ` font-weight="${fo.weight}"` : "");
   const {lines, fs, lh, tx, align, baseY}=labelLayout(n, measureSvgLabel(n,fo));
   const anchor=SVG_ANCHOR[align];
@@ -379,7 +380,7 @@ function renderConnectorToSVG(e, theme, skinOn){
   }
   if(e.label){
     const m=labelPointFor(e,pts), efs=edgeLabelFs(e);
-    const family=e.font||settings.font||DEFAULT_FONT, bold=!!e.bold;
+    const family=withCjkReserve(e.font||settings.font||DEFAULT_FONT, e.label), bold=!!e.bold;
     const tw=svgTextWidth(e.label, efs, family, bold);
     const rx=(m.x-tw/2-6).toFixed(2), ry=(m.y-efs*.85).toFixed(2);
     parts.push(`<rect x="${rx}" y="${ry}" width="${(tw+12).toFixed(2)}" height="${(efs*1.7).toFixed(2)}" fill="${escapeAttribute(T.lblBg)}"/>`);
@@ -402,7 +403,7 @@ function buildSVGDocument(scale=1, skin){
      usuario las vio. */
   edgeLabelPos=placeEdgeLabels(e=>{
     const efs=edgeLabelFs(e);
-    return {w:svgTextWidth(e.label, efs, e.font||settings.font||DEFAULT_FONT, !!e.bold), h:efs*1.7};
+    return {w:svgTextWidth(e.label, efs, withCjkReserve(e.font||settings.font||DEFAULT_FONT, e.label), !!e.bold), h:efs*1.7};
   });
   /* FLUYO-019-HIT-TEST-D6: con la piel, las mismas capas que el lienzo (containmentPaintOrder): contenedores → conexiones →
      hojas. En plano, o con la piel y sin contenedores, el SVG de siempre byte a byte. */
@@ -466,10 +467,17 @@ $("exGo").onclick=()=>{
   const tr=$("exTr").checked;
   waitForRenderFonts(doc).then(()=>{ if(fmt==="gif") exportGIF(scale, tr, skin); else exportStatic(fmt, scale, tr, skin); });
 };
+/* FLUYO-I18N-002 S4: un canvas suelto (PNG, JPG, GIF) no hereda <html lang>, y sin idioma el navegador elige otra fuente para el
+   japonés y el chino que la del lienzo visible (que sí lo hereda): el texto saldría distinto en el archivo. Se le copia el idioma. */
+function copyPageLang(canvas){
+  const root=typeof document!=="undefined" ? document.documentElement : null;
+  if(root && root.lang) canvas.lang=root.lang;
+}
 function exportStatic(fmt,scale,transparent,skin){
   const b = getBounds();
   const w=Math.round(b.w*scale), h=Math.round(b.h*scale);
   const off=document.createElement("canvas"); off.width=w; off.height=h;
+  copyPageLang(off);
   const oc=off.getContext("2d");
   oc.save(); oc.scale(scale,scale); oc.translate(-b.x, -b.y);
   render(oc, now(), {export:true, skin, transparent: fmt==="png"&&transparent, bounds:b, renderState: makeReadOnlyRenderState({width: off.width, height: off.height})});
@@ -542,6 +550,7 @@ async function exportGIF(scale, transparent, skin){
     const b = getBounds();
     const w=Math.round(b.w*scale), h=Math.round(b.h*scale);
     const off=document.createElement("canvas"); off.width=w; off.height=h;
+    copyPageLang(off);
     const oc=off.getContext("2d");
     const keyNum = doc.theme==="crema"? 0xfefdfc : 0x010101;
     const keyCss = doc.theme==="crema"? "#fefdfc" : "#010101";

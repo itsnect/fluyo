@@ -24,7 +24,7 @@ const NORMALIZES_HEX = ["  if(skinHexRGB(c)) return c;", '  if(skinHexRGB(c)) re
 const BASE_THEME = ["  const col=skinColor(color, base) || PALETTE[0].c;", "  const col=skinColor(color, T.bg) || PALETTE[0].c;"];   // ignora customBg
 /* [nombre, suite, archivo, desde, hasta] */
 const MUTATIONS = [
-  ["U0 CACHE no sube (sigue v86)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v111";', 'const CACHE = "fluyo-static-v86";'],
+  ["U0 CACHE no sube (sigue v86)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v112";', 'const CACHE = "fluyo-static-v86";'],
   ["U1 #rrggbbaa se trata como ilegible", UNIT, SKIN, ...NO_ALPHA],
   ["U2 #rrggbbaa descarta el alfa", UNIT, SKIN, ...DROP_ALPHA],
   ["U3 composición invertida (α ↔ 1−α)", UNIT, SKIN, ...ALPHA_INVERTED],

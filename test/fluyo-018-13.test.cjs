@@ -26,7 +26,7 @@ test("tipografías: woff2 locales, licencia OFL incluida y @font-face sin tercer
   const srcs = [...sys.matchAll(/src:url\("([^"]+)"\)/g)].map((m) => m[1]);
   assert.deepEqual(srcs.map((s) => s.replace("../assets/fonts/", "")).sort(), [...FONTS].sort(), "un @font-face por archivo, todos en assets/fonts");
   /* el subset latin cubre el español: ñ, tildes, ¿¡ y «» están en U+00A0–00FF; — y … en U+2000–206F */
-  for (const m of sys.matchAll(/unicode-range:([^;]+);/g)) assert.match(m[1], /U\+0000-00FF.*U\+2000-206F/);
+  for (const m of sys.matchAll(/src:url\([^)]*\)[^}]*?unicode-range:([^;]+);/g)) assert.match(m[1], /U\+0000-00FF.*U\+2000-206F/);   // (FLUYO-I18N-002 S4: las caras local() de la puntuación CJK no son latín)
   for (const f of ["index.html", "css/system.css", "css/styles.css", "css/identity.css"]) {
     assert.ok(!/fonts\.googleapis|fonts\.gstatic|use\.typekit|fonts\.bunny/i.test(read(f)), f + " no pide fuentes a terceros");
   }
@@ -35,7 +35,7 @@ test("tipografías: woff2 locales, licencia OFL incluida y @font-face sin tercer
 
 test("sw.js: CACHE v72, system.css y las tres fuentes precacheadas; nada de index.html queda fuera", () => {
   const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v111";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v112";/);
   const core = sw.slice(sw.indexOf("const ASSETS"), sw.indexOf("const PAGE_ASSETS"));
   for (const a of ["./css/system.css", ...FONTS.map((f) => "./assets/fonts/" + f)]) assert.ok(core.includes('"' + a + '"'), a + " en ASSETS (núcleo)");
   const html = read("index.html");

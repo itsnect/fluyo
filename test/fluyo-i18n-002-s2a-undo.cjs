@@ -478,7 +478,10 @@ const PIECES = {
     ]
   ]
 };
+/* FLUYO-I18N-002 S4 va encima de S2a: se deshace primero (fluyo-i18n-002-s4-undo.cjs). */
+const { undoS4 } = require("./fluyo-i18n-002-s4-undo.cjs");
 function undoS2a(file, src) {
+  src = undoS4(file, src);
   const f = file.replace(/\\/g, "/"), pieces = PIECES[f];
   if (!pieces) return src;
   let out = src.replace(/\r\n/g, "\n");

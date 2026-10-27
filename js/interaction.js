@@ -964,7 +964,7 @@ function editBoxGeometry(o){
     const nLines=String(o.label||"").split("\n").length;
     ctx.font=objFont(o,fs);
     const w=Math.max(140, ctx.measureText(String(o.label||"")).width+60);
-    return {fs, lh, fam, peso, align:"center",
+    return {fs, lh, fam:withCjkReserve(fam,o.label), peso, align:"center",
             x:m.x-w/2, y:m.y-lh/2, w, h:nLines*lh,
             color:THEMES[doc.theme].edgeLbl};
   }
@@ -974,7 +974,7 @@ function editBoxGeometry(o){
   if(fo){ fam=fo.family; peso=o.bold? "bold" : fo.weight; }
   const L=labelLayout(o, measureNodeLabel(ctx,o,fo));
   const color=o.textColor || ((o.shape==="text"||o.shape==="anim")? o.color : THEMES[doc.theme].text);
-  return {fs:L.fs, lh:L.lh, fam, peso, align:L.align,
+  return {fs:L.fs, lh:L.lh, fam:withCjkReserve(fam,o.label), peso, align:L.align,
           x:L.boxX, y:L.boxY, w:L.boxW, h:L.boxH, color};
 }
 /* Escribe la geometría en el elemento. Se llama al abrir, en cada `input` y

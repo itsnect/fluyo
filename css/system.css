@@ -158,6 +158,51 @@
    palabra latina dentro de un rótulo japonés o chino («Fluyo», un nombre del autor) no salga en mayúsculas. */
 :root:lang(ja) *, :root:lang(zh) *{ text-transform:none !important; }
 
+/* ===================== Escritura por idioma, S4 (FLUYO-I18N-002) =====================
+   Decisiones D-S4-1…10 (PO). Fuentes SOLO del sistema: nada de web-fonts CJK. Todo lo de abajo cuelga de :lang(ja) / :lang(zh) o de
+   tokens nuevos, así que español, inglés y francés no cambian ni un píxel.
+   · --font-cjk-ja / --font-cjk-zh: la reserva de cada escritura por separado. La del lienzo (js/render.js, js/export.js) las lee de
+     aquí para elegir por TEXTO (kana → japonés; solo han → el idioma de la interfaz), y un test las compara con las de render.js. */
+:root{
+  --font-cjk-ja:"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic UI","Yu Gothic",Meiryo,"Noto Sans CJK JP","Noto Sans JP","Source Han Sans JP";
+  --font-cjk-zh:"PingFang SC","Hiragino Sans GB","Microsoft YaHei UI","Microsoft YaHei","Noto Sans CJK SC","Noto Sans SC","Source Han Sans SC";
+}
+/* Puntuación: Plex (unicode-range U+2000–206F) pintaba “ ” ‘ ’ … — a 0,6 em dentro de frases japonesas y chinas. Estas dos caras locales
+   (sin descarga: local() no pide nada a la red) llevan esos signos a la fuente CJK del sistema, y van delante de Plex/Playfair solo
+   bajo :lang(ja)/:lang(zh). Si ningún nombre local existe, la cara no se carga y todo sigue como antes. */
+@font-face{
+  font-family:"Fluyo Punct JA"; font-style:normal; font-weight:400;
+  src:local("Yu Gothic UI Regular"),local("YuGothicUI-Regular"),local("Yu Gothic UI"),local("Hiragino Sans W3"),local("HiraginoSans-W3"),local("Noto Sans CJK JP"),local("Noto Sans JP");
+  unicode-range:U+2014,U+2018-201D,U+2026;
+}
+@font-face{
+  font-family:"Fluyo Punct ZH"; font-style:normal; font-weight:400;
+  src:local("Microsoft YaHei UI"),local("PingFang SC"),local("PingFangSC-Regular"),local("Noto Sans CJK SC"),local("Noto Sans SC");
+  unicode-range:U+2014,U+2018-201D,U+2026;
+}
+:root:lang(ja){
+  --font-mono:"Fluyo Punct JA","IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,var(--font-cjk),monospace;
+  --font-serif:"Fluyo Punct JA","Playfair Display","Iowan Old Style","Palatino Linotype",Palatino,var(--font-cjk),serif;
+  line-break:strict; word-break:auto-phrase;   /* corte japonés por frases donde el navegador lo sabe (Chrome ≥ 119); si no, el corte nativo */
+}
+:root:lang(zh){
+  --font-mono:"Fluyo Punct ZH","IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,var(--font-cjk),monospace;
+  --font-serif:"Fluyo Punct ZH","Playfair Display","Iowan Old Style","Palatino Linotype",Palatino,var(--font-cjk),serif;
+  line-break:strict;
+}
+/* YaHei UI solo trae 300/400/700: el 500 de rótulos y botones se pintaba como 400 y se perdía la jerarquía. En chino suben a 600
+   (negrita real de YaHei); el latín de Plex, que no tiene 600, usa su 500 sin negrita sintética. Japonés no cambia: Yu Gothic UI
+   tiene Semibold. */
+:root:lang(zh) :is(body > header button, body > header select, #bottomBar button, .touchBar button, .kicker, .menuKicker, .tabs > button, .tabBtn, .badge, .seg > .segBtn, .pgroup > summary, kbd){
+  font-weight:600; font-synthesis-weight:none;
+}
+/* Tooltips: nowrap sin tope. En japonés y chino parten y no pasan del ancho de la ventana. */
+@media (hover:hover){
+  :root:is(:lang(ja), :lang(zh)) [data-tip]:is(:hover, :focus-visible)::after{
+    width:max-content; max-width:min(280px, calc(100vw - 24px)); white-space:normal; overflow-wrap:anywhere; line-height:1.4;
+  }
+}
+
 /* Material inverso: lo que flota sobre el lienzo en Present (mando y rótulo). Por id además de por clase:
    present-story.js reescribe el className del mando en cada fase. */
 .inverse, #presentBar, #presentStory{

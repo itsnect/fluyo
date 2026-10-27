@@ -390,8 +390,8 @@ test("alcance · frente a eff5129 solo cambian render.js, interaction.js, geomet
     "s/index.html", "css/styles.css", "css/system.css", "css/identity.css", "css/share.css", "manifest.webmanifest"])
     if (fs.existsSync(path.join(root, f))) assert.equal(undo3(f, read(f)), atBase(f), f + " idéntico");
   const sw = undo3("sw.js", read("sw.js"));
-  assert.match(sw, /const CACHE = "fluyo-static-v111";/);
-  assert.equal(sw.replace('"fluyo-static-v111"', '"fluyo-static-v' + (95 - 1) + '"'), atBase("sw.js"), "sw.js: solo sube CACHE (sin archivos nuevos)");
+  assert.match(sw, /const CACHE = "fluyo-static-v112";/);
+  assert.equal(sw.replace('"fluyo-static-v112"', '"fluyo-static-v' + (95 - 1) + '"'), atBase("sw.js"), "sw.js: solo sube CACHE (sin archivos nuevos)");
   /* geometry.js: solo el parámetro `lift` de connectPortPoint (por defecto 0: en plano el mismo punto) */
   const g = read("js/geometry.js");
   assert.match(g, /function connectPortPoint\(n, side, zoom, lift=0\)\{\n  const p=sidePoint\(n,side\), d=DIR\[side\], off=lift\+CONNECT_PORT_OFF\/\(zoom\|\|1\);/);

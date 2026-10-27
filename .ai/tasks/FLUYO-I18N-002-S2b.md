@@ -1,8 +1,8 @@
 # FLUYO-I18N-002 · S2b — El texto de la reproducción y los nombres sembrados de Historia, con el kernel intacto para el MCP
 
-Estado: **IMPLEMENTADA Y VERIFICADA EN LOCAL, SIN COMMIT NI DEPLOY** (2026-10-27). Pendiente del OK del PO para commitear los dos repos y
-desplegar el MCP.
-Base: `main` = `86d910a` (S4, commiteada; `CACHE` v112). S2b usa **`CACHE` v113**. `fluyo-mcp` parte de `24a537d`.
+Estado: **CLOSED / VERIFIED / IN PRODUCTION** (2026-10-27): fluyo `be050f8` (`CACHE` v113) y fluyo-mcp `464f4e0` (Cloud Run
+`fluyo-mcp-00035-qvg`, 100 %). Ver «Publicación».
+Base: `main` = `86d910a` (S4; `CACHE` v112). S2b usa **`CACHE` v113**. `fluyo-mcp` partía de `24a537d`.
 Decisiones del PO: D-S2-1…7 (289–295) y N1–N3 (2026-10-27); registradas como **296–299**.
 
 > Repo público: solo contenido técnico.
@@ -72,11 +72,24 @@ Servidos (`CACHE` v112 → **v113**; sin archivos nuevos; `ASSETS` y `VIEWER_ASS
 Nodos `code` con celdas dobles y `xml:lang` + `safe-svg.js` (S4 los dejó para otra resincronización; decisión 298), S3 (otros valores
 sembrados, `config.js`), S5 (fr/ja/zh), S6, S7, Propiedades.
 
+## Publicación — CLOSED / VERIFIED / IN PRODUCTION (2026-10-27)
+
+- Commit `be050f8` de fluyo (100 archivos) y `464f4e0` de fluyo-mcp (solo `kernel-sources.ts` y el test nuevo). Push sin force
+  (`86d910a..be050f8`, `24a537d..464f4e0`).
+- **Kernel:** `sync:kernel` desde `be050f8` (estampa definitiva). `KERNEL_ID` `4dfe7dc6…` → `f1fe2c32c26615c62db225442e55534db6df5ebb374152abf3c6696d88a30fcc`.
+  Solo cambian `model.js` (`a09ba5a7…`) y `story-playback.js` (`a444ce71…`); `check:kernel` OK.
+- **MCP:** `npm test` 919/919; Cloud Run `fluyo-mcp-00035-qvg` (antes `00034-h2n`); `verify-deploy.sh` **21/21**; smoke de producción **8/8**
+  (`kernelId` publicado = el del repositorio; `create_story` y `duplicate_story` siguen sembrando en español, con su recorte a 120;
+  `run_story` y `describe_document` sin proveedor: «Elemento sin nombre», estados por código).
+- **fluyo.space:** sirve `fluyo-static-v113`; los 83 archivos servidos comparados (JS, CSS, HTML, manifest, assets y páginas) son
+  **idénticos** a `be050f8`.
+- **Chrome de producción** (`test/fluyo-i18n-002-s2b-browser.cjs` contra https://fluyo.space, telemetría bloqueada, más SW v113 sin red):
+  **38 ✔ · 0 ✘**: español idéntico a `326872e` (reproducciones, error de arranque, documento, hoja píxel a píxel, Present, Viewer, nombres),
+  inglés (`Not completed · Banco is unavailable`, `Playback finished · 1 step couldn't run`, `Story 1`, `Story 1 copy`), fr → inglés, Share → Viewer y
+  offline.
+- Suite de fluyo tras el commit: 1 748 tests, 81 fallos = los mismos de la base por nombre, 0 nuevos. Con S2b commiteada,
+  `.ai/DECISIONS.md` lleva también las decisiones 277–295 (estaban sin commitear).
+
 ## Handoff
 
-- Con el OK del PO: commit de `fluyo` (solo los archivos de arriba, los tests de S2b y los ajustados, `.ai/DECISIONS.md` y
-  `.ai/ARCHITECTURE.md`; los `.ai/tasks/*` de otras sesiones quedan fuera), **después** `npm run sync:kernel` en `fluyo-mcp` (para que la
-  revisión estampada sea la del commit; el contenido y el `kernelId` no cambian), commit del MCP, push de los dos, despliegue del MCP
-  (`deploy mcp.bat`) y comprobación (`verify` y un smoke del kernel publicado).
-- Hasta desplegar el MCP, el `kernelId` publicado no coincide con el del repo (como en KERNEL-SYNC-001).
-- Siguiente: S3a (sin kernel) o la resincronización con `code` y `xml:lang`.
+- Siguiente: S3a (sin kernel, `CACHE` v114) o la resincronización del kernel con `code` y `xml:lang` (decisión 298).

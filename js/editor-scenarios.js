@@ -395,12 +395,23 @@ function scSelectStory(id) {
   scFlowPending = null;
 }
 
+/* FLUYO-I18N-002 S2b (K1, decisión 283): los nombres que siembra el kernel nacen en el idioma de la interfaz de quien crea («Story 2»,
+   «Story 1 copy») y después son contenido del autor: nunca se retraducen. La regla (nombre único, recorte a 120) sigue siendo
+   la de model.js. */
+function scSeedNames() {
+  return {
+    story: (n) => FluyoI18n.t("seed.story", "Historia {n}", { n }),
+    copy: (name) => FluyoI18n.t("seed.storyCopy", "{name} copia", { name }),
+    copyN: (name, n) => FluyoI18n.t("seed.storyCopyN", "{name} copia {n}", { name, n })
+  };
+}
+
 function scNewScenario() {
   if (isScenarioPlaybackActive()) scReset();
   scCancelPlacement();
   const pg = P();
   pushUndo();
-  const sc = createScenario(pg, defaultScenarioName(pg));
+  const sc = createScenario(pg, defaultScenarioName(pg, scSeedNames()));
   scSelectStory(sc.id);
   scheduleAutosave();
   scRenderPanel();
@@ -414,7 +425,7 @@ function scDuplicateScenario() {
   scCancelPlacement();
   const pg = P();
   pushUndo();
-  const copy = duplicateScenario(pg, src.id);
+  const copy = duplicateScenario(pg, src.id, scSeedNames());
   scSelectStory(copy.id);
   scheduleAutosave();
   scRenderPanel();
@@ -542,7 +553,7 @@ function scRun(opts) {
      cambian la receta, que sigue siendo una sola, compartida con Present y el Viewer (story-playback.js). */
   scClock = typeof FluyoStoryClock !== "undefined" ? FluyoStoryClock.create() : null;
   /* FLUYO-018.21: la misma receta + el instante visible de cada momento (dependencias de llegada, story-clock.js) */
-  const started = typeof FluyoStoryClock !== "undefined" ? FluyoStoryClock.start(P(), sc, scNow()) : FluyoStory.start(P(), sc, scNow());
+  const started = typeof FluyoStoryClock !== "undefined" ? FluyoStoryClock.start(P(), sc, scNow(), FluyoI18n.t) : FluyoStory.start(P(), sc, scNow(), FluyoI18n.t);
   if (!started.ok) {
     scErrors = started.errors;
     scRenderErrors();
@@ -1000,7 +1011,7 @@ function scRenderNow() {
   const on = scStatus !== "idle" && !!scPlayback && !!sc;
   let label = "", caption = "", progress = "", narrated = false;
   if (on) {
-    const d = (typeof FluyoStoryClock !== "undefined" ? FluyoStoryClock : FluyoStory).describe(scStatus === "running" ? "playing" : "finished", sc, scPlayback, (id) => scNodeFallback(id), (id) => edgeById(id));
+    const d = (typeof FluyoStoryClock !== "undefined" ? FluyoStoryClock : FluyoStory).describe(scStatus === "running" ? "playing" : "finished", sc, scPlayback, (id) => scNodeFallback(id), (id) => edgeById(id), FluyoI18n.t);
     label = scStatus === "running" ? (scIsPaused() ? FluyoI18n.t("story.paused", "En pausa") : FluyoI18n.t("stories.playing", "Reproduciendo")) : FluyoI18n.t("stories.finishedShort", "Terminada");
     caption = scStatus === "running" ? (d.caption ? d.title + " · " + d.caption : d.title) : d.summary ? d.caption + " · " + d.summary : d.caption;
     progress = d.moments.length > 1 ? FluyoI18n.t("stories.progress", "{n} / {total}", { n: Math.max(0, d.idx + 1), total: d.moments.length }) : "";
@@ -1905,7 +1916,7 @@ function scEditStepMessage(id, anchor) {
   input.value = own || "";
   input.maxLength = STEP_MESSAGE_MAX_LEN;
   /* de ejemplo, lo que se lee hoy: el globo del evento o, si no lo tiene (o es un envío), su frase */
-  const now = !send && fx?.message ? fx.message : et ? FluyoStory.sentence(P(), step, et) : "";
+  const now = !send && fx?.message ? fx.message : et ? FluyoStory.sentence(P(), step, et, FluyoI18n.t) : "";
   if (now) input.placeholder = now;
   label.appendChild(input);
   p.append(label, scEl("p", "", send
@@ -3169,7 +3180,7 @@ function scApplyTargets(id, targets) {
   let created = false;
   if (!sc) {
     const pg = P();
-    sc = createScenario(pg, defaultScenarioName(pg));
+    sc = createScenario(pg, defaultScenarioName(pg, scSeedNames()));
     scSelectStory(sc.id);
     created = true;
   }

@@ -178,7 +178,7 @@ function storyPlay(){
   storyReset();
   const clock=FluyoStoryClock.create();
   /* FLUYO-018.21: la misma receta + el instante visible de cada momento (dependencias de llegada) */
-  const started=FluyoStoryClock.start(P(), sc, FluyoStoryClock.now(clock, performance.now()));
+  const started=FluyoStoryClock.start(P(), sc, FluyoStoryClock.now(clock, performance.now()), FluyoI18n.t);
   if(!started.ok){ storyError=started.errors[0]||null; storyRefresh(); return; }
   story={scenario:sc, playback:started.playback, status:"running", clock};
   followOn=true; followKey=null;
@@ -351,7 +351,7 @@ function storyRefresh(){
   if(!sc) return;
   const paused=storyPaused();
   const phase=!story ? "ready" : story.status==="running" ? "playing" : "finished";
-  const d=FluyoStoryClock.describe(phase, sc, story && story.playback, storyNodeName, id=>edgeById(id));
+  const d=FluyoStoryClock.describe(phase, sc, story && story.playback, storyNodeName, id=>edgeById(id), FluyoI18n.t);
   storySet("stKicker","text",phase==="ready" ? FluyoI18n.t("story.group","Historia") : FluyoI18n.t("story.kicker","Historia · {name}",{name:sc.name}));
   storySet("stTitle","text",d.title);
   /* PRODUCT-NARRATION-001 (D-PO-2): solo el título con una frase del autor puede crecer en vez de cortarse (share.css) */

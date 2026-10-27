@@ -30,7 +30,7 @@ const EXPORT_IGNORES_DOC = ['  $("exSkin").value = projectSkin(settings);', '  $
 const EXPORT_WRITES_DOC = ['  const fmt=$("exFmt").value, scale=+$("exRes").value, skin=$("exSkin").value==="built"? "built" : "flat";', '  const fmt=$("exFmt").value, scale=+$("exRes").value, skin=$("exSkin").value==="built"? "built" : "flat"; if(skin==="built") settings.skin="built"; else delete settings.skin;'];
 /* [nombre, suite, archivo, desde, hasta] */
 const MUTATIONS = [
-  ["U0 CACHE no sube (sigue v85)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v112";', 'const CACHE = "fluyo-static-v85";'],
+  ["U0 CACHE no sube (sigue v85)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v113";', 'const CACHE = "fluyo-static-v85";'],
   ["U1 la carga persiste \"flat\" (los documentos antiguos cambian al guardarse)", UNIT, MODEL, ...PERSIST_FLAT],
   ["U2 la carga acepta cualquier string (lista abierta)", UNIT, MODEL, ...ANY_STRING],
   ["U3 la carga acepta \"BUILT\" (lista no exacta)", UNIT, MODEL, ...CASE_INSENSITIVE],

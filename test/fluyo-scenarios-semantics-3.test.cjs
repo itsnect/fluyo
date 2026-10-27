@@ -502,7 +502,7 @@ test("D2 · carga: el editor carga flow-semantics.js (tras story-clock.js) y lo 
   assert.ok(i("story-clock.js") < i("flow-semantics.js") && i("flow-semantics.js") < i("editor-scenarios.js") && i("flow-semantics.js") > 0);
   assert.ok(!undo4("s/index.html", read("s/index.html")).includes("flow-semantics"), "Viewer sin cambios en FASE 3 (lo carga FASE 5: undo5, dentro de undo4)");
   const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v112";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v113";/);
   assert.ok(sw.includes('"./js/story-clock.js",\n  "./js/flow-semantics.js",\n  "./js/document-integrity.js",'));
 });
 
@@ -534,7 +534,7 @@ test("D5 · undo3 (para los alcances de slices anteriores) deshace EXACTAMENTE F
   const { undoReverseUi } = require("./fluyo-step-reverse-003-undo.cjs");   /* y 003 encima de 002 */
   for (const f of Object.keys(REGIONS)) {
     let back = undo3(f, undoReverse(f, undoReverseUi(f, undo4(f, read(f)))));
-    if (f === "sw.js") back = back.replace('"fluyo-static-v112"', '"fluyo-static-v' + (96 - 1) + '"');
+    if (f === "sw.js") back = back.replace('"fluyo-static-v113"', '"fluyo-static-v' + (96 - 1) + '"');
     assert.equal(back, atBase(f), f);
   }
 });

@@ -36,7 +36,7 @@ const UI_NO_SYNC = ['function syncArrowSeg(e){ const v=arrowsOf(e); segSync("arr
 const RENDER_ZOOM = ["  for(const h of stroke.heads){ c.beginPath(); traceSegments(c,h); c.fill(); }", "  for(const h of stroke.heads){ c.save(); c.translate(h[0].x,h[0].y); c.scale(1/zoom,1/zoom); c.translate(-h[0].x,-h[0].y); c.beginPath(); traceSegments(c,h); c.fill(); c.restore(); }"];
 /* [nombre, suite, archivo, desde, hasta] */
 const MUTATIONS = [
-  ["U0 CACHE no sube (sigue v85)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v112";', 'const CACHE = "fluyo-static-v85";'],
+  ["U0 CACHE no sube (sigue v85)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v113";', 'const CACHE = "fluyo-static-v85";'],
   ["U1 edgeStroke ignora arrowSize", UNIT, GEO, ...IGNORE],
   ["U2 la escala se invierte (2× = la mitad)", UNIT, GEO, ...INVERT],
   ["U3 solo escala el largo", UNIT, GEO, ...ONLY_LEN],

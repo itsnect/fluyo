@@ -579,28 +579,38 @@ function deleteScenario(pg,id){ pg.scenarios=pg.scenarios.filter(sc=>sc.id!==id)
 /* FLUYO-016. Una Historia es un Scenario; estas dos funciones sólo dan nombres y copia al modelo
    (puras, sin DOM ni undo). Los ids de Step son por Scenario: la copia conserva los de sus Steps
    y su contador, pero recibe un id de Scenario nuevo e irreutilizable. */
-function defaultScenarioName(pg){
+/* FLUYO-I18N-002 S2b (K1, decisión 283). Formateador OPCIONAL de los nombres que nacen aquí: `fmt.story(n)` («Historia 3»),
+   `fmt.copy(name)` («X copia») y `fmt.copyN(name,n)` («X copia 2»). Sin él (o sin alguna de sus funciones), el español de siempre,
+   byte a byte: fluyo-mcp no lo pasa. La regla —nombre único, recorte a 120— es UNA y sigue aquí; el recorte se mide con el
+   sufijo ya formateado del idioma. El kernel no conoce ningún idioma: el editor construye `fmt` con su traductor. */
+const SEED_STORY_ES=n=>"Historia "+n;
+const SEED_COPY_ES=name=>name+" copia";
+const SEED_COPYN_ES=(name,n)=>name+" copia "+n;
+function defaultScenarioName(pg,fmt){
+  const story=fmt && typeof fmt.story==="function" ? fmt.story : SEED_STORY_ES;
   const names=new Set((pg.scenarios||[]).map(sc=>sc.name));
   let n=(pg.scenarios||[]).length+1;
-  while(names.has("Historia "+n)) n++;
-  return "Historia "+n;
+  while(names.has(story(n))) n++;
+  return story(n);
 }
-function copyScenarioName(pg,name){
+function copyScenarioName(pg,name,fmt){
+  const copy=fmt && typeof fmt.copy==="function" ? fmt.copy : SEED_COPY_ES;
+  const copyN=fmt && typeof fmt.copyN==="function" ? fmt.copyN : SEED_COPYN_ES;
   const names=new Set(pg.scenarios.map(sc=>sc.name));
-  const clip=base=>base.slice(0,120-" copia 999".length);
+  const clip=base=>base.slice(0,120-Math.max(copy("").length,copyN("",999).length));
   const base=clip(name);
-  let candidate=base+" copia", n=2;
-  while(names.has(candidate)) candidate=base+" copia "+n++;
+  let candidate=copy(base), n=2;
+  while(names.has(candidate)) candidate=copyN(base,n++);
   return candidate;
 }
-function duplicateScenario(pg,id){
+function duplicateScenario(pg,id,fmt){
   const index=pg.scenarios.findIndex(sc=>sc.id===id);
   if(index<0) return null;
   let maxId=0; for(const sc of pg.scenarios) maxId=Math.max(maxId,sc.id);
   const minimum=projectCounter(pg.nextScenarioId,maxId);
   const copy=JSON.parse(JSON.stringify(pg.scenarios[index]));
   copy.id=reserveProjectIds(pg,"nextScenarioId",1,minimum);
-  copy.name=copyScenarioName(pg,pg.scenarios[index].name);
+  copy.name=copyScenarioName(pg,pg.scenarios[index].name,fmt);
   pg.scenarios.splice(index+1,0,copy);
   return copy;
 }

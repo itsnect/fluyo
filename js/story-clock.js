@@ -77,8 +77,8 @@ var FluyoStoryClock = (function(){
     return Object.assign({}, trace, {events:events.map(x=>x.e)});
   }
   /* Empezar una reproducción: la receta única (FluyoStory.start) + el horario visible. */
-  function start(page, scenario, nowReal){
-    const started = FluyoStory.start(page, scenario, nowReal);
+  function start(page, scenario, nowReal, text){
+    const started = FluyoStory.start(page, scenario, nowReal, text);
     if(!started.ok) return started;
     const sch = schedule(scenario, started.playback.stepMeta);
     started.playback.schedule = sch;
@@ -138,8 +138,8 @@ var FluyoStoryClock = (function(){
   }
 
   /* El texto de Present, el Viewer y el editor (FluyoStory.describe) con el momento en curso según el instante VISIBLE. */
-  function describe(phase, scenario, playback, nodeName, edgeEnds){
-    const d = FluyoStory.describe(phase, scenario, playback, nodeName, edgeEnds);
+  function describe(phase, scenario, playback, nodeName, edgeEnds, text){
+    const d = FluyoStory.describe(phase, scenario, playback, nodeName, edgeEnds, text);
     if(phase!=="playing" || !playback || !playback.schedule || !playback.schedule.shifted) return d;
     const idx = momentIndex(playback.schedule.times, playback.cursorVirtual || 0);
     return Object.assign({}, d, {idx, title: idx>=0 && d.moments[idx] && d.moments[idx].label ? d.moments[idx].label : scenario.name});

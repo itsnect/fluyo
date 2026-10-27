@@ -309,7 +309,7 @@ test("carga: diccionario → runtime → config.js en el editor y en el Viewer; 
     assert.ok(at("i18n-en.js") > 0 && at("i18n-en.js") < at("i18n.js") && at("i18n.js") < at("config.js"), page);
   }
   const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v112";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v113";/);
   assert.ok(sw.includes('"./js/i18n-en.js"') && sw.includes('"./js/i18n.js"'));
   assert.doesNotMatch(read("s/index.html"), /<script>(?!\s*$)/, "el Viewer sigue sin script en línea (CSP)");
 });
@@ -330,7 +330,7 @@ test("undoI18n (para los alcances de slices anteriores) devuelve EXACTOS a la ba
   assert.deepEqual(Object.keys(PIECES).sort(), ["index.html", "js/editor-scenarios.js", "js/present-story.js", "js/ui.js", "js/viewer.js", "s/index.html", "sw.js"]);
   for (const f of Object.keys(PIECES)) {
     let out = undoI18n(f, read(f));
-    if (f === "sw.js") out = out.replace('"fluyo-static-v112"', '"fluyo-static-v' + (105 - 1) + '"');
+    if (f === "sw.js") out = out.replace('"fluyo-static-v113"', '"fluyo-static-v' + (105 - 1) + '"');
     assert.equal(out, atBase(f), f);
   }
   assert.deepEqual(NEW_FILES, ["js/i18n.js", "js/i18n-en.js"]);

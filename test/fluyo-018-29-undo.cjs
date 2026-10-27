@@ -42,7 +42,10 @@ const PIECES = {
     ],
   ],
 };
+/* FLUYO-I18N-002 S2b (el proveedor de texto de story-clock.js) va encima de esta tarea: se deshace primero. */
+const { undoS2b } = require("./fluyo-i18n-002-s2b-undo.cjs");
 function undo029(file, src) {
+  src = undoS2b(file, src);
   const f = file.replace(/\\/g, "/"), pieces = PIECES[f];
   if (!pieces) return src;
   let out = src.replace(/\r\n/g, "\n");

@@ -275,7 +275,6 @@ FLUYO_LOCALES.en=Object.assign(FLUYO_LOCALES.en || {}, {
   "stories.unsupported":"This story needs a compatible version of Fluyo.",
   "stories.playing":"Playing",
   "stories.playingAt":"Playing · {time}",
-  "story.finished":"Playback finished",
   "stories.finishedShort":"Finished",
   "stories.progress":"{n} / {total}",
   "stories.rename":"Rename",
@@ -594,5 +593,9 @@ FLUYO_LOCALES.en=Object.assign(FLUYO_LOCALES.en || {}, {
   "confirm.page.noMoments":"no moments",
   "confirm.page.more":{one:"• …and {count} more story", other:"• …and {count} more stories"},
   "confirm.page.loss":"If you delete it, all its content is lost (you can undo with Ctrl+Z). Events in the library are kept.",
-  "confirm.page.askPage":"Delete the page?"
+  "confirm.page.askPage":"Delete the page?",
+  /* FLUYO-I18N-002 S2b · nombres que siembra el kernel (K1, decisión 283): nacen en el idioma de quien crea y después son contenido */
+  "seed.story":"Story {n}",
+  "seed.storyCopy":"{name} copy",
+  "seed.storyCopyN":"{name} copy {n}"
 });

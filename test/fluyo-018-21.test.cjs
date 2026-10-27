@@ -376,13 +376,13 @@ test("alcance: motor, kernel, model.js, render y formato sin cambios; solo story
 });
 test("release: CACHE v79 y story-clock.js en el precache (lo cargan el editor y el Viewer)", () => {
   const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v112";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v113";/);
   assert.ok(sw.includes('"./js/story-clock.js"'));
   assert.ok(read("index.html").includes('<script src="js/story-clock.js"></script>') && read("s/index.html").includes('<script src="../js/story-clock.js"></script>'));
 });
 test("integración: el editor y el Viewer empiezan con FluyoStoryClock.start y navegan por instantes visibles", () => {
   const es = read("js/editor-scenarios.js"), vj = read("js/viewer.js");
-  assert.ok(between(es, "function scRun(opts) {", "\n}\n").includes("FluyoStoryClock.start(P(), sc, scNow())"));
+  assert.ok(between(es, "function scRun(opts) {", "\n}\n").includes("FluyoStoryClock.start(P(), sc, scNow(), FluyoI18n.t)"));
   assert.ok(between(es, "function scMomentNav() {", "\n}\n").includes("FluyoStoryClock.momentTimes(sc, scPlayback)"));
   assert.ok(vj.includes("const started=FluyoStoryClock.start(P(), sc,"));
   assert.ok(vj.includes("FluyoStoryClock.momentTimes(story.scenario, story.playback)"));

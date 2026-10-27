@@ -67,7 +67,7 @@ function literalAt(src, i) {
    señala). `start`/`end` delimitan los argumentos ya leídos, que jsHardcoded no cuenta como texto sin migrar. */
 function calls(src) {
   const out = [];
-  for (const m of src.matchAll(/FluyoI18n\.t\(/g)) {
+  for (const m of src.matchAll(/(?:FluyoI18n\.t|(?<![\w.$])tx)\(/g)) {
     const line = src.slice(0, m.index).split("\n").length;
     const start = m.index + m[0].length;
     let key = null, es = null, end = start;
@@ -192,7 +192,7 @@ function catalog() {
   const uses = [];
   for (const f of jsFiles()) for (const c of calls(read(f))) uses.push({ file: f, line: c.line, key: c.key, es: c.es, raw: c.raw });
   for (const f of HTML_FILES) for (const mk of scanHtml(read(f)).marks) uses.push({ file: f, line: 0, key: mk.key, es: mk.es, raw: mk.where });
-  const callCount = Object.fromEntries(jsFiles().map((f) => [f, (read(f).match(/FluyoI18n\.t\(/g) || []).length]));
+  const callCount = Object.fromEntries(jsFiles().map((f) => [f, (read(f).match(/(?:FluyoI18n\.t|(?<![\w.$])tx)\(/g) || []).length]));
   return { uses, callCount };
 }
 function hardcoded() {

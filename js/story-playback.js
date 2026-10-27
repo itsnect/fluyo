@@ -36,29 +36,40 @@ var FluyoStory = (function(){
     return meta;
   }
 
+  /* FLUYO-I18N-002 S2b. Proveedor de texto OPCIONAL: cada función que compone texto humano acepta, al final, `text(clave, español,
+     params)` (en la interfaz, FluyoI18n.t). Sin él devuelve EXACTAMENTE el español de siempre —lo que ve fluyo-mcp, que no lo
+     pasa— y el kernel no conoce ningún idioma ni ninguna global de la interfaz. `español` es el texto base: un texto, o
+     {one, other} cuando depende de `params.count`; `{param}` se sustituye en una sola pasada (el contenido del autor entra
+     como parámetro y nunca se vuelve a interpretar). */
+  function plainText(key, es, params){
+    const s = typeof es==="string" ? es : (params && params.count===1 ? es.one : es.other);
+    return params ? s.replace(/\{(\w+)\}/g, (m,k)=>Object.prototype.hasOwnProperty.call(params,k) ? String(params[k]) : m) : s;
+  }
+  const textOf = text => typeof text==="function" ? text : plainText;
+
   /* Código del motor → mensaje humano (sin jerga). */
   const ERROR_MESSAGES = {
-    missing_node: "Un evento apunta a un elemento que ya no existe.",
-    missing_edge: "Un evento apunta a una conexión que ya no existe.",
-    missing_edge_endpoint: "Una conexión del diagrama tiene un extremo perdido.",
-    duplicate_structure_id: "Hay elementos o conexiones duplicados.",
-    duplicate_node_id: "Hay elementos duplicados.",
-    duplicate_edge_id: "Hay conexiones duplicadas.",
-    unsupported_engine_version: "Esta historia usa una versión de ejecución no soportada.",
-    guard_exceeded: "La historia excede un límite operativo de ejecución.",
-    invalid_timestamp: "Un evento tiene un tiempo fuera de rango.",
-    invalid_structure: "La estructura de la página no es válida.",
-    invalid_behavior: "El estado inicial de un nodo no es válido.",
-    invalid_scenario: "La historia tiene datos inválidos.",
-    invalid_state: "Un evento tiene una disponibilidad no válida.",
-    unknown_action: "Un evento tiene una acción desconocida.",
-    duplicate_step_id: "Hay eventos duplicados en la historia."
+    missing_node: tx => tx("story.err.missingNode", "Un evento apunta a un elemento que ya no existe."),
+    missing_edge: tx => tx("story.err.missingEdge", "Un evento apunta a una conexión que ya no existe."),
+    missing_edge_endpoint: tx => tx("story.err.missingEdgeEndpoint", "Una conexión del diagrama tiene un extremo perdido."),
+    duplicate_structure_id: tx => tx("story.err.duplicateStructureId", "Hay elementos o conexiones duplicados."),
+    duplicate_node_id: tx => tx("story.err.duplicateNodeId", "Hay elementos duplicados."),
+    duplicate_edge_id: tx => tx("story.err.duplicateEdgeId", "Hay conexiones duplicadas."),
+    unsupported_engine_version: tx => tx("story.err.unsupportedEngineVersion", "Esta historia usa una versión de ejecución no soportada."),
+    guard_exceeded: tx => tx("story.err.guardExceeded", "La historia excede un límite operativo de ejecución."),
+    invalid_timestamp: tx => tx("story.err.invalidTimestamp", "Un evento tiene un tiempo fuera de rango."),
+    invalid_structure: tx => tx("story.err.invalidStructure", "La estructura de la página no es válida."),
+    invalid_behavior: tx => tx("story.err.invalidBehavior", "El estado inicial de un nodo no es válido."),
+    invalid_scenario: tx => tx("story.err.invalidScenario", "La historia tiene datos inválidos."),
+    invalid_state: tx => tx("story.err.invalidState", "Un evento tiene una disponibilidad no válida."),
+    unknown_action: tx => tx("story.err.unknownAction", "Un evento tiene una acción desconocida."),
+    duplicate_step_id: tx => tx("story.err.duplicateStepId", "Hay eventos duplicados en la historia.")
   };
-  const ERROR_FALLBACK = "No se pudo reproducir. Revisa la historia y consulta los detalles técnicos.";
-  function errorMessages(errors){
-    const seen = new Set(), out = [];
+  const ERROR_FALLBACK = tx => tx("story.err.fallback", "No se pudo reproducir. Revisa la historia y consulta los detalles técnicos.");
+  function errorMessages(errors, text){
+    const tx = textOf(text), seen = new Set(), out = [];
     for(const err of errors || []){
-      const msg = ERROR_MESSAGES[err.code] || ERROR_FALLBACK;
+      const msg = (Object.prototype.hasOwnProperty.call(ERROR_MESSAGES, err.code) ? ERROR_MESSAGES[err.code] : ERROR_FALLBACK)(tx);
       if(!seen.has(msg)){ seen.add(msg); out.push(msg); }
     }
     return out;
@@ -75,9 +86,9 @@ var FluyoStory = (function(){
 
   /* Única ejecución con Playback: página + Scenario → Playback listo (o mensajes humanos).
      `nowReal` es el origen del reloj de la reproducción. */
-  function start(page, scenario, nowReal){
+  function start(page, scenario, nowReal, text){
     const result = run(page, scenario);
-    if(!result.ok) return {ok:false, errors:errorMessages(result.errors)};
+    if(!result.ok) return {ok:false, errors:errorMessages(result.errors, text)};
     const playback = FluyoScenarioPlayback.makePlayback(result.trace, stepMeta(scenario.steps));
     playback.startedAtReal = nowReal;
     return {ok:true, playback};
@@ -154,17 +165,17 @@ var FluyoStory = (function(){
 
   /* Frase humana de un Step (misma regla que el panel de Historia): FLOW usa origen y destino
      del RECORRIDO (traversalEnds: con reverse, de `to` a `from`); los eventos de elemento sólo el elemento. `et` puede ser null. */
-  function nodeText(page, id){
-    const n = page.nodes.find(x=>x.id===id);
-    return n ? ((n.label || "").split("\n")[0].trim() || "Elemento sin nombre") : "Elemento sin nombre";
+  function nodeText(page, id, text){
+    const tx = textOf(text), n = page.nodes.find(x=>x.id===id);
+    return n ? ((n.label || "").split("\n")[0].trim() || tx("story.unnamed", "Elemento sin nombre")) : tx("story.unnamed", "Elemento sin nombre");
   }
-  function sentence(page, step, et){
+  function sentence(page, step, et, text){
     if(!et) return "";
     if(step.action==="SEND"){
       const e = page.edges.find(x=>x.id===step.edgeId), t = traversalEnds(e, step.reverse);
-      return renderEventSentence(et, e ? nodeText(page,t.source) : "?", e ? nodeText(page,t.target) : "?");
+      return renderEventSentence(et, e ? nodeText(page,t.source,text) : "?", e ? nodeText(page,t.target,text) : "?");
     }
-    return renderEventSentence(et, null, nodeText(page, step.nodeId));
+    return renderEventSentence(et, null, nodeText(page, step.nodeId, text));
   }
 
   /* ¿Ya no queda nada por emitir ni por verse? */
@@ -225,17 +236,18 @@ var FluyoStory = (function(){
   /* Mensaje de consecuencia vigente, en lenguaje humano. Nunca expone razones
      internas: «target_down» → «Kafka no está disponible». El nodo es del recorrido que dice el
      propio evento (`ev.reverse`); `edgeEnds` sigue devolviendo los extremos de la conexión. */
-  function caption(logEvents, virtualTime, nodeName, edgeEnds){
+  function caption(logEvents, virtualTime, nodeName, edgeEnds, text){
+    const tx = textOf(text);
     let found=null;
     for(const ev of (logEvents||[])){
       if(ev.at>virtualTime || virtualTime-ev.at>=CAPTION_MS) continue;
       if(ev.type==="send_failed"){
         const t=traversalEnds(edgeEnds(ev.edgeId), ev.reverse);
         const who=nodeName(ev.reason==="source_down"?t.source:t.target);
-        found="No se completó · "+who+" no está disponible";
+        found=tx("story.cap.failed", "No se completó · {name} no está disponible", {name:who});
       } else if(ev.type==="state_changed"){
         const who=nodeName(ev.nodeId);
-        found= ev.to==="DOWN" ? who+" no está disponible" : who+" vuelve a estar disponible";
+        found= ev.to==="DOWN" ? tx("story.cap.down", "{name} no está disponible", {name:who}) : tx("story.cap.up", "{name} vuelve a estar disponible", {name:who});
       }
     }
     return found;
@@ -246,14 +258,15 @@ var FluyoStory = (function(){
     for(const ev of (logEvents||[])) if(ev.type==="send_failed") ids.add(ev.stepId);
     return ids.size;
   }
-  function summary(failed){
+  function summary(failed, text){
     if(!failed) return "";
-    return failed===1 ? "1 evento no pudo realizarse" : failed+" eventos no pudieron realizarse";
+    const tx = textOf(text);
+    return tx("story.failedCount", {one:"{count} evento no pudo realizarse", other:"{count} eventos no pudieron realizarse"}, {count:failed});
   }
 
   /* Modelo de presentación de una Historia en una fase (ready | playing | finished):
      título, momento en curso, mensaje y cierre. Lo pintan Present y el Viewer. */
-  function describe(phase, scenario, playback, nodeName, edgeEnds){
+  function describe(phase, scenario, playback, nodeName, edgeEnds, text){
     const groups = storyboardGroups(scenario.steps), ms = moments(groups, momentText);
     /* PRODUCT-NARRATION-001 (decisión 258, D-PO-2): `narrated` marca el momento cuyo título lleva una frase del autor (algún paso con
        `message`). Solo esos rótulos pueden crecer en vez de cortarse; los demás se ven como siempre. Sin frase, ni la clave. */
@@ -261,12 +274,13 @@ var FluyoStory = (function(){
     const vt = playback ? playback.cursorVirtual : 0;
     const idx = phase==="finished" ? ms.length-1 : phase==="playing" ? currentIndex(ms, vt) : -1;
     const title = phase==="ready" ? scenario.name : (idx>=0 && ms[idx].label ? ms[idx].label : scenario.name);
+    const tx = textOf(text);
     let cap = "", sum = "";
     if(phase==="playing"){
-      cap = caption(playback && playback.logEvents, vt, nodeName, edgeEnds) || "";
+      cap = caption(playback && playback.logEvents, vt, nodeName, edgeEnds, text) || "";
     } else if(phase==="finished"){
-      cap = "Reproducción terminada";
-      sum = summary(failedCount(playback && playback.logEvents));
+      cap = tx("story.finished", "Reproducción terminada");
+      sum = summary(failedCount(playback && playback.logEvents), text);
     }
     return {moments:ms, idx, title, caption:cap, summary:sum};
   }

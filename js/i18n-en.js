@@ -74,5 +74,28 @@ FLUYO_LOCALES.en=Object.assign(FLUYO_LOCALES.en || {}, {
   "route.unavailable":"Route unavailable",
   "route.noPath":"No flow route",
   "route.byDefault":"includes default states",
-  "route.withDefault":"{word} · {why}"
+  "route.withDefault":"{word} · {why}",
+  /* FLUYO-I18N-002 S2b · el texto de la reproducción que compone el kernel (story-playback.js, con el proveedor de texto): lo leen
+     Present, el Viewer y el editor */
+  "story.finished":"Playback finished",
+  "story.failedCount":{one:"{count} step couldn't run", other:"{count} steps couldn't run"},
+  "story.cap.down":"{name} is unavailable",
+  "story.cap.up":"{name} is available again",
+  "story.cap.failed":"Not completed · {name} is unavailable",
+  "story.err.missingNode":"A step points to an element that no longer exists.",
+  "story.err.missingEdge":"A step points to a connection that no longer exists.",
+  "story.err.missingEdgeEndpoint":"A connection in the diagram has a lost endpoint.",
+  "story.err.duplicateStructureId":"There are duplicate elements or connections.",
+  "story.err.duplicateNodeId":"There are duplicate elements.",
+  "story.err.duplicateEdgeId":"There are duplicate connections.",
+  "story.err.unsupportedEngineVersion":"This story uses an unsupported playback version.",
+  "story.err.guardExceeded":"The story exceeds an operational playback limit.",
+  "story.err.invalidTimestamp":"A step has a time out of range.",
+  "story.err.invalidStructure":"The page structure is not valid.",
+  "story.err.invalidBehavior":"An element's initial state is not valid.",
+  "story.err.invalidScenario":"The story has invalid data.",
+  "story.err.invalidState":"A step has an invalid availability.",
+  "story.err.unknownAction":"A step has an unknown action.",
+  "story.err.duplicateStepId":"There are duplicate steps in the story.",
+  "story.err.fallback":"Couldn't play. Review the story and check the technical details."
 });

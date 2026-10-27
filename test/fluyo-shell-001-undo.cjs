@@ -147,6 +147,7 @@ const { undoS0, PIECES: PIECES_S0, NEW_FILES: NEW_S0 } = require("./fluyo-i18n-0
 const { PIECES: PIECES_S1, NEW_FILES: NEW_S1 } = require("./fluyo-i18n-002-s1-undo.cjs");   /* S1 se deshace dentro de undoS0 */
 const { PIECES: PIECES_S2A, NEW_FILES: NEW_S2A } = require("./fluyo-i18n-002-s2a-undo.cjs");   /* S2a, dentro de undoS1 */
 const { PIECES: PIECES_S4, NEW_FILES: NEW_S4 } = require("./fluyo-i18n-002-s4-undo.cjs");   /* S4, dentro de undoS2a */
+const { PIECES: PIECES_S2B, NEW_FILES: NEW_S2B } = require("./fluyo-i18n-002-s2b-undo.cjs");   /* S2b, dentro de undoS4 */
 function undoShell(file, src) {
   src = undoS0(file, src);
   const f = file.replace(/\\/g, "/"), pieces = PIECES[f];
@@ -159,8 +160,8 @@ function undoShell(file, src) {
    (es nuevo de esta tarea, o sin los cambios de esta tarea es exactamente el de esa base). read/atBase son los del test que pregunta. */
 function shellOnly(file, read, atBase) {
   const f = file.replace(/\\/g, "/");
-  if (NEW_FILES.includes(f) || NEW_S0.includes(f) || NEW_S1.includes(f) || NEW_S2A.includes(f) || NEW_S4.includes(f)) return true;   /* también lo nuevo de I18N-002 S0, S1, S2a y S4, que van encima */
-  if (!PIECES[f] && !PIECES_S0[f] && !PIECES_S1[f] && !PIECES_S2A[f] && !PIECES_S4[f]) return false;
+  if (NEW_FILES.includes(f) || NEW_S0.includes(f) || NEW_S1.includes(f) || NEW_S2A.includes(f) || NEW_S4.includes(f) || NEW_S2B.includes(f)) return true;   /* también lo nuevo de I18N-002 S0, S1, S2a, S4 y S2b, que van encima */
+  if (!PIECES[f] && !PIECES_S0[f] && !PIECES_S1[f] && !PIECES_S2A[f] && !PIECES_S4[f] && !PIECES_S2B[f]) return false;
   try { return undoShell(f, read(f)) === atBase(f); } catch { return false; }
 }
 module.exports = { undoShell, shellOnly, BASE_SHELL, PIECES, NEW_FILES };

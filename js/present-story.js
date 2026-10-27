@@ -105,7 +105,7 @@ function presentStoryRefresh(){
     return;
   }
   /* FLUYO-018.21: el momento en curso según su instante VISIBLE (dependencias de llegada, story-clock.js) */
-  const d=(typeof FluyoStoryClock!=="undefined" ? FluyoStoryClock : FluyoStory).describe(dphase, sc, scPlayback, id=>scNodeFallback(id), id=>edgeById(id));
+  const d=(typeof FluyoStoryClock!=="undefined" ? FluyoStoryClock : FluyoStory).describe(dphase, sc, scPlayback, id=>scNodeFallback(id), id=>edgeById(id), FluyoI18n.t);
   const ms=d.moments, idx=d.idx;
 
   psSet("psTitle","text", d.title);
@@ -159,7 +159,7 @@ function presentHeaderBottom(){
   const probes=[];
   const probe=(cls, text)=>{ const el=document.createElement("div"); el.className=cls; el.textContent=text; el.setAttribute("aria-hidden","true"); ps.appendChild(el); probes.push(el); };
   const sc=presentHasStory() ? scActiveScenario() : null, run=sc ? FluyoStory.run(P(), sc) : null;
-  const end=run && run.ok ? FluyoStory.describe("finished", sc, {logEvents:run.trace.events, cursorVirtual:0}, ()=>"", ()=>null) : null;
+  const end=run && run.ok ? FluyoStory.describe("finished", sc, {logEvents:run.trace.events, cursorVirtual:0}, ()=>"", ()=>null, FluyoI18n.t) : null;
   if(!$("psCaption").textContent) probe("psCaption", end ? end.caption : FluyoI18n.t("story.paused","En pausa"));
   if(end && end.summary && !$("psSummary").textContent) probe("psSummary", end.summary);
   const route=$("psFlow").hidden && sc && typeof scFlowPresentLine==="function" ? scFlowPresentLine() : null;

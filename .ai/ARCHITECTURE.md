@@ -935,3 +935,9 @@ HTML                     data-i18n="clave" · data-i18n-title|aria-label|tip|pla
   `test/fluyo-i18n-002-s1-undo.cjs` (`undoS1`, debajo de `undoS0`). Los arneses vm que ejecutan trozos del editor cargan el idioma
   con `test/i18n-vm.cjs` (`loadI18n(ctx)`), como la página. El suscriptor del cromo vive al final de `ui.js` (`paintChromeText` +
   `onChange`); el de Compartir, en `editor-share.js`.
+- S2b (el texto del kernel y los nombres sembrados de Historia, decisiones 296–299): `story-playback.js` y `story-clock.js` aceptan un
+  proveedor de texto OPCIONAL `text(clave, español, params)` como último argumento (`FluyoI18n.t` en el editor, Present y el Viewer;
+  fluyo-mcp no lo pasa y sigue en español); `model.js` acepta el formateador opcional K1 `{story, copy, copyN}`
+  (`defaultScenarioName`, `copyScenarioName`, `duplicateScenario`) con la regla de unicidad y el recorte a 120 en el kernel. El kernel no
+  conoce `FluyoI18n`. Tests: `test/fluyo-i18n-002-s2b.test.cjs`, `-mutations.cjs`, `-browser.cjs` (Chrome por CDP) y `-undo.cjs`
+  (`undoS2b`, encima de `undoS4`); en fluyo-mcp, `test/fluyo-i18n-002-s2b.test.ts`.

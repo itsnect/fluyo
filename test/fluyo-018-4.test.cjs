@@ -22,6 +22,7 @@ function editor(answer = true) {
   const asked = [];
   const ctx = vm.createContext({ TextEncoder, TextDecoder, atob, btoa, URL, scheduleAutosave() {}, renderTabs() {}, refreshPanel() {}, selN: new Set(), selE: new Set(), clip: null, GRID: 20,
     confirm(msg) { asked.push(msg); return ctx.answer; } });
+  require("./i18n-vm.cjs").loadI18n(ctx);   /* FLUYO-I18N-002 S2a: Historias pasa por FluyoI18n.t, como en la página (en español, el texto de siempre) */
   ctx.asked = asked; ctx.answer = answer;
   ctx.run = (code) => vm.runInContext(code, ctx);
   for (const f of ["config.js", "safe-svg.js", "model.js", "scenario-engine.js", "scenario-playback.js", "story-playback.js", "document-integrity.js"]) ctx.run(read("js/" + f));

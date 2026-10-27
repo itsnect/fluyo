@@ -67,5 +67,12 @@ FLUYO_LOCALES.en=Object.assign(FLUYO_LOCALES.en || {}, {
   "notfound.docTitle":"Page not found · Fluyo",
   "notfound.title":"This page doesn't exist",
   "notfound.body":"The link may be mistyped, or the page may no longer exist. Your diagrams are still in your browser.",
-  "notfound.examples":"See examples"
+  "notfound.examples":"See examples",
+  /* FLUYO-I18N-002 S2a · Historias: lo que lee también el Viewer (nombre de reserva y línea de la ruta observada) */
+  "story.unnamed":"Unnamed element",
+  "route.available":"Route available",
+  "route.unavailable":"Route unavailable",
+  "route.noPath":"No flow route",
+  "route.byDefault":"includes default states",
+  "route.withDefault":"{word} · {why}"
 });

@@ -28,6 +28,7 @@ const slice = (s, a, b) => { const i = s.indexOf(a); assert.ok(i >= 0, "falta " 
    (flowDotCount); no inicia nada al cargar. */
 function geometry(src, files) {
   const ctx = vm.createContext({ TextEncoder, TextDecoder, atob, btoa, URL });
+  require("./i18n-vm.cjs").loadI18n(ctx);   /* FLUYO-I18N-002 S2a: Historias pasa por FluyoI18n.t, como en la página (en español, el texto de siempre) */
   for (const f of files) vm.runInContext(src(f), ctx, { filename: f });
   return ctx;
 }
@@ -426,5 +427,5 @@ test("alcance: solo los archivos del contrato; kernel, model.js, config.js y edg
     assert.equal(read(f), head(f), f + " no se toca");
   const es = (s) => slice(s, "function edgeStroke(", "\n}\n");
   assert.equal(es(read("js/geometry.js")), es(head("js/geometry.js")), "edgeStroke idéntico");
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v110";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v111";/);
 });

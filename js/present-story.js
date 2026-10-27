@@ -160,7 +160,7 @@ function presentHeaderBottom(){
   const probe=(cls, text)=>{ const el=document.createElement("div"); el.className=cls; el.textContent=text; el.setAttribute("aria-hidden","true"); ps.appendChild(el); probes.push(el); };
   const sc=presentHasStory() ? scActiveScenario() : null, run=sc ? FluyoStory.run(P(), sc) : null;
   const end=run && run.ok ? FluyoStory.describe("finished", sc, {logEvents:run.trace.events, cursorVirtual:0}, ()=>"", ()=>null) : null;
-  if(!$("psCaption").textContent) probe("psCaption", end ? end.caption : "En pausa");
+  if(!$("psCaption").textContent) probe("psCaption", end ? end.caption : FluyoI18n.t("story.paused","En pausa"));
   if(end && end.summary && !$("psSummary").textContent) probe("psSummary", end.summary);
   const route=$("psFlow").hidden && sc && typeof scFlowPresentLine==="function" ? scFlowPresentLine() : null;
   if(route) probe("psFlow is"+route.status, route.text);

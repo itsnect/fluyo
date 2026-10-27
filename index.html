@@ -369,7 +369,7 @@ try{ if(localStorage.getItem("fluyo.ui.props")==="folded") document.documentElem
            o la columna). Mismo contenido que lee Present (FluyoStory.describe). Lo coloca scPlaceNow (editor-scenarios.js):
            arriba de la zona libre, o al pie si el destino del momento queda debajo. -->
       <div id="scNow" class="scNow momentCard" hidden>
-        <span class="scNowKicker"><i class="scLive" aria-hidden="true"></i><span id="scNowLabel">Reproduciendo</span></span>
+        <span class="scNowKicker"><i class="scLive" aria-hidden="true"></i><span id="scNowLabel" data-i18n-js="stories.playing">Reproduciendo</span></span>
         <span id="scNowCaption" class="scNowCaption" aria-live="polite"></span>
         <span id="scNowProgress" class="scNowProgress"></span>
       </div>
@@ -723,40 +723,40 @@ try{ if(localStorage.getItem("fluyo.ui.props")==="folded") document.documentElem
         <!-- FLUYO-018.14b (B1): la barra del modo. La salida es inequívoca y nunca se bloquea (B3): si hay una Historia
              reproduciéndose, la detiene y vuelve a editar. «Ampliar» solo existe en la hoja móvil. -->
         <div class="storyBar">
-          <span class="storyKicker"><svg class="ic" aria-hidden="true"><use href="#i-story"/></svg>Modo Historia</span>
-          <button id="btnStoryExpand" class="iconBtn btnGhost" type="button" aria-expanded="false" aria-label="Ampliar la hoja de Historias"><svg class="ic" aria-hidden="true"><use href="#i-chev-up"/></svg></button>
-          <button id="btnStoryExit" class="btnGhost storyExit" type="button"><svg class="ic" aria-hidden="true"><use href="#i-arrow-left"/></svg><span class="lbl">Volver a editar</span></button>
+          <span class="storyKicker" data-i18n="stories.mode"><svg class="ic" aria-hidden="true"><use href="#i-story"/></svg>Modo Historia</span>
+          <button id="btnStoryExpand" class="iconBtn btnGhost" type="button" aria-expanded="false" aria-label="Ampliar la hoja de Historias" data-i18n-aria-label="stories.sheetExpand"><svg class="ic" aria-hidden="true"><use href="#i-chev-up"/></svg></button>
+          <button id="btnStoryExit" class="btnGhost storyExit" type="button"><svg class="ic" aria-hidden="true"><use href="#i-arrow-left"/></svg><span class="lbl" data-i18n="stories.backToEdit">Volver a editar</span></button>
         </div>
-        <div class="scStoriesLabel" id="scStoriesLabel">Historias</div>
-        <div class="scHeaderRow"><button id="scScenarioTitle" type="button" aria-haspopup="true" aria-labelledby="scStoriesLabel scScenarioTitle" title="Elegir historia">Sin historias ▾</button><button id="scStoryAdd" type="button" aria-label="Nueva historia" title="Nueva historia">+</button><button id="scScenarioMenu" type="button" aria-label="Opciones de la historia" title="Opciones de la historia">⋯</button></div>
+        <div class="scStoriesLabel" id="scStoriesLabel" data-i18n="editor.modeStories">Historias</div>
+        <div class="scHeaderRow"><button id="scScenarioTitle" type="button" aria-haspopup="true" aria-labelledby="scStoriesLabel scScenarioTitle" title="Elegir historia" data-i18n-title="stories.choose" data-i18n-js="stories.none">Sin historias <span class="glyph g-chev" aria-hidden="true">▾</span></button><button id="scStoryAdd" type="button" aria-label="Nueva historia" title="Nueva historia" data-i18n-aria-label="stories.new" data-i18n-title="stories.new">+</button><button id="scScenarioMenu" type="button" aria-label="Opciones de la historia" title="Opciones de la historia" data-i18n-aria-label="stories.options" data-i18n-title="stories.options">⋯</button></div>
         <!-- FLUYO-018.18: el transporte de la Historia. Reproducir · Pausar/Reanudar · momento anterior/siguiente · Detener.
              El momento en curso se lee sobre el lienzo (#scNow, dentro de #wrap). -->
         <div class="scTransport">
-          <div class="scPlaybackControls"><button id="scPrev" type="button" class="iconBtn" hidden aria-label="Momento anterior" title="Momento anterior"><svg class="ic" aria-hidden="true"><use href="#i-step-back"/></svg></button><button id="scRun" type="button" class="primary">▶ Reproducir</button><button id="scPause" type="button" hidden>Pausar</button><button id="scNext" type="button" class="iconBtn" hidden aria-label="Momento siguiente" title="Momento siguiente"><svg class="ic" aria-hidden="true"><use href="#i-step-fwd"/></svg></button><span id="scRunHint" class="scRunHint" hidden>Añade eventos desde Ampliar</span></div>
-          <button id="scReset" type="button" hidden>■ Detener</button>
+          <div class="scPlaybackControls"><button id="scPrev" type="button" class="iconBtn" hidden aria-label="Momento anterior" title="Momento anterior" data-i18n-aria-label="story.momentPrev" data-i18n-title="story.momentPrev"><svg class="ic" aria-hidden="true"><use href="#i-step-back"/></svg></button><button id="scRun" type="button" class="primary" data-i18n-js="story.play"><span class="glyph g-play" aria-hidden="true">▶</span> Reproducir</button><button id="scPause" type="button" hidden data-i18n-js="story.pause">Pausar</button><button id="scNext" type="button" class="iconBtn" hidden aria-label="Momento siguiente" title="Momento siguiente" data-i18n-aria-label="story.momentNext" data-i18n-title="story.momentNext"><svg class="ic" aria-hidden="true"><use href="#i-step-fwd"/></svg></button><span id="scRunHint" class="scRunHint" hidden data-i18n="stories.runHint">Añade eventos desde Ampliar</span></div>
+          <button id="scReset" type="button" hidden data-i18n-js="story.stop"><span class="glyph g-stop" aria-hidden="true">■</span> Detener</button>
         </div>
         <p id="scStatus" role="status"></p>
-        <p id="scUnsupported" class="hint" hidden>Esta historia necesita una versión compatible de Fluyo.</p>
+        <p id="scUnsupported" class="hint" hidden data-i18n="stories.unsupported">Esta historia necesita una versión compatible de Fluyo.</p>
         <p id="scErrors" role="alert" hidden></p>
         <!-- SCENARIOS-SEMANTICS-001 FASE 3: la ruta observada de la Historia (D5/D6), bajo el transporte. Existe
              si la página tiene alguna conexión Flujo y la Historia tiene eventos (editor-scenarios.js, scRenderFlow). -->
-        <section id="scFlow" class="scFlow" aria-label="Ruta observada" hidden>
-          <div class="scFlowHead"><span class="scFlowKicker">Ruta observada</span><label class="scFlowPick"><span class="srOnly">Origen</span><select id="scFlowFrom"></select></label><span class="scFlowArrow" aria-hidden="true">→</span><label class="scFlowPick"><span class="srOnly">Destino</span><select id="scFlowTo"></select></label></div>
+        <section id="scFlow" class="scFlow" aria-label="Ruta observada" data-i18n-aria-label="route.title" hidden>
+          <div class="scFlowHead"><span class="scFlowKicker" data-i18n="route.title">Ruta observada</span><label class="scFlowPick"><span class="srOnly" data-i18n="route.from">Origen</span><select id="scFlowFrom"></select></label><span class="scFlowArrow" aria-hidden="true">→</span><label class="scFlowPick"><span class="srOnly" data-i18n="route.to">Destino</span><select id="scFlowTo"></select></label></div>
           <p id="scFlowState" class="scFlowState" role="status"><span id="scFlowWord"></span><span id="scFlowWhy"></span></p>
           <div id="scFlowTrack" class="scFlowTrack" aria-hidden="true" hidden><span id="scFlowSegs" class="scFlowSegs"></span><span id="scFlowMarks" class="scFlowMarks"></span><span id="scFlowCursor" class="scFlowCursor" hidden></span></div>
-          <dl id="scFlowEnds" class="scFlowEnds" hidden><div><dt>Inicio</dt><dd id="scFlowStart"></dd></div><div><dt>Cambios de la ruta</dt><dd id="scFlowCount"></dd></div><div><dt>Final</dt><dd id="scFlowFinal"></dd></div></dl>
+          <dl id="scFlowEnds" class="scFlowEnds" hidden><div><dt data-i18n="route.start">Inicio</dt><dd id="scFlowStart"></dd></div><div><dt data-i18n="route.changes">Cambios de la ruta</dt><dd id="scFlowCount"></dd></div><div><dt data-i18n="route.final">Final</dt><dd id="scFlowFinal"></dd></div></dl>
           <ul id="scFlowRows" class="scFlowRows" hidden></ul>
         </section>
-        <button id="scPaletteToggle" type="button" aria-expanded="false">Eventos · 0</button>
+        <button id="scPaletteToggle" type="button" aria-expanded="false" data-i18n-js="event.toggle"></button>
       </header>
-      <section id="scLibrarySection" class="scEventLibrarySection" aria-label="Eventos">
-        <div class="scSectionHeader"><h3>Eventos</h3><button id="scEventNew" type="button">+ Crear evento</button></div>
-        <input id="scEventSearch" type="search" placeholder="Buscar eventos…" aria-label="Buscar eventos" hidden>
+      <section id="scLibrarySection" class="scEventLibrarySection" aria-label="Eventos" data-i18n-aria-label="event.library">
+        <div class="scSectionHeader"><h3 data-i18n="event.library">Eventos</h3><button id="scEventNew" type="button" data-i18n="event.create">+ Crear evento</button></div>
+        <input id="scEventSearch" type="search" placeholder="Buscar eventos…" aria-label="Buscar eventos" data-i18n-placeholder="event.searchPlaceholder" data-i18n-aria-label="event.search" hidden>
         <div id="scEventLibrary" class="scEventLibrary"></div>
-        <p class="hint scLibraryHint">Arrastra al sistema o elige un evento.</p>
+        <p class="hint scLibraryHint" data-i18n="event.libraryHint">Arrastra al sistema o elige un evento.</p>
       </section>
-      <section class="scStorySection" aria-label="Historia">
-        <h3>Historia</h3>
+      <section class="scStorySection" aria-label="Historia" data-i18n-aria-label="story.group">
+        <h3 data-i18n="story.group">Historia</h3>
         <div class="scStoryboardSection"><div id="scEmptyState" class="scEmptyState"></div><div id="scStoryboard"></div></div>
       </section>
     </div>
@@ -764,163 +764,163 @@ try{ if(localStorage.getItem("fluyo.ui.props")==="folded") document.documentElem
 </main>
 
 <!-- Superficies de autoría fuera del panel estrecho. -->
-<div id="scPlacementBar" role="status" hidden><span id="scPlacementText"></span><button id="scPlacementConfirm" type="button" hidden>Aplicar</button><button id="scPlacementCancel" type="button">Cancelar</button></div>
+<div id="scPlacementBar" role="status" hidden><span id="scPlacementText"></span><button id="scPlacementConfirm" type="button" hidden data-i18n="place.apply">Aplicar</button><button id="scPlacementCancel" type="button" data-i18n="common.cancel">Cancelar</button></div>
 <div id="scNotice" role="status" hidden></div>
 <div id="scPopover" class="scPopover" hidden></div>
 <dialog id="scEventDialog" class="scDialog scEventDialog" aria-labelledby="scEventDialogTitle">
-  <header><div><h2 id="scEventDialogTitle">Crear evento</h2><p id="scEventDialogSubtitle" hidden>Disponible en todo este proyecto.</p></div><button id="scEventClose" class="iconBtn btnGhost" type="button" aria-label="Cerrar editor de evento"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></header>
+  <header><div><h2 id="scEventDialogTitle" data-i18n-js="event.create">Crear evento</h2><p id="scEventDialogSubtitle" hidden data-i18n-js="event.projectWide">Disponible en todo este proyecto.</p></div><button id="scEventClose" class="iconBtn btnGhost" type="button" aria-label="Cerrar editor de evento" data-i18n-aria-label="event.closeEditor"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></header>
   <div class="scDialogBody">
-    <p id="scEventScope" class="scScope" hidden>Los cambios de nombre, frase y apariencia se verán en todas las historias que usan este evento.</p>
-    <p id="scEventLocked" class="scScope" hidden>Este evento ya está en uso. Puedes cambiar cómo se ve y cómo se cuenta. Para cambiar dónde ocurre o su comportamiento, duplica el evento.</p>
+    <p id="scEventScope" class="scScope" hidden data-i18n="event.scope">Los cambios de nombre, frase y apariencia se verán en todas las historias que usan este evento.</p>
+    <p id="scEventLocked" class="scScope" hidden data-i18n="event.locked">Este evento ya está en uso. Puedes cambiar cómo se ve y cómo se cuenta. Para cambiar dónde ocurre o su comportamiento, duplica el evento.</p>
     <div class="scEventColumns"><div class="scEventFields">
       <div class="scFieldGroup">
-        <label for="scEventName">Nombre</label>
-        <input id="scEventName" maxlength="60" placeholder="Por ejemplo, Pago" autocomplete="off" enterkeyhint="done">
+        <label for="scEventName" data-i18n="event.name">Nombre</label>
+        <input id="scEventName" maxlength="60" placeholder="Por ejemplo, Pago" data-i18n-placeholder="event.namePlaceholder" autocomplete="off" enterkeyhint="done">
       </div>
-      <fieldset id="scWhere" class="scFieldGroup scWhereGroup"><legend>¿Dónde ocurre?</legend>
-        <div class="scSegmented" role="group" aria-label="¿Dónde ocurre?">
-          <label><input type="radio" name="scWhere" value="connection" checked><span>En una conexión</span></label>
-          <label><input type="radio" name="scWhere" value="element"><span>En un elemento</span></label>
+      <fieldset id="scWhere" class="scFieldGroup scWhereGroup"><legend data-i18n="event.where">¿Dónde ocurre?</legend>
+        <div class="scSegmented" role="group" aria-label="¿Dónde ocurre?" data-i18n-aria-label="event.where">
+          <label><input type="radio" name="scWhere" value="connection" checked><span data-i18n="event.whereEdge">En una conexión</span></label>
+          <label><input type="radio" name="scWhere" value="element"><span data-i18n="event.whereNode">En un elemento</span></label>
         </div>
       </fieldset>
       <div class="scFieldGroup">
-        <label id="scPhraseLabel">¿Cómo lo cuentas?</label>
+        <label id="scPhraseLabel" data-i18n="event.phrase">¿Cómo lo cuentas?</label>
         <div id="scPhrase" class="scPhrase" role="group" aria-labelledby="scPhraseLabel"></div>
         <div id="scPhraseInsert" class="scPhraseInsert"></div>
-        <p class="hint">Estos nombres se reemplazan por los elementos donde uses el evento.</p>
+        <p class="hint" data-i18n="event.phraseHint">Estos nombres se reemplazan por los elementos donde uses el evento.</p>
       </div>
       <div class="scFieldGroup">
-        <label id="scVisualLabel">Símbolo que recorre la conexión</label>
+        <label id="scVisualLabel" data-i18n-js="event.symbolEdge">Símbolo que recorre la conexión</label>
         <div id="scVisualPicker" role="group" aria-labelledby="scVisualLabel"></div>
         <div id="scCustomVisual" hidden>
-          <label for="scEventVisual">Otro símbolo o texto corto</label>
+          <label for="scEventVisual" data-i18n="event.customSymbol">Otro símbolo o texto corto</label>
           <input id="scEventVisual" aria-describedby="scVisualHelp">
-          <small id="scVisualHelp">Un símbolo, emoji o texto corto. Sin imágenes ni archivos.</small>
+          <small id="scVisualHelp" data-i18n="event.customSymbolHelp">Un símbolo, emoji o texto corto. Sin imágenes ni archivos.</small>
         </div>
       </div>
       <!-- FLUYO-018.19: lo que define el evento (nombre, dónde, frase, símbolo) va primero; cómo se ve, plegado y con la vista
            previa dentro (scEditorLayout la mueve al plegable del tipo elegido). Mismos ids y mismos campos. -->
       <details id="scFlowLook" class="scAccordion scFlowLook" hidden>
-        <summary><span class="scAccordionTitle">Cómo se ve</span><span class="scAccordionSummary" id="scFlowLookSummary"></span></summary>
+        <summary><span class="scAccordionTitle" data-i18n="event.look">Cómo se ve</span><span class="scAccordionSummary" id="scFlowLookSummary"></span></summary>
         <div class="scAccordionBody">
-        <div class="scPreviewSlot"><div class="scEventPreview"><h3>Así se verá</h3><div id="scPreviewDiagram"></div><p id="scEventPreview"></p><button id="scPreviewPlay" type="button">▶ Ver ejemplo</button><p class="hint">Ejemplo ilustrativo. No modifica la historia.</p></div></div>
-        <fieldset class="scFlowField"><legend>¿De qué tamaño?</legend>
-          <div class="scSegmented scVisualSeg" role="radiogroup" aria-label="¿De qué tamaño?"><label><input type="radio" name="scFlowSize" value="small" checked><span><i class="scSizeDot s1">●</i>Pequeño</span></label><label><input type="radio" name="scFlowSize" value="medium"><span><i class="scSizeDot s2">●</i>Mediano</span></label><label><input type="radio" name="scFlowSize" value="large"><span><i class="scSizeDot s3">●</i>Grande</span></label></div>
+        <div class="scPreviewSlot"><div class="scEventPreview"><h3 data-i18n="event.preview.title">Así se verá</h3><div id="scPreviewDiagram"></div><p id="scEventPreview"></p><button id="scPreviewPlay" type="button" data-i18n="event.preview.play">▶ Ver ejemplo</button><p class="hint" data-i18n="event.preview.note">Ejemplo ilustrativo. No modifica la historia.</p></div></div>
+        <fieldset class="scFlowField"><legend data-i18n="event.look.size">¿De qué tamaño?</legend>
+          <div class="scSegmented scVisualSeg" role="radiogroup" aria-label="¿De qué tamaño?" data-i18n-aria-label="event.look.size"><label><input type="radio" name="scFlowSize" value="small" checked><span data-i18n="event.look.small"><i class="scSizeDot s1">●</i>Pequeño</span></label><label><input type="radio" name="scFlowSize" value="medium"><span data-i18n="event.look.medium"><i class="scSizeDot s2">●</i>Mediano</span></label><label><input type="radio" name="scFlowSize" value="large"><span data-i18n="event.look.large"><i class="scSizeDot s3">●</i>Grande</span></label></div>
         </fieldset>
-        <fieldset class="scFlowField"><legend>¿Cómo se mueve?</legend>
-          <div class="scSegmented scVisualSeg" role="radiogroup" aria-label="¿Cómo se mueve?"><label><input type="radio" name="scFlowStyle" value="direct" checked><span><svg class="scMiniCurve" viewBox="0 0 28 12" aria-hidden="true"><path d="M1 10 L25 2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="26" cy="2" r="1.8" fill="currentColor"/></svg>Directo</span></label><label><input type="radio" name="scFlowStyle" value="smooth"><span><svg class="scMiniCurve" viewBox="0 0 28 12" aria-hidden="true"><path d="M1 10 C12 10 14 2 25 2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="26" cy="2" r="1.8" fill="currentColor"/></svg>Suave</span></label><label><input type="radio" name="scFlowStyle" value="impulse"><span><svg class="scMiniCurve" viewBox="0 0 28 12" aria-hidden="true"><path d="M1 10 C3 10 5 9 8 6 C12 1 18 2 25 2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="26" cy="2" r="1.8" fill="currentColor"/></svg>Impulso</span></label></div>
+        <fieldset class="scFlowField"><legend data-i18n="event.look.motion">¿Cómo se mueve?</legend>
+          <div class="scSegmented scVisualSeg" role="radiogroup" aria-label="¿Cómo se mueve?" data-i18n-aria-label="event.look.motion"><label><input type="radio" name="scFlowStyle" value="direct" checked><span data-i18n="event.look.direct"><svg class="scMiniCurve" viewBox="0 0 28 12" aria-hidden="true"><path d="M1 10 L25 2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="26" cy="2" r="1.8" fill="currentColor"/></svg>Directo</span></label><label><input type="radio" name="scFlowStyle" value="smooth"><span data-i18n="event.look.smooth"><svg class="scMiniCurve" viewBox="0 0 28 12" aria-hidden="true"><path d="M1 10 C12 10 14 2 25 2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="26" cy="2" r="1.8" fill="currentColor"/></svg>Suave</span></label><label><input type="radio" name="scFlowStyle" value="impulse"><span data-i18n="event.look.impulse"><svg class="scMiniCurve" viewBox="0 0 28 12" aria-hidden="true"><path d="M1 10 C3 10 5 9 8 6 C12 1 18 2 25 2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="26" cy="2" r="1.8" fill="currentColor"/></svg>Impulso</span></label></div>
         </fieldset>
-        <fieldset class="scFlowField"><legend>¿Deja rastro?</legend>
-          <div class="scSegmented scVisualSeg" role="radiogroup" aria-label="¿Deja rastro?"><label><input type="radio" name="scFlowTrail" value="none" checked><span>Sin rastro</span></label><label><input type="radio" name="scFlowTrail" value="subtle"><span>Rastro sutil</span></label><label><input type="radio" name="scFlowTrail" value="marked"><span>Rastro marcado</span></label></div>
+        <fieldset class="scFlowField"><legend data-i18n="event.look.trail">¿Deja rastro?</legend>
+          <div class="scSegmented scVisualSeg" role="radiogroup" aria-label="¿Deja rastro?" data-i18n-aria-label="event.look.trail"><label><input type="radio" name="scFlowTrail" value="none" checked><span data-i18n="event.look.noTrail">Sin rastro</span></label><label><input type="radio" name="scFlowTrail" value="subtle"><span data-i18n="event.look.subtleTrail">Rastro sutil</span></label><label><input type="radio" name="scFlowTrail" value="marked"><span data-i18n="event.look.markedTrail">Rastro marcado</span></label></div>
         </fieldset>
-        <fieldset class="scFlowField"><legend>¿Qué pasa al llegar?</legend>
-          <div class="scSegmented scVisualSeg" role="radiogroup" aria-label="¿Qué pasa al llegar?"><label><input type="radio" name="scFlowArrival" value="none" checked><span>Nada</span></label><label><input type="radio" name="scFlowArrival" value="pulse"><span>Pulso</span></label><label><input type="radio" name="scFlowArrival" value="glow"><span>Brillo</span></label><label><input type="radio" name="scFlowArrival" value="bounce"><span>Rebote</span></label></div>
+        <fieldset class="scFlowField"><legend data-i18n="event.look.arrival">¿Qué pasa al llegar?</legend>
+          <div class="scSegmented scVisualSeg" role="radiogroup" aria-label="¿Qué pasa al llegar?" data-i18n-aria-label="event.look.arrival"><label><input type="radio" name="scFlowArrival" value="none" checked><span data-i18n="event.look.nothing">Nada</span></label><label><input type="radio" name="scFlowArrival" value="pulse"><span data-i18n="event.look.pulse">Pulso</span></label><label><input type="radio" name="scFlowArrival" value="glow"><span data-i18n="event.look.glow">Brillo</span></label><label><input type="radio" name="scFlowArrival" value="bounce"><span data-i18n="event.look.bounce">Rebote</span></label></div>
         </fieldset>
         <details id="scFlowMore" class="scFlowMore">
-          <summary>Más detalles</summary>
+          <summary data-i18n="event.look.more">Más detalles</summary>
           <fieldset id="scMotion" class="scFlowField">
-            <legend>¿Qué tan rápido?</legend>
-            <div class="scSegmented" role="group" aria-label="¿Qué tan rápido?">
-              <label><input type="radio" name="scMotion" value="fast"><span>Rápido</span></label>
-              <label><input type="radio" name="scMotion" value="normal" checked><span>Normal</span></label>
-              <label><input type="radio" name="scMotion" value="slow"><span>Lento</span></label>
+            <legend data-i18n="event.look.speed">¿Qué tan rápido?</legend>
+            <div class="scSegmented" role="group" aria-label="¿Qué tan rápido?" data-i18n-aria-label="event.look.speed">
+              <label><input type="radio" name="scMotion" value="fast"><span data-i18n="event.look.fast">Rápido</span></label>
+              <label><input type="radio" name="scMotion" value="normal" checked><span data-i18n="event.look.normalSpeed">Normal</span></label>
+              <label><input type="radio" name="scMotion" value="slow"><span data-i18n="event.look.slow">Lento</span></label>
             </div>
-            <p class="hint">Sólo cambia la velocidad visual durante la reproducción. No afecta al tiempo de la historia.</p>
+            <p class="hint" data-i18n="event.look.speedHint">Sólo cambia la velocidad visual durante la reproducción. No afecta al tiempo de la historia.</p>
           </fieldset>
-        <fieldset class="scFlowField"><legend>¿Y mientras viaja?</legend>
-          <div class="scSegmented scVisualSeg" role="radiogroup" aria-label="¿Y mientras viaja?"><label><input type="radio" name="scFlowDuring" value="none" checked><span>Nada</span></label><label><input type="radio" name="scFlowDuring" value="halo"><span>Halo</span></label><label><input type="radio" name="scFlowDuring" value="breathe"><span>Respirar</span></label></div>
+        <fieldset class="scFlowField"><legend data-i18n="event.look.during">¿Y mientras viaja?</legend>
+          <div class="scSegmented scVisualSeg" role="radiogroup" aria-label="¿Y mientras viaja?" data-i18n-aria-label="event.look.during"><label><input type="radio" name="scFlowDuring" value="none" checked><span data-i18n="event.look.nothing">Nada</span></label><label><input type="radio" name="scFlowDuring" value="halo"><span data-i18n="event.look.halo">Halo</span></label><label><input type="radio" name="scFlowDuring" value="breathe"><span data-i18n="event.look.breathe">Respirar</span></label></div>
         </fieldset>
         </details>
         </div>
       </details>
 
       <details id="scAppearance" class="scAccordion" hidden>
-        <summary><span class="scAccordionTitle">Cómo se ve</span><span class="scAccordionSummary" id="scAppearanceSummary"></span></summary>
+        <summary><span class="scAccordionTitle" data-i18n="event.look">Cómo se ve</span><span class="scAccordionSummary" id="scAppearanceSummary"></span></summary>
         <div class="scAccordionBody">
           <div class="scPreviewSlot"></div>
-          <p class="scSectionLead">¿Cómo quieres que se vea?</p>
-          <div class="scEffectGrid" role="group" aria-label="Efectos visuales">
-            <label class="scEffectChip"><input type="checkbox" id="scShowSymbol"><span class="scEffectLabel">Símbolo</span></label>
-            <label class="scEffectChip"><input type="checkbox" id="scUseMessage"><span class="scEffectLabel">Mensaje</span></label>
-            <label class="scEffectChip"><input type="checkbox" id="scHighlight"><span class="scEffectLabel">Resaltar</span></label>
-            <label class="scEffectChip"><input type="checkbox" id="scDim"><span class="scEffectLabel">Oscurecer</span></label>
-            <label class="scEffectChip"><input type="checkbox" id="scBlink"><span class="scEffectLabel">Parpadear</span></label>
-            <label class="scEffectChip"><input type="checkbox" id="scUseFill"><span class="scEffectLabel">Color</span></label>
+          <p class="scSectionLead" data-i18n="event.fx.lead">¿Cómo quieres que se vea?</p>
+          <div class="scEffectGrid" role="group" aria-label="Efectos visuales" data-i18n-aria-label="event.fx.group">
+            <label class="scEffectChip"><input type="checkbox" id="scShowSymbol"><span class="scEffectLabel" data-i18n="event.fx.symbol">Símbolo</span></label>
+            <label class="scEffectChip"><input type="checkbox" id="scUseMessage"><span class="scEffectLabel" data-i18n="event.fx.message">Mensaje</span></label>
+            <label class="scEffectChip"><input type="checkbox" id="scHighlight"><span class="scEffectLabel" data-i18n="event.fx.highlight">Resaltar</span></label>
+            <label class="scEffectChip"><input type="checkbox" id="scDim"><span class="scEffectLabel" data-i18n="event.fx.dim">Oscurecer</span></label>
+            <label class="scEffectChip"><input type="checkbox" id="scBlink"><span class="scEffectLabel" data-i18n="event.fx.blink">Parpadear</span></label>
+            <label class="scEffectChip"><input type="checkbox" id="scUseFill"><span class="scEffectLabel" data-i18n="event.fx.color">Color</span></label>
           </div>
           <div id="scShowSymbolConfig" class="scEffectConfig" hidden>
-            <p class="scSymbolUse">Usa: <span id="scSymbolUse" class="scSymbolUseValue">●</span> <button id="scChangeSymbol" type="button" class="scLinkBtn">Cambiar símbolo</button></p>
-            <fieldset class="scMsgField"><legend>¿De qué tamaño?</legend><div class="scSegmented scVisualSeg" role="radiogroup" aria-label="Tamaño del símbolo">
-              <label><input type="radio" name="scSymbolSize" value="small"><span><i class="scSizeDot s1">●</i>Pequeño</span></label>
-              <label><input type="radio" name="scSymbolSize" value="medium" checked><span><i class="scSizeDot s2">●</i>Mediano</span></label>
-              <label><input type="radio" name="scSymbolSize" value="large"><span><i class="scSizeDot s3">●</i>Grande</span></label>
+            <p class="scSymbolUse" data-i18n="event.fx.uses">Usa: <span id="scSymbolUse" class="scSymbolUseValue">●</span> <button id="scChangeSymbol" type="button" class="scLinkBtn" data-i18n="event.fx.changeSymbol">Cambiar símbolo</button></p>
+            <fieldset class="scMsgField"><legend data-i18n="event.look.size">¿De qué tamaño?</legend><div class="scSegmented scVisualSeg" role="radiogroup" aria-label="Tamaño del símbolo" data-i18n-aria-label="event.fx.symbolSize">
+              <label><input type="radio" name="scSymbolSize" value="small"><span data-i18n="event.look.small"><i class="scSizeDot s1">●</i>Pequeño</span></label>
+              <label><input type="radio" name="scSymbolSize" value="medium" checked><span data-i18n="event.look.medium"><i class="scSizeDot s2">●</i>Mediano</span></label>
+              <label><input type="radio" name="scSymbolSize" value="large"><span data-i18n="event.look.large"><i class="scSizeDot s3">●</i>Grande</span></label>
             </div></fieldset>
           </div>
           <div id="scMessageConfig" class="scEffectConfig" hidden>
-            <label for="scMessage">Mensaje</label>
-            <input id="scMessage" type="text" maxlength="120" placeholder="Por ejemplo, Fuera de servicio" autocomplete="off">
-            <fieldset class="scMsgField"><legend>Tamaño</legend><div class="scSegmented" role="radiogroup" aria-label="Tamaño">
-              <label><input type="radio" name="scMsgSize" value="small"><span>Pequeño</span></label>
-              <label><input type="radio" name="scMsgSize" value="medium" checked><span>Medio</span></label>
-              <label><input type="radio" name="scMsgSize" value="large"><span>Grande</span></label>
+            <label for="scMessage" data-i18n="event.fx.message">Mensaje</label>
+            <input id="scMessage" type="text" maxlength="120" placeholder="Por ejemplo, Fuera de servicio" data-i18n-placeholder="event.msg.placeholder" autocomplete="off">
+            <fieldset class="scMsgField"><legend data-i18n="event.msg.size">Tamaño</legend><div class="scSegmented" role="radiogroup" aria-label="Tamaño" data-i18n-aria-label="event.msg.size">
+              <label><input type="radio" name="scMsgSize" value="small"><span data-i18n="event.look.small">Pequeño</span></label>
+              <label><input type="radio" name="scMsgSize" value="medium" checked><span data-i18n="event.msg.mediumSize">Medio</span></label>
+              <label><input type="radio" name="scMsgSize" value="large"><span data-i18n="event.look.large">Grande</span></label>
             </div></fieldset>
-            <fieldset class="scMsgField"><legend>Peso</legend><div class="scSegmented" role="radiogroup" aria-label="Peso">
-              <label><input type="radio" name="scMsgWeight" value="normal" checked><span>Normal</span></label>
-              <label><input type="radio" name="scMsgWeight" value="semibold"><span>Semibold</span></label>
-              <label><input type="radio" name="scMsgWeight" value="bold"><span>Negrita</span></label>
+            <fieldset class="scMsgField"><legend data-i18n="event.msg.weight">Peso</legend><div class="scSegmented" role="radiogroup" aria-label="Peso" data-i18n-aria-label="event.msg.weight">
+              <label><input type="radio" name="scMsgWeight" value="normal" checked><span data-i18n="event.msg.weightNormal">Normal</span></label>
+              <label><input type="radio" name="scMsgWeight" value="semibold"><span data-i18n="event.msg.weightSemibold">Semibold</span></label>
+              <label><input type="radio" name="scMsgWeight" value="bold"><span data-i18n="event.msg.weightBold">Negrita</span></label>
             </div></fieldset>
-            <fieldset class="scMsgField"><legend>Tipografía</legend><div class="scSegmented" role="radiogroup" aria-label="Tipografía">
-              <label><input type="radio" name="scMsgFont" value="default" checked><span>Predeterminada</span></label>
-              <label><input type="radio" name="scMsgFont" value="sans"><span>Sans</span></label>
-              <label><input type="radio" name="scMsgFont" value="mono"><span>Mono</span></label>
+            <fieldset class="scMsgField"><legend data-i18n="event.msg.font">Tipografía</legend><div class="scSegmented" role="radiogroup" aria-label="Tipografía" data-i18n-aria-label="event.msg.font">
+              <label><input type="radio" name="scMsgFont" value="default" checked><span data-i18n="event.msg.fontDefault">Predeterminada</span></label>
+              <label><input type="radio" name="scMsgFont" value="sans"><span data-i18n="event.msg.fontSans">Sans</span></label>
+              <label><input type="radio" name="scMsgFont" value="mono"><span data-i18n="event.msg.fontMono">Mono</span></label>
             </div></fieldset>
-            <fieldset class="scMsgField"><legend>Posición</legend><div class="scSegmented" role="radiogroup" aria-label="Posición">
-              <label><input type="radio" name="scMsgPos" value="above" checked><span>Arriba</span></label>
-              <label><input type="radio" name="scMsgPos" value="center"><span>Centro</span></label>
-              <label><input type="radio" name="scMsgPos" value="below"><span>Abajo</span></label>
+            <fieldset class="scMsgField"><legend data-i18n="event.msg.position">Posición</legend><div class="scSegmented" role="radiogroup" aria-label="Posición" data-i18n-aria-label="event.msg.position">
+              <label><input type="radio" name="scMsgPos" value="above" checked><span data-i18n="event.msg.above">Arriba</span></label>
+              <label><input type="radio" name="scMsgPos" value="center"><span data-i18n="event.msg.center">Centro</span></label>
+              <label><input type="radio" name="scMsgPos" value="below"><span data-i18n="event.msg.below">Abajo</span></label>
             </div></fieldset>
-            <label id="scMessageColorLabel">Color</label>
+            <label id="scMessageColorLabel" data-i18n="event.fx.color">Color</label>
             <div class="scSwatches" id="scMessageSwatches" role="group" aria-labelledby="scMessageColorLabel"></div>
-            <input id="scMessageColorCustom" type="color" class="scColorNative" tabindex="-1" aria-label="Elegir color personalizado">
+            <input id="scMessageColorCustom" type="color" class="scColorNative" tabindex="-1" aria-label="Elegir color personalizado" data-i18n-aria-label="event.customColor">
           </div>
-          <fieldset class="scMsgField scDurationField" id="scDurationField"><legend>¿Cuánto tiempo se ve?</legend>
-            <div class="scSegmented" role="radiogroup" aria-label="Cuánto tiempo se ve">
-              <label><input type="radio" name="scVisDur" value="brief"><span>Poco tiempo</span></label>
-              <label><input type="radio" name="scVisDur" value="normal" checked><span>Normal</span></label>
-              <label><input type="radio" name="scVisDur" value="long"><span>Mucho tiempo</span></label>
-              <label><input type="radio" name="scVisDur" value="custom"><span>Personalizado</span></label>
+          <fieldset class="scMsgField scDurationField" id="scDurationField"><legend data-i18n="event.dur.title">¿Cuánto tiempo se ve?</legend>
+            <div class="scSegmented" role="radiogroup" aria-label="Cuánto tiempo se ve" data-i18n-aria-label="event.dur.aria">
+              <label><input type="radio" name="scVisDur" value="brief"><span data-i18n="event.dur.brief">Poco tiempo</span></label>
+              <label><input type="radio" name="scVisDur" value="normal" checked><span data-i18n="event.dur.normal">Normal</span></label>
+              <label><input type="radio" name="scVisDur" value="long"><span data-i18n="event.dur.long">Mucho tiempo</span></label>
+              <label><input type="radio" name="scVisDur" value="custom"><span data-i18n="event.dur.custom">Personalizado</span></label>
             </div>
             <div id="scDurationCustom" class="scDurationCustom" hidden>
-              <label for="scDurationSeconds">Se ve durante</label>
-              <input id="scDurationSeconds" type="number" min="0.3" max="10" step="0.1" value="2.5" inputmode="decimal"> <span>segundos</span>
+              <label for="scDurationSeconds" data-i18n="event.dur.shownFor">Se ve durante</label>
+              <input id="scDurationSeconds" type="number" min="0.3" max="10" step="0.1" value="2.5" inputmode="decimal"> <span data-i18n="event.dur.seconds">segundos</span>
             </div>
-            <p class="hint">Esto solo cambia cómo se muestra. No cambia cuándo ocurre.</p>
+            <p class="hint" data-i18n="event.dur.hint">Esto solo cambia cómo se muestra. No cambia cuándo ocurre.</p>
           </fieldset>
           <div id="scFillConfig" class="scEffectConfig" hidden>
-            <label id="scFillColorLabel">Color del elemento</label>
+            <label id="scFillColorLabel" data-i18n="event.fx.fillColor">Color del elemento</label>
             <div class="scSwatches" id="scFillSwatches" role="group" aria-labelledby="scFillColorLabel"></div>
-            <input id="scFillColorCustom" type="color" class="scColorNative" tabindex="-1" aria-label="Elegir color personalizado">
+            <input id="scFillColorCustom" type="color" class="scColorNative" tabindex="-1" aria-label="Elegir color personalizado" data-i18n-aria-label="event.customColor">
           </div>
         </div>
       </details>
 
       <details id="scBehavior" class="scAccordion" hidden>
-        <summary><span class="scAccordionTitle">Comportamiento</span><span class="scAccordionSummary" id="scBehaviorSummary"></span></summary>
+        <summary><span class="scAccordionTitle" data-i18n="event.behavior.title">Comportamiento</span><span class="scAccordionSummary" id="scBehaviorSummary"></span></summary>
         <div class="scAccordionBody">
-          <p class="scSectionLead">¿Este evento cambia cómo responde el elemento?</p>
-          <div class="scChoiceStack" role="radiogroup" aria-label="Comportamiento del elemento">
-            <label class="scChoice"><input type="radio" name="scConsequence" value="none" checked><span><strong>No, sólo cambia cómo se ve</strong></span></label>
-            <label class="scChoice"><input type="radio" name="scConsequence" value="down"><span><strong>Deja de responder</strong></span></label>
-            <label class="scChoice"><input type="radio" name="scConsequence" value="up"><span><strong>Vuelve a responder</strong></span></label>
+          <p class="scSectionLead" data-i18n="event.behavior.lead">¿Este evento cambia cómo responde el elemento?</p>
+          <div class="scChoiceStack" role="radiogroup" aria-label="Comportamiento del elemento" data-i18n-aria-label="event.behavior.aria">
+            <label class="scChoice"><input type="radio" name="scConsequence" value="none" checked><span><strong data-i18n="event.behavior.none">No, sólo cambia cómo se ve</strong></span></label>
+            <label class="scChoice"><input type="radio" name="scConsequence" value="down"><span><strong data-i18n="event.behavior.down">Deja de responder</strong></span></label>
+            <label class="scChoice"><input type="radio" name="scConsequence" value="up"><span><strong data-i18n="event.behavior.up">Vuelve a responder</strong></span></label>
           </div>
-          <p class="hint">Esto afecta a los eventos que intentan entrar o salir del elemento durante la reproducción.</p>
+          <p class="hint" data-i18n="event.behavior.hint">Esto afecta a los eventos que intentan entrar o salir del elemento durante la reproducción.</p>
         </div>
       </details>
     </div></div>
     <p id="scEventError" role="alert" hidden></p>
   </div>
-  <footer><button id="scEventCancel" type="button">Cancelar</button><button id="scEventSave" type="button" class="primary">Crear evento</button></footer>
+  <footer><button id="scEventCancel" type="button" data-i18n="common.cancel">Cancelar</button><button id="scEventSave" type="button" class="primary" data-i18n-js="event.create">Crear evento</button></footer>
 </dialog>
-<dialog id="scDetailsDialog" class="scDialog scDetailsDialog" aria-labelledby="scDetailsTitle"><header><h2 id="scDetailsTitle"></h2><button id="scDetailsClose" type="button" aria-label="Cerrar detalles">×</button></header><div class="scDialogBody"><div id="scBehaviors" hidden></div><div id="scTraceLog" hidden></div><div id="scEventUses" hidden></div></div><footer><button id="scDetailsDone" type="button">Cerrar</button></footer></dialog>
+<dialog id="scDetailsDialog" class="scDialog scDetailsDialog" aria-labelledby="scDetailsTitle"><header><h2 id="scDetailsTitle"></h2><button id="scDetailsClose" type="button" aria-label="Cerrar detalles" data-i18n-aria-label="stories.closeDetails">×</button></header><div class="scDialogBody"><div id="scBehaviors" hidden></div><div id="scTraceLog" hidden></div><div id="scEventUses" hidden></div></div><footer><button id="scDetailsDone" type="button" data-i18n="common.close">Cerrar</button></footer></dialog>
 
 <!-- Los enlaces del proyecto ya no viven aquí (FLUYO-018.12, D8): están en el menú «Más» de la cabecera. -->
 <div id="bottomBar">

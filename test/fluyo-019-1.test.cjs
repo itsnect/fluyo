@@ -28,6 +28,7 @@ const GOLDEN = JSON.parse(read("test/fixtures/fluyo-019-1-skin.json"));
 function skinCtx(withRender) {
   const ctx = vm.createContext({ doc: { pages: [], cur: 0, theme: "dark", customBg: "" }, settings: { font: "Georgia, serif" },
     lerp: (a, b, t) => a + (b - a) * t, clamp: (v, a, b) => Math.min(b, Math.max(a, v)), console });
+  require("./i18n-vm.cjs").loadI18n(ctx);   /* FLUYO-I18N-002 S2a: Historias pasa por FluyoI18n.t, como en la página (en español, el texto de siempre) */
   vm.runInContext(read("js/config.js"), ctx);
   vm.runInContext("P=()=>doc.pages[doc.cur]; nodeById=id=>P().nodes.find(n=>n.id===id); edgeById=id=>P().edges.find(e=>e.id===id);", ctx);
   vm.runInContext(read("js/geometry.js"), ctx);
@@ -210,7 +211,7 @@ test("alcance · kernel (salvo model.js), geometría, Historias y Share idéntic
   assert.ok(html.indexOf('<script src="js/geometry.js">') < html.indexOf('<script src="js/skin.js">') && html.indexOf('<script src="js/skin.js">') < html.indexOf('<script src="js/render.js">'), "editor: geometry → skin → render");
   assert.ok(viewer.indexOf('<script src="../js/geometry.js">') < viewer.indexOf('<script src="../js/skin.js">') && viewer.indexOf('<script src="../js/skin.js">') < viewer.indexOf('<script src="../js/render.js">'), "Viewer (019.2): geometry → skin → render");
   assert.ok(!/^\s*import\s/m.test(read("js/skin.js")), "script clásico, sin import");
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v110";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v111";/);
   assert.ok(read("sw.js").includes('"./js/skin.js",'), "skin.js precacheado");
   /* skin.js va justo después de geometry.js también en la lista precacheada (el orden de carga del editor) */
   const sw = read("sw.js");

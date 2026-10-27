@@ -31,7 +31,9 @@ const EN = { ...DICTS.en.common, ...DICTS.en.editor };
 const DICT_FILES = fs.readdirSync(path.join(root, "js")).map((f) => "js/" + f).filter((f) => scan.DICT.test(f)).sort();
 
 /* Las regiones del cromo de S1 en index.html, sin lo registrado fuera de S1. */
-const HTML = read("index.html");
+/* FLUYO-I18N-002 S2a va encima (la región de Historias): el HTML de S1 se mide sin ella (undoS2a) */
+const { undoS2a, PIECES: PIECES_S2A } = require("./fluyo-i18n-002-s2a-undo.cjs");
+const HTML = undoS2a("index.html", read("index.html"));
 const cut = (from, to) => { const a = HTML.indexOf(from), b = HTML.indexOf(to, a); assert.ok(a >= 0 && b > a, "región: " + from); return HTML.slice(a, b); };
 const HELP = /<ul class="helpList">[\s\S]*?<\/ul>/;
 const SCNOW = /<div id="scNow"[\s\S]*?<\/div>/;
@@ -136,7 +138,7 @@ test("recuentos de la selección: el español de siempre; el inglés con su plur
 
 test("contenido del autor: solo viaja como parámetro y llega intacto (nombres de página y de Historia), nunca como clave ni como texto base", () => {
   for (const f of ["js/ui.js", "js/editor-share.js", "js/export.js", "js/deeplink.js", "js/examples.js", "js/state.js", "js/interaction.js", "js/editor-runtime.js"]) {
-    for (const c of scan.calls(read(f))) {
+    for (const c of scan.calls(undoS2a(f, read(f)))) {
       assert.ok(typeof c.key === "string" && c.es !== null, `${f}:${c.line} clave y texto base literales: ${c.raw}`);
       assert.doesNotMatch(c.raw, /\.(name|label|message)\s*[,)]/, `${f}:${c.line} un campo del documento no es clave ni texto base`);
     }
@@ -173,16 +175,18 @@ test("alcance frente a " + BASE + ": solo el cromo del editor; undoS1 da la base
   const FILES = ["index.html", "js/deeplink.js", "js/editor-runtime.js", "js/editor-share.js", "js/examples.js", "js/export.js", "js/i18n-en-editor.js", "js/i18n.js", "js/interaction.js", "js/state.js", "js/ui.js"];
   assert.deepEqual(Object.keys(PIECES).sort(), FILES);
   const SERVED = ["js", "s", "css", "assets", "index.html", "404.html", "sw.js", "manifest.webmanifest", "docs", "ejemplos", "privacidad", "privacy", "soporte", "support", "terminos", "terms"];
-  const changed = execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean);
-  const untracked = execFileSync("git", ["-C", gitRoot, "ls-files", "--others", "--exclude-standard", "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean);
+  /* S2a va encima: lo que solo cambia S2a (sin S2a, igual que la base) no cuenta para el alcance de S1 */
+  const s2aOnly = (f) => !!PIECES_S2A[f] && !FILES.includes(f) && undoS2a(f, read(f)) === atBase(f);
+  const changed = execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean).filter((f) => !s2aOnly(f));
+  const untracked = execFileSync("git", ["-C", gitRoot, "ls-files", "--others", "--exclude-standard", "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean).filter((f) => !s2aOnly(f));
   assert.deepEqual([...new Set([...changed, ...untracked])].sort(), [...FILES, "sw.js"].sort());
   for (const f of FILES) assert.equal(undoS1(f, read(f)), atBase(f), f + ": undoS1 exacto");
-  assert.equal(read("sw.js").replace('"fluyo-static-v110"', '"fluyo-static-v' + (110 - 1) + '"'), atBase("sw.js"), "sw.js: solo CACHE (sin archivos nuevos)");
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v110";/);
+  assert.equal(read("sw.js").replace('"fluyo-static-v111"', '"fluyo-static-v' + (110 - 1) + '"'), atBase("sw.js"), "sw.js: solo CACHE (sin archivos nuevos)");
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v111";/);
   assert.ok(read("test/fluyo-i18n-002-s0-undo.cjs").includes("src = undoS1(file, src);"), "undoS0 deshace antes esta tarea");
   for (const f of ["js/config.js", "js/safe-svg.js", "js/model.js", "js/scenario-engine.js", "js/scenario-playback.js", "js/story-playback.js", "js/document-integrity.js", "js/story-authoring.js",
     "js/story-clock.js", "js/flow-semantics.js", "js/render.js", "js/selection.js", "js/editor-scenarios.js", "js/present-story.js", "js/viewer.js", "js/viewer-viewport.js", "js/share-url.js",
     "js/link-codec.js", "js/share-loader.js", "js/i18n-en.js", "js/i18n-fr.js", "js/i18n-ja.js", "js/i18n-zh.js", "s/index.html", "404.html", "css/system.css", "css/styles.css"]) {
-    assert.equal(read(f), atBase(f), f + " sin cambios");
+    assert.equal(undoS2a(f, read(f)), atBase(f), f + " sin cambios (S2a, encima, se deshace antes)");
   }
 });

@@ -84,32 +84,49 @@ function deleteImpact(nodeIds, edgeIds){
   if(typeof FluyoIntegrity==="undefined" || !(pg.scenarios||[]).length) return {stories:[], behaviors:[]};
   const slim=projectToSerializable(Object.assign({}, doc, {pages:[pg], cur:0}), typeof settings!=="undefined" ? settings : {});
   const r=FluyoIntegrity.removalImpact(slim, {pageIndex:0, nodeIds, edgeIds});
-  const label=id=>{ const n=nodeById(id); return (n && String(n.label||"").split("\n")[0].trim()) || "Elemento sin nombre"; };
+  const label=id=>{ const n=nodeById(id); return (n && String(n.label||"").split("\n")[0].trim()) || FluyoI18n.t("story.unnamed","Elemento sin nombre"); };
   const targetOf=st=>{
-    if(st.action==="SEND"){ const e=edgeById(st.edgeId), t=traversalEnds(e, st.reverse); return e ? label(t.source)+" → "+label(t.target) : "Conexión"; }
+    if(st.action==="SEND"){ const e=edgeById(st.edgeId), t=traversalEnds(e, st.reverse); return e ? label(t.source)+" → "+label(t.target) : FluyoI18n.t("confirm.delete.edgeFallback","Conexión"); }
     return label(st.nodeId);
   };
   const stories=r.affectedStories.map(a=>{
     const sc=pg.scenarios.find(x=>x.id===a.storyId);
     const steps=sc ? sc.steps.filter(st=>a.stepIds.includes(st.id)) : [];
     const targets=[]; for(const st of steps){ const t=targetOf(st); if(!targets.includes(t)) targets.push(t); }
-    return {storyId:a.storyId, name:a.storyName||"Historia", moments:new Set(steps.map(st=>st.at)).size||a.stepIds.length, targets};
+    return {storyId:a.storyId, name:a.storyName||FluyoI18n.t("story.group","Historia"), moments:new Set(steps.map(st=>st.at)).size||a.stepIds.length, targets};
   });
   const gone=new Set(nodeIds);
   return {stories, behaviors:(pg.behaviors||[]).filter(b=>gone.has(b.nodeId)).map(b=>b.nodeId)};
 }
+/* FLUYO-I18N-002 S2a (decisión 280): cada línea es UNA frase completa por sujeto (selección, elemento o conexión: en español
+   concuerdan pronombre y verbo), con su plural; la lista de destinos se une con el separador del idioma. Nada se pega a mano. */
 function deleteConfirmMessage(impact, nodeCount, edgeCount){
-  const many=nodeCount+edgeCount>1;
-  const [subject, pron, verb]=many ? ["Esta selección","los","eliminarlos"] : nodeCount ? ["Este elemento","lo","eliminarlo"] : ["Esta conexión","la","eliminarla"];
+  const who=nodeCount+edgeCount>1 ? "selection" : nodeCount ? "element" : "connection";
   const n=impact.stories.length, moments=impact.stories.reduce((t,s)=>t+s.moments,0);
-  const lines=[subject+" se usa en "+n+(n===1?" Historia:":" Historias:"), ""];
+  const usedBy={
+    selection:()=>FluyoI18n.t("confirm.delete.usedBySelection",{one:"Esta selección se usa en {count} Historia:", other:"Esta selección se usa en {count} Historias:"},{count:n}),
+    element:()=>FluyoI18n.t("confirm.delete.usedByElement",{one:"Este elemento se usa en {count} Historia:", other:"Este elemento se usa en {count} Historias:"},{count:n}),
+    connection:()=>FluyoI18n.t("confirm.delete.usedByConnection",{one:"Esta conexión se usa en {count} Historia:", other:"Esta conexión se usa en {count} Historias:"},{count:n})
+  }[who];
+  const lines=[usedBy(), ""];
   for(const s of impact.stories){
-    const shown=s.targets.slice(0,3).join(", ")+(s.targets.length>3?"…":"");
-    lines.push("• "+s.name+" — "+s.moments+(s.moments===1?" momento":" momentos")+(shown?" ("+shown+")":""));
+    const shown=s.targets.length ? s.targets.slice(0,3).join(FluyoI18n.t("list.sep",", "))+(s.targets.length>3?"…":"") : "";
+    const count=FluyoI18n.t("confirm.delete.moments",{one:"{count} momento", other:"{count} momentos"},{count:s.moments});
+    lines.push(shown ? FluyoI18n.t("confirm.delete.storyLineTargets","• {name} — {moments} ({targets})",{name:s.name, moments:count, targets:shown})
+                     : FluyoI18n.t("confirm.delete.storyLine","• {name} — {moments}",{name:s.name, moments:count}));
   }
-  lines.push("", "Si "+pron+" eliminas, "+(moments===1?"ese momento dejará":"esos momentos dejarán")+" de funcionar.");
-  if(impact.behaviors.length) lines.push(impact.behaviors.length===1 ? "También se eliminará su condición de disponibilidad inicial." : "También se eliminarán sus condiciones de disponibilidad inicial.");
-  lines.push("¿Quieres "+verb+" de todas formas?");
+  const stop={
+    selection:()=>FluyoI18n.t("confirm.delete.stopSelection",{one:"Si los eliminas, ese momento dejará de funcionar.", other:"Si los eliminas, esos momentos dejarán de funcionar."},{count:moments}),
+    element:()=>FluyoI18n.t("confirm.delete.stopElement",{one:"Si lo eliminas, ese momento dejará de funcionar.", other:"Si lo eliminas, esos momentos dejarán de funcionar."},{count:moments}),
+    connection:()=>FluyoI18n.t("confirm.delete.stopConnection",{one:"Si la eliminas, ese momento dejará de funcionar.", other:"Si la eliminas, esos momentos dejarán de funcionar."},{count:moments})
+  }[who];
+  lines.push("", stop());
+  if(impact.behaviors.length) lines.push(FluyoI18n.t("confirm.delete.behaviors",{one:"También se eliminará su condición de disponibilidad inicial.", other:"También se eliminarán sus condiciones de disponibilidad inicial."},{count:impact.behaviors.length}));
+  lines.push({
+    selection:()=>FluyoI18n.t("confirm.delete.askSelection","¿Quieres eliminarlos de todas formas?"),
+    element:()=>FluyoI18n.t("confirm.delete.askElement","¿Quieres eliminarlo de todas formas?"),
+    connection:()=>FluyoI18n.t("confirm.delete.askConnection","¿Quieres eliminarla de todas formas?")
+  }[who]());
   return lines.join("\n");
 }
 function deleteSel(){
@@ -150,22 +167,24 @@ function sendBackward(){ reorderSelection("backward"); }
    Cancelar no cambia nada (documento, página activa, pilas ni Playback). Aceptar detiene el Playback (decisión 64), elimina con
    deletePageIn (regla de cur del dominio; los EventTypes no se tocan) y deja UNA entrada de Undo que reinserta la misma página. */
 const PAGE_DELETE_LIST_MAX=8;
+/* FLUYO-I18N-002 S2a (decisión 280): el recuento es una lista de piezas nominales completas («3 elementos», «1 Historia»), unida con
+   Intl.ListFormat en el idioma de la frase que la contiene; ninguna pieza se pega a mano. */
 function pageDeleteConfirmMessage(impact){
-  const plural=(n,one,many)=>n+" "+(n===1?one:many);
   const parts=[];
-  if(impact.nodes) parts.push(plural(impact.nodes,"elemento","elementos"));
-  if(impact.connections) parts.push(plural(impact.connections,"conexión","conexiones"));
-  if(impact.behaviors) parts.push(plural(impact.behaviors,"condición de disponibilidad inicial","condiciones de disponibilidad inicial"));
-  if(impact.stories.length) parts.push(plural(impact.stories.length,"Historia","Historias"));
-  if(!parts.length) return `¿Eliminar «${impact.name}»?`;
-  const list=parts.length>1 ? parts.slice(0,-1).join(", ")+" y "+parts[parts.length-1] : parts[0];
-  const lines=[`La página «${impact.name}» tiene ${list}${impact.stories.length?":":"."}`];
-  if(impact.stories.length){
+  if(impact.nodes) parts.push(FluyoI18n.t("count.elements",{one:"{count} elemento", other:"{count} elementos"},{count:impact.nodes}));
+  if(impact.connections) parts.push(FluyoI18n.t("count.connections",{one:"{count} conexión", other:"{count} conexiones"},{count:impact.connections}));
+  if(impact.behaviors) parts.push(FluyoI18n.t("count.behaviors",{one:"{count} condición de disponibilidad inicial", other:"{count} condiciones de disponibilidad inicial"},{count:impact.behaviors}));
+  if(impact.stories.length) parts.push(FluyoI18n.t("count.stories",{one:"{count} Historia", other:"{count} Historias"},{count:impact.stories.length}));
+  if(!parts.length) return FluyoI18n.t("confirm.page.ask","¿Eliminar «{name}»?",{name:impact.name});
+  const withStories=!!impact.stories.length;
+  const list=FluyoI18n.list(parts, withStories ? "confirm.page.hasStories" : "confirm.page.has");
+  const lines=[withStories ? FluyoI18n.t("confirm.page.hasStories","La página «{name}» tiene {list}:",{name:impact.name, list}) : FluyoI18n.t("confirm.page.has","La página «{name}» tiene {list}.",{name:impact.name, list})];
+  if(withStories){
     lines.push("");
-    for(const s of impact.stories.slice(0,PAGE_DELETE_LIST_MAX)) lines.push("• "+s.name+" — "+(s.moments ? plural(s.moments,"momento","momentos") : "sin momentos"));
-    if(impact.stories.length>PAGE_DELETE_LIST_MAX) lines.push("• …y "+plural(impact.stories.length-PAGE_DELETE_LIST_MAX,"Historia más","Historias más"));
+    for(const s of impact.stories.slice(0,PAGE_DELETE_LIST_MAX)) lines.push(FluyoI18n.t("confirm.delete.storyLine","• {name} — {moments}",{name:s.name, moments:s.moments ? FluyoI18n.t("confirm.delete.moments",{one:"{count} momento", other:"{count} momentos"},{count:s.moments}) : FluyoI18n.t("confirm.page.noMoments","sin momentos")}));
+    if(impact.stories.length>PAGE_DELETE_LIST_MAX) lines.push(FluyoI18n.t("confirm.page.more",{one:"• …y {count} Historia más", other:"• …y {count} Historias más"},{count:impact.stories.length-PAGE_DELETE_LIST_MAX}));
   }
-  lines.push("", "Si la eliminas se pierde todo su contenido (puedes deshacerlo con Ctrl+Z). Los eventos de la biblioteca se conservan.", "¿Eliminar la página?");
+  lines.push("", FluyoI18n.t("confirm.page.loss","Si la eliminas se pierde todo su contenido (puedes deshacerlo con Ctrl+Z). Los eventos de la biblioteca se conservan."), FluyoI18n.t("confirm.page.askPage","¿Eliminar la página?"));
   return lines.join("\n");
 }
 function requestDeletePage(index){

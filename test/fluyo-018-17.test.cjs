@@ -43,7 +43,7 @@ test("alcance: kernel, render, geometría, exportación y Share idénticos a HEA
 
 test("sw.js: CACHE subido (v77 desde 018.18); lo que toca 018.17 sigue en el precache y nada de index.html queda fuera", () => {
   const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v110";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v111";/);
   for (const f of ["./index.html", "./css/system.css", "./css/styles.css", "./js/ui.js", "./js/editor-scenarios.js", "./docs/"]) assert.ok(sw.includes('"' + f + '"'), f + " precacheado");
   const html = read("index.html");
   const local = [...html.matchAll(/(?:src|href)="((?!https?:|#|data:)[^"]+\.(?:js|css|woff2|webmanifest|svg|png))"/g)].map((m) => m[1]).filter((u) => !u.startsWith("//"));
@@ -51,7 +51,7 @@ test("sw.js: CACHE subido (v77 desde 018.18); lo que toca 018.17 sigue en el pre
 });
 
 test("index.html: ids conservados, nodos nuevos (pista, hogares, secciones de «Más») y comentario de los cuatro estados", () => {
-  const html = read("index.html").replace(/<!--[\s\S]*?-->/g, "");
+  const html = require("./fluyo-i18n-002-s2a-undo.cjs").undoS2a("index.html", read("index.html")).replace(/<!--[\s\S]*?-->/g, "");   /* FLUYO-I18N-002 S2a: sin sus marcas */
   for (const id of ["btnStoryExit", "btnStoryExpand", "scRun", "scReset", "scScenarioTitle", "scStoryAdd", "scScenarioMenu", "scPaletteToggle", "scLibrarySection", "scEventNew", "scEventLibrary",
     "scNow", "scNowLabel", "scNowCaption", "scNowProgress", "btnPanel", "btnPanelClose", "btnStories", "scStoryboard", "scPlacementCancel", "scNotice", "grpAnim", "grpHelp", "noSel", "pagesBar", "tbConnect", "tbMulti"])
     assert.ok(html.includes('id="' + id + '"'), "existe #" + id);

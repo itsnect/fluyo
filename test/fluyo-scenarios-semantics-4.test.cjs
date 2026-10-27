@@ -26,6 +26,7 @@ const J = (v) => JSON.parse(JSON.stringify(v));
 const KERNEL = ["config.js", "safe-svg.js", "model.js", "scenario-engine.js", "scenario-playback.js", "story-playback.js", "story-clock.js", "flow-semantics.js"];
 function context(src = read, files = KERNEL, extra = {}) {
   const ctx = vm.createContext(Object.assign({ TextEncoder, TextDecoder, atob, btoa, URL, console }, extra));
+  require("./i18n-vm.cjs").loadI18n(ctx);   /* FLUYO-I18N-002 S2a: Historias pasa por FluyoI18n.t, como en la página (en español, el texto de siempre) */
   for (const f of files) vm.runInContext(src("js/" + f), ctx, { filename: f });
   return ctx;
 }
@@ -233,6 +234,7 @@ function editor({ labs = true } = {}) {
   const $ = (id) => (els[id] = els[id] || fakeEl(id));
   const ctx = vm.createContext({ TextEncoder, TextDecoder, atob, btoa, URL, console, $, GRID: 20, innerWidth: 1280, innerHeight: 800, LABS_SEMANTICS: labs,
     document: { createElement: (tag) => ({ tag, value: "", textContent: "", title: "", disabled: false, dataset: {}, style: {}, className: "" }) } });
+  require("./i18n-vm.cjs").loadI18n(ctx);   /* FLUYO-I18N-002 S2a: Historias pasa por FluyoI18n.t, como en la página (en español, el texto de siempre) */
   const R = (code) => vm.runInContext(code, ctx);
   for (const f of KERNEL) vm.runInContext(read("js/" + f), ctx, { filename: f });
   R(`var selN=new Set(), selE=new Set(), clip=null, __autosaves=0, __routes=0, scPlayback=null, scStatus="idle", scActive=1, presenting=false, __now=0;
@@ -623,13 +625,14 @@ test("D8 · labs apagado = producción: un fotograma completo (render) sin `flow
 
 /* ═══════════════ E. Estático y alcance ═══════════════ */
 test("E1 · markup estático dentro de #scFlow, oculto por defecto; textos del prototipo validado; sin UNKNOWN ni vocabulario de salud", () => {
-  const html = read("index.html");
+  const html = require("./fluyo-i18n-002-s2a-undo.cjs").undoS2a("index.html", read("index.html"));   /* FLUYO-I18N-002 S2a va encima: sin sus marcas */
   const f = html.indexOf('<section id="scFlow"'), sec = html.slice(f, html.indexOf("</section>", f));
   for (const s of ['<div id="scFlowTrack" class="scFlowTrack" aria-hidden="true" hidden>', '<span id="scFlowCursor" class="scFlowCursor" hidden>', '<dl id="scFlowEnds" class="scFlowEnds" hidden>',
     "<dt>Inicio</dt>", "<dt>Cambios de la ruta</dt>", "<dt>Final</dt>", '<ul id="scFlowRows" class="scFlowRows" hidden></ul>'])
     assert.ok(sec.includes(s), s);
   assert.ok(sec.indexOf('id="scFlowState"') < sec.indexOf('id="scFlowTrack"') && sec.indexOf('id="scFlowTrack"') < sec.indexOf('id="scFlowRows"'), "orden de D6: estado → línea de tiempo → filas");
-  const block = flowBlock() + read("js/render.js").slice(read("js/render.js").indexOf("/* ===================== Ruta observada en el lienzo"), read("js/render.js").indexOf("/* ===================== Marcas del editor"));
+  const flowSrc = require("./fluyo-i18n-002-s2a-undo.cjs").undoS2a("js/editor-scenarios.js", read("js/editor-scenarios.js"));   /* FLUYO-I18N-002 S2a: textos por FluyoI18n.t; se comparan sin ella */
+  const block = flowSrc.slice(flowSrc.indexOf("/* ===================== Ruta observada (SCENARIOS-SEMANTICS-001 FASE 3"), flowSrc.indexOf("/* ===================== fin de la ruta observada")) + read("js/render.js").slice(read("js/render.js").indexOf("/* ===================== Ruta observada en el lienzo"), read("js/render.js").indexOf("/* ===================== Marcas del editor"));
   for (const s of ['"disponible"', '"no disponible"', '"ninguno"', '"vía "', '" rutas"', '" ruta"', '"Más de 10 000 rutas"']) assert.ok(block.includes(s), s);
   assert.ok(!/o más/.test(flowBlock()), "«+N rutas o más» ya no existe (QA del PO)");
   assert.ok(!/UNKNOWN|desconocid/.test(flowBlock()), "UNKNOWN no se ofrece ni se nombra en el editor");
@@ -652,8 +655,8 @@ test("E2 · alcance frente a " + BASE + ": solo cambian render.js, editor-scenar
   const { NEW_FILES: NEW_I18N, undoI18n } = require("./fluyo-i18n-001-undo.cjs");   /* FLUYO-I18N-001 añade js/i18n.js y js/i18n-en.js (no existen en la base) */
   const mine = [...new Set([...changed, ...untracked])].filter((f) => !NEW_I18N.includes(f)).filter((f) => !((Object.keys(PIECES5).includes(f) || Object.keys(PIECES6).includes(f) || Object.keys(PIECESM).includes(f)) && read4(f) === atBase(f)));
   assert.deepEqual(mine.sort(), ["css/styles.css", "index.html", "js/editor-scenarios.js", "js/flow-semantics.js", "js/render.js", "sw.js"]);
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v110";/);
-  assert.equal(undoI18n("sw.js", read("sw.js")).replace('"fluyo-static-v110"', '"fluyo-static-v' + (99 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante (el precache no cambia)");
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v111";/);
+  assert.equal(undoI18n("sw.js", read("sw.js")).replace('"fluyo-static-v111"', '"fluyo-static-v' + (99 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante (el precache no cambia)");
   for (const f of ["js/model.js", "js/scenario-engine.js", "js/scenario-playback.js", "js/story-playback.js", "js/story-clock.js", "js/document-integrity.js", "js/story-authoring.js",
     "js/viewer.js", "js/present-story.js", "js/export.js", "js/geometry.js", "js/skin.js", "js/interaction.js", "js/ui.js", "s/index.html"])
     assert.equal(read4(f), atBase(f), f + " intacto (kernel del MCP, Viewer, Present y exportación)");

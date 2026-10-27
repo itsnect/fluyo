@@ -24,7 +24,7 @@ const SVG_FLAT = ["  const lay=skinOn? containmentPaintOrder(page.nodes||[], ski
 const BALLS_LAST = ["  if(!rs.scenarioRuntime) drawFlowBalls(c,t,rs);\n  for(const n of lay.leaves) drawNode(c,n,t,theme,isExport,rs);", "  for(const n of lay.leaves) drawNode(c,n,t,theme,isExport,rs);\n  if(!rs.scenarioRuntime) drawFlowBalls(c,t,rs);"];   // flujo encima de las hojas
 /* [nombre, suite, archivo, desde, hasta] */
 const MUTATIONS = [
-  ["U0 CACHE no sube (sigue v90)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v110";', 'const CACHE = "fluyo-static-v90";'],
+  ["U0 CACHE no sube (sigue v90)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v111";', 'const CACHE = "fluyo-static-v90";'],
   ["U1 vuelve «conexiones bajo todos los nodos» con la piel", UNIT, REN, ...NO_LAYERS],
   ["U2 capas también en plano", UNIT, REN, ...FLAT_TOO],
   ["U3 contenedores solo por y (sin árbol)", UNIT, GEO, ...BY_Y],

@@ -47,9 +47,15 @@ function scActiveScenario() {
   return prev || pg.scenarios[0] || null;
 }
 
+/* FLUYO-I18N-002 S2a: los números de la hoja. En español, exactamente como siempre (punto decimal; D-S2-6); en los demás
+   idiomas, con su formato (FluyoI18n.num). La unidad y el orden van en la plantilla de cada idioma. */
+function scNum(n, legacy) {
+  return FluyoI18n.locale() === FluyoI18n.BASE ? legacy : FluyoI18n.num(n);
+}
 function scFormatTime(ms) {
   if (!Number.isFinite(ms)) ms = 0;
-  return (ms / 1000).toFixed(1) + " s";
+  const s = (ms / 1000).toFixed(1);
+  return FluyoI18n.t("time.seconds", "{n} s", { n: scNum(+s, s) });
 }
 
 function scParseTime(v) {
@@ -60,14 +66,14 @@ function scParseTime(v) {
 
 function formatRelativeDelay(ms) {
   if (!Number.isFinite(ms) || ms < 0) ms = 0;
-  if (ms === 0) return "al mismo tiempo";
-  if (ms < 1000) return ms + " ms después";
+  if (ms === 0) return FluyoI18n.t("moment.together", "al mismo tiempo");
+  if (ms < 1000) return FluyoI18n.t("moment.afterMs", "{n} ms después", { n: scNum(ms, String(ms)) });
   const s = ms / 1000;
   // Para segundos usamos formato claro: entero cuando no hay decimal relevante
-  if (s === Math.floor(s)) return s + " s después";
+  if (s === Math.floor(s)) return FluyoI18n.t("moment.afterS", "{n} s después", { n: scNum(s, String(s)) });
   // 1.5 s, 2.5 s… con un decimal; evitamos floats raros
   const rounded = Math.round(s * 10) / 10;
-  return rounded.toFixed(1).replace(".0", "") + " s después";
+  return FluyoI18n.t("moment.afterS", "{n} s después", { n: scNum(rounded, rounded.toFixed(1).replace(".0", "")) });
 }
 
 function parseHumanDelay(value, unit) {
@@ -85,7 +91,7 @@ function scNodeLabel(id) {
 }
 
 function scNodeFallback(id) {
-  return scNodeLabel(id) || "Elemento sin nombre";
+  return scNodeLabel(id) || FluyoI18n.t("story.unnamed", "Elemento sin nombre");
 }
 
 /* «A → B» en el sentido del RECORRIDO (FLUYO-STEP-REVERSE-002): con `reverse`, «B → A». Una sola regla: traversalEnds. */
@@ -106,7 +112,7 @@ function scEdgeSecondary(id) {
 
 function scTargetLabel(step) {
   if (step.action === "SET_STATE") return scNodeFallback(step.nodeId);
-  return scEdgeLabel(step.edgeId, step.reverse) || "Conexión sin nombre";
+  return scEdgeLabel(step.edgeId, step.reverse) || FluyoI18n.t("step.unnamedEdge", "Conexión sin nombre");
 }
 
 function scIsTargetMissing(step) {
@@ -133,9 +139,11 @@ function describeScenarioStep(step) {
         secondary: null,
       };
     }
-    const verb = step.state === "DOWN" ? "se cae" : step.state === "UP" ? "se recupera" : "cambia de estado";
+    const said = step.state === "DOWN"
+      ? FluyoI18n.t("step.row.down", "{name} se cae", { name: label })
+      : step.state === "UP" ? FluyoI18n.t("step.row.up", "{name} se recupera", { name: label }) : FluyoI18n.t("step.row.changes", "{name} cambia de estado", { name: label });
     return {
-      primary: missing ? "⚠ Elemento eliminado" : label + " " + verb,
+      primary: missing ? "⚠ " + FluyoI18n.t("step.row.nodeGone", "Elemento eliminado") : said,
       targetType: "node",
       targetId: step.nodeId,
       missing,
@@ -158,7 +166,7 @@ function describeScenarioStep(step) {
       };
     }
     return {
-      primary: missing ? "⚠ Elemento eliminado" : label + " ocurre",
+      primary: missing ? "⚠ " + FluyoI18n.t("step.row.nodeGone", "Elemento eliminado") : FluyoI18n.t("step.row.occurs", "{name} ocurre", { name: label }),
       targetType: "node",
       targetId: step.nodeId,
       missing,
@@ -186,7 +194,7 @@ function describeScenarioStep(step) {
     };
   }
   return {
-    primary: missing ? "⚠ Conexión eliminada" : (primary || "?") + " envía",
+    primary: missing ? "⚠ " + FluyoI18n.t("step.row.edgeGone", "Conexión eliminada") : FluyoI18n.t("step.row.sends", "{name} envía", { name: primary || "?" }),
     targetType: "edge",
     targetId: step.edgeId,
     missing,
@@ -212,16 +220,15 @@ function scSetBehavior(nodeId, state) {
   scRenderFlow();
 }
 
-function escapeHtml(s) {
-  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
-
 /* Motivo de un envío que no llegó, con el nodo del recorrido: el origen o el destino según el sentido del Step. */
 function scSendFailText(step, reason) {
   const t = traversalEnds(edgeById(step.edgeId), step.reverse);
-  return reason === "source_down"
-    ? (scNodeLabel(t.source) || "El origen") + " no está disponible"
-    : (scNodeLabel(t.target) || "El destino") + " no está disponible";
+  if (reason === "source_down") {
+    const n = scNodeLabel(t.source);
+    return n ? FluyoI18n.t("step.unavailable", "{name} no está disponible", { name: n }) : FluyoI18n.t("step.sourceUnavailable", "El origen no está disponible");
+  }
+  const n = scNodeLabel(t.target);
+  return n ? FluyoI18n.t("step.unavailable", "{name} no está disponible", { name: n }) : FluyoI18n.t("step.targetUnavailable", "El destino no está disponible");
 }
 
 function scRuntimeStateForStep(step) {
@@ -295,7 +302,7 @@ function scRenderTraceLog() {
   if (!events.length) {
     const p = document.createElement("p");
     p.className = "hint";
-    p.textContent = "El registro aparecerá aquí al reproducir la historia.";
+    p.textContent = FluyoI18n.t("trace.empty", "El registro aparecerá aquí al reproducir la historia.");
     cont.appendChild(p);
     return;
   }
@@ -307,40 +314,40 @@ function scRenderTraceLog() {
     const body = document.createElement("span");
     const time = scFormatTime(ev.at);
     if (ev.type === "state_changed") {
-      const lbl = scNodeLabel(ev.nodeId) || "Nodo #" + ev.nodeId;
+      const lbl = scNodeLabel(ev.nodeId) || FluyoI18n.t("trace.node", "Nodo #{id}", { id: ev.nodeId });
       mark.textContent = "◦";
-      body.textContent = time + "  " + escapeHtml(lbl) + " " + (ev.from || "UP") + " → " + ev.to;
+      body.textContent = time + "  " + lbl + " " + (ev.from || "UP") + " → " + ev.to;
     } else if (ev.type === "event_occurred") {
-      const lbl = scNodeLabel(ev.nodeId) || "Nodo #" + ev.nodeId;
+      const lbl = scNodeLabel(ev.nodeId) || FluyoI18n.t("trace.node", "Nodo #{id}", { id: ev.nodeId });
       mark.textContent = "●";
-      body.textContent = time + "  " + escapeHtml(lbl) + "  Ocurre";
+      body.textContent = time + "  " + lbl + "  " + FluyoI18n.t("trace.occurs", "Ocurre");
     } else if (ev.type === "send_started") {
-      const lbl = scEdgeLabel(ev.edgeId, ev.reverse) || "Conexión #" + ev.edgeId;
+      const lbl = scEdgeLabel(ev.edgeId, ev.reverse) || FluyoI18n.t("trace.edge", "Conexión #{id}", { id: ev.edgeId });
       mark.textContent = "→";
-      body.textContent = time + "  " + escapeHtml(lbl) + "  Sale";
+      body.textContent = time + "  " + lbl + "  " + FluyoI18n.t("trace.leaves", "Sale");
     } else if (ev.type === "send_succeeded") {
-      const lbl = scEdgeLabel(ev.edgeId, ev.reverse) || "Conexión #" + ev.edgeId;
+      const lbl = scEdgeLabel(ev.edgeId, ev.reverse) || FluyoI18n.t("trace.edge", "Conexión #{id}", { id: ev.edgeId });
       mark.textContent = "✓";
       line.classList.add("success");
       const result = document.createElement("span");
       result.className = "scLogResult";
-      result.textContent = "Llegó";
-      body.appendChild(document.createTextNode(time + "  " + escapeHtml(lbl) + "  "));
+      result.textContent = FluyoI18n.t("trace.arrived", "Llegó");
+      body.appendChild(document.createTextNode(time + "  " + lbl + "  "));
       body.appendChild(result);
     } else if (ev.type === "send_failed") {
-      const lbl = scEdgeLabel(ev.edgeId, ev.reverse) || "Conexión #" + ev.edgeId;
+      const lbl = scEdgeLabel(ev.edgeId, ev.reverse) || FluyoI18n.t("trace.edge", "Conexión #{id}", { id: ev.edgeId });
       mark.textContent = "✕";
       line.classList.add("fail");
       const reasonText =
         ev.reason === "source_down"
-          ? "Origen no disponible"
+          ? FluyoI18n.t("trace.sourceDown", "Origen no disponible")
           : ev.reason === "target_down"
-            ? "Destino no disponible"
-            : "No llegó";
+            ? FluyoI18n.t("trace.targetDown", "Destino no disponible")
+            : FluyoI18n.t("trace.notArrived", "No llegó");
       const result = document.createElement("span");
       result.className = "scLogResult";
       result.textContent = reasonText;
-      body.appendChild(document.createTextNode(time + "  " + escapeHtml(lbl) + "  "));
+      body.appendChild(document.createTextNode(time + "  " + lbl + "  "));
       body.appendChild(result);
     }
     line.appendChild(mark);
@@ -397,7 +404,7 @@ function scNewScenario() {
   scSelectStory(sc.id);
   scheduleAutosave();
   scRenderPanel();
-  scNotice(sc.name + " creada");
+  scNotice(FluyoI18n.t("stories.created", "{name} creada", { name: sc.name }));
 }
 
 function scDuplicateScenario() {
@@ -411,7 +418,7 @@ function scDuplicateScenario() {
   scSelectStory(copy.id);
   scheduleAutosave();
   scRenderPanel();
-  scNotice("Historia duplicada: " + copy.name);
+  scNotice(FluyoI18n.t("stories.duplicated", "Historia duplicada: {name}", { name: copy.name }));
 }
 
 function scDeleteScenario() {
@@ -419,8 +426,10 @@ function scDeleteScenario() {
   if (!sc) return;
   if (isScenarioPlaybackActive()) scReset();
   const moments = storyboardGroups(sc.steps).length;
-  const detail = moments ? " Tiene " + moments + (moments === 1 ? " momento." : " momentos.") : "";
-  if (!confirm("¿Eliminar la historia «" + sc.name + "»?" + detail + " Los eventos de la biblioteca se conservan.")) return;
+  const ask = moments
+    ? FluyoI18n.t("stories.deleteConfirmMoments", { one: "¿Eliminar la historia «{name}»? Tiene {count} momento. Los eventos de la biblioteca se conservan.", other: "¿Eliminar la historia «{name}»? Tiene {count} momentos. Los eventos de la biblioteca se conservan." }, { name: sc.name, count: moments })
+    : FluyoI18n.t("stories.deleteConfirm", "¿Eliminar la historia «{name}»? Los eventos de la biblioteca se conservan.", { name: sc.name });
+  if (!confirm(ask)) return;
   const pg = P();
   const index = pg.scenarios.findIndex((s) => s.id === sc.id);
   pushUndo();
@@ -913,7 +922,7 @@ function scRenderPanel() {
 function scRenderHeader() {
   const s = scActiveScenario(),
     title = $("scScenarioTitle");
-  if (title) scGlyphText(title, "▾", "g-chev", s ? s.name : "Sin historias", false);
+  if (title) scGlyphText(title, "▾", "g-chev", s ? s.name : FluyoI18n.t("stories.none", "Sin historias"), false);
   const u = $("scUnsupported");
   if (u) u.hidden = !s || s.engineVersion === FluyoScenarios.ENGINE_VERSION;
 }
@@ -929,17 +938,17 @@ function scRenderButtons() {
     run = $("scRun"),
     reset = $("scReset");
   if (run) {
-    if (scStatus === "completed") scGlyphText(run, "↻", "g-replay", "Repetir", true);
-    else scGlyphText(run, "▶", "g-play", "Reproducir", true);
+    if (scStatus === "completed") scGlyphText(run, "↻", "g-replay", FluyoI18n.t("story.replay", "Repetir"), true);
+    else scGlyphText(run, "▶", "g-play", FluyoI18n.t("story.play", "Reproducir"), true);
     run.hidden = scStatus === "running";
     run.disabled = !s || !s.steps.length || s.engineVersion !== FluyoScenarios.ENGINE_VERSION;
-    run.title = !run.disabled ? "" : !s ? "Crea una historia para poder reproducirla." : !s.steps.length ? "Añade un evento a la historia para poder reproducirla." : "Esta historia necesita una versión compatible de Fluyo.";
+    run.title = !run.disabled ? "" : !s ? FluyoI18n.t("stories.runNeedsStory", "Crea una historia para poder reproducirla.") : !s.steps.length ? FluyoI18n.t("stories.runNeedsStep", "Añade un evento a la historia para poder reproducirla.") : FluyoI18n.t("stories.unsupported", "Esta historia necesita una versión compatible de Fluyo.");
   }
   if (reset) {
     reset.hidden = scStatus === "idle";
     /* FLUYO-018.18 (D5): una sola palabra para volver a la Historia lista, en cualquier estado (antes «Terminar» al acabar).
        «Volver a editar» sigue siendo la salida del modo (B2). */
-    scGlyphText(reset, "■", "g-stop", "Detener", true);
+    scGlyphText(reset, "■", "g-stop", FluyoI18n.t("story.stop", "Detener"), true);
   }
   /* Transporte (D1–D3, D5): Pausar/Reanudar y los momentos anterior/siguiente solo existen mientras hay reproducción. */
   const pause = $("scPause"), nav = scMomentNav();
@@ -978,8 +987,8 @@ function scRenderStatus() {
     scStatus === "idle"
       ? ""
       : scStatus === "running"
-        ? "Reproduciendo · " + scFormatTime(scPlayback?.cursorVirtual || 0)
-        : "Reproducción terminada";
+        ? FluyoI18n.t("stories.playingAt", "Reproduciendo · {time}", { time: scFormatTime(scPlayback?.cursorVirtual || 0) })
+        : FluyoI18n.t("story.finished", "Reproducción terminada");
 }
 /* FLUYO-018.14b (B9): qué está pasando ahora, con la misma lectura que Present (FluyoStory.describe). Solo escribe si
    cambia; se llama desde scTick a cada fotograma. */
@@ -992,9 +1001,9 @@ function scRenderNow() {
   let label = "", caption = "", progress = "", narrated = false;
   if (on) {
     const d = (typeof FluyoStoryClock !== "undefined" ? FluyoStoryClock : FluyoStory).describe(scStatus === "running" ? "playing" : "finished", sc, scPlayback, (id) => scNodeFallback(id), (id) => edgeById(id));
-    label = scStatus === "running" ? (scIsPaused() ? "En pausa" : "Reproduciendo") : "Terminada";
+    label = scStatus === "running" ? (scIsPaused() ? FluyoI18n.t("story.paused", "En pausa") : FluyoI18n.t("stories.playing", "Reproduciendo")) : FluyoI18n.t("stories.finishedShort", "Terminada");
     caption = scStatus === "running" ? (d.caption ? d.title + " · " + d.caption : d.title) : d.summary ? d.caption + " · " + d.summary : d.caption;
-    progress = d.moments.length > 1 ? Math.max(0, d.idx + 1) + " / " + d.moments.length : "";
+    progress = d.moments.length > 1 ? FluyoI18n.t("stories.progress", "{n} / {total}", { n: Math.max(0, d.idx + 1), total: d.moments.length }) : "";
     /* PRODUCT-NARRATION-001 (D-PO-2): solo el momento con una frase del autor puede crecer en vez de cortarse */
     narrated = scStatus === "running" && !!d.moments[d.idx]?.narrated;
   }
@@ -1061,23 +1070,25 @@ function scPlaceNow() {
    La base (Trace visible y reloj de los Steps) se memoiza: por reproducción, o por firma del documento sin reproducir. El
    estado se evalúa en cada fotograma de la reproducción y el DOM solo se escribe si cambia. Elegir o quitar la ruta escribe
    AMBOS extremos con UNA entrada de Undo (setObservedFlowIn); cambiar de Historia no escribe. No pinta nada en el lienzo. */
+/* FLUYO-I18N-002 S2a: textos en el idioma de la interfaz; se leen al pintar (getters), así un cambio de idioma en vivo los cambia.
+   AVAILABLE, UNAVAILABLE, NO_PATH y byDefault son las MISMAS claves que la línea del Viewer (flow-semantics.js, ROUTE_WORDS). */
 const SC_FLOW_WORDS = {
-  AVAILABLE: "Ruta disponible",
-  UNAVAILABLE: "Ruta no disponible",
-  NO_PATH: "Sin ruta de flujo",
-  byDefault: "incluye estados por defecto",
-  atStart: "Al inicio · ",
-  auto: "Automática",
-  noPair: "Elige origen y destino",
-  missing: "Un extremo de la ruta ya no existe",
+  get AVAILABLE() { return FluyoI18n.t("route.available", "Ruta disponible"); },
+  get UNAVAILABLE() { return FluyoI18n.t("route.unavailable", "Ruta no disponible"); },
+  get NO_PATH() { return FluyoI18n.t("route.noPath", "Sin ruta de flujo"); },
+  get byDefault() { return FluyoI18n.t("route.byDefault", "incluye estados por defecto"); },
+  atStart: (word) => FluyoI18n.t("route.atStart", "Al inicio · {word}", { word }),
+  get auto() { return FluyoI18n.t("route.auto", "Automática"); },
+  autoWith: (name) => FluyoI18n.t("route.autoWith", "Automática · {name}", { name }),
+  get noPair() { return FluyoI18n.t("route.noPair", "Elige origen y destino"); },
+  get missing() { return FluyoI18n.t("route.missing", "Un extremo de la ruta ya no existe"); },
   gone: "—",
   /* FASE 4: línea de tiempo y filas (los del prototipo validado por el PO; § 3.1 y D6) */
-  short: { AVAILABLE: "disponible", UNAVAILABLE: "no disponible" },
-  none: "ninguno",
-  via: "vía ",
-  more: " rutas",
-  oneMore: " ruta",
-  tooMany: "Más de 10 000 rutas",   // recuento no exacto (QA del PO): nunca un número derivado del tope interno
+  short: { get AVAILABLE() { return FluyoI18n.t("route.short.available", "disponible"); }, get UNAVAILABLE() { return FluyoI18n.t("route.short.unavailable", "no disponible"); } },
+  get none() { return FluyoI18n.t("route.none", "ninguno"); },
+  via: (name) => FluyoI18n.t("route.via", "vía {name}", { name }),
+  more: (count) => FluyoI18n.t("route.more", { one: "+{count} ruta", other: "+{count} rutas" }, { count }),
+  get tooMany() { return FluyoI18n.t("route.tooMany", "Más de 10 000 rutas"); },   // recuento no exacto (QA del PO): nunca un número derivado del tope interno
 };
 let scFlowBase = { key: null, value: null }, scFlowLast = null, scFlowPending = null;
 function scFlowShown(pg, sc) {
@@ -1157,11 +1168,11 @@ function scFlowTrackView(d, t, playing) {
     const must = new Set(d.paths.mustPass), name = (ids) => ids.map((id) => scNodeFallback(id)).join(" → ");
     for (const p of d.paths.paths) {
       const via = p.filter((id) => !must.has(id)), state = p.every((id) => now.states[id] === "UP") ? FluyoFlow.AVAILABLE : FluyoFlow.UNAVAILABLE;
-      rows.push({ state, text: (via.length ? W.via + name(via) : name(p)) + " · " + W.short[state], title: name(p) });
+      rows.push({ state, text: FluyoI18n.t("route.row", "{route} · {state}", { route: via.length ? W.via(name(via)) : name(p), state: W.short[state] }), title: name(p) });
     }
     const more = d.paths.total - d.paths.paths.length;
     if (!d.paths.exact) rows.push({ state: "", text: W.tooMany, title: "" });
-    else if (more > 0) rows.push({ state: "", text: "+" + more + (more === 1 ? W.oneMore : W.more), title: "" });
+    else if (more > 0) rows.push({ state: "", text: W.more(more), title: "" });
   }
   return { track, rows };
 }
@@ -1184,7 +1195,7 @@ function scFlowOverlay() {
 function scFlowPresentLine() {
   const m = scFlowModel();
   if (!m || !m.status) return null;
-  return { status: m.status, text: m.word + (m.why ? " · " + m.why : "") };
+  return { status: m.status, text: m.why ? FluyoI18n.t("route.withDefault", "{word} · {why}", { word: m.word, why: m.why }) : m.word };
 }
 /* Modelo de la herramienta (sin DOM): qué se ve, con qué valores y qué texto. null = la herramienta no existe. */
 function scFlowModel() {
@@ -1221,7 +1232,7 @@ function scFlowModel() {
   const shownOf = (end) => (m[end] !== "auto" && m[end] !== "" ? +m[end] : p.origin === "structural" ? (end === "from" ? p.source : p.target) : null);
   const autoText = (end) => {
     const id = p.origin === "structural" ? (end === "from" ? p.source : p.target) : null;
-    return id !== null ? SC_FLOW_WORDS.auto + " · " + scNodeFallback(id) : SC_FLOW_WORDS.auto;
+    return id !== null ? SC_FLOW_WORDS.autoWith(scNodeFallback(id)) : SC_FLOW_WORDS.auto;
   };
   for (const end of ["from", "to"]) {
     const other = shownOf(end === "from" ? "to" : "from");
@@ -1233,7 +1244,7 @@ function scFlowModel() {
   if (p.state === FluyoFlow.ENDPOINT_MISSING) m.word = SC_FLOW_WORDS.missing;
   else if (p.state === FluyoFlow.NO_PAIR) m.word = SC_FLOW_WORDS.noPair;
   else if (m.status) {
-    m.word = (playing ? "" : SC_FLOW_WORDS.atStart) + SC_FLOW_WORDS[m.status];
+    m.word = playing ? SC_FLOW_WORDS[m.status] : SC_FLOW_WORDS.atStart(SC_FLOW_WORDS[m.status]);
     m.why = m.status === FluyoFlow.AVAILABLE && m.explicitPath === false ? SC_FLOW_WORDS.byDefault : "";
   }
   /* FASE 4: línea de tiempo (edición: completa y sin cursor; reproduciendo: con el cursor) y filas de la ruta */
@@ -1267,7 +1278,7 @@ function scRenderFlow() {
   }
   box.dataset.state = m.status || (m.pair ? m.pair.state : "");
   $("scFlowWord").textContent = m.word;
-  $("scFlowWhy").textContent = m.why ? " · " + m.why : "";
+  $("scFlowWhy").textContent = m.why ? FluyoI18n.t("route.withDefault", "{word} · {why}", { word: "", why: m.why }) : "";
 }
 /* FASE 4: tramos, marcas, extremos y filas (solo cuando cambian) y el cursor (cada fotograma, solo si se mueve). */
 function scRenderFlowTrack(m) {
@@ -1356,24 +1367,24 @@ function scFlowWrite(sc, flow) {
 function scScenarioMenu(anchor) {
   const none = !scActiveScenario();
   scMenu(anchor, [
-    ["Renombrar", () => scRenameUI(anchor), none],
-    ["Duplicar historia", scDuplicateScenario, none],
-    ["Eliminar historia", scDeleteScenario, none],
-    ["Condiciones iniciales de esta página", () => scOpenDetails("conditions")],
-    ["Detalles", () => scOpenDetails("trace")],
+    [FluyoI18n.t("stories.rename", "Renombrar"), () => scRenameUI(anchor), none],
+    [FluyoI18n.t("stories.duplicate", "Duplicar historia"), scDuplicateScenario, none],
+    [FluyoI18n.t("stories.delete", "Eliminar historia"), scDeleteScenario, none],
+    [FluyoI18n.t("conditions.title", "Condiciones iniciales de esta página"), () => scOpenDetails("conditions")],
+    [FluyoI18n.t("stories.details", "Detalles"), () => scOpenDetails("trace")],
   ]);
 }
 function scChooseScenario(anchor) {
   const active = scActiveScenario();
   scMenu(anchor, [
     ...(P().scenarios || []).map((s) => [(active && s.id === active.id ? "● " : "○ ") + s.name, () => scSwitchScenario(s.id)]),
-    ["+ Nueva historia", scNewScenario],
+    ["+ " + FluyoI18n.t("stories.new", "Nueva historia"), scNewScenario],
   ]);
 }
 function scRenameUI(anchor) {
   const p = scOpenPopover(anchor);
   if (!p) return;
-  const label = scEl("label", "", "Nombre de la historia"),
+  const label = scEl("label", "", FluyoI18n.t("stories.nameLabel", "Nombre de la historia")),
     input = scEl("input");
   input.value = scActiveScenario()?.name || "";
   input.maxLength = 120;
@@ -1384,7 +1395,7 @@ function scRenameUI(anchor) {
     scRenameScenario(input.value);
     scClosePopover();
   };
-  p.appendChild(scButton("Guardar nombre", save));
+  p.appendChild(scButton(FluyoI18n.t("stories.saveName", "Guardar nombre"), save));
   input.onkeydown = (e) => {
     if (e.key === "Enter") {
       /* Sin esto, el foco vuelve al botón ⋯ durante la misma pulsación y Enter lo activa: el menú se reabría. */
@@ -1399,10 +1410,10 @@ function scOpenDetails(kind) {
   const dlg = $("scDetailsDialog");
   $("scDetailsTitle").textContent =
     kind === "conditions"
-      ? "Condiciones iniciales de esta página"
+      ? FluyoI18n.t("conditions.title", "Condiciones iniciales de esta página")
       : kind === "uses"
-        ? "Dónde se usa este evento"
-        : "Detalles";
+        ? FluyoI18n.t("event.usesTitle", "Dónde se usa este evento")
+        : FluyoI18n.t("stories.details", "Detalles");
   $("scBehaviors").hidden = kind !== "conditions";
   $("scTraceLog").hidden = kind !== "trace";
   $("scEventUses").hidden = kind !== "uses";
@@ -1413,17 +1424,17 @@ function scOpenDetails(kind) {
 function scRenderBehaviors() {
   const box = $("scBehaviors");
   if (!box) return;
-  box.replaceChildren(scEl("p", "hint", "Estas condiciones afectan a las historias de esta página."));
+  box.replaceChildren(scEl("p", "hint", FluyoI18n.t("conditions.hint", "Estas condiciones afectan a las historias de esta página.")));
   if (!P().nodes.length)
-    box.appendChild(scEl("p", "hint", "Añade un elemento al sistema para definir sus condiciones."));
+    box.appendChild(scEl("p", "hint", FluyoI18n.t("conditions.empty", "Añade un elemento al sistema para definir sus condiciones.")));
   for (const n of P().nodes) {
     const row = scEl("div", "scBehaviorRow"),
       label = scEl("span", "", scNodeFallback(n.id)),
       select = scEl("select");
-    select.setAttribute("aria-label", "Disponibilidad de " + scNodeFallback(n.id));
+    select.setAttribute("aria-label", FluyoI18n.t("conditions.of", "Disponibilidad de {name}", { name: scNodeFallback(n.id) }));
     for (const [value, text] of [
-      ["UP", "Disponible"],
-      ["DOWN", "No disponible"],
+      ["UP", FluyoI18n.t("conditions.up", "Disponible")],
+      ["DOWN", FluyoI18n.t("conditions.down", "No disponible")],
     ]) {
       const o = scEl("option", "", text);
       o.value = value;
@@ -1476,15 +1487,15 @@ function scRenderEventLibrary() {
     search = $("scEventSearch");
   if (search) search.hidden = all.length <= 8;
   const query = search && !search.hidden ? search.value.trim().toLocaleLowerCase() : "";
-  if ($("scPaletteToggle")) $("scPaletteToggle").textContent = "Eventos · " + all.length;
+  if ($("scPaletteToggle")) $("scPaletteToggle").textContent = FluyoI18n.t("event.toggle", "Eventos · {count}", { count: all.length });
   if (!all.length) {
     const empty = scEl("div", "scEmptyState");
     empty.append(
-      scEl("strong", "", "¿Qué puede ocurrir en tu sistema?"),
+      scEl("strong", "", FluyoI18n.t("event.emptyTitle", "¿Qué puede ocurrir en tu sistema?")),
       scEl(
         "span",
         "",
-        "Crea un evento, como Pago, Aprobación o Cierre. Después podrás arrastrarlo al sistema.",
+        FluyoI18n.t("event.emptyHint", "Crea un evento, como Pago, Aprobación o Cierre. Después podrás arrastrarlo al sistema."),
       ),
     );
     box.appendChild(empty);
@@ -1494,7 +1505,7 @@ function scRenderEventLibrary() {
     .filter((e) => e.name.toLocaleLowerCase().includes(query))
     .slice()
     .sort((a, b) => a.name.localeCompare(b.name, "es"));
-  if (!filtered.length) box.appendChild(scEl("p", "hint", "No hay eventos con ese nombre."));
+  if (!filtered.length) box.appendChild(scEl("p", "hint", FluyoI18n.t("event.noMatch", "No hay eventos con ese nombre.")));
   for (const et of filtered) {
     const row = scEl("div", "scEventRow" + (scNewEventId === et.id ? " new" : ""));
     row.dataset.eventTypeId = et.id;
@@ -1511,7 +1522,7 @@ function scRenderEventLibrary() {
     );
     place.setAttribute(
       "aria-label",
-      et.name + ": colocar en " + (et.primitive === "FLOW" ? "una conexión" : "un elemento"),
+      et.primitive === "FLOW" ? FluyoI18n.t("event.placeOnEdge", "{name}: colocar en una conexión", { name: et.name }) : FluyoI18n.t("event.placeOnNode", "{name}: colocar en un elemento", { name: et.name }),
     );
     place.disabled = isScenarioPlaybackActive();
     place.append(scEl("span", "scEventSymbol", eventSymbol(et)), scEl("span", "", et.name));
@@ -1524,13 +1535,13 @@ function scRenderEventLibrary() {
       "⋯",
       () =>
         scMenu(menu, [
-          ["Editar evento", () => scOpenEventDialog(et.id)],
-          ["Duplicar evento", () => scOpenEventDialog(et.id, true)],
-          ["Eliminar de la biblioteca", () => scDeleteEventUI(et.id, menu)],
+          [FluyoI18n.t("event.edit", "Editar evento"), () => scOpenEventDialog(et.id)],
+          [FluyoI18n.t("event.duplicate", "Duplicar evento"), () => scOpenEventDialog(et.id, true)],
+          [FluyoI18n.t("event.remove", "Eliminar de la biblioteca"), () => scDeleteEventUI(et.id, menu)],
         ]),
       "scMore",
     );
-    menu.setAttribute("aria-label", "Opciones de " + et.name);
+    menu.setAttribute("aria-label", FluyoI18n.t("common.optionsOf", "Opciones de {name}", { name: et.name }));
     menu.disabled = isScenarioPlaybackActive();
     row.append(place, menu);
     box.appendChild(row);
@@ -1545,11 +1556,9 @@ function scDeleteEventUI(id, anchor) {
       scEl(
         "p",
         "",
-        "Este evento se usa en " +
-          eventTypeUseCount(id) +
-          " lugares. Quítalo o reemplázalo allí antes de eliminarlo.",
+        FluyoI18n.t("event.inUse", "Este evento se usa en {count} lugares. Quítalo o reemplázalo allí antes de eliminarlo.", { count: eventTypeUseCount(id) }),
       ),
-      scButton("Ver dónde se usa", () => {
+      scButton(FluyoI18n.t("event.seeUses", "Ver dónde se usa"), () => {
         scClosePopover(false);
         scShowUses(id);
       }),
@@ -1559,7 +1568,7 @@ function scDeleteEventUI(id, anchor) {
   pushUndo();
   deleteEventType(id);
   scCommit();
-  scNotice("Evento eliminado de la biblioteca. Puedes deshacer el cambio.");
+  scNotice(FluyoI18n.t("event.removed", "Evento eliminado de la biblioteca. Puedes deshacer el cambio."));
 }
 /* Historia: agrupación temporal derivada, sin nuevas entidades persistidas. */
 function scRenderStoryboard() {
@@ -1586,28 +1595,28 @@ function scRenderStoryboard() {
     empty.hidden = !!groups.length;
     if (!s) {
       empty.append(
-        scEl("p", "", "Aún no hay historias."),
-        scButton("+ Nueva historia", scNewScenario),
+        scEl("p", "", FluyoI18n.t("stories.emptyNone", "Aún no hay historias.")),
+        scButton("+ " + FluyoI18n.t("stories.new", "Nueva historia"), scNewScenario),
       );
     } else
       empty.textContent = doc.eventTypes?.length
-        ? "Arrastra un evento sobre el sistema para empezar."
-        : "La historia aparecerá aquí.";
+        ? FluyoI18n.t("stories.emptyDrag", "Arrastra un evento sobre el sistema para empezar.")
+        : FluyoI18n.t("stories.emptyWillAppear", "La historia aparecerá aquí.");
   }
   let prev = 0;
   for (const g of groups) {
     const section = scEl("div", "scStoryGroup");
     section.dataset.at = g.at;
     const delay = scButton(
-      g.at === 0 ? "Al comenzar" : formatRelativeDelay(g.at - prev),
+      g.at === 0 ? FluyoI18n.t("moment.atStart", "Al comenzar") : formatRelativeDelay(g.at - prev),
       () => scEditTime(g.steps[0].id, delay),
       "scDelay",
     );
     delay.disabled = isScenarioPlaybackActive();
     section.appendChild(delay);
-    if (g.steps.length > 1) section.appendChild(scEl("div", "scTogether", "Al mismo tiempo"));
+    if (g.steps.length > 1) section.appendChild(scEl("div", "scTogether", FluyoI18n.t("moment.togetherTitle", "Al mismo tiempo")));
     const waits = s ? FluyoStoryClock.momentWaits(s, g.at) : [];
-    if (waits.length) section.appendChild(scEl("div", "scWaits", "No empieza hasta que llegue " + scArrivalNames(waits)));
+    if (waits.length) section.appendChild(scEl("div", "scWaits", FluyoI18n.t("moment.waitsFor", "No empieza hasta que llegue {list}", { list: scArrivalNames(waits, "moment.waitsFor") })));
     for (const [index, step] of g.steps.entries()) {
       const row = scStoryRow(step);
       if (g.steps.length > 1 && !isScenarioPlaybackActive()) {
@@ -1622,7 +1631,7 @@ function scRenderStoryboard() {
         scEl(
           "p",
           "scGroupWarning",
-          "Estos eventos ocurren al mismo tiempo y el orden puede afectar el resultado.",
+          FluyoI18n.t("moment.orderWarning", "Estos eventos ocurren al mismo tiempo y el orden puede afectar el resultado."),
         ),
       );
     board.appendChild(section);
@@ -1642,11 +1651,11 @@ function scStoryRow(step) {
     );
   row.dataset.stepId = step.id;
   const labels = {
-    pending: "Pendiente",
-    active: "En curso",
-    completed: "Completado",
-    success: "Completado",
-    failed: "No se completó",
+    pending: FluyoI18n.t("step.status.pending", "Pendiente"),
+    active: FluyoI18n.t("step.status.active", "En curso"),
+    completed: FluyoI18n.t("step.status.done", "Completado"),
+    success: FluyoI18n.t("step.status.done", "Completado"),
+    failed: FluyoI18n.t("step.status.failed", "No se completó"),
   };
   const mark = scEl("span", "scStatusMark", isScenarioPlaybackActive() ? scStatusMark(r.status) : "●");
   mark.setAttribute("aria-label", labels[r.status]);
@@ -1656,8 +1665,8 @@ function scStoryRow(step) {
   if (!isScenarioPlaybackActive() && !d.missing) {
     const handle = scButton("", () => {}, "scHandle");
     handle.type = "button";
-    handle.setAttribute("aria-label", "Reordenar. Arrastra, o usa Alt y las flechas");
-    handle.title = "Arrastra para cambiar el orden";
+    handle.setAttribute("aria-label", FluyoI18n.t("step.reorderAria", "Reordenar. Arrastra, o usa Alt y las flechas"));
+    handle.title = FluyoI18n.t("step.reorderTip", "Arrastra para cambiar el orden");
     handle.onpointerdown = (ev) => scStoryDragStart(ev, step, row, handle);
     handle.onkeydown = (ev) => {
       if (!ev.altKey || (ev.key !== "ArrowUp" && ev.key !== "ArrowDown")) return;
@@ -1670,8 +1679,8 @@ function scStoryRow(step) {
   const text = scEl("div", "scStoryText");
   const missingSentence = d.missing
     ? d.targetType === "edge"
-      ? "La conexión de este evento ya no existe."
-      : "El elemento de este evento ya no existe."
+      ? FluyoI18n.t("step.edgeMissing", "La conexión de este evento ya no existe.")
+      : FluyoI18n.t("step.nodeMissing", "El elemento de este evento ya no existe.")
     : null;
   const sentence = missingSentence || d.primary;
   const hasIdentity = !!(d.eventType && d.eventType.name);
@@ -1703,22 +1712,22 @@ function scStoryRow(step) {
   }
   /* FLUYO-MCP-STEP-MESSAGE-001 / PRODUCT-NARRATION-001: la frase propia del paso, de cualquier evento, bajo la del evento. Al reproducir
      es el título del momento (y, en un evento de elemento, su globo). Sin ella, lo de siempre. */
-  if (scStepMessage(step)) text.appendChild(scEl("div", "scStepMessage", "«" + step.message + "»"));
+  if (scStepMessage(step)) text.appendChild(scEl("div", "scStepMessage", FluyoI18n.t("step.quoted", "«{text}»", { text: step.message })));
   if (r.detail) text.appendChild(scEl("div", "scStepDetail", r.detail));
   if (d.missing && !isScenarioPlaybackActive())
-    text.appendChild(scButton("Elegir otro", () => scChangeTarget(step), "scStoryRepair"));
+    text.appendChild(scButton(FluyoI18n.t("step.chooseOther", "Elegir otro"), () => scChangeTarget(step), "scStoryRepair"));
   if (!d.missing && typeof cv !== "undefined" && scTargetOffscreen(step))
-    text.appendChild(scButton("Mostrar en el sistema", () => scRevealTarget(step), "scStoryRepair"));
+    text.appendChild(scButton(FluyoI18n.t("step.showInSystem", "Mostrar en el sistema"), () => scRevealTarget(step), "scStoryRepair"));
   row.appendChild(text);
   if (isScenarioPlaybackActive()) {
     /* toda la fila es el objetivo táctil del salto, no solo el nombre del evento */
     row.classList.add("scSeekable");
-    main.title = "Ir a este momento";
+    main.title = FluyoI18n.t("step.goToMoment", "Ir a este momento");
     row.onclick = (ev) => { if (ev && ev.target && ev.target.closest && ev.target.closest("button")) return; scSeekStep(step); };
   }
   if (!isScenarioPlaybackActive()) {
     const more = scButton("⋯", () => scStoryMenu(step, more), "scMore");
-    more.setAttribute("aria-label", "Opciones de " + (d.eventType?.name || sentence));
+    more.setAttribute("aria-label", FluyoI18n.t("common.optionsOf", "Opciones de {name}", { name: d.eventType?.name || sentence }));
     row.appendChild(more);
   }
   return row;
@@ -1801,43 +1810,43 @@ function scStoryMenu(step, anchor) {
   };
   const others = ordered.filter((x) => x.id !== step.id && !scIsTargetMissing(x));
   const moveItems = [
-    { label: "Antes", fn: () => scMoveStep(step.id, -1), disabled: index <= 0 },
-    { label: "Después", fn: () => scMoveStep(step.id, 1), disabled: index < 0 || index >= ordered.length - 1 },
+    { label: FluyoI18n.t("step.move.before", "Antes"), fn: () => scMoveStep(step.id, -1), disabled: index <= 0 },
+    { label: FluyoI18n.t("step.move.after", "Después"), fn: () => scMoveStep(step.id, 1), disabled: index < 0 || index >= ordered.length - 1 },
     {
-      label: "Al mismo tiempo que…",
+      label: FluyoI18n.t("step.move.with", "Al mismo tiempo que…"),
       disabled: !others.length,
       sub: {
-        title: "Al mismo tiempo que…",
+        title: FluyoI18n.t("step.move.with", "Al mismo tiempo que…"),
         items: others.map((x) => ({ label: scStepTitle(x), hint: scWhereLabel(x), fn: () => scMoveStepTo(step.id, { kind: "join", anchorId: x.id, after: true }) })),
       },
     },
   ];
-  const addItems = [{ label: "Otro evento…", fn: sameTime }];
+  const addItems = [{ label: FluyoI18n.t("step.add.other", "Otro evento…"), fn: sameTime }];
   const waitItem = scArrivalMenuItem(step);
-  if (et?.primitive === "FLOW") addItems.push({ label: "Esta misma acción en otras conexiones…", fn: () => scBeginMulti(step.id) });
+  if (et?.primitive === "FLOW") addItems.push({ label: FluyoI18n.t("step.add.multi", "Esta misma acción en otras conexiones…"), fn: () => scBeginMulti(step.id) });
   const sections = [
     [
-      ...(et ? [{ label: "Editar este evento…", hint: uses > 1 ? "Cambia «" + et.name + "» en sus " + uses + " usos" : "Cambia «" + et.name + "»", fn: () => scOpenEventDialog(et.id) }] : []),
-      { label: "Usar otro evento aquí…", hint: "Sólo cambia esta aparición", fn: () => scChangeEvent(step, anchor) },
+      ...(et ? [{ label: FluyoI18n.t("step.editEvent", "Editar este evento…"), hint: uses > 1 ? FluyoI18n.t("step.editEventUses", "Cambia «{name}» en sus {count} usos", { name: et.name, count: uses }) : FluyoI18n.t("step.editEventOne", "Cambia «{name}»", { name: et.name }), fn: () => scOpenEventDialog(et.id) }] : []),
+      { label: FluyoI18n.t("step.useOther", "Usar otro evento aquí…"), hint: FluyoI18n.t("step.useOtherHint", "Sólo cambia esta aparición"), fn: () => scChangeEvent(step, anchor) },
     ],
     [
-      { label: "Cambiar dónde ocurre…", hint: where ? "Ahora: " + where : "", fn: () => scChangeTarget(step) },
+      { label: FluyoI18n.t("step.retarget", "Cambiar dónde ocurre…"), hint: where ? FluyoI18n.t("step.now", "Ahora: {value}", { value: where }) : "", fn: () => scChangeTarget(step) },
       ...(step.action === "SEND" ? [scReverseMenuItem(step)] : []),
       scMessageMenuItem(step, anchor),
     ],
     [
-      { label: "Duplicar", hint: "Al mismo tiempo, justo debajo", fn: () => scDuplicateStep(step.id) },
-      { label: "Mover", sub: { title: "Mover", items: moveItems } },
-      { label: "Añadir al mismo tiempo", sub: { title: "Añadir al mismo tiempo", items: addItems } },
+      { label: FluyoI18n.t("step.duplicate", "Duplicar"), hint: FluyoI18n.t("step.duplicateHint", "Al mismo tiempo, justo debajo"), fn: () => scDuplicateStep(step.id) },
+      { label: FluyoI18n.t("step.move", "Mover"), sub: { title: FluyoI18n.t("step.move", "Mover"), items: moveItems } },
+      { label: FluyoI18n.t("step.addTogether", "Añadir al mismo tiempo"), sub: { title: FluyoI18n.t("step.addTogether", "Añadir al mismo tiempo"), items: addItems } },
       waitItem,
     ],
     [
       {
-        label: "Eliminar",
+        label: FluyoI18n.t("step.delete", "Eliminar"),
         danger: true,
         fn: () => {
           scDeleteStep(step.id);
-          scNotice("Quitado de esta historia. El evento sigue en la biblioteca.");
+          scNotice(FluyoI18n.t("step.deleted", "Quitado de esta historia. El evento sigue en la biblioteca."));
         },
       },
     ],
@@ -1849,7 +1858,7 @@ function scStoryMenu(step, anchor) {
    El hint dice cómo QUEDARÁ, porque «Cambiar dónde ocurre» ya dice cómo está. Sin conexión no hay sentido que invertir. */
 function scReverseMenuItem(step) {
   const flipped = scWhereLabel({ edgeId: step.edgeId, reverse: step.reverse !== true });
-  return { label: "Invertir sentido", hint: flipped ? "Pasa a: " + flipped : "", fn: () => scToggleStepReverse(step.id), disabled: scIsTargetMissing(step) };
+  return { label: FluyoI18n.t("step.reverse", "Invertir sentido"), hint: flipped ? FluyoI18n.t("step.reverseTo", "Pasa a: {value}", { value: flipped }) : "", fn: () => scToggleStepReverse(step.id), disabled: scIsTargetMissing(step) };
 }
 function scToggleStepReverse(id) {
   if (!scEditable()) return false;
@@ -1875,11 +1884,11 @@ function scMessageMenuItem(step, anchor) {
     fx = et?.presentation?.nodeEffects;
   /* el texto nuevo de esta tarea pasa por FluyoI18n (decisión 261); el de siempre, como estaba */
   const hint = own
-    ? "«" + own + "»"
+    ? FluyoI18n.t("step.quoted", "«{text}»", { text: own })
     : step.action === "SEND" && et
       ? FluyoI18n.t("step.message.nowReads", "Ahora se lee «{name}»", { name: et.name })
-      : step.action !== "SEND" && fx?.message ? "Ahora el del evento: «" + fx.message + "»" : "Ahora sin mensaje";
-  return { label: "Mensaje del paso…", hint, fn: () => scEditStepMessage(step.id, anchor), disabled: scIsTargetMissing(step) };
+      : step.action !== "SEND" && fx?.message ? FluyoI18n.t("step.message.nowEvent", "Ahora el del evento: «{text}»", { text: fx.message }) : FluyoI18n.t("step.message.none", "Ahora sin mensaje");
+  return { label: FluyoI18n.t("step.message.menu", "Mensaje del paso…"), hint, fn: () => scEditStepMessage(step.id, anchor), disabled: scIsTargetMissing(step) };
 }
 function scEditStepMessage(id, anchor) {
   if (!scEditable()) return;
@@ -1891,7 +1900,7 @@ function scEditStepMessage(id, anchor) {
     et = eventTypeById(step.eventTypeId),
     fx = et?.presentation?.nodeEffects,
     send = step.action === "SEND";
-  const label = scEl("label", "", "Mensaje de este paso"),
+  const label = scEl("label", "", FluyoI18n.t("step.message.label", "Mensaje de este paso")),
     input = scEl("input", "scMessageInput");
   input.value = own || "";
   input.maxLength = STEP_MESSAGE_MAX_LEN;
@@ -1904,7 +1913,7 @@ function scEditStepMessage(id, anchor) {
     : FluyoI18n.t("step.message.helpElement", "Se lee al reproducir este paso y en su globo, en lugar del texto del evento. No cambia tiempos.")));
   const save = () => {
     if (!input.value.trim()) {
-      input.setCustomValidity("Escribe el mensaje, o usa «Quitar mensaje».");
+      input.setCustomValidity(FluyoI18n.t("step.message.required", "Escribe el mensaje, o usa «Quitar mensaje»."));
       input.reportValidity();
       return;
     }
@@ -1918,10 +1927,10 @@ function scEditStepMessage(id, anchor) {
       save();
     }
   };
-  p.appendChild(scButton("Guardar mensaje", save));
+  p.appendChild(scButton(FluyoI18n.t("step.message.save", "Guardar mensaje"), save));
   if (own)
     p.appendChild(
-      scButton("Quitar mensaje", () => {
+      scButton(FluyoI18n.t("step.message.remove", "Quitar mensaje"), () => {
         scSetStepMessage(id, null);
         scClosePopover();
       }),
@@ -1947,7 +1956,7 @@ function scMenuSections(anchor, menu) {
   if (!p) return;
   const fill = (m, back) => {
     p.replaceChildren();
-    if (back) p.appendChild(scButton("‹ Volver", () => { fill(back, null); p.querySelector("button")?.focus(); }, "scMenuBack"));
+    if (back) p.appendChild(scButton("‹ " + FluyoI18n.t("common.back", "Volver"), () => { fill(back, null); p.querySelector("button")?.focus(); }, "scMenuBack"));
     if (m.title) p.appendChild(scEl("div", "scMenuHead", m.title));
     if (m.subtitle) p.appendChild(scEl("div", "scMenuSub", m.subtitle));
     const sections = m.sections || [m.items];
@@ -1982,7 +1991,7 @@ function scDuplicateStep(id) {
     src = sc.steps.find((s) => s.id === id);
   if (!src) return;
   if (sc.steps.length >= FluyoScenarios.MAX_SCENARIO_STEPS) {
-    scNotice("La historia ya tiene el máximo de eventos.");
+    scNotice(FluyoI18n.t("stories.full", "La historia ya tiene el máximo de eventos."));
     return;
   }
   pushUndo();
@@ -1990,7 +1999,7 @@ function scDuplicateStep(id) {
   scSetArrivalDependencies(sc, FluyoStoryClock.copyArrivalWaits(sc, id, copy.id));
   scSelectedStep = copy.id;
   scCommit();
-  scNotice("Duplicado al mismo tiempo, justo debajo.");
+  scNotice(FluyoI18n.t("step.duplicated", "Duplicado al mismo tiempo, justo debajo."));
 }
 /* ─────────── FLUYO-018.21: «Esperar a que llegue…» ───────────
    Una dependencia de llegada es de la HISTORIA (scenario.arrivalDependencies, story-clock.js): «este momento no empieza
@@ -2000,13 +2009,14 @@ function scSetArrivalDependencies(sc, list) {
   if (list) sc.arrivalDependencies = list;
   else delete sc.arrivalDependencies;
 }
-function scArrivalNames(ids) {
+/* Las llegadas que espera un momento, como lista dentro de la frase que la contiene (`within`: su clave; la lista va en el idioma de
+   esa frase). En español, «A y B y C», como siempre ("repeat"). */
+function scArrivalNames(ids, within) {
   const sc = scActiveScenario();
-  return ids
+  return FluyoI18n.list(ids
     .map((id) => sc && sc.steps.find((x) => x.id === id))
     .filter(Boolean)
-    .map((x) => "«" + scStepTitle(x) + "»" + (scWhereLabel(x) ? " (" + scWhereLabel(x) + ")" : ""))
-    .join(" y ");
+    .map((x) => scWhereLabel(x) ? FluyoI18n.t("moment.arrivalWhere", "«{name}» ({where})", { name: scStepTitle(x), where: scWhereLabel(x) }) : FluyoI18n.t("step.quoted", "«{text}»", { text: scStepTitle(x) })), within, "repeat");
 }
 function scArrivalMenuItem(step) {
   const sc = scActiveScenario(),
@@ -2021,13 +2031,13 @@ function scArrivalMenuItem(step) {
     const on = mine.includes(x.id);
     return { label: (on ? "✓ " : "") + scStepTitle(x), hint: scWhereLabel(x), fn: () => scToggleArrivalWait(step.id, x.id, !on) };
   });
-  if (mine.length) items.push({ label: "No esperar", hint: "Empieza a su hora", fn: () => scClearArrivalWaits(step.id) });
+  if (mine.length) items.push({ label: FluyoI18n.t("moment.noWait", "No esperar"), hint: FluyoI18n.t("moment.onTime", "Empieza a su hora"), fn: () => scClearArrivalWaits(step.id) });
   return {
-    label: "Esperar a que llegue…",
-    hint: mine.length ? "Ahora: " + scArrivalNames(mine) : cands.length ? "Este momento no empieza hasta que llegue un envío" : "Antes tiene que haber un envío",
+    label: FluyoI18n.t("moment.waitMenu", "Esperar a que llegue…"),
+    hint: mine.length ? FluyoI18n.t("step.now", "Ahora: {value}", { value: scArrivalNames(mine, "step.now") }) : cands.length ? FluyoI18n.t("moment.waitHint", "Este momento no empieza hasta que llegue un envío") : FluyoI18n.t("moment.waitNeedsSend", "Antes tiene que haber un envío"),
     disabled: !cands.length && !mine.length,
     sub: {
-      title: together > 1 ? "Este momento (" + together + " eventos) no empieza hasta que llegue…" : "Este momento no empieza hasta que llegue…",
+      title: together > 1 ? FluyoI18n.t("moment.waitTitleMany", "Este momento ({count} eventos) no empieza hasta que llegue…", { count: together }) : FluyoI18n.t("moment.waitTitle", "Este momento no empieza hasta que llegue…"),
       items,
     },
   };
@@ -2041,7 +2051,7 @@ function scToggleArrivalWait(stepId, sendId, on) {
   pushUndo();
   scSetArrivalDependencies(sc, next);
   scCommit();
-  if (send) scNotice(on ? "Este momento no empezará hasta que llegue «" + scStepTitle(send) + "»." : "Ya no espera a «" + scStepTitle(send) + "».");
+  if (send) scNotice(on ? FluyoI18n.t("moment.waitOn", "Este momento no empezará hasta que llegue «{name}».", { name: scStepTitle(send) }) : FluyoI18n.t("moment.waitOff", "Ya no espera a «{name}».", { name: scStepTitle(send) }));
 }
 function scClearArrivalWaits(stepId) {
   if (!scEditable()) return;
@@ -2051,7 +2061,7 @@ function scClearArrivalWaits(stepId) {
   pushUndo();
   scSetArrivalDependencies(sc, next);
   scCommit();
-  scNotice("Empieza a su hora: ya no espera ninguna llegada.");
+  scNotice(FluyoI18n.t("moment.waitCleared", "Empieza a su hora: ya no espera ninguna llegada."));
 }
 function scEditTime(id, anchor) {
   if (!scEditable()) return;
@@ -2060,20 +2070,20 @@ function scEditTime(id, anchor) {
     g = groups[i];
   if (!g) return;
   const p = scOpenPopover(anchor),
-    label = scEl("label", "", "Espera desde el inicio anterior"),
+    label = scEl("label", "", FluyoI18n.t("moment.waitLabel", "Espera desde el inicio anterior")),
     input = scEl("input");
   input.type = "number";
   input.min = 0;
   input.step = 0.001;
   input.value = (g.at - (groups[i - 1]?.at || 0)) / 1000;
-  input.setAttribute("aria-label", "Espera en segundos");
+  input.setAttribute("aria-label", FluyoI18n.t("moment.waitAria", "Espera en segundos"));
   label.appendChild(input);
-  p.append(label, scEl("p", "", "Segundos. Se desplazan también los eventos posteriores."));
+  p.append(label, scEl("p", "", FluyoI18n.t("moment.waitHelp", "Segundos. Se desplazan también los eventos posteriores.")));
   p.appendChild(
-    scButton("Aplicar tiempo", () => {
+    scButton(FluyoI18n.t("moment.waitApply", "Aplicar tiempo"), () => {
       const ms = parseHumanDelay(input.value, "s");
       if (ms === null) {
-        input.setCustomValidity("Escribe un tiempo igual o mayor que cero.");
+        input.setCustomValidity(FluyoI18n.t("moment.waitInvalid", "Escribe un tiempo igual o mayor que cero."));
         input.reportValidity();
         return;
       }
@@ -2083,7 +2093,7 @@ function scEditTime(id, anchor) {
   );
   for (const ms of [250, 500, 1000, 2000, 5000])
     p.appendChild(
-      scButton(ms < 1000 ? ms + " ms" : ms / 1000 + " s", () => {
+      scButton(ms < 1000 ? FluyoI18n.t("time.ms", "{n} ms", { n: scNum(ms, String(ms)) }) : FluyoI18n.t("time.seconds", "{n} s", { n: scNum(ms / 1000, String(ms / 1000)) }), () => {
         scSetStepDelay(id, ms);
         scClosePopover();
       }),
@@ -2095,7 +2105,7 @@ function scSetStepDelay(id, delay) {
     r = storyboardSetWait(sc.steps, id, delay, FluyoScenarios.MAX_VIRTUAL_TIME_MS);
   if (!r) return;
   if (r.error) {
-    scNotice("El tiempo está fuera del rango permitido.");
+    scNotice(FluyoI18n.t("moment.waitRange", "El tiempo está fuera del rango permitido."));
     return;
   }
   if (!r.changed) return;
@@ -2209,7 +2219,7 @@ function scStoryDragMove(ev) {
     board.appendChild(d.line);
   }
   d.line.dataset.kind = hit.line.kind;
-  d.line.firstChild.textContent = hit.line.kind === "join" ? "al mismo tiempo" : "soltar aquí";
+  d.line.firstChild.textContent = hit.line.kind === "join" ? FluyoI18n.t("moment.together", "al mismo tiempo") : FluyoI18n.t("moment.dropHere", "soltar aquí");
   d.line.style.top = hit.line.y - br.top + "px";
 }
 function scStoryDragEnd(ev) {
@@ -2217,7 +2227,7 @@ function scStoryDragEnd(ev) {
   if (!d || ev.pointerId !== d.pointerId) return;
   const moved = d.active && d.target ? { id: d.id, target: d.target } : null;
   scStoryDragCleanup();
-  if (moved && scMoveStepTo(moved.id, moved.target)) scNotice("Historia reordenada.");
+  if (moved && scMoveStepTo(moved.id, moved.target)) scNotice(FluyoI18n.t("stories.reordered", "Historia reordenada."));
 }
 function scStoryDragCancel() {
   scStoryDragCleanup();
@@ -2344,9 +2354,9 @@ function scRenderPhrase() {
   scPhraseParts.forEach((part, i) => {
     if (part.token) {
       const names = {
-        source: "Origen",
-        target: scWhereValue() === "connection" ? "Destino" : "Elemento",
-        name: "Nombre del evento",
+        source: FluyoI18n.t("event.token.source", "Origen"),
+        target: scWhereValue() === "connection" ? FluyoI18n.t("event.token.target", "Destino") : FluyoI18n.t("event.token.element", "Elemento"),
+        name: FluyoI18n.t("event.token.name", "Nombre del evento"),
       };
       const chip = scButton(
         names[part.token],
@@ -2358,14 +2368,14 @@ function scRenderPhrase() {
         },
         "scPhraseChip",
       );
-      chip.setAttribute("aria-label", names[part.token] + ". Activar para quitar este nombre de la frase");
+      chip.setAttribute("aria-label", FluyoI18n.t("event.tokenRemove", "{name}. Activar para quitar este nombre de la frase", { name: names[part.token] }));
       box.appendChild(chip);
     } else {
       const input = scEl("input", "scPhraseText");
       input.type = "text";
       input.value = part.text;
       input.size = Math.max(1, [...part.text].length);
-      input.setAttribute("aria-label", "Texto de la frase, segmento " + (i + 1));
+      input.setAttribute("aria-label", FluyoI18n.t("event.phraseSegment", "Texto de la frase, segmento {n}", { n: i + 1 }));
       input.oninput = () => {
         part.text = input.value;
         input.size = Math.max(1, [...input.value].length);
@@ -2378,11 +2388,11 @@ function scRenderPhrase() {
   insert.replaceChildren();
   for (const [token, name] of (scWhereValue() === "connection"
     ? [
-        ["source", "Origen"],
-        ["target", "Destino"],
+        ["source", FluyoI18n.t("event.token.source", "Origen")],
+        ["target", FluyoI18n.t("event.token.target", "Destino")],
       ]
-    : [["target", "Elemento"]]
-  ).concat([["name", "Nombre del evento"]]))
+    : [["target", FluyoI18n.t("event.token.element", "Elemento")]]
+  ).concat([["name", FluyoI18n.t("event.token.name", "Nombre del evento")]]))
     insert.appendChild(
       scButton("+ " + name, () => {
         scPhraseParts.push({ token }, { text: "" });
@@ -2392,7 +2402,12 @@ function scRenderPhrase() {
       }),
     );
 }
-const SC_DEFAULT_PHRASES = { connection: "{source} envía a {target}", element: "{target} cambia" };
+/* FLUYO-I18N-002 S2a (D-S2-3): la frase con la que nace un evento nuevo, en el idioma de la interfaz de quien lo crea; guardada, es
+   contenido del autor y ya no se traduce. Los marcadores {source}/{target} son contrato y no se traducen. */
+const SC_DEFAULT_PHRASES = {
+  get connection() { return FluyoI18n.t("event.defaultPhraseEdge", "{source} envía a {target}"); },
+  get element() { return FluyoI18n.t("event.defaultPhraseNode", "{target} cambia"); },
+};
 /* Cambia de dónde ocurre sin pisar una frase escrita por la persona. */
 function scSwitchPhraseForWhere() {
   const where = scWhereValue(),
@@ -2424,10 +2439,10 @@ function scOpenEventDialog(id, duplicate = false) {
   /* FLUYO-018.19: crear (no editar ni duplicar) termina colocando el evento nuevo (scSaveEventType). */
   scEventDialogMode = !et ? "create" : duplicate ? "duplicate" : "edit";
   const used = !!et && !duplicate && eventTypeIsUsed(id);
-  $("scEventDialogTitle").textContent = et && !duplicate ? "Editar evento" : "Crear evento";
-  $("scEventSave").textContent = et && !duplicate ? "Guardar cambios" : "Crear evento";
-  $("scEventDialogSubtitle").textContent = "Disponible en todo este proyecto.";
-  $("scEventName").value = et ? et.name + (duplicate ? " (copia)" : "") : "";
+  $("scEventDialogTitle").textContent = et && !duplicate ? FluyoI18n.t("event.edit", "Editar evento") : FluyoI18n.t("event.create", "Crear evento");
+  $("scEventSave").textContent = et && !duplicate ? FluyoI18n.t("event.saveChanges", "Guardar cambios") : FluyoI18n.t("event.create", "Crear evento");
+  $("scEventDialogSubtitle").textContent = FluyoI18n.t("event.projectWide", "Disponible en todo este proyecto.");
+  $("scEventName").value = et ? (duplicate ? FluyoI18n.t("event.copyName", "{name} (copia)", { name: et.name }) : et.name) : "";
   document.querySelectorAll('input[name="scWhere"]').forEach((e) => {
     e.checked = e.value === (et && et.primitive !== "FLOW" ? "element" : "connection");
     e.disabled = used;
@@ -2474,7 +2489,7 @@ function scOpenEventDialog(id, duplicate = false) {
   /* FLUYO-018.19: «Cómo se ve» empieza plegado al crear; al editar se abre si el evento ya no viaja como por defecto */
   const flowDefault = normalizeConnectionEffects(undefined);
   scSetAccordionOpen("scFlowLook", !!et && (Object.keys(flowDefault).some((k) => flow[k] !== flowDefault[k]) || (et.motion || DEFAULT_EVENT_MOTION) !== DEFAULT_EVENT_MOTION));
-  scPhraseParts = scParsePhrase(et?.sentenceTemplate ?? "{source} envía a {target}");
+  scPhraseParts = scParsePhrase(et?.sentenceTemplate ?? SC_DEFAULT_PHRASES.connection);
   const hasAppearance = effects.showSymbol || effects.message || effects.highlight || effects.blink || effects.dim || effects.fillColor;
   scSetAccordionOpen("scAppearance", !!et && hasAppearance);
   scSetAccordionOpen("scBehavior", !!et && consequence !== "none");
@@ -2502,7 +2517,7 @@ function scEditorLayout() {
   if (appearance) appearance.hidden = connection;
   const behavior = $("scBehavior");
   if (behavior) behavior.hidden = connection;
-  $("scVisualLabel").textContent = connection ? "Símbolo que recorre la conexión" : "Símbolo del evento";
+  $("scVisualLabel").textContent = connection ? FluyoI18n.t("event.symbolEdge", "Símbolo que recorre la conexión") : FluyoI18n.t("event.symbolNode", "Símbolo del evento");
   const symbolConfig = $("scShowSymbolConfig");
   if (symbolConfig) symbolConfig.hidden = !$("scShowSymbol").checked;
   const symbolUse = $("scSymbolUse");
@@ -2526,10 +2541,10 @@ function scSetAccordionOpen(id, open) {
   else el.removeAttribute("open");
 }
 const SC_FLOW_SUMMARY = {
-  size: { small: "Pequeño", medium: "Mediano", large: "Grande" },
-  style: { direct: "Directo", smooth: "Suave", impulse: "Impulso" },
-  trail: { none: "Sin rastro", subtle: "Rastro sutil", marked: "Rastro marcado" },
-  arrival: { pulse: "Pulso al llegar", glow: "Brillo al llegar", bounce: "Rebote al llegar" },
+  size: { get small() { return FluyoI18n.t("event.look.small", "Pequeño"); }, get medium() { return FluyoI18n.t("event.look.medium", "Mediano"); }, get large() { return FluyoI18n.t("event.look.large", "Grande"); } },
+  style: { get direct() { return FluyoI18n.t("event.look.direct", "Directo"); }, get smooth() { return FluyoI18n.t("event.look.smooth", "Suave"); }, get impulse() { return FluyoI18n.t("event.look.impulse", "Impulso"); } },
+  trail: { get none() { return FluyoI18n.t("event.look.noTrail", "Sin rastro"); }, get subtle() { return FluyoI18n.t("event.look.subtleTrail", "Rastro sutil"); }, get marked() { return FluyoI18n.t("event.look.markedTrail", "Rastro marcado"); } },
+  arrival: { get pulse() { return FluyoI18n.t("event.look.pulseOnArrival", "Pulso al llegar"); }, get glow() { return FluyoI18n.t("event.look.glowOnArrival", "Brillo al llegar"); }, get bounce() { return FluyoI18n.t("event.look.bounceOnArrival", "Rebote al llegar"); } },
 };
 function scUpdateAccordionSummaries() {
   const flowLook = $("scFlowLook");
@@ -2544,18 +2559,18 @@ function scUpdateAccordionSummaries() {
   }
   if (!appearance || appearance.hidden) return;
   const parts = [];
-  if ($("scShowSymbol").checked) parts.push("Símbolo");
-  if ($("scUseMessage").checked) parts.push("Mensaje");
-  if ($("scHighlight").checked) parts.push("Resaltar");
-  if ($("scDim").checked) parts.push("Oscurecer");
-  if ($("scBlink").checked) parts.push("Parpadear");
-  if ($("scUseFill").checked) parts.push("Color");
+  if ($("scShowSymbol").checked) parts.push(FluyoI18n.t("event.fx.symbol", "Símbolo"));
+  if ($("scUseMessage").checked) parts.push(FluyoI18n.t("event.fx.message", "Mensaje"));
+  if ($("scHighlight").checked) parts.push(FluyoI18n.t("event.fx.highlight", "Resaltar"));
+  if ($("scDim").checked) parts.push(FluyoI18n.t("event.fx.dim", "Oscurecer"));
+  if ($("scBlink").checked) parts.push(FluyoI18n.t("event.fx.blink", "Parpadear"));
+  if ($("scUseFill").checked) parts.push(FluyoI18n.t("event.fx.color", "Color"));
   const summary = $("scAppearanceSummary");
-  if (summary) summary.textContent = parts.length ? parts.join(" · ") : "Sin personalizar";
+  if (summary) summary.textContent = parts.length ? parts.join(" · ") : FluyoI18n.t("event.fx.none", "Sin personalizar");
   const behavior = $("scBehavior");
   if (behavior && !behavior.hidden) {
     const val = scConsequenceValue();
-    const labels = { none: "No cambia cómo responde", down: "Deja de responder", up: "Vuelve a responder" };
+    const labels = { none: FluyoI18n.t("event.behavior.noneShort", "No cambia cómo responde"), down: FluyoI18n.t("event.behavior.down", "Deja de responder"), up: FluyoI18n.t("event.behavior.up", "Vuelve a responder") };
     const bs = $("scBehaviorSummary");
     if (bs) bs.textContent = labels[val] || "";
   }
@@ -2573,7 +2588,7 @@ function scRenderVisualPicker() {
       scEditorLayout();
       scUpdateEventPreview();
     });
-    b.setAttribute("aria-label", "Usar símbolo " + symbol);
+    b.setAttribute("aria-label", FluyoI18n.t("event.useSymbol", "Usar símbolo {symbol}", { symbol }));
     b.setAttribute("aria-pressed", String(symbol === scVisual));
     box.appendChild(b);
   }
@@ -2607,8 +2622,8 @@ function scRenderColorSwatches(containerId, currentColor, inputId) {
     const input = $(inputId);
     if (input) input.click();
   }, "scColorAdd");
-  add.title = "Elegir color personalizado";
-  add.setAttribute("aria-label", "Elegir color personalizado");
+  add.title = FluyoI18n.t("event.customColor", "Elegir color personalizado");
+  add.setAttribute("aria-label", FluyoI18n.t("event.customColor", "Elegir color personalizado"));
   box.appendChild(add);
 }
 function scPickColor(color, inputId, containerId) {
@@ -2656,7 +2671,7 @@ function scPreviewFrame(now) {
   c.fillStyle = T.edge;
   for (const hd of previewStroke.heads) { c.beginPath(); traceSegments(c, hd); c.fill(); }
   c.font = "600 11px 'Segoe UI', system-ui, sans-serif"; c.textAlign = "center"; c.textBaseline = "middle";
-  for (const [cx, label] of [[12 + nw / 2, "Cliente"], [w - 12 - nw / 2, "Comercio"]]) {
+  for (const [cx, label] of [[12 + nw / 2, FluyoI18n.t("event.preview.source", "Cliente")], [w - 12 - nw / 2, FluyoI18n.t("event.preview.target", "Comercio")]]) {
     c.fillStyle = T.lblBg; c.strokeStyle = T.edge; c.lineWidth = 1.5;
     c.beginPath(); c.roundRect(cx - nw / 2, y - nh / 2, nw, nh, 8); c.fill(); c.stroke();
     c.fillStyle = T.text; c.fillText(label, cx, y);
@@ -2684,7 +2699,7 @@ function scUpdateEventPreview() {
     if (!canvas) {
       canvas = scEl("canvas", "scPreviewCanvas");
       canvas.setAttribute("role", "img");
-      canvas.setAttribute("aria-label", "Ejemplo animado de cómo viajará el evento");
+      canvas.setAttribute("aria-label", FluyoI18n.t("event.preview.aria", "Ejemplo animado de cómo viajará el evento"));
       box.appendChild(canvas);
     }
     const changed = JSON.stringify(next) !== JSON.stringify(scPreviewSpec);
@@ -2704,7 +2719,7 @@ function scUpdateEventPreview() {
       box.style.removeProperty("--effect-color");
     }
     const stack = scEl("span", "scPreviewStack");
-    const node = scEl("span", classes.join(" "), "Solicitud");
+    const node = scEl("span", classes.join(" "), FluyoI18n.t("event.preview.element", "Solicitud"));
     let msg = null;
     if (spec.message) {
       const st = nodeMessageStyle(spec);
@@ -2731,8 +2746,8 @@ function scUpdateEventPreview() {
   }
   $("scEventPreview").textContent = renderEventSentence(
     def,
-    connection ? "Cliente" : null,
-    connection ? "Comercio" : "Solicitud",
+    connection ? FluyoI18n.t("event.preview.source", "Cliente") : null,
+    connection ? FluyoI18n.t("event.preview.target", "Comercio") : FluyoI18n.t("event.preview.element", "Solicitud"),
   );
 }
 function scPlayExample() {
@@ -2751,15 +2766,15 @@ function scSaveEventType() {
   const def = scEditorDefinition(),
     error = $("scEventError");
   let message = "";
-  if (!def.name) message = "Escribe un nombre para reconocer este evento.";
+  if (!def.name) message = FluyoI18n.t("event.err.name", "Escribe un nombre para reconocer este evento.");
   else if (eventSentenceHasStrayBraces(def.sentenceTemplate))
-    message = "Para insertar nombres, usa los botones de la frase.";
-  else if (!def.sentenceTemplate.trim()) message = "Escribe cómo quieres contar este evento.";
-  else if (def.sentenceTemplate.length > 200) message = "Acorta la frase a 200 caracteres.";
+    message = FluyoI18n.t("event.err.braces", "Para insertar nombres, usa los botones de la frase.");
+  else if (!def.sentenceTemplate.trim()) message = FluyoI18n.t("event.err.phrase", "Escribe cómo quieres contar este evento.");
+  else if (def.sentenceTemplate.length > 200) message = FluyoI18n.t("event.err.phraseLong", "Acorta la frase a 200 caracteres.");
   else if ([...scVisual].length > EVENT_TOKEN_MAX_LEN)
-    message = "Este símbolo es demasiado largo. Elige otro.";
+    message = FluyoI18n.t("event.err.symbolLong", "Este símbolo es demasiado largo. Elige otro.");
   else if (scDurationInvalid()) {
-    message = "Escribe cuántos segundos se ve, entre 0,3 y 10.";
+    message = FluyoI18n.t("event.err.duration", "Escribe cuántos segundos se ve, entre 0,3 y 10.");
     scSetAccordionOpen("scAppearance", true);
   }
   if (message) {
@@ -2771,7 +2786,7 @@ function scSaveEventType() {
   try {
     validateEventType({ ...def, id: scEditingEventTypeId || 1, visual: { kind: "token", value: scVisual } });
   } catch {
-    error.textContent = "Revisa el nombre, la frase y el símbolo antes de guardar.";
+    error.textContent = FluyoI18n.t("event.err.invalid", "Revisa el nombre, la frase y el símbolo antes de guardar.");
     error.hidden = false;
     return;
   }
@@ -2804,11 +2819,13 @@ function scSaveEventType() {
   if ($("panelScenarios").classList.contains("scCompact")) scTogglePalette(true);
   scScrollIntoView(row);
   row?.querySelector("button")?.focus();
-  const where = def.primitive === "FLOW" ? "una conexión" : "un elemento";
+  const edge = def.primitive === "FLOW", touch = scCoarsePointer();
   scNotice(
     editing
-      ? "Evento actualizado en todos sus usos."
-      : def.name + " ya está en Eventos. " + (scCoarsePointer() ? "Tócalo y luego toca " + where + "." : "Arrástralo a " + where + "."),
+      ? FluyoI18n.t("event.updated", "Evento actualizado en todos sus usos.")
+      : edge
+        ? touch ? FluyoI18n.t("event.readyTapEdge", "{name} ya está en Eventos. Tócalo y luego toca una conexión.", { name: def.name }) : FluyoI18n.t("event.readyDragEdge", "{name} ya está en Eventos. Arrástralo a una conexión.", { name: def.name })
+        : touch ? FluyoI18n.t("event.readyTapNode", "{name} ya está en Eventos. Tócalo y luego toca un elemento.", { name: def.name }) : FluyoI18n.t("event.readyDragNode", "{name} ya está en Eventos. Arrástralo a un elemento.", { name: def.name }),
   );
 }
 /* Con el dedo no se arrastra una ficha: se toca y luego se toca el destino. Los textos lo dicen según el puntero. */
@@ -2831,7 +2848,7 @@ function scBeginPlacement(id, kind = "place", stepId = null) {
   /* Sin Scenario no se crea nada aquí: se crea al aplicar un destino válido (scApplyTargets),
      dentro de la misma operación de undo que el Step. Así cancelar/soltar en vacío no deja rastro. */
   if (scActiveScenario() ? !scEditable() : kind !== "place") {
-    scNotice("No se puede colocar eventos en esta historia.");
+    scNotice(FluyoI18n.t("place.notEditable", "No se puede colocar eventos en esta historia."));
     return;
   }
   const et = eventTypeById(id);
@@ -2916,34 +2933,24 @@ function scUpdatePlacementBar() {
     et = eventTypeById(p?.eventTypeId);
   let text = "";
   if (p?.kind === "multi")
-    text =
-      "Aplicar " +
-      et.name +
-      " también a estas conexiones\n" +
-      (p.existing.size + p.targets.size) +
-      " conexiones en total · Al mismo tiempo";
-  else if (p?.origin === "created")
+    text = FluyoI18n.t("place.multi", "Aplicar {name} también a estas conexiones\n{count} conexiones en total · Al mismo tiempo", { name: et.name, count: p.existing.size + p.targets.size });
+  else if (p?.origin === "created") {
     /* FLUYO-018.19: recién creado, la barra dice qué ha pasado y qué falta, sin descubrir que hay que tocar la ficha */
-    text =
-      (et?.name || "Evento") +
-      " creado. " +
-      (scCoarsePointer() ? "Toca " : "Elige ") +
-      (scPlacementType() === "edge" ? "la conexión" : "el elemento") +
-      " donde ocurre.\n" +
-      scTemporalHint();
-  else if (p)
-    text =
-      (p.kind === "retarget" ? "Elige otro lugar para " : "") +
-      (et?.name || "este evento") +
-      ": elige " +
-      (scPlacementType() === "edge" ? "una conexión" : "un elemento") +
-      " en el sistema.";
+    const name = et?.name || FluyoI18n.t("place.eventFallback", "Evento"), edge = scPlacementType() === "edge", touch = scCoarsePointer();
+    text = (edge
+      ? touch ? FluyoI18n.t("place.createdTapEdge", "{name} creado. Toca la conexión donde ocurre.", { name }) : FluyoI18n.t("place.createdPickEdge", "{name} creado. Elige la conexión donde ocurre.", { name })
+      : touch ? FluyoI18n.t("place.createdTapNode", "{name} creado. Toca el elemento donde ocurre.", { name }) : FluyoI18n.t("place.createdPickNode", "{name} creado. Elige el elemento donde ocurre.", { name })) +
+      "\n" + scTemporalHint();
+  } else if (p) {
+    const edge = scPlacementType() === "edge";
+    text = p.kind === "retarget"
+      ? edge ? FluyoI18n.t("place.retargetEdge", "Elige otro lugar para {name}: elige una conexión en el sistema.", { name: et?.name || FluyoI18n.t("place.thisEvent", "este evento") }) : FluyoI18n.t("place.retargetNode", "Elige otro lugar para {name}: elige un elemento en el sistema.", { name: et?.name || FluyoI18n.t("place.thisEvent", "este evento") })
+      : edge ? FluyoI18n.t("place.pickEdge", "{name}: elige una conexión en el sistema.", { name: et?.name || FluyoI18n.t("place.thisEvent", "este evento") }) : FluyoI18n.t("place.pickNode", "{name}: elige un elemento en el sistema.", { name: et?.name || FluyoI18n.t("place.thisEvent", "este evento") });
+  }
   if (scContext) {
     const s = scActiveScenario()?.steps.find((s) => s.id === scContext.stepId);
     text =
-      "Añadiendo al mismo tiempo que “" +
-      (s ? describeScenarioStep(s).primary : "") +
-      "”" +
+      FluyoI18n.t("place.addingWith", "Añadiendo al mismo tiempo que “{name}”", { name: s ? describeScenarioStep(s).primary : "" }) +
       (text ? "\n" + text : "");
   }
   $("scPlacementText").textContent = text;
@@ -3009,9 +3016,9 @@ function scStartDragEventType(id, x, y) {
   scUpdateDrag(x, y);
 }
 function scTemporalHint() {
-  if (scPlacement?.kind === "retarget") return "Cambiará dónde ocurre · conserva su tiempo";
-  if (scContext) return "Se añadirá al mismo tiempo";
-  return "Se añadirá al final · " + (scActiveScenario()?.steps.length ? "1 s después" : "Al comenzar");
+  if (scPlacement?.kind === "retarget") return FluyoI18n.t("place.keepsTime", "Cambiará dónde ocurre · conserva su tiempo");
+  if (scContext) return FluyoI18n.t("place.together", "Se añadirá al mismo tiempo");
+  return FluyoI18n.t("place.atEnd", "Se añadirá al final · {when}", { when: scActiveScenario()?.steps.length ? FluyoI18n.t("moment.afterS", "{n} s después", { n: scNum(1, "1") }) : FluyoI18n.t("moment.atStart", "Al comenzar") });
 }
 function scHoverAt(clientX, clientY) {
   if (!scPlacement) return;
@@ -3035,12 +3042,12 @@ function scUpdateDrag(x, y) {
   if (!scDrag) return;
   const ids = scHoverAt(x, y) || [],
     et = eventTypeById(scDrag.eventTypeId);
-  let detail = "Suelta sobre " + (et.primitive === "FLOW" ? "una conexión" : "un elemento");
-  if (ids.length > 1) detail = "Hay varias conexiones aquí. Elige una al soltar.";
+  let detail = et.primitive === "FLOW" ? FluyoI18n.t("place.dropOnEdge", "Suelta sobre una conexión") : FluyoI18n.t("place.dropOnNode", "Suelta sobre un elemento");
+  if (ids.length > 1) detail = FluyoI18n.t("place.many", "Hay varias conexiones aquí. Elige una al soltar.");
   else if (ids.length) {
     const multi = et.primitive === "FLOW" && selE.has(ids[0]) && selE.size > 1;
     detail = multi
-      ? "Aplicar " + et.name + " a " + P().edges.filter((e) => selE.has(e.id)).length + " conexiones"
+      ? FluyoI18n.t("place.applyTo", "Aplicar {name} a {count} conexiones", { name: et.name, count: P().edges.filter((e) => selE.has(e.id)).length })
       : scSentenceAt(et, ids[0]);
     if (multi)
       scPlacement.hover = P()
@@ -3098,12 +3105,12 @@ function scResolveDrop(id, x, y, cx, cy, touch = false) {
     /* FLUYO-018.19 (D13): con el dedo, tocar donde no hay destino no cancela: se sigue colocando (y explorando el lienzo).
        Cancelar es explícito (Cancelar, Escape). Con ratón, como siempre. */
     if (touch && scPlacement) {
-      scNotice("Toca " + (kind === "edge" ? "una conexión" : "un elemento") + " compatible para colocarlo, o «Cancelar».");
+      scNotice(kind === "edge" ? FluyoI18n.t("place.tapEdge", "Toca una conexión compatible para colocarlo, o «Cancelar».") : FluyoI18n.t("place.tapNode", "Toca un elemento compatible para colocarlo, o «Cancelar»."));
       return;
     }
     if (scPlacement?.kind !== "multi") scCancelPlacement();
     scNotice(
-      "No se añadió nada. Elige " + (kind === "edge" ? "una conexión" : "un elemento") + " compatible.",
+      kind === "edge" ? FluyoI18n.t("place.noneEdge", "No se añadió nada. Elige una conexión compatible.") : FluyoI18n.t("place.noneNode", "No se añadió nada. Elige un elemento compatible."),
     );
     return;
   }
@@ -3178,8 +3185,8 @@ function scApplyTargets(id, targets) {
   scScrollIntoView($("scStoryboard")?.querySelector?.('[data-step-id="' + scSelectedStep + '"]'));
   scNotice(
     created
-      ? sc.name + " creada"
-      : valid.length === 1 ? "Añadido a la historia." : valid.length + " eventos añadidos al mismo tiempo.",
+      ? FluyoI18n.t("stories.created", "{name} creada", { name: sc.name })
+      : valid.length === 1 ? FluyoI18n.t("place.added", "Añadido a la historia.") : FluyoI18n.t("place.addedMany", "{count} eventos añadidos al mismo tiempo.", { count: valid.length }),
   );
 }
 function scConfirmMulti() {
@@ -3453,8 +3460,7 @@ function scInitUI() {
               ];
           scPlacement.hover = [next.id];
           $("scPlacementText").textContent =
-            (scPlacementType() === "edge" ? scEdgeLabel(next.id) : scNodeFallback(next.id)) +
-            " · Enter para aplicar · Esc para cancelar";
+            FluyoI18n.t("place.keyHint", "{name} · Enter para aplicar · Esc para cancelar", { name: scPlacementType() === "edge" ? scEdgeLabel(next.id) : scNodeFallback(next.id) });
         }
       }
     },
@@ -3504,3 +3510,26 @@ window.scSyncCompact = scSyncCompact;
 window.eventTypeById = eventTypeById;
 window.renderEventSentence = renderEventSentence;
 window.eventTypeAllowedTargets = eventTypeAllowedTargets;
+/* FLUYO-I18N-002 S2a: al cambiar el idioma de la interfaz en vivo, la hoja de Historias se repinta en el idioma nuevo sin tocar el
+   documento, Deshacer ni la reproducción. Los menús abiertos se cierran (se reabren ya traducidos); el diálogo de evento abierto
+   repinta lo que pone JS (título, botón, frase, resúmenes y vista previa); la barra de colocación, su texto. */
+if (typeof FluyoI18n === "object" && FluyoI18n.onChange)
+  FluyoI18n.onChange(() => {
+    if (!scUiReady) return;
+    scClosePopover(false);
+    scStorySignature = "";
+    scNowLast = "";
+    scFlowLast = null;
+    scRenderPanel();
+    scUpdatePlacementBar();
+    if ($("scEventDialog")?.open) {
+      const edit = scEventDialogMode === "edit";
+      $("scEventDialogTitle").textContent = edit ? FluyoI18n.t("event.edit", "Editar evento") : FluyoI18n.t("event.create", "Crear evento");
+      $("scEventSave").textContent = edit ? FluyoI18n.t("event.saveChanges", "Guardar cambios") : FluyoI18n.t("event.create", "Crear evento");
+      $("scEventDialogSubtitle").textContent = FluyoI18n.t("event.projectWide", "Disponible en todo este proyecto.");
+      scRenderPhrase();
+      scEditorLayout();
+      scUpdateAccordionSummaries();
+      scUpdateEventPreview();
+    }
+  });

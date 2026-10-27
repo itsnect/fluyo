@@ -166,7 +166,7 @@ function storyScenario(){
 }
 function storyNodeName(id){
   const n=nodeById(id);
-  return (n && String(n.label||"").split("\n")[0].trim()) || "Elemento sin nombre";
+  return (n && String(n.label||"").split("\n")[0].trim()) || FluyoI18n.t("story.unnamed","Elemento sin nombre");
 }
 /* FLUYO-018.18: Reproducir también en Presentar (antes no se podía); pausar, reanudar y saltar entre momentos con el MISMO reloj
    que el editor (story-clock.js). La unidad es el momento. Nada de esto toca el documento instalado. */

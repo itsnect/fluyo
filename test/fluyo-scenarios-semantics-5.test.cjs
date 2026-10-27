@@ -162,8 +162,11 @@ test("A1 · routeOverlay (editor con labs) = lo que pintaba scFlowOverlay en " +
 });
 
 test("A2 · routeLine: los textos aprobados son los de SC_FLOW_WORDS; solo con par; procedencia; NO_PATH; ENDPOINT_MISSING y sin par → null", () => {
+  /* FLUYO-I18N-002 S2a: los textos de la ruta pasan por FluyoI18n.t (las mismas claves en el editor y en flow-semantics.js) */
+  const { loadI18n } = require("./i18n-vm.cjs");
   const K = context();
-  const words = vm.runInContext(flowBlock(read("js/editor-scenarios.js")).match(/const SC_FLOW_WORDS = \{[\s\S]*?\n\};/)[0].replace("const SC_FLOW_WORDS =", "(").replace(/;$/, "") + ")", vm.createContext({}));
+  loadI18n(K);
+  const words = vm.runInContext(flowBlock(read("js/editor-scenarios.js")).match(/const SC_FLOW_WORDS = \{[\s\S]*?\n\};/)[0].replace("const SC_FLOW_WORDS =", "(").replace(/;$/, "") + ")", loadI18n(vm.createContext({})));
   const W = J(vm.runInContext("FluyoFlow.ROUTE_WORDS", K));
   assert.deepEqual(W, { AVAILABLE: words.AVAILABLE, UNAVAILABLE: words.UNAVAILABLE, NO_PATH: words.NO_PATH, byDefault: words.byDefault }, "una sola fuente de texto (decisión 246)");
   const line = (pg, t) => { K.__p = J(project([pg])); return J(vm.runInContext(`(()=>{ const p = projectFromProjectData(__p).doc.pages[0], sc = p.scenarios[0];
@@ -182,6 +185,7 @@ test("A2 · routeLine: los textos aprobados son los de SC_FLOW_WORDS; solo con p
 
 test("A3 · routeOverlay: sin timeline (NO_PATH) → null; t inválido → invalid_document; determinista; nada se escribe en el documento (B6)", () => {
   const K = context();
+  require("./i18n-vm.cjs").loadI18n(K);   /* FLUYO-I18N-002 S2a: routeLine dice sus textos con FluyoI18n.t */
   K.__p = J(project([workersPage({ observedFlow: { from: CLI, to: BD } })]));
   const r = J(vm.runInContext(`(()=>{ const d = projectFromProjectData(__p).doc, p = d.pages[0], sc = p.scenarios[0], before = JSON.stringify(projectToSerializable(d, {}));
     const ev = FluyoStory.run(p, sc).trace.events, route = FluyoFlow.flowRoute(p, ${CLI}, ${BD}), tl = FluyoFlow.routeTimeline(p, route, ev, 0);
@@ -531,8 +535,8 @@ test("G3 · alcance frente a " + BASE + ": solo los archivos de FASE 5 y sw.js (
   assert.deepEqual([...new Set([...changed, ...untracked])].filter((f) => !NEW_I18N.includes(f)).filter((f) => !(f in PIECES6 || f in PIECESM) || read5(f) !== atBase(f)).sort(), FILES.concat("sw.js").sort());
   assert.deepEqual(Object.keys(PIECES).sort(), FILES);
   for (const f of FILES) assert.equal(undo5(f, read5(f)), atBase(f), f + ": undo5 exacto");
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v110";/);
-  assert.equal(undoI18n("sw.js", read("sw.js")).replace('"fluyo-static-v110"', '"fluyo-static-v' + (100 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante; flow-semantics.js, viewer.js y s/ ya se precachean");
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v111";/);
+  assert.equal(undoI18n("sw.js", read("sw.js")).replace('"fluyo-static-v111"', '"fluyo-static-v' + (100 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante; flow-semantics.js, viewer.js y s/ ya se precachean");
   for (const f of ["js/model.js", "js/scenario-engine.js", "js/scenario-playback.js", "js/story-playback.js", "js/story-clock.js", "js/geometry.js", "js/skin.js", "js/interaction.js", "js/ui.js", "js/state.js", "js/share-url.js", "js/editor-share.js", "js/deeplink.js"])
     assert.equal(read5(f), atBase(f), f + " intacto (modelo, motor, reloj, geometría, piel, Share y #d= sin cambios)");
   /* FASE 2/3/4 intactas en flow-semantics.js: FASE 5 solo añade al final (y una nota en la cabecera) */

@@ -102,7 +102,7 @@ const FluyoI18n=(()=>{
   }
   /* El texto de una clave en el idioma actual; `es` es el texto base (o {one, other}). Reserva: idioma › inglés › español.
      Lo que falta en el idioma actual se anota (missing()). */
-  function t(key, es, params){
+  function lookup(key, es){
     let text=es, lang=BASE;
     if(current!==BASE){
       for(const l of current===FALLBACK ? [current] : [current, FALLBACK]){
@@ -111,7 +111,28 @@ const FluyoI18n=(()=>{
       }
       if(lang!==current) missing.add(current+":"+key);
     }
+    return {text, lang};
+  }
+  function t(key, es, params){
+    const {text, lang}=lookup(key, es);
     return format(String(pluralForm(text, params, lang)), params);
+  }
+
+  /* FLUYO-I18N-002 S2a: una lista dentro de una frase («A, B y C»), con Intl.ListFormat (conjunción) del idioma de la PLANTILLA que la
+     va a contener (`within`: su clave; si el francés cae al inglés, la lista también va en inglés): «A and B», 「A、B」, «A和B». Las
+     piezas son texto ya hecho (contenido del autor o recuentos completos) y no se traducen aquí. El español une como siempre ha
+     unido cada lista («a, b y c»; con "repeat", «a y b y c»): Intl diría «e» ante «i-» y cambiaría el texto de hoy. Sin
+     Intl.ListFormat, comas. */
+  const listCache=new Map();
+  function list(items, within, esStyle){
+    const xs=(items||[]).map(String);
+    if(xs.length<2) return xs.join("");
+    const lang=within ? lookup(within).lang : current;
+    if(lang===BASE) return esStyle==="repeat" ? xs.join(" y ") : xs.slice(0,-1).join(", ")+" y "+xs[xs.length-1];
+    try{
+      if(!listCache.has(lang)) listCache.set(lang, new Intl.ListFormat(tagOf(lang), {type:"conjunction"}));
+      return listCache.get(lang).format(xs);
+    }catch(e){ return xs.join(", "); }
   }
 
   /* Números con el formato del idioma de la interfaz (separadores y decimales). */
@@ -194,7 +215,7 @@ const FluyoI18n=(()=>{
   if(current!==BASE) applyDom();
 
   return {
-    BASE, FALLBACK, STORAGE_KEY, LANGS, t, num, resolve, detect, normalize, supported, released, languages, tagOf,
+    BASE, FALLBACK, STORAGE_KEY, LANGS, t, list, num, resolve, detect, normalize, supported, released, languages, tagOf,
     applyDom, setLocale, onChange,
     locale:()=>current,
     tag:()=>tagOf(current),

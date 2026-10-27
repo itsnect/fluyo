@@ -40,7 +40,7 @@ test("alcance: kernel, identity.css y el formato intactos (git HEAD)", () => {
 
 test("sw.js: CACHE v73; los archivos que toca 018.14b ya estaban en el precache", () => {
   const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v110";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v111";/);
   for (const f of ["./index.html", "./css/system.css", "./css/styles.css", "./js/ui.js", "./js/editor-scenarios.js", "./js/editor-share.js", "./js/interaction.js"]) assert.ok(sw.includes('"' + f + '"'), f + " precacheado");
 });
 
@@ -151,7 +151,7 @@ test("panel: grupos plegables con los abiertos de B6 y todas las propiedades den
 });
 
 test("modo Historia: una sola fuente (uiMode), salida que nunca se bloquea, rail fuera", () => {
-  const ui = read("js/ui.js"), es = read("js/editor-scenarios.js"), styles = read("css/styles.css"), html = read("index.html");
+  const ui = read("js/ui.js"), es = read("js/editor-scenarios.js"), styles = read("css/styles.css"), html = require("./fluyo-i18n-002-s2a-undo.cjs").undoS2a("index.html", read("index.html"));   /* FLUYO-I18N-002 S2a: sin sus marcas */
   assert.match(ui, /let uiMode="edit";/);
   assert.match(ui, /function activeSurface\(\)\{ return uiMode==="story" \? "stories" : "properties"; \}/);
   assert.match(ui, /function switchPanelTab\(tab\)\{ setUiMode\(tab==="scenarios" \? "story" : "edit"\); \}/);

@@ -170,6 +170,7 @@ function makeScenarioUIContext() {
     selE: new Set(),
     localStorage: { getItem: () => null, setItem: () => {}, removeItem: () => {} },
   });
+  vm.runInContext(read("js/i18n.js"), ctx);   /* FLUYO-I18N-002 S2a: Historias pasa por FluyoI18n.t, como en la página (en español, sin diccionarios: el texto de siempre; sin require, porque 012.1 reutiliza este arnés) */
   vm.runInContext(read("js/config.js"), ctx);
   vm.runInContext(read("js/safe-svg.js"), ctx);
   vm.runInContext(read("js/model.js"), ctx);
@@ -972,7 +973,8 @@ test("FLUYO-012: soltar dentro de un momento conserva el at y las filas vacías 
 
 test("FLUYO-012: Historia sigue ofreciendo Mover antes/después (alternativa accesible) y handle con teclado", () => {
   const src = read("js/editor-scenarios.js");
-  assert.ok(src.includes('label: "Mover"') && src.includes('label: "Antes"') && src.includes('label: "Después"'));
+  /* FLUYO-I18N-002 S2a: los rótulos pasan por FluyoI18n.t con el mismo español */
+  assert.ok(src.includes('label: FluyoI18n.t("step.move", "Mover")') && src.includes('label: FluyoI18n.t("step.move.before", "Antes")') && src.includes('label: FluyoI18n.t("step.move.after", "Después")'));
   assert.ok(src.includes("Alt y las flechas"));
   assert.ok(src.includes("scStoryDragCleanup") && src.includes("pointercancel"));
   const row = src.slice(src.indexOf("function scStoryRow"), src.indexOf("function scNormText"));

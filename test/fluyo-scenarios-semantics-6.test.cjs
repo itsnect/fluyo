@@ -27,6 +27,7 @@ const J = (v) => JSON.parse(JSON.stringify(v));
 const KERNEL = ["config.js", "safe-svg.js", "model.js", "scenario-engine.js", "scenario-playback.js", "story-playback.js", "story-clock.js", "flow-semantics.js", "document-integrity.js", "story-authoring.js"];
 function context(src, files) {
   const ctx = vm.createContext({ TextEncoder, TextDecoder, atob, btoa, URL, console });
+  require("./i18n-vm.cjs").loadI18n(ctx);   /* FLUYO-I18N-002 S2a: Historias pasa por FluyoI18n.t, como en la página (en español, el texto de siempre) */
   for (const f of files) vm.runInContext(src("js/" + f), ctx, { filename: f });
   return ctx;
 }
@@ -248,8 +249,8 @@ test("C2 · alcance frente a " + BASE + ": B1 (model.js, selection.js), «Autom�
   assert.deepEqual([...new Set([...changed, ...untracked])].filter((f) => !NEW_I18N.includes(f)).filter((f) => !(f in PIECESM) || FILES6.includes(f) || undo6(f, read(f)) !== atBase(f)).sort(), FILES6.concat("sw.js").sort());
   assert.deepEqual(Object.keys(PIECES).sort(), FILES6);
   for (const f of FILES6) assert.equal(undo6(f, read(f)), atBase(f), f + ": undo6 exacto");
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v110";/);
-  assert.equal(undoI18n("sw.js", read("sw.js")).replace('"fluyo-static-v110"', '"fluyo-static-v' + (101 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante (el precache no cambia)");
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v111";/);
+  assert.equal(undoI18n("sw.js", read("sw.js")).replace('"fluyo-static-v111"', '"fluyo-static-v' + (101 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante (el precache no cambia)");
   /* en model.js solo cambia cloneStructureIn (y su nota en la cabecera de autoría) */
   const fn = (s) => s.slice(s.indexOf("function cloneStructureIn("), s.indexOf("const DUPLICATE_CONNECTIONS"));
   assert.equal(readM("js/model.js").replace(fn(readM("js/model.js")), "").replace(/ Los Behaviors que se copian pasan la regla de carga\n[\s\S]*?\(SCENARIOS-SEMANTICS-001 FASE 6, B1\)\.\n/, "\n"),
@@ -281,7 +282,7 @@ test("D2 · «Automática · nombre»: la herramienta es su propio contenedor y 
   assert.ok(body.includes(".scFlowPick{flex:1 1 100%;}"));
   assert.ok(body.includes('.scFlowArrow::before{content:"↓"; font-size:12px;}'));
   /* el marcado y el orden no cambian: origen, flecha, destino (la interacción es la misma) */
-  assert.ok(read("index.html").includes('<select id="scFlowFrom"></select></label><span class="scFlowArrow" aria-hidden="true">→</span><label class="scFlowPick"><span class="srOnly">Destino</span><select id="scFlowTo">'));
+  assert.ok(require("./fluyo-i18n-002-s2a-undo.cjs").undoS2a("index.html", read("index.html")).includes('<select id="scFlowFrom"></select></label><span class="scFlowArrow" aria-hidden="true">→</span><label class="scFlowPick"><span class="srOnly">Destino</span><select id="scFlowTo">'), "sin las marcas de FLUYO-I18N-002 S2a");
 });
 
 test("D3 · «Semántica» es la primera fila de «Puntos», un grupo plegado por defecto para las conexiones (decisión 254, 018.23): Trazo y Dirección no la llevan; el aviso W5 va justo detrás", () => {

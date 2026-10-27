@@ -22,6 +22,7 @@ const slice = (s, a, b) => { const i = s.indexOf(a); assert.ok(i >= 0, "falta " 
 
 function geometry(src, files) {
   const ctx = vm.createContext({ TextEncoder, TextDecoder, atob, btoa, URL, CompressionStream, DecompressionStream, crypto, console });
+  require("./i18n-vm.cjs").loadI18n(ctx);   /* FLUYO-I18N-002 S2a: Historias pasa por FluyoI18n.t, como en la página (en español, el texto de siempre) */
   for (const f of files) vm.runInContext(src(f), ctx, { filename: f });
   return ctx;
 }
@@ -285,7 +286,7 @@ test("alcance · rutas (edgePoints, orthoRoute, parallelLane, laneLayout, handle
   assert.equal(sin, mo, "model.js = HEAD + las seis ediciones de 018.27 (kernel, Historias, clonado, integridad: intactos)");
 });
 test("release · CACHE v84; fluyo-mcp (si está al lado) lleva el kernel resincronizado y el port de svg.ts con el mismo factor", () => {
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v110";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v111";/);
   const mcp = path.resolve(root, "..", "fluyo-mcp");
   if (!fs.existsSync(path.join(mcp, "src", "svg.ts"))) return;
   const kernel = fs.readFileSync(path.join(mcp, "src", "generated", "kernel-sources.ts"), "utf8");

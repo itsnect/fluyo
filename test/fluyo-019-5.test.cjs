@@ -34,6 +34,7 @@ const exportFns = (src) => ["svgFillColor", "svgNodeFill", "escapeXML", "escapeA
 function ctxFrom(get) {
   const ctx = vm.createContext({ doc: { pages: [], cur: 0, theme: "dark", customBg: "" }, settings: { font: "Georgia, serif", speed: 1 },
     lerp: (a, b, t) => a + (b - a) * t, clamp: (v, a, b) => Math.min(b, Math.max(a, v)), smooth: (t) => t, console });
+  require("./i18n-vm.cjs").loadI18n(ctx);   /* FLUYO-I18N-002 S2a: Historias pasa por FluyoI18n.t, como en la página (en español, el texto de siempre) */
   vm.runInContext(get("js/config.js"), ctx);
   vm.runInContext("P=()=>doc.pages[doc.cur]; nodeById=id=>P().nodes.find(n=>n.id===id); edgeById=id=>P().edges.find(e=>e.id===id);", ctx);
   vm.runInContext(get("js/model.js").match(/function hexA\(col,a\)\{[^\n]*\n[^\n]*/)[0], ctx);   // hexA, del kernel, sin cargar model.js entero
@@ -174,6 +175,6 @@ test("alcance · kernel (model, config, motor, playback, integridad, autoría), 
     .split("\n").filter(Boolean).sort();
   /* FLUYO-019-HIT-TEST cambia a propósito editor-scenarios.js e interaction.js (acierto, puerto y foco): su alcance lo vigila test/fluyo-019-hit-test.test.cjs */
   assert.deepEqual(changed, ["js/editor-scenarios.js", "js/export.js", "js/geometry.js", "js/interaction.js", "js/render.js", "sw.js"]);
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v110";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v111";/);
   for (const f of ["./js/geometry.js", "./js/render.js", "./js/export.js"]) assert.ok(read("sw.js").includes(`"${f}"`) || read("sw.js").includes(`'${f}'`) || read("sw.js").includes(f.slice(1)), "precacheado: " + f);
 });

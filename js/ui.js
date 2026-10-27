@@ -1184,11 +1184,16 @@ function setUiMode(mode){
 }
 /* Compatibilidad: scRun y quien pulsaba las antiguas pestañas siguen llamando a switchPanelTab. */
 function switchPanelTab(tab){ setUiMode(tab==="scenarios" ? "story" : "edit"); }
+/* FLUYO-I18N-002 S2a: el nombre del botón de la hoja de Historias, en el idioma de la interfaz (también al cambiarlo en vivo) */
+function syncStoryExpandLabel(){
+  const on=document.body.classList.contains("storyExpanded");
+  $("btnStoryExpand").setAttribute("aria-label", on ? FluyoI18n.t("stories.sheetCollapse","Reducir la hoja de Historias") : FluyoI18n.t("stories.sheetExpand","Ampliar la hoja de Historias"));
+}
 function setStoryExpanded(on){
   const was=document.body.classList.contains("storyExpanded");
   document.body.classList.toggle("storyExpanded", !!on);
   $("btnStoryExpand").setAttribute("aria-expanded", String(!!on));
-  $("btnStoryExpand").setAttribute("aria-label", on ? "Reducir la hoja de Historias" : "Ampliar la hoja de Historias");
+  syncStoryExpandLabel();
   if(was!==!!on && typeof scSyncCompact==="function") scSyncCompact();
   /* al ampliar mientras se reproduce, la línea de tiempo acaba de aparecer: que el siguiente fotograma traiga la fila activa */
   if(on && typeof scFollowedStep!=="undefined") scFollowedStep=null;
@@ -1596,6 +1601,7 @@ FluyoI18n.onChange(()=>{
   renderTabs();
   refreshPanel();
   syncTouchBar();
+  syncStoryExpandLabel();
 });
 
 /* Ofrece restaurar la sesión guardada, si la hay. Se llama desde el arranque y

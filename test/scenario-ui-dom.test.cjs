@@ -112,6 +112,7 @@ function makeScenarioUIContext(){
     selN:new Set(), selE:new Set(),
     localStorage:{getItem:()=>null,setItem:()=>{},removeItem:()=>{}}
   });
+  require("./i18n-vm.cjs").loadI18n(ctx);   /* FLUYO-I18N-002 S2a: Historias pasa por FluyoI18n.t, como en la página (en español, el texto de siempre) */
   vm.runInContext(read('js/config.js'), ctx);
   vm.runInContext(read('js/safe-svg.js'), ctx);
   vm.runInContext(read('js/model.js'), ctx);

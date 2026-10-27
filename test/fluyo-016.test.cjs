@@ -685,7 +685,7 @@ test("016.1: Share durante Playback se BLOQUEA (no detiene ni modifica): decisi�
 });
 
 test("016.1: una sola denominación — «Detalles» en el menú y en el diálogo; sin «técnico»", () => {
-  const src = read("js/editor-scenarios.js");
+  const src = require("./fluyo-i18n-002-s2a-undo.cjs").undoS2a("js/editor-scenarios.js", read("js/editor-scenarios.js"));   /* FLUYO-I18N-002 S2a: el texto pasa por FluyoI18n.t; se compara sin ella */
   assert.match(src, /\["Detalles", \(\) => scOpenDetails\("trace"\)\]/);
   assert.match(src, /: "Detalles";/);
   assert.doesNotMatch(src, /Detalles técnicos/);

@@ -391,8 +391,8 @@ function extract(src, name) {
   }
   throw new Error("sin cierre: " + name);
 }
-const ED_FNS = ["scFormatTime", "scNodeLabel", "scNodeFallback", "scEdgeLabel", "scEdgeSecondary", "scTargetLabel", "scIsTargetMissing", "describeScenarioStep",
-  "scSendFailText", "scRuntimeStateForStep", "escapeHtml", "scRenderTraceLog", "scWhereLabel", "scUseTarget", "scBeginMulti", "scConfirmMulti"];
+const ED_FNS = ["scNum", "scFormatTime", "scNodeLabel", "scNodeFallback", "scEdgeLabel", "scEdgeSecondary", "scTargetLabel", "scIsTargetMissing", "describeScenarioStep",
+  "scSendFailText", "scRuntimeStateForStep", "scRenderTraceLog", "scWhereLabel", "scUseTarget", "scBeginMulti", "scConfirmMulti"];
 function fakeNode(tag) {
   return { tag, children: [], textContent: "", className: "", classList: { add() {} }, appendChild(c) { this.children.push(c); return c; }, set innerHTML(v) { this.children = []; } };
 }
@@ -402,6 +402,7 @@ function editor() {
   const $ = (id) => (els[id] = els[id] || fakeNode(id));
   const ctx = vm.createContext({ TextEncoder, TextDecoder, atob, btoa, URL, console, $, GRID: 20, innerWidth: 1280, innerHeight: 800,
     document: { createElement: fakeNode, createTextNode: (t) => ({ textContent: t, children: [] }) } });
+  require("./i18n-vm.cjs").loadI18n(ctx);   /* FLUYO-I18N-002 S2a: Historias pasa por FluyoI18n.t, como en la página (en español, el texto de siempre) */
   const R = (code) => vm.runInContext(code, ctx);
   for (const f of KERNEL.slice(0, 9)) vm.runInContext(read("js/" + f), ctx, { filename: f });
   R(`var selN=new Set(), selE=new Set(), clip=null, scPlayback=null, scStatus="idle", scActive=1, scPlacement=null, scContext=null, scSelectedStep=null, __commits=0;
@@ -533,9 +534,9 @@ test("I1 · versiones: engineVersion 2 y version 5 (NO v3); sw.js sube a v97; Vi
   assert.equal(run("FluyoScenarios.ENGINE_VERSION"), 2);
   assert.equal(run("SCENARIO_ENGINE_VERSION"), 2);
   assert.equal(run("projectToSerializable({}, {}).version"), 5);
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v110";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v111";/);
   const { undoI18n } = require("./fluyo-i18n-001-undo.cjs");   /* FLUYO-I18N-001 añade al precache js/i18n-en.js y js/i18n.js */
-  assert.equal(undoI18n("sw.js", read("sw.js")).replace('"fluyo-static-v110"', '"fluyo-static-v' + (97 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante");
+  assert.equal(undoI18n("sw.js", read("sw.js")).replace('"fluyo-static-v111"', '"fluyo-static-v' + (97 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante");
   const { undo4: undo4only, PIECES: PIECES4 } = require("./fluyo-scenarios-semantics-4-undo.cjs"), { undoMsg56: undo5 } = require("./fluyo-step-message-001-undo.cjs"), undo4 = (f, src) => undo4only(f, undo5(f, src));   /* SCENARIOS-SEMANTICS-001 FASE 4 va encima: se deshace antes */
   for (const f of ["js/viewer.js", "js/present-story.js", "js/story-clock.js", "js/flow-semantics.js", "js/link-codec.js", "js/share-url.js", "index.html", "s/index.html", "css/styles.css"])
     assert.equal(undo4(f, read(f)), atBase(f), f + " sin cambios");

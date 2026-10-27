@@ -39,7 +39,7 @@ test("alcance: kernel (model, config, motor, playback, story-playback, integrida
 
 test("story-clock.js: fuera del kernel, cargado por el editor y el Viewer tras story-playback.js, precacheado; CACHE v77", () => {
   const sw = read("sw.js"), html = read("index.html"), viewer = read("s/index.html");
-  assert.match(sw, /const CACHE = "fluyo-static-v110";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v111";/);
   assert.ok(sw.includes('"./js/story-clock.js"'), "precacheado");
   assert.ok(html.indexOf('src="js/story-playback.js"') < html.indexOf('src="js/story-clock.js"') && html.indexOf('src="js/story-clock.js"') < html.indexOf('src="js/editor-scenarios.js"'), "editor: tras story-playback y antes de editor-scenarios");
   assert.ok(viewer.indexOf('src="../js/story-playback.js"') < viewer.indexOf('src="../js/story-clock.js"') && viewer.indexOf('src="../js/story-clock.js"') < viewer.indexOf('src="../js/viewer.js"'), "Viewer: tras story-playback y antes de viewer.js");
@@ -222,7 +222,7 @@ test("editor-scenarios.js / interaction.js: el reloj solo decide el tiempo; Espa
 
 /* ───────── D4: el momento sobre el lienzo; D5: una palabra ───────── */
 test("index.html: #scNow dentro de #wrap; el transporte en la superficie; «Detener»; Present con dos grupos y una salida", () => {
-  const html = read("index.html");
+  const html = require("./fluyo-i18n-002-s2a-undo.cjs").undoS2a("index.html", read("index.html"));   /* FLUYO-I18N-002 S2a: sin sus marcas */
   assert.ok(element(html, "wrap").includes('id="scNow"'), "D4: el momento activo vive sobre el lienzo");
   assert.ok(!element(html, "panelScenarios").includes('id="scNow"'), "y no en la hoja ni en la columna");
   const tr = element(html, "panelScenarios");

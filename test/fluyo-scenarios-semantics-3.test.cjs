@@ -25,6 +25,7 @@ const undo4 = (f, src) => undo4only(f, undo5(f, src));
 const KERNEL = ["config.js", "safe-svg.js", "model.js", "scenario-engine.js", "scenario-playback.js", "story-playback.js", "story-clock.js", "flow-semantics.js", "document-integrity.js", "story-authoring.js"];
 function context(src = read, files = KERNEL, extra = {}) {
   const ctx = vm.createContext(Object.assign({ TextEncoder, TextDecoder, atob, btoa, URL, CompressionStream, DecompressionStream, crypto, console }, extra));
+  require("./i18n-vm.cjs").loadI18n(ctx);   /* FLUYO-I18N-002 S2a: Historias pasa por FluyoI18n.t, como en la página (en español, el texto de siempre) */
   for (const f of files) vm.runInContext(src("js/" + f), ctx, { filename: f });
   return ctx;
 }
@@ -314,6 +315,7 @@ function editor({ labs = true } = {}) {
   const $ = (id) => (els[id] = els[id] || fakeEl(id));
   const ctx = vm.createContext({ TextEncoder, TextDecoder, atob, btoa, URL, console, $, GRID: 20, innerWidth: 1280, innerHeight: 800, LABS_SEMANTICS: labs,
     document: { createElement: (tag) => ({ tag, value: "", textContent: "", disabled: false, dataset: {}, style: {} }) } });
+  require("./i18n-vm.cjs").loadI18n(ctx);   /* FLUYO-I18N-002 S2a: Historias pasa por FluyoI18n.t, como en la página (en español, el texto de siempre) */
   const R = (code) => vm.runInContext(code, ctx);
   for (const f of KERNEL.slice(0, 9)) vm.runInContext(read("js/" + f), ctx, { filename: f });
   R(`var selN=new Set(), selE=new Set(), clip=null, __confirms=[], __autosaves=0, __runs=0, scPlayback=null, scStatus="idle", scActive=1;
@@ -480,13 +482,15 @@ test("C10 · el DOM solo se escribe cuando cambia algo", () => {
 
 /* ═══════════════ D. Estático y alcance ═══════════════ */
 test("D1 · markup estático bajo el transporte, oculto por defecto; textos aprobados en el bloque del editor", () => {
-  const html = read("index.html");
+  /* FLUYO-I18N-002 S2a va encima (marcas data-i18n* y textos por FluyoI18n.t): el marcado y el bloque se comparan sin ella */
+  const { undoS2a } = require("./fluyo-i18n-002-s2a-undo.cjs");
+  const html = undoS2a("index.html", read("index.html"));
   const a = html.indexOf('id="scErrors"'), f = html.indexOf('<section id="scFlow"'), p = html.indexOf('id="scPaletteToggle"');
   assert.ok(a > 0 && f > a && p > f, "#scFlow entre #scErrors y la paleta, dentro de la cabecera de Historias");
   const sec = html.slice(f, html.indexOf("</section>", f));
   assert.match(sec, /class="scFlow" aria-label="Ruta observada" hidden>/);
   for (const s of ['<span class="srOnly">Origen</span><select id="scFlowFrom">', '<span class="srOnly">Destino</span><select id="scFlowTo">', 'id="scFlowState" class="scFlowState" role="status"']) assert.ok(sec.includes(s), s);
-  const block = flowBlock();
+  const block = (() => { const src = undoS2a("js/editor-scenarios.js", read("js/editor-scenarios.js")); return src.slice(src.indexOf("/* ===================== Ruta observada (SCENARIOS-SEMANTICS-001 FASE 3"), src.indexOf("/* ===================== fin de la ruta observada")); })();
   for (const s of ['"Ruta disponible"', '"Ruta no disponible"', '"Sin ruta de flujo"', '"incluye estados por defecto"', '"Al inicio · "', '"Automática"', '"Elige origen y destino"'])
     assert.ok(block.includes(s), s);
   assert.ok(!/UNKNOWN|desconocid/.test(block), "UNKNOWN no se ofrece ni se nombra");
@@ -498,7 +502,7 @@ test("D2 · carga: el editor carga flow-semantics.js (tras story-clock.js) y lo 
   assert.ok(i("story-clock.js") < i("flow-semantics.js") && i("flow-semantics.js") < i("editor-scenarios.js") && i("flow-semantics.js") > 0);
   assert.ok(!undo4("s/index.html", read("s/index.html")).includes("flow-semantics"), "Viewer sin cambios en FASE 3 (lo carga FASE 5: undo5, dentro de undo4)");
   const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v110";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v111";/);
   assert.ok(sw.includes('"./js/story-clock.js",\n  "./js/flow-semantics.js",\n  "./js/document-integrity.js",'));
 });
 
@@ -530,7 +534,7 @@ test("D5 · undo3 (para los alcances de slices anteriores) deshace EXACTAMENTE F
   const { undoReverseUi } = require("./fluyo-step-reverse-003-undo.cjs");   /* y 003 encima de 002 */
   for (const f of Object.keys(REGIONS)) {
     let back = undo3(f, undoReverse(f, undoReverseUi(f, undo4(f, read(f)))));
-    if (f === "sw.js") back = back.replace('"fluyo-static-v110"', '"fluyo-static-v' + (96 - 1) + '"');
+    if (f === "sw.js") back = back.replace('"fluyo-static-v111"', '"fluyo-static-v' + (96 - 1) + '"');
     assert.equal(back, atBase(f), f);
   }
 });

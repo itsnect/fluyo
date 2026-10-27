@@ -33,7 +33,7 @@ test("alcance: kernel, story-clock, render, geometría, exportación, Viewer y S
 
 test("release: CACHE v78; nada de lo que carga index.html queda fuera del precache", () => {
   const sw = read("sw.js"), html = read("index.html");
-  assert.match(sw, /const CACHE = "fluyo-static-v110";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v111";/);
   const local = [...html.matchAll(/(?:src|href)="((?!https?:|#|data:)[^"]+\.(?:js|css|woff2))"/g)].map((m) => m[1]);
   for (const u of local) assert.ok(sw.includes('"./' + u.replace(/^\.\//, "") + '"'), "en el precache: " + u);
 });
@@ -139,7 +139,8 @@ test("interaction.js: colocando con el dedo, apoyar desplaza y solo un toque (�
 
 /* ───────── diálogo ───────── */
 test("diálogo: lo esencial primero; «Cómo se ve» plegado con la vista previa dentro; Intro crea; sin glifos ni subtítulo", () => {
-  const html = read("index.html"), es = read("js/editor-scenarios.js"), css = read("css/styles.css");
+  const { undoS2a } = require("./fluyo-i18n-002-s2a-undo.cjs");   /* FLUYO-I18N-002 S2a va encima: marcado y textos sin sus marcas ni plantillas */
+  const html = undoS2a("index.html", read("index.html")), es = undoS2a("js/editor-scenarios.js", read("js/editor-scenarios.js")), css = read("css/styles.css");
   const dlg = between(html, '<dialog id="scEventDialog"', "</dialog>");
   const pos = ["scEventName", "scWhere", "scPhrase", "scVisualPicker", "scFlowLook", "scAppearance", "scBehavior"].map((id) => dlg.indexOf('id="' + id + '"'));
   assert.ok(pos.every((p, i) => p > 0 && (i === 0 || p > pos[i - 1])), "orden: Nombre · Dónde · Frase · Símbolo · Cómo se ve");

@@ -35,7 +35,7 @@ test("alcance: kernel, render, geometría, exportación, enlace y URL corta idé
     try { head = execFileSync("git", ["-C", gitRoot, "show", "HEAD:" + f], { encoding: "utf8" }).replace(/\r\n/g, "\n"); } catch { return; }   // sin git (copia de mutaciones)
     assert.equal(read(f), head, f + " sin cambios");
   }
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v110";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v111";/);
   assert.doesNotMatch(read("js/story-clock.js"), /document\.|window\.|requestAnimationFrame|setTimeout|setInterval|localStorage|Date\.now|Math\.random|performance\./, "story-clock.js sigue puro");
   const mcp = path.join(root, "..", "fluyo-mcp", "scripts", "sync-kernel.ts");
   if (fs.existsSync(mcp)) assert.ok(!fs.readFileSync(mcp, "utf8").includes("story-clock"), "story-clock.js sigue fuera del kernel del MCP");
@@ -51,7 +51,7 @@ test("R1: fitViewPresent reserva el borde REAL del encabezado reproduciendo (sin
   assert.ok(fit.includes("bar.offsetHeight+28"), "el mando sigue reservando su alto real (018.18)");
   const hb = between(ps, "function presentHeaderBottom(){", "\n}\n");
   assert.ok(hb.includes('FluyoStory.describe("finished", sc, {logEvents:run.trace.events, cursorVirtual:0}'), "las filas de «terminada» salen del mismo modelo, sobre el Trace de la Historia");
-  assert.ok(hb.includes('probe("psCaption", end ? end.caption : "En pausa")'), "fila sonda del mensaje si ahora no hay mensaje");
+  assert.ok(hb.includes('probe("psCaption", end ? end.caption : FluyoI18n.t("story.paused","En pausa"))'), "fila sonda del mensaje si ahora no hay mensaje (FLUYO-I18N-002 S2a: en el idioma activo)");
   assert.ok(hb.includes('if(end && end.summary && !$("psSummary").textContent) probe("psSummary", end.summary);'), "y la del cierre, solo si algún envío falla");
   assert.ok(hb.includes("scFlowPresentLine()") && hb.includes('probe("psFlow is"+route.status, route.text)'), "la línea de la ruta, con su texto y su clase, desde el inicio (lista)");
   assert.ok(hb.includes('setAttribute("aria-hidden","true")'), "las sondas no se anuncian");

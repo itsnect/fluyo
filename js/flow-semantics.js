@@ -409,12 +409,19 @@ var FluyoFlow = (function(){
   /* La línea de estado de la ruta (textos aprobados: D-Ruta, decisión 219, y « · incluye estados por defecto», D4) para el
      Viewer. El editor y Present dicen lo mismo con SC_FLOW_WORDS (mismo texto, test). Solo con PAIR; ENDPOINT_MISSING y sin par
      → null (D5: fuera del editor, nada de ruta). */
-  const ROUTE_WORDS = Object.freeze({AVAILABLE: "Ruta disponible", UNAVAILABLE: "Ruta no disponible", NO_PATH: "Sin ruta de flujo", byDefault: "incluye estados por defecto"});
+  /* FLUYO-I18N-002 S2a: en el idioma de la interfaz, con las MISMAS claves que SC_FLOW_WORDS del editor (route.*, diccionario común:
+     lo lee el Viewer). Se leen al pedirlas (getters): un cambio de idioma en vivo las cambia. */
+  const ROUTE_WORDS = Object.freeze({
+    get AVAILABLE(){ return FluyoI18n.t("route.available", "Ruta disponible"); },
+    get UNAVAILABLE(){ return FluyoI18n.t("route.unavailable", "Ruta no disponible"); },
+    get NO_PATH(){ return FluyoI18n.t("route.noPath", "Sin ruta de flujo"); },
+    get byDefault(){ return FluyoI18n.t("route.byDefault", "incluye estados por defecto"); }
+  });
   function routeLine(page, scenario, events, t, timeOf){
     const r = observedFlowAt(page, scenario, events, t, timeOf);
     if(r.pair.state !== PAIR) return null;
     const byDefault = r.status === AVAILABLE && r.explicitPath === false;
-    return {status: r.status, text: ROUTE_WORDS[r.status] + (byDefault ? " · " + ROUTE_WORDS.byDefault : "")};
+    return {status: r.status, text: byDefault ? FluyoI18n.t("route.withDefault", "{word} · {why}", {word: ROUTE_WORDS[r.status], why: ROUTE_WORDS.byDefault}) : ROUTE_WORDS[r.status]};
   }
 
   return {AVAILABLE, UNAVAILABLE, NO_PATH, UNKNOWN, EXPLICIT, DEFAULT, PAIR, ENDPOINT_MISSING, NO_PAIR, ROUTE, PATH_BUDGET,

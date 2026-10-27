@@ -1,9 +1,12 @@
 # FLUYO-I18N-002 · S3 — Narrativa del motor y valores sembrados: auditoría (READ-ONLY)
 
-Estado: **S3a IMPLEMENTADA · READY FOR COMMIT** (2026-10-27, §23), en el worktree `fluyo-s3a` sobre `7305355`, con `CACHE` v114.
-- Sin commit, push ni deploy.
-- S4 y S2b están cerradas en producción. Secuencia: S4 → S2b → S3a (§22.1).
+Estado: **S3a CLOSED / VERIFIED / IN PRODUCTION** (2026-10-27, §24).
+- `e39b7e3`, integrada en `main` por avance rápido y publicada (`7305355..e39b7e3`). fluyo.space sirve `fluyo-static-v114`.
+- Kernel y `fluyo-mcp` (`464f4e0`) intactos.
 - D-S3-12 = (a): solo claves para los grupos Seguridad y DevOps, sin tocar el cajón.
+- Fuera de S3a, sin empezar: Propiedades (decisión 287), el cajón que no pinta Seguridad ni DevOps (bug aparte) y fr/ja/zh (S5).
+
+Historia del documento:
 Auditoría revisada y **D-S3-1…11 aprobadas por el PO** (decisiones 281–288, §21). Se empieza por **S3a, sin kernel**. Las reglas
 K1 quedan reservadas para la resincronización de S2b. **Sin código, tests, `CACHE`, MCP, commit, push ni deploy.**
 Tarea madre: `.ai/tasks/FLUYO-I18N-002.md`. Este archivo va aparte a propósito: S2a se está implementando a la vez en el mismo árbol,
@@ -627,8 +630,57 @@ S4 y S2b están cerradas y en producción, y el PO autorizó S3a. Se trabajó en
 - **Sin cambios**: kernel, MCP, `config.js`, `.ai/DECISIONS.md` (S3a no crea decisiones nuevas: aplica 282, 284, 285, 287 y 288 con
   D-S3-12 = a) y la tarea madre.
 
+## 24. Publicación — S3a CLOSED / VERIFIED / IN PRODUCTION (2026-10-27)
+
+- **Commit**: `e39b7e3200dfcd96898da2751ec29dd987dc25fc` (árbol `920b4634…`), en la rama `i18n-002-s3a`.
+  - Entró en `main` con `git merge --ff-only`: sin commit de merge.
+  - Antes se borró la copia sin seguimiento de esta tarea que había en el checkout de `main`. Los documentos `.ai` sin commit de otras
+    sesiones (14) quedaron intactos: mismo hash antes y después.
+  - Push sin force: `7305355..e39b7e3`.
+- **Producción**:
+  - `https://fluyo.space/sw.js` sirve `fluyo-static-v114`.
+  - Los **83 archivos servidos** (JS, CSS, HTML, manifest, assets y páginas) son **idénticos byte a byte** a `e39b7e3`.
+- **Kernel y MCP**: `model.js`, `config.js`, `story-playback.js` y `safe-svg.js`, sin cambios frente a `7305355`. `fluyo-mcp` en `464f4e0`, limpio.
+- **Smoke de S3a en producción** (Chrome real, telemetría bloqueada):
+  - `test/fluyo-i18n-002-s3a-browser.cjs` con «ahora» = https://fluyo.space y base = un árbol local de `7305355`: **35 ✔ · 0 ✘**.
+    Cubre:
+    - español idéntico a la versión anterior: documento byte a byte, cajones píxel a píxel y paleta;
+    - creación de página, nodo, texto, icono y GIF, y el ejemplo «Funnel de ventas»;
+    - inglés con `?lang=en`: valores sembrados, cajones y paleta;
+    - cambio de idioma en vivo sin retraducir;
+    - sesión española restaurada en inglés;
+    - fr cae al inglés;
+    - `qps` a 1440 y 390 px.
+  - Un smoke adicional da **13 ✔ · 0 ✘**:
+    - «Origen» en la fila de Historias, y «Source» en inglés;
+    - el contenido del autor no se traduce;
+    - Share → Viewer en es y en en, con el documento intacto;
+    - sin red, con el SW v114: el editor carga de la caché y siembra en inglés;
+    - consola sin errores.
+- **Regresiones sobre producción**:
+  - Con CDP contra https://fluyo.space:
+
+    | Test | Resultado |
+    |---|---|
+    | S2b | 26 ✔ · 0 ✘ |
+    | S4 | 102 ✔ · 0 ✘ |
+
+  - Con Playwright, sirviendo un árbol con los 83 archivos descargados de fluyo.space:
+
+    | Test | Resultado |
+    |---|---|
+    | S0 | 385 ✔ · 0 ✘ |
+    | S1 | 181 ✔ · 0 ✘ |
+    | S2a | 179 ✔ · 0 ✘ (incluye la caché v114 sin red) |
+    | I18N-001 | 78 ✔ · 0 ✘ |
+    | SHELL-001 | 139 ✔ · 0 ✘ |
+    | PRODUCT-NARRATION-001 | 100/100 |
+
 ## Handoff
 
+- **S3a CLOSED / VERIFIED / IN PRODUCTION (2026-10-27)** (§24): `e39b7e3` en `main` y en fluyo.space, `CACHE` v114.
+  - **Siguiente `CACHE` libre: v115.**
+  - No hay trabajo de S3 en curso. Lo pendiente (Propiedades, el cajón de Seguridad y DevOps, fr/ja/zh) espera la decisión del PO.
 - **S3a implementada (2026-10-27): READY FOR COMMIT** (§23). Worktree `C:\Proyectos\fluyo-new\fluyo-s3a`, rama `i18n-002-s3a`, base
   `7305355`, `CACHE` v114.
   - Tests: propios 8/8, mutaciones 15/15, Chrome 35/0, suite sin fallos nuevos.

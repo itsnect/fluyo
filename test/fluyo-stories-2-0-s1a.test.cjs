@@ -241,7 +241,8 @@ test("C2b · alcance frente a c2c63ec: solo estos archivos servidos; undoS1a (pa
     /* la constante CACHE no es una pieza (sube en cada tarea): se compara sin ella */
     const noCache = (t) => t.replace(/const CACHE = "fluyo-static-v\d+";/, "");
     const base = execFileSync("git", ["-C", gitRoot, "show", "c2c63ec:" + f], { encoding: "utf8" }).replace(/\r\n/g, "\n");
-    assert.equal(noCache(undoS1a(f, read(f))), noCache(base), f + ": undoS1a exacto");
+    /* sin finales CRLF: un checkout con core.autocrlf trae sw.js (que no tiene piezas) en CRLF y la base va en LF */
+    assert.equal(noCache(undoS1a(f, read(f)).replace(/\r\n/g, "\n")), noCache(base), f + ": undoS1a exacto");
   }
 });
 

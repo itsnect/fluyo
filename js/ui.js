@@ -78,7 +78,7 @@ function refreshPanel(){
   $("flowNote").style.display="none";
   $("orderNote").hidden = !isNode || !!settings.build;
   const esCode=isNode && obj.shape==="code";
-  $("lblEditLbl").textContent = esCode ? "Código" : "Texto";
+  $("lblEditLbl").textContent = esCode ? FluyoI18n.t("prop.content.code","Código") : FluyoI18n.t("prop.content.text","Texto");
   $("lblEdit").classList.toggle("codeEdit", esCode);
   $("lblEdit").rows = esCode ? 5 : 2;
   if(isNode){
@@ -88,16 +88,16 @@ function refreshPanel(){
     /* En `code` los campos genéricos cambian de significado, así que la etiqueta del control lo dice: `fill` pinta el panel,
        `textColor` el código y `textBg` el papel del bloque (estos dos viven en el grupo Código, placePanelRows). En un texto suelto,
        un icono o un GIF, `color` no es un borde: es su color. */
-    $("colorLbl").textContent = hasBox||esCode ? "Borde" : "Color";
+    $("colorLbl").textContent = hasBox||esCode ? FluyoI18n.t("prop.border","Borde") : FluyoI18n.t("prop.color","Color");
     $("rowTint").style.display=obj.shape==="icon"?"flex":"none";
     $("tintChk").checked=!!obj.tint;
     $("rowFill").style.display=(hasBox||esCode)?"flex":"none";
     $("rowBorder").style.display=(hasBox||esCode)?"flex":"none";
     $("rowLblPos").style.display=(hasBox||obj.shape==="text")?"flex":"none";
     $("rowTextBg").style.display=(obj.shape==="text"||esCode)?"flex":"none";
-    $("fillLbl").textContent=esCode?"Panel":"Relleno";
-    $("textColorLbl").textContent=esCode?"Texto del código":"Color";
-    $("textBgLbl").textContent=esCode?"Fondo del bloque":"Fondo";
+    $("fillLbl").textContent=esCode?FluyoI18n.t("prop.panel","Panel"):FluyoI18n.t("prop.fill","Relleno");
+    $("textColorLbl").textContent=esCode?FluyoI18n.t("prop.codeText","Texto del código"):FluyoI18n.t("prop.color","Color");
+    $("textBgLbl").textContent=esCode?FluyoI18n.t("prop.blockBg","Fondo del bloque"):FluyoI18n.t("prop.background","Fondo");
     ["rowLang","rowKwBg","rowKwColor"].forEach(r=>$(r).style.display=esCode?"flex":"none");
     if(esCode){
       const propia=(Array.isArray(obj.keywords)&&obj.keywords.length) || kwPendingId===obj.id;
@@ -159,8 +159,13 @@ function refreshPanel(){
 /* Cabecera de la selección (FLUYO-018.23; el metadato es de FLUYO-018.13): qué es y cómo se llama. El título es la primera línea
    del texto del elemento (en una conexión sin texto, sus extremos por nombre); el metadato, el tipo y el id para el documento y
    para el MCP. Orden (solo un nodo) y Eliminar son las acciones de la selección. typeof/null-check: los arneses de vm montan un
-   DOM mínimo. */
-const SHAPE_NAMES={rect:"Caja", cylinder:"BD", diamond:"Rombo", circle:"Círculo", hex:"Hexágono", text:"Texto", code:"Código", icon:"Icono", image:"Imagen", anim:"GIF"};
+   DOM mínimo. FLUYO-I18N-002 S3b: los nombres de forma se leen en el idioma de la interfaz en cada uso (getters: SHAPE_NAMES[x] como
+   siempre); «GIF» es un formato y no se traduce. El metadato y los títulos de reserva son plantillas completas (D-S3b-9). */
+const SHAPE_NAMES={get rect(){ return FluyoI18n.t("shape.rect","Caja"); }, get cylinder(){ return FluyoI18n.t("shape.cylinder","BD"); },
+  get diamond(){ return FluyoI18n.t("shape.diamond","Rombo"); }, get circle(){ return FluyoI18n.t("shape.circle","Círculo"); },
+  get hex(){ return FluyoI18n.t("shape.hex","Hexágono"); }, get text(){ return FluyoI18n.t("shape.text","Texto"); },
+  get code(){ return FluyoI18n.t("shape.code","Código"); }, get icon(){ return FluyoI18n.t("shape.icon","Icono"); },
+  get image(){ return FluyoI18n.t("shape.image","Imagen"); }, anim:"GIF"};
 const firstLine=t=>String(t||"").split("\n").map(x=>x.trim()).find(Boolean)||"";
 /* FLUYO-I18N-002 S1: cuántos nodos y flechas hay en la selección, con el plural de cada idioma. Las piezas son frases nominales
    completas («2 nodos») y la plantilla de fuera decide el orden y el enlace («{nodes} y {edges} seleccionados»). */
@@ -179,7 +184,8 @@ function syncSelMeta(total, s){
     if(selE.size) parts.push(selEdgesText(selE.size));
     txt=parts.join(" · ");
   }
-  else if(s && s.obj) txt = s.type==="node" ? (SHAPE_NAMES[s.obj.shape]||s.obj.shape)+" · id "+s.obj.id : "Conexión · "+s.obj.from+" → "+s.obj.to;
+  else if(s && s.obj) txt = s.type==="node" ? FluyoI18n.t("sel.meta.node","{shape} · id {id}",{shape:SHAPE_NAMES[s.obj.shape]||s.obj.shape, id:s.obj.id})
+    : FluyoI18n.t("sel.meta.edge","Conexión · {from} → {to}",{from:s.obj.from, to:s.obj.to});
   m.textContent=txt; m.hidden=!txt;
 }
 function selTitleText(total, s){
@@ -187,9 +193,9 @@ function selTitleText(total, s){
   if(!s || !s.obj) return FluyoI18n.t("editor.properties","Propiedades");
   const o=s.obj, own=firstLine(o.label);
   if(own) return own;
-  if(s.type==="node") return (SHAPE_NAMES[o.shape]||"Elemento")+" sin texto";
-  const name=id=>{ const n=nodeById(id); return (n && firstLine(n.label)) || ("id "+id); };
-  return name(o.from)+" → "+name(o.to);
+  if(s.type==="node") return FluyoI18n.t("sel.untitled","{shape} sin texto",{shape:SHAPE_NAMES[o.shape]||FluyoI18n.t("shape.unknown","Elemento")});
+  const name=id=>{ const n=nodeById(id); return (n && firstLine(n.label)) || FluyoI18n.t("sel.idRef","id {id}",{id}); };
+  return FluyoI18n.t("sel.edgeTitle","{from} → {to}",{from:name(o.from), to:name(o.to)});
 }
 function syncSelHead(total, s){
   syncSelMeta(total, s);
@@ -211,7 +217,8 @@ function syncSelHead(total, s){
 function enableSwatchKeyboard(containerId, label){
   const cont=$(containerId);
   cont.setAttribute("role","group");
-  cont.setAttribute("aria-label",label);
+  cont._label=label;   /* FLUYO-I18N-002 S3b: el rótulo es una función (el idioma de la interfaz); paintChromeText lo repinta */
+  cont.setAttribute("aria-label",label());
   const items=()=>[...cont.children];
   items().forEach((el,i)=>{ el.tabIndex = i===0 ? 0 : -1; });
   cont.addEventListener("keydown", ev=>{
@@ -238,6 +245,14 @@ function enableSwatchKeyboard(containerId, label){
 /* Muestras especiales («automático», «sin relleno»): sus dos tonos son tokens del sistema (--sw-a/--sw-b, css/system.css). */
 const DASH_PAT="repeating-linear-gradient(45deg,var(--sw-a) 0 4px,var(--sw-b) 4px 8px)";
 const CHECKER_PAT="repeating-conic-gradient(var(--sw-a) 0% 25%, var(--sw-b) 0% 50%) 0 0/10px 10px";
+/* FLUYO-I18N-002 S3b: el nombre de una muestra especial («Automático…», «Sin relleno», «Piedra (por defecto)», «Auto») es una función
+   que lo da en el idioma de la interfaz; se guarda en la muestra (_name) y paintChromeText la vuelve a llamar al cambiar de idioma
+   (D-S3b-13). Los nombres de la paleta los repinta data-palette (S3a). */
+function swatchTitle(d, title){
+  if(typeof title!=="function") return title;
+  d._name=title;
+  return title();
+}
 /* Rejilla de swatches para propiedades de nodo (paleta amplia + opciones especiales) */
 function buildNodeSwatches(containerId, field, extras){
   const cont=$(containerId); cont.innerHTML="";
@@ -245,6 +260,7 @@ function buildNodeSwatches(containerId, field, extras){
     const d=document.createElement("div");
     d.className="swatch"+(special?" special":"");
     d.style.background=bg;
+    title=swatchTitle(d, title);
     d.title=title; d.dataset.v=(value===null||value===undefined)?"__null__":value;
     d.setAttribute("role","button");
     d.setAttribute("aria-label",title);
@@ -260,7 +276,7 @@ function buildNodeSwatches(containerId, field, extras){
   (extras||[]).forEach(e=>mk(e.pattern, e.label, e.value, true));
   const seen=new Set();
   /* FLUYO-018.15: el color con el que nace un nodo encabeza su rejilla, para poder volver a él */
-  if(field==="color"){ seen.add(DEFAULT_NODE_COLOR); mk(DEFAULT_NODE_COLOR,"Piedra (por defecto)",DEFAULT_NODE_COLOR); }
+  if(field==="color"){ seen.add(DEFAULT_NODE_COLOR); mk(DEFAULT_NODE_COLOR,()=>FluyoI18n.t("prop.sw.default","Piedra (por defecto)"),DEFAULT_NODE_COLOR); }
   PALETTE.forEach(p=>{ if(!seen.has(p.c)){ seen.add(p.c); mk(p.c,paletteName(p),p.c).dataset.palette=p.c; } });   // FLUYO-I18N-002 S3a: nombre en el idioma de la interfaz; data-palette lo repinta
   SWATCH_COLORS.forEach(c=>{ if(!seen.has(c)){ seen.add(c); mk(c,c,c); } });
 }
@@ -276,7 +292,8 @@ function markSw(id,val){
   if(!hit && HEX6(key)){
     const d=document.createElement("div");
     d.className="swatch swCurrent sel"; d.style.background=key; d.dataset.v=key;
-    d.title="Personalizado "+key; d.setAttribute("role","button"); d.setAttribute("aria-label","Personalizado "+key);
+    const custom=FluyoI18n.t("prop.sw.customHex","Personalizado {hex}",{hex:key});
+    d.title=custom; d.setAttribute("role","button"); d.setAttribute("aria-label",custom);
     d.onclick=()=>toggleSwatches(grid, true);
     grid.prepend(d); hit=d;
   }
@@ -292,25 +309,25 @@ function setWell(id, val, fallback){
 }
 buildNodeSwatches("swatches","color");
 buildNodeSwatches("fillSw","fill",[
-  {label:"Automático (semitransparente)", value:null, pattern:DASH_PAT},
-  {label:"Sin relleno", value:"none", pattern:CHECKER_PAT},
+  {label:()=>FluyoI18n.t("prop.sw.autoFill","Automático (semitransparente)"), value:null, pattern:DASH_PAT},
+  {label:()=>FluyoI18n.t("prop.sw.noFill","Sin relleno"), value:"none", pattern:CHECKER_PAT},
 ]);
 buildNodeSwatches("textBgSw","textBg",[
-  {label:"Sin fondo", value:null, pattern:CHECKER_PAT},
+  {label:()=>FluyoI18n.t("prop.sw.noBg","Sin fondo"), value:null, pattern:CHECKER_PAT},
 ]);
 /* «Automático» no es lo mismo en todas las formas: en un texto suelto o en un
    GIF el color del nodo manda; dentro de una caja manda el color del tema. */
 buildNodeSwatches("textColorSw","textColor",[
-  {label:"Automático (según la forma y el tema)", value:null, pattern:DASH_PAT},
+  {label:()=>FluyoI18n.t("prop.sw.autoText","Automático (según la forma y el tema)"), value:null, pattern:DASH_PAT},
 ]);
-enableSwatchKeyboard("swatches","Color de línea o borde");
-enableSwatchKeyboard("fillSw","Relleno de la forma");
-enableSwatchKeyboard("textBgSw","Fondo del texto");
-enableSwatchKeyboard("textColorSw","Color del texto");
-buildNodeSwatches("kwBgSw","kwBg",[{label:"Del tema", value:null, pattern:DASH_PAT}]);
-buildNodeSwatches("kwColorSw","kwColor",[{label:"Del tema", value:null, pattern:DASH_PAT}]);
-enableSwatchKeyboard("kwBgSw","Fondo del resaltado");
-enableSwatchKeyboard("kwColorSw","Texto del resaltado");
+enableSwatchKeyboard("swatches",()=>FluyoI18n.t("prop.swg.border","Color de línea o borde"));
+enableSwatchKeyboard("fillSw",()=>FluyoI18n.t("prop.swg.fill","Relleno de la forma"));
+enableSwatchKeyboard("textBgSw",()=>FluyoI18n.t("prop.swg.textBg","Fondo del texto"));
+enableSwatchKeyboard("textColorSw",()=>FluyoI18n.t("prop.swg.text","Color del texto"));
+buildNodeSwatches("kwBgSw","kwBg",[{label:()=>FluyoI18n.t("prop.sw.theme","Del tema"), value:null, pattern:DASH_PAT}]);
+buildNodeSwatches("kwColorSw","kwColor",[{label:()=>FluyoI18n.t("prop.sw.theme","Del tema"), value:null, pattern:DASH_PAT}]);
+enableSwatchKeyboard("kwBgSw",()=>FluyoI18n.t("prop.swg.kwBg","Fondo del resaltado"));
+enableSwatchKeyboard("kwColorSw",()=>FluyoI18n.t("prop.swg.kwText","Texto del resaltado"));
 function parseKeywords(txt){
   return String(txt||"").split(/[\s,]+/).map(w=>w.trim()).filter(Boolean);
 }
@@ -355,7 +372,7 @@ $("btnForward").onclick=bringForward;
 $("btnBackward").onclick=sendBackward;
 $("orderMenu").addEventListener("click", ev=>{ if(ev.target.closest && ev.target.closest("button")) closeOrderMenu(true); });
 $("btnEyedrop").onclick=async()=>{
-  if(!window.EyeDropper){ alert("Tu navegador no soporta el cuentagotas (usa Chrome o Edge)."); return; }
+  if(!window.EyeDropper){ alert(FluyoI18n.t("prop.eyedropperUnsupported","Tu navegador no soporta el cuentagotas (usa Chrome o Edge).")); return; }
   try{
     const res=await new EyeDropper().open();
     applyNodeVal("color", res.sRGBHex);
@@ -369,6 +386,7 @@ function buildEdgeSwatches(containerId, field){
     const d=document.createElement("div");
     d.className="swatch";
     d.style.background = color || DASH_PAT;
+    title=swatchTitle(d, title);
     d.title=title; d.dataset.c=color||""; d.dataset.v=color||"__null__";
     d.setAttribute("role","button");
     d.setAttribute("aria-label",title);
@@ -376,13 +394,13 @@ function buildEdgeSwatches(containerId, field){
     cont.appendChild(d);
     return d;
   };
-  mk(null,"Auto");
+  mk(null,()=>FluyoI18n.t("prop.sw.auto","Auto"));
   PALETTE.forEach(p=>{ mk(p.c,paletteName(p)).dataset.palette=p.c; });
 }
 buildEdgeSwatches("lineSw","lineColor");
 buildEdgeSwatches("dotSw","dotColor");
-enableSwatchKeyboard("lineSw","Color de línea de la flecha");
-enableSwatchKeyboard("dotSw","Color de los puntos animados");
+enableSwatchKeyboard("lineSw",()=>FluyoI18n.t("prop.swg.line","Color de línea de la flecha"));
+enableSwatchKeyboard("dotSw",()=>FluyoI18n.t("prop.swg.dots","Color de los puntos animados"));
 /* ===================== Grupos del panel (FLUYO-018.14b, B6; FLUYO-018.23) =====================
    Las filas viven en grupos <details> (index.html); el estado abierto/plegado ES el <details>, sin variable espejo.
    FLUYO-018.23 (D1, D5): los grupos que se abren por defecto dependen del TIPO de la selección: nodo y code = Apariencia y
@@ -429,8 +447,16 @@ function toggleSwatches(grid, on){
   const b=grid._more, row=grid.closest(".colorRow");
   grid.classList.toggle("expanded", on);
   if(row) row.classList.toggle("swOpen", on);
-  if(b){ b.setAttribute("aria-expanded", String(on)); b.setAttribute("aria-label", on ? "Menos colores" : "Más colores, personalizado"+(grid.id==="swatches" ? " y cuentagotas" : "")); b.dataset.tip = on ? "Menos colores" : "Más colores"; }
+  if(b){ b.setAttribute("aria-expanded", String(on)); paintSwatchMore(grid); }
   syncSwatchMore();
+}
+/* FLUYO-I18N-002 S3b: el nombre de «⋯» son frases completas (en el borde, también el cuentagotas: sin «y» pegada, que rompe otros
+   idiomas); paintChromeText lo repinta al cambiar de idioma. */
+function paintSwatchMore(grid){
+  const b=grid._more, on=grid.classList.contains("expanded");
+  b.setAttribute("aria-label", on ? FluyoI18n.t("prop.sw.less","Menos colores")
+    : grid.id==="swatches" ? FluyoI18n.t("prop.sw.moreAriaEyedrop","Más colores, personalizado y cuentagotas") : FluyoI18n.t("prop.sw.moreAria","Más colores, personalizado"));
+  b.dataset.tip = on ? FluyoI18n.t("prop.sw.less","Menos colores") : FluyoI18n.t("prop.sw.more","Más colores");
 }
 function addSwatchMore(gridId){
   const grid=$(gridId), host=grid.parentNode;
@@ -465,7 +491,7 @@ $("dotCustom").onchange=()=>{ const e=singleEdge(); if(e){ pushUndo(); editEdge(
 /* ===================== Tipografía (por texto + global) ===================== */
 (function buildFontSelects(){
   const per=$("fontSel"), glob=$("fontGlobalSel");
-  const og=document.createElement("option"); og.value=""; og.textContent="(Global)"; per.appendChild(og);
+  const og=document.createElement("option"); og.value=""; og.textContent=FluyoI18n.t("prop.fontGlobal","(Global)"); per.appendChild(og);
   /* FLUYO-018.14a: las voces del sistema arriba, las históricas debajo. Solo cambia
      dónde se ven: los valores (la pila CSS que guarda el documento) son los de FONTS. */
   const SYSTEM_FONTS=["Playfair Display","IBM Plex Mono"];
@@ -565,7 +591,8 @@ function syncFlowSeg(e){
 /* FLUYO-018.23 (D6): las PUNTAS como un segmentado de cuatro (Ninguna · Inicio · Fin · Ambas) sobre los MISMOS dos campos
    (startArrow, endArrow: booleanos; endArrow ausente = true, como siempre). Solo escribe el campo que cambia, igual que pulsar
    su interruptor; si cambian los dos (Inicio ↔ Fin), una sola entrada de Undo. #arrSChk/#arrEChk siguen reflejando el valor. */
-const ARROW_NAMES={none:"Ninguna", start:"Inicio", end:"Fin", both:"Ambas"};
+const ARROW_NAMES={get none(){ return FluyoI18n.t("prop.arrows.none","Ninguna"); }, get start(){ return FluyoI18n.t("prop.arrows.start","Inicio"); },
+  get end(){ return FluyoI18n.t("prop.arrows.end","Fin"); }, get both(){ return FluyoI18n.t("prop.arrows.both","Ambas"); }};   /* FLUYO-I18N-002 S3b: en el idioma de la interfaz, en cada uso */
 function arrowsOf(e){ const st=!!e.startArrow, en=e.endArrow!==false; return st&&en ? "both" : st ? "start" : en ? "end" : "none"; }
 function syncArrowSeg(e){ const v=arrowsOf(e); segSync("arrowSeg", v); $("arrowsValue").textContent=ARROW_NAMES[v]; syncKindNote(e); syncArrowSizeSeg(e); }
 /* FLUYO-018.27: el TAMAÑO de las puntas (edge.arrowSize: 1 · 1,5 · 2; ausente = 1) es un segmentado sobre #arrowSizeSel, el control
@@ -1610,6 +1637,12 @@ function paintChromeText(){
   if(gt) gt.textContent=FluyoI18n.t("drawer.gifs","GIFs animados");
   if(gp) gp.textContent=FluyoI18n.t("drawer.gifsTip","Se animan en el lienzo y en el GIF exportado. Cambia su color desde el panel.");
   for(const g of document.querySelectorAll("optgroup[data-classic]")) g.label=FluyoI18n.t("canvas.fontsClassic","Clásicas");
+  /* FLUYO-I18N-002 S3b: lo que Propiedades crea una vez desde JS (muestras especiales, rótulo de cada rejilla, «⋯», «(Global)»).
+     El resto del panel lo pinta refreshPanel, que también corre al cambiar de idioma. */
+  for(const sw of document.querySelectorAll("#selBody .swatch")) if(sw._name){ const n=sw._name(); sw.title=n; sw.setAttribute("aria-label",n); }
+  for(const id of swatchGrids()){ const g=$(id); if(!g) continue; if(g._label) g.setAttribute("aria-label",g._label()); if(g._more) paintSwatchMore(g); }
+  const fg=$("fontSel") && $("fontSel").querySelector('option[value=""]');
+  if(fg) fg.textContent=FluyoI18n.t("prop.fontGlobal","(Global)");
 }
 paintChromeText();
 FluyoI18n.onChange(()=>{

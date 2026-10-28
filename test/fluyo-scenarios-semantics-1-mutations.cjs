@@ -11,7 +11,7 @@ const UNIT = ["--test", "test/fluyo-scenarios-semantics-1.test.cjs"];
 const MOD = "js/model.js", GEO = "js/geometry.js", REN = "js/render.js", UI = "js/ui.js", HTML = "index.html";
 /* [nombre, archivo, desde, hasta] */
 const MUTATIONS = [
-  ["U0 CACHE no sube (sigue v93)", "sw.js", 'const CACHE = "fluyo-static-v114";', 'const CACHE = "fluyo-static-v93";'],
+  ["U0 CACHE no sube (sigue v93)", "sw.js", 'const CACHE = "fluyo-static-v115";', 'const CACHE = "fluyo-static-v93";'],
   ["U1 la carga rellena kind ausente con GENERIC (migra documentos)", MOD,
     '  if(e.kind===null || (e.kind!==undefined && typeof e.kind!=="string")) delete e.kind;',
     '  if(e.kind===undefined) e.kind="GENERIC";\n  if(e.kind===null || (e.kind!==undefined && typeof e.kind!=="string")) delete e.kind;'],
@@ -50,7 +50,7 @@ const MUTATIONS = [
   ["U22 el aviso W5 no se resincroniza al cambiar las puntas", UI, "syncKindNote(e); syncArrowSizeSeg(e); }", "syncArrowSizeSeg(e); }"],
   ["U23 el aviso W5 invierte origen y destino", UI, 'function syncKindNote(e){ $("kindNote")',
     'function syncKindNote(e){ if(flowArrowReversed(e)){ const t=e.from; e.from=e.to; e.to=t; } $("kindNote")'],
-  ["U24 el aviso W5 se ve sin motivo (oculto por defecto)", HTML, '          <p class="hint rowNote" id="kindNote" role="status" hidden>', '          <p class="hint rowNote" id="kindNote" role="status">'],
+  ["U24 el aviso W5 se ve sin motivo (oculto por defecto)", HTML, '          <p class="hint rowNote" id="kindNote" role="status" hidden data-i18n="prop.kindNote">', '          <p class="hint rowNote" id="kindNote" role="status" data-i18n="prop.kindNote">'],
 ];
 
 function copyTree(dest) {

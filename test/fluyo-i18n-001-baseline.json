@@ -16,11 +16,11 @@
     "js/state.js": 1,
     "js/story-authoring.js": 123,
     "js/story-playback.js": 1,
-    "js/ui.js": 70,
+    "js/ui.js": 23,
     "js/viewer.js": 4
   },
   "html": {
-    "index.html": 219,
+    "index.html": 65,
     "s/index.html": 0,
     "404.html": 3
   }

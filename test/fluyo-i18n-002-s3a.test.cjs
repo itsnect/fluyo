@@ -322,18 +322,22 @@ test("S · estático: quien siembra pasa el valor traducido; render.js sin reser
 /* ───────── A · alcance ───────── */
 test("A · alcance frente a 7305355: solo estos archivos; undoS3a da la base EXACTA y va encima de undoS2b; kernel intacto; CACHE v114", { skip: !hasGit && "sin git" }, () => {
   const { undoS3a, PIECES, NEW_FILES } = require("./fluyo-i18n-002-s3a-undo.cjs");
+  const { undoS3b, PIECES: PIECES_S3B } = require("./fluyo-i18n-002-s3b-undo.cjs");   /* FLUYO-I18N-002 S3b va encima (undoS3a la deshace antes) */
   assert.deepEqual(NEW_FILES, []);
   const FILES = ["js/editor-scenarios.js", "js/export.js", "js/i18n-en-editor.js", "js/interaction.js", "js/render.js", "js/state.js", "js/ui.js"];
   assert.deepEqual(Object.keys(PIECES).sort(), FILES);
   const SERVED = ["js", "s", "css", "assets", "index.html", "404.html", "sw.js", "manifest.webmanifest", "docs", "ejemplos", "privacidad", "privacy", "soporte", "support", "terminos", "terms"];
-  const changed = execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean);
-  const untracked = execFileSync("git", ["-C", gitRoot, "ls-files", "--others", "--exclude-standard", "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean);
+  /* lo que solo cambia S3b (sin S3b, igual que la base) no cuenta para el alcance de S3a */
+  const s3bOnly = (f) => !!PIECES_S3B[f] && !FILES.includes(f) && undoS3b(f, read(f)) === atBase(f);
+  const changed = execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean).filter((f) => !s3bOnly(f));
+  const untracked = execFileSync("git", ["-C", gitRoot, "ls-files", "--others", "--exclude-standard", "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean).filter((f) => !s3bOnly(f));
   assert.deepEqual([...new Set([...changed, ...untracked])].sort(), [...FILES, "sw.js"].sort());
   for (const f of FILES) assert.equal(undoS3a(f, read(f)), atBase(f), f + ": undoS3a exacto");
-  assert.equal(read("sw.js").replace('"fluyo-static-v114"', '"fluyo-static-v' + (114 - 1) + '"'), atBase("sw.js"), "sw.js: solo CACHE (sin archivos nuevos)");
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v114";/);
+  assert.equal(read("sw.js").replace('"fluyo-static-v115"', '"fluyo-static-v' + (114 - 1) + '"'), atBase("sw.js"), "sw.js: solo CACHE (sin archivos nuevos)");
+  assert.ok(read("test/fluyo-i18n-002-s3a-undo.cjs").includes("src = undoS3b(file, src);"), "undoS3a deshace antes S3b, que va encima");
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v115";/);
   assert.ok(read("test/fluyo-i18n-002-s2b-undo.cjs").includes("src = undoS3a(file, src);"), "undoS2b deshace antes esta tarea");
   for (const f of ["js/config.js", "js/model.js", "js/story-playback.js", "js/safe-svg.js", "js/i18n-en.js", "js/i18n-fr.js", "js/i18n-ja.js", "js/i18n-zh.js",
     "js/i18n-fr-editor.js", "js/i18n-ja-editor.js", "js/i18n-zh-editor.js", "index.html", "s/index.html", "404.html", "css/system.css", "css/styles.css"])
-    assert.equal(read(f), atBase(f), f + " sin cambios");
+    assert.equal(undoS3b(f, read(f)), atBase(f), f + " sin cambios (S3b, encima, se deshace antes)");
 });

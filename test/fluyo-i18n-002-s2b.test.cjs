@@ -358,18 +358,19 @@ test("M · el kernel del MCP (si está al lado) es este kernel: sha256 de cada a
 test("A · alcance frente a 86d910a: solo estos archivos; undoS2b da la base EXACTA y va encima de undoS4; kernel intacto salvo model.js y story-playback.js; CACHE v113", { skip: !hasGit && "sin git" }, () => {
   const { undoS2b, PIECES, NEW_FILES } = require("./fluyo-i18n-002-s2b-undo.cjs");
   const { undoS3a, PIECES: PIECES_S3A } = require("./fluyo-i18n-002-s3a-undo.cjs");   /* FLUYO-I18N-002 S3a va encima (undoS2b la deshace antes) */
+  const { PIECES: PIECES_S3B } = require("./fluyo-i18n-002-s3b-undo.cjs");   /* y S3b encima de S3a (undoS3a la deshace antes) */
   assert.deepEqual(NEW_FILES, []);
   const FILES = ["js/editor-scenarios.js", "js/i18n-en-editor.js", "js/i18n-en.js", "js/model.js", "js/present-story.js", "js/story-clock.js", "js/story-playback.js", "js/viewer.js"];
   assert.deepEqual(Object.keys(PIECES).sort(), FILES);
   const SERVED = ["js", "s", "css", "assets", "index.html", "404.html", "sw.js", "manifest.webmanifest", "docs", "ejemplos", "privacidad", "privacy", "soporte", "support", "terminos", "terms"];
-  /* lo que solo cambia S3a (sin S3a, igual que la base) no cuenta para el alcance de S2b */
-  const s3aOnly = (f) => !!PIECES_S3A[f] && !FILES.includes(f) && undoS3a(f, read(f)) === atBase(f);
+  /* lo que solo cambia S3a o S3b (sin ellas, igual que la base) no cuenta para el alcance de S2b */
+  const s3aOnly = (f) => (!!PIECES_S3A[f] || !!PIECES_S3B[f]) && !FILES.includes(f) && undoS3a(f, read(f)) === atBase(f);
   const changed = execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean).filter((f) => !s3aOnly(f));
   const untracked = execFileSync("git", ["-C", gitRoot, "ls-files", "--others", "--exclude-standard", "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean).filter((f) => !s3aOnly(f));
   assert.deepEqual([...new Set([...changed, ...untracked])].sort(), [...FILES, "sw.js"].sort());
   for (const f of FILES) assert.equal(undoS2b(f, read(f)), atBase(f), f + ": undoS2b exacto");
-  assert.equal(read("sw.js").replace('"fluyo-static-v114"', '"fluyo-static-v' + (113 - 1) + '"'), atBase("sw.js"), "sw.js: solo CACHE (sin archivos nuevos)");
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v114";/);
+  assert.equal(read("sw.js").replace('"fluyo-static-v115"', '"fluyo-static-v' + (113 - 1) + '"'), atBase("sw.js"), "sw.js: solo CACHE (sin archivos nuevos)");
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v115";/);
   assert.ok(read("test/fluyo-i18n-002-s4-undo.cjs").includes("src = undoS2b(file, src);"), "undoS4 deshace antes esta tarea");
   /* el resto del kernel, sin tocar (safe-svg, config, motor, integridad y autoría: no cambia su sha) */
   for (const f of ["js/config.js", "js/safe-svg.js", "js/scenario-engine.js", "js/scenario-playback.js", "js/document-integrity.js", "js/story-authoring.js", "js/geometry.js", "js/render.js", "js/export.js",

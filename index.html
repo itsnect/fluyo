@@ -459,91 +459,91 @@ try{ if(localStorage.getItem("fluyo.ui.props")==="folded") document.documentElem
       <div id="selBody" style="display:none">
         <!-- Contenido: lo primero que se edita, fuera de los grupos y siempre a la vista. En un code es el código (mono, más alto). -->
         <div class="row rowLabel" id="rowLabel" data-stack>
-          <label for="lblEdit" id="lblEditLbl">Texto</label>
+          <label for="lblEdit" id="lblEditLbl" data-i18n-js="prop.content.text">Texto</label>
           <textarea id="lblEdit" rows="2"></textarea>
         </div>
       <details class="pgroup" id="grpShape" data-group="Apariencia" open>
-        <summary><span class="pgTitle">Apariencia</span></summary>
+        <summary><span class="pgTitle" data-i18n="prop.group.appearance">Apariencia</span></summary>
         <div class="pgBody">
           <div class="row" id="rowShape" data-stack>
-            <span class="lblText" id="shapeLbl">Forma <span class="segValue" id="shapeValue"></span></span>
+            <span class="lblText" id="shapeLbl" data-i18n="prop.shape">Forma <span class="segValue" id="shapeValue"></span></span>
             <div class="seg pseg shapeSeg" id="shapeSeg" role="radiogroup" aria-labelledby="shapeLbl">
-              <button type="button" class="segBtn" role="radio" data-v="rect" aria-label="Caja" data-tip="Caja"><svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="3"/></svg></button>
-              <button type="button" class="segBtn" role="radio" data-v="cylinder" aria-label="BD" data-tip="BD"><svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/></svg></button>
-              <button type="button" class="segBtn" role="radio" data-v="diamond" aria-label="Rombo" data-tip="Rombo"><svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><path d="M12 3l9 9-9 9-9-9z"/></svg></button>
-              <button type="button" class="segBtn" role="radio" data-v="circle" aria-label="Círculo" data-tip="Círculo"><svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><circle cx="12" cy="12" r="9"/></svg></button>
-              <button type="button" class="segBtn" role="radio" data-v="hex" aria-label="Hexágono" data-tip="Hexágono"><svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><path d="M7 4h10l4 8-4 8H7l-4-8z"/></svg></button>
-              <button type="button" class="segBtn" role="radio" data-v="text" aria-label="Texto" data-tip="Texto"><svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><path d="M5 6h14M12 6v13"/></svg></button>
-              <button type="button" class="segBtn" role="radio" data-v="code" aria-label="Código" data-tip="Código"><svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><path d="M9 8l-4 4 4 4M15 8l4 4-4 4"/></svg></button>
+              <button type="button" class="segBtn" role="radio" data-v="rect" aria-label="Caja" data-tip="Caja" data-i18n-aria-label="shape.rect" data-i18n-tip="shape.rect"><svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="3"/></svg></button>
+              <button type="button" class="segBtn" role="radio" data-v="cylinder" aria-label="BD" data-tip="BD" data-i18n-aria-label="shape.cylinder" data-i18n-tip="shape.cylinder"><svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/></svg></button>
+              <button type="button" class="segBtn" role="radio" data-v="diamond" aria-label="Rombo" data-tip="Rombo" data-i18n-aria-label="shape.diamond" data-i18n-tip="shape.diamond"><svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><path d="M12 3l9 9-9 9-9-9z"/></svg></button>
+              <button type="button" class="segBtn" role="radio" data-v="circle" aria-label="Círculo" data-tip="Círculo" data-i18n-aria-label="shape.circle" data-i18n-tip="shape.circle"><svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><circle cx="12" cy="12" r="9"/></svg></button>
+              <button type="button" class="segBtn" role="radio" data-v="hex" aria-label="Hexágono" data-tip="Hexágono" data-i18n-aria-label="shape.hex" data-i18n-tip="shape.hex"><svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><path d="M7 4h10l4 8-4 8H7l-4-8z"/></svg></button>
+              <button type="button" class="segBtn" role="radio" data-v="text" aria-label="Texto" data-tip="Texto" data-i18n-aria-label="shape.text" data-i18n-tip="shape.text"><svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><path d="M5 6h14M12 6v13"/></svg></button>
+              <button type="button" class="segBtn" role="radio" data-v="code" aria-label="Código" data-tip="Código" data-i18n-aria-label="shape.code" data-i18n-tip="shape.code"><svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><path d="M9 8l-4 4 4 4M15 8l4 4-4 4"/></svg></button>
             </div>
             <select id="shapeSel" class="srOnly" tabindex="-1" aria-hidden="true">
-              <option value="rect">Caja</option><option value="cylinder">BD</option>
-              <option value="diamond">Rombo</option><option value="circle">Círculo</option>
-              <option value="hex">Hexágono</option><option value="text">Texto</option>
-              <option value="code">Código</option>
+              <option value="rect" data-i18n="shape.rect">Caja</option><option value="cylinder" data-i18n="shape.cylinder">BD</option>
+              <option value="diamond" data-i18n="shape.diamond">Rombo</option><option value="circle" data-i18n="shape.circle">Círculo</option>
+              <option value="hex" data-i18n="shape.hex">Hexágono</option><option value="text" data-i18n="shape.text">Texto</option>
+              <option value="code" data-i18n="shape.code">Código</option>
             </select>
           </div>
           <div class="row colorRow" id="rowColor" data-stack>
-            <span class="lblText" id="colorLbl">Borde</span>
+            <span class="lblText" id="colorLbl" data-i18n-js="prop.border">Borde</span>
             <div class="swRow"><div class="swatches" id="swatches"></div></div>
             <div class="colorTools">
-              <label class="pickLbl" title="Color personalizado del borde"><input type="color" id="strokeCustom"><span>Personalizado</span></label>
-              <button id="btnEyedrop" class="mini btnGhost" type="button" title="Cuentagotas: tomar un color del lienzo"><svg class="ic" aria-hidden="true"><use href="#i-eyedrop"/></svg>Cuentagotas</button>
+              <label class="pickLbl" title="Color personalizado del borde" data-i18n-title="prop.customBorder"><input type="color" id="strokeCustom"><span data-i18n="prop.custom">Personalizado</span></label>
+              <button id="btnEyedrop" class="mini btnGhost" type="button" title="Cuentagotas: tomar un color del lienzo" data-i18n="prop.eyedropper" data-i18n-title="prop.eyedropperHint"><svg class="ic" aria-hidden="true"><use href="#i-eyedrop"/></svg>Cuentagotas</button>
             </div>
           </div>
-          <div class="row" id="rowTint"><label for="tintChk">Teñir el icono con el color</label><input type="checkbox" id="tintChk"></div>
+          <div class="row" id="rowTint"><label for="tintChk" data-i18n="prop.tint">Teñir el icono con el color</label><input type="checkbox" id="tintChk"></div>
           <div class="row colorRow" id="rowFill" data-stack>
-            <span class="lblText" id="fillLbl">Relleno</span>
+            <span class="lblText" id="fillLbl" data-i18n-js="prop.fill">Relleno</span>
             <div class="swRow"><div class="swatches" id="fillSw"></div></div>
             <div class="colorTools">
-              <label class="pickLbl" title="Color de relleno personalizado"><input type="color" id="fillCustom"><span>Personalizado</span></label>
+              <label class="pickLbl" title="Color de relleno personalizado" data-i18n-title="prop.customFill"><input type="color" id="fillCustom"><span data-i18n="prop.custom">Personalizado</span></label>
             </div>
           </div>
           <div class="row inlineSeg" id="rowBorder">
-            <span class="lblText" id="borderLbl">Línea del borde</span>
+            <span class="lblText" id="borderLbl" data-i18n="prop.borderLine">Línea del borde</span>
             <div class="seg pseg" id="borderSeg" role="radiogroup" aria-labelledby="borderLbl">
-              <button type="button" class="segBtn" role="radio" data-v="solid" aria-label="Sólido"><span class="lineSample solid" aria-hidden="true"></span></button>
-              <button type="button" class="segBtn" role="radio" data-v="dashed" aria-label="Discontinuo"><span class="lineSample dashed" aria-hidden="true"></span></button>
-              <button type="button" class="segBtn" role="radio" data-v="dotted" aria-label="Punteado"><span class="lineSample dotted" aria-hidden="true"></span></button>
+              <button type="button" class="segBtn" role="radio" data-v="solid" aria-label="Sólido" data-i18n-aria-label="prop.line.solid"><span class="lineSample solid" aria-hidden="true"></span></button>
+              <button type="button" class="segBtn" role="radio" data-v="dashed" aria-label="Discontinuo" data-i18n-aria-label="prop.line.dashed"><span class="lineSample dashed" aria-hidden="true"></span></button>
+              <button type="button" class="segBtn" role="radio" data-v="dotted" aria-label="Punteado" data-i18n-aria-label="prop.line.dotted"><span class="lineSample dotted" aria-hidden="true"></span></button>
             </div>
             <select id="borderSel" class="srOnly" tabindex="-1" aria-hidden="true">
-              <option value="solid">Sólido</option>
-              <option value="dashed">Discontinuo</option>
-              <option value="dotted">Punteado</option>
+              <option value="solid" data-i18n="prop.line.solid">Sólido</option>
+              <option value="dashed" data-i18n="prop.line.dashed">Discontinuo</option>
+              <option value="dotted" data-i18n="prop.line.dotted">Punteado</option>
             </select>
           </div>
         </div>
       </details>
       <details class="pgroup" id="grpText" data-group="Texto" open>
-        <summary><span class="pgTitle">Texto</span></summary>
+        <summary><span class="pgTitle" data-i18n="prop.group.text">Texto</span></summary>
         <div class="pgBody">
           <!-- Tipografía, tamaño y negrita en una sola fila (mismos campos: font, fs, bold). -->
           <div class="row typoRow" id="rowFont">
-            <label for="fontSel" class="srOnly">Tipografía</label><select id="fontSel" aria-label="Tipografía"></select>
-            <span id="rowFs" class="typoFs"><input type="number" id="fsIn" min="8" max="96" placeholder="auto" aria-label="Tamaño de texto" title="Tamaño de texto"></span>
-            <span id="rowBold" class="boldTog" title="Negrita"><input type="checkbox" id="boldChk" aria-label="Negrita"><span aria-hidden="true">N</span></span>
+            <label for="fontSel" class="srOnly" data-i18n="prop.font">Tipografía</label><select id="fontSel" aria-label="Tipografía" data-i18n-aria-label="prop.font"></select>
+            <span id="rowFs" class="typoFs"><input type="number" id="fsIn" min="8" max="96" placeholder="auto" aria-label="Tamaño de texto" title="Tamaño de texto" data-i18n-placeholder="prop.fontSizeAuto" data-i18n-aria-label="prop.fontSize" data-i18n-title="prop.fontSize"></span>
+            <span id="rowBold" class="boldTog" title="Negrita" data-i18n-title="prop.bold"><input type="checkbox" id="boldChk" aria-label="Negrita" data-i18n-aria-label="prop.bold"><span aria-hidden="true" data-i18n="prop.boldGlyph">N</span></span>
           </div>
           <div class="row colorRow" id="rowTextColor" data-stack>
-            <span class="lblText" id="textColorLbl">Color</span>
+            <span class="lblText" id="textColorLbl" data-i18n-js="prop.color">Color</span>
             <div class="swRow"><div class="swatches" id="textColorSw"></div></div>
             <div class="colorTools">
-              <label class="pickLbl" title="Color de texto personalizado"><input type="color" id="textColorCustom"><span>Personalizado</span></label>
+              <label class="pickLbl" title="Color de texto personalizado" data-i18n-title="prop.customText"><input type="color" id="textColorCustom"><span data-i18n="prop.custom">Personalizado</span></label>
             </div>
           </div>
           <div class="row colorRow" id="rowTextBg" data-stack>
-            <span class="lblText" id="textBgLbl">Fondo</span>
+            <span class="lblText" id="textBgLbl" data-i18n-js="prop.background">Fondo</span>
             <div class="swRow"><div class="swatches" id="textBgSw"></div></div>
             <div class="colorTools">
-              <label class="pickLbl" title="Fondo de texto personalizado"><input type="color" id="textBgCustom"><span>Personalizado</span></label>
+              <label class="pickLbl" title="Fondo de texto personalizado" data-i18n-title="prop.customTextBg"><input type="color" id="textBgCustom"><span data-i18n="prop.custom">Personalizado</span></label>
             </div>
           </div>
-          <div class="row" id="rowLblPos"><label for="lblPosSel">Posición</label>
+          <div class="row" id="rowLblPos"><label for="lblPosSel" data-i18n="prop.position">Posición</label>
             <select id="lblPosSel">
-              <option value="center">Centro</option>
-              <option value="top">Arriba</option>
-              <option value="bottom">Abajo</option>
-              <option value="left">Izquierda</option>
-              <option value="right">Derecha</option>
+              <option value="center" data-i18n="prop.pos.center">Centro</option>
+              <option value="top" data-i18n="prop.pos.top">Arriba</option>
+              <option value="bottom" data-i18n="prop.pos.bottom">Abajo</option>
+              <option value="left" data-i18n="prop.pos.left">Izquierda</option>
+              <option value="right" data-i18n="prop.pos.right">Derecha</option>
             </select>
           </div>
         </div>
@@ -551,78 +551,78 @@ try{ if(localStorage.getItem("fluyo.ui.props")==="folded") document.documentElem
       <!-- FLUYO-018.23 (D7): todo lo que es del BLOQUE de código vive aquí (resaltado, lista propia, color del código, fondo del bloque,
            palabra clave y su caja). Sin caja por defecto (018.14a, codeKwBg ""). El panel del nodo (fill) es Apariencia. -->
       <details class="pgroup" id="grpCode" data-group="Código">
-        <summary><span class="pgTitle">Código</span></summary>
+        <summary><span class="pgTitle" data-i18n="prop.group.code">Código</span></summary>
         <div class="pgBody">
           <div class="row" id="rowLang" data-stack>
-            <span class="lblText" id="langLbl">Resaltado</span>
+            <span class="lblText" id="langLbl" data-i18n="prop.highlight">Resaltado</span>
             <div class="seg pseg" id="langSeg" role="radiogroup" aria-labelledby="langLbl">
-              <button type="button" class="segBtn" role="radio" data-v="sql">SQL</button>
-              <button type="button" class="segBtn" role="radio" data-v="none">Ninguno</button>
-              <button type="button" class="segBtn" role="radio" data-v="custom">Lista propia</button>
+              <button type="button" translate="no" class="segBtn" role="radio" data-v="sql">SQL</button>
+              <button type="button" data-i18n="prop.highlight.none" class="segBtn" role="radio" data-v="none">Ninguno</button>
+              <button type="button" data-i18n="prop.highlight.custom" class="segBtn" role="radio" data-v="custom">Lista propia</button>
             </div>
             <select id="langSel" class="srOnly" tabindex="-1" aria-hidden="true">
-              <option value="sql">SQL / ksqlDB</option>
-              <option value="none">Ninguna</option>
-              <option value="custom">Lista propia…</option>
+              <option value="sql" translate="no">SQL / ksqlDB</option>
+              <option value="none" data-i18n="prop.highlight.noneOpt">Ninguna</option>
+              <option value="custom" data-i18n="prop.highlight.customOpt">Lista propia…</option>
             </select>
           </div>
           <div class="row" id="rowKeywords" data-stack>
-            <label for="kwEdit">Lista propia (separadas por espacios o comas)</label>
-            <textarea id="kwEdit" rows="2" placeholder="SELECT FROM WHERE"></textarea>
+            <label for="kwEdit" data-i18n="prop.kwList">Lista propia (separadas por espacios o comas)</label>
+            <textarea id="kwEdit" rows="2" placeholder="SELECT FROM WHERE" translate="no"></textarea>
           </div>
           <span id="codeTextHome" hidden></span>
           <div class="row colorRow" id="rowKwColor" data-stack>
-            <span class="lblText">Palabra clave</span>
+            <span class="lblText" data-i18n="prop.keyword">Palabra clave</span>
             <div class="swRow"><div class="swatches" id="kwColorSw"></div></div>
             <div class="colorTools">
-              <label class="pickLbl" title="Color de la palabra clave personalizado"><input type="color" id="kwColorCustom"><span>Personalizado</span></label>
+              <label class="pickLbl" title="Color de la palabra clave personalizado" data-i18n-title="prop.customKw"><input type="color" id="kwColorCustom"><span data-i18n="prop.custom">Personalizado</span></label>
             </div>
           </div>
           <div class="row colorRow" id="rowKwBg" data-stack>
-            <span class="lblText">Caja de la palabra clave</span>
+            <span class="lblText" data-i18n="prop.keywordBox">Caja de la palabra clave</span>
             <div class="swRow"><div class="swatches" id="kwBgSw"></div></div>
             <div class="colorTools">
-              <label class="pickLbl" title="Caja de la palabra clave personalizada"><input type="color" id="kwBgCustom"><span>Personalizado</span></label>
+              <label class="pickLbl" title="Caja de la palabra clave personalizada" data-i18n-title="prop.customKwBox"><input type="color" id="kwBgCustom"><span data-i18n="prop.custom">Personalizado</span></label>
             </div>
           </div>
         </div>
       </details>
       <details class="pgroup" id="grpLayers" data-group="Movimiento">
-        <summary><span class="pgTitle">Movimiento</span></summary>
+        <summary><span class="pgTitle" data-i18n="prop.group.motion">Movimiento</span></summary>
         <div class="pgBody">
-          <div class="row" id="rowPulse"><label for="pulseChk">Pulso (resaltar)</label><input type="checkbox" id="pulseChk"></div>
-          <div class="row" id="rowOrder"><label for="orderIn">Orden de aparición</label><input type="number" id="orderIn" min="0" max="99"></div>
-          <p class="hint rowNote" id="orderNote" hidden>Se usa con «Animar aparición», en Lienzo.</p>
+          <div class="row" id="rowPulse"><label for="pulseChk" data-i18n="prop.pulse">Pulso (resaltar)</label><input type="checkbox" id="pulseChk"></div>
+          <div class="row" id="rowOrder"><label for="orderIn" data-i18n="prop.order">Orden de aparición</label><input type="number" id="orderIn" min="0" max="99"></div>
+          <p class="hint rowNote" id="orderNote" hidden data-i18n="prop.orderNote">Se usa con «Animar aparición», en Lienzo.</p>
         </div>
       </details>
       <details class="pgroup" id="grpStroke" data-group="Trazo" open>
-        <summary><span class="pgTitle">Trazo</span></summary>
+        <summary><span class="pgTitle" data-i18n="prop.group.stroke">Trazo</span></summary>
         <div class="pgBody">
           <div class="row colorRow" id="rowLineC" data-stack>
-            <span class="lblText">Color</span>
+            <span class="lblText" data-i18n="prop.color">Color</span>
             <div class="swRow"><div class="swatches" id="lineSw"></div></div>
             <div class="colorTools">
-              <label class="pickLbl" title="Color de línea personalizado"><input type="color" id="lineCustom"><span>Personalizado</span></label>
+              <label class="pickLbl" title="Color de línea personalizado" data-i18n-title="prop.customLine"><input type="color" id="lineCustom"><span data-i18n="prop.custom">Personalizado</span></label>
             </div>
           </div>
-          <div class="row" id="rowDash"><label for="dashChk">Línea punteada</label><input type="checkbox" id="dashChk"></div>
+          <div class="row" id="rowDash"><label for="dashChk" data-i18n="prop.dashed">Línea punteada</label><input type="checkbox" id="dashChk"></div>
           <div class="row inlineSeg" id="rowRoute">
-            <span class="lblText" id="routeLbl">Ruta</span>
+            <span class="lblText" id="routeLbl" data-i18n="prop.route">Ruta</span>
             <div class="seg pseg" id="routeSeg" role="radiogroup" aria-labelledby="routeLbl">
-              <button type="button" class="segBtn" role="radio" data-v="straight">Recta</button>
-              <button type="button" class="segBtn" role="radio" data-v="ortho">Ortogonal</button>
+              <button type="button" data-i18n="prop.route.straight" class="segBtn" role="radio" data-v="straight">Recta</button>
+              <button type="button" data-i18n="prop.route.ortho" class="segBtn" role="radio" data-v="ortho">Ortogonal</button>
             </div>
-            <select id="routeSel" class="srOnly" tabindex="-1" aria-hidden="true"><option value="straight">Recta</option><option value="ortho">Ortogonal</option></select>
+            <select id="routeSel" class="srOnly" tabindex="-1" aria-hidden="true"><option value="straight" data-i18n="prop.route.straight">Recta</option><option value="ortho" data-i18n="prop.route.ortho">Ortogonal</option></select>
           </div>
           <!-- Pegado a Ruta: desde que una ruta hecha a mano se CONSERVA al mover los nodos, deshacerla es la salida habitual
                cuando la forma ya no sirve, y tiene que estar donde el usuario mira cuando la flecha no le sale. -->
-          <button id="btnWps" class="wfull" style="display:none" title="Descarta los tramos que has movido a mano y vuelve al ruteo automático (R)">Volver a la ruta automática</button>
+          <button id="btnWps" class="wfull" style="display:none" title="Descarta los tramos que has movido a mano y vuelve al ruteo automático (R)" data-i18n="prop.autoRoute" data-i18n-title="prop.autoRouteHint">Volver a la ruta automática</button>
           <div class="row endsRow" id="rowEnds">
-            <div id="rowFrom" class="endsCol"><label for="fromSel">Sale por</label>
-              <select id="fromSel"><option value="">Auto</option><option value="n">Arriba</option><option value="e">Derecha</option><option value="s">Abajo</option><option value="w">Izquierda</option></select>
+            <div id="rowFrom" class="endsCol"><label for="fromSel" data-i18n="prop.exitSide">Sale por</label>
+              <select id="fromSel"><option value="" data-i18n="prop.side.auto">Auto</option><option value="n" data-i18n="prop.side.n">Arriba</option><option value="e" data-i18n="prop.side.e">Derecha</option><option value="s" data-i18n="prop.side.s">Abajo</option><option value="w" data-i18n="prop.side.w">Izquierda</option></select>
             </div>
-            <div id="rowTo" class="endsCol"><label for="toSel">Entra por</label>
-              <select id="toSel"><option value="">Auto</option><option value="n">Arriba</option><option value="e">Derecha</option><option value="s">Abajo</option><option value="w">Izquierda</option></select>
+            <div id="rowTo" class="endsCol"><label for="toSel" data-i18n="prop.entrySide">Entra por</label>
+              <select id="toSel"><option value="" data-i18n="prop.side.auto">Auto</option><option value="n" data-i18n="prop.side.n">Arriba</option><option value="e" data-i18n="prop.side.e">Derecha</option><option value="s" data-i18n="prop.side.s">Abajo</option><option value="w" data-i18n="prop.side.w">Izquierda</option></select>
             </div>
           </div>
         </div>
@@ -632,84 +632,84 @@ try{ if(localStorage.getItem("fluyo.ui.props")==="folded") document.documentElem
            animados (flowDir: normal → «Hacia el destino», reverse → «Hacia el origen», alternate → «Ida y vuelta»; decisión 161).
            #arrSChk, #arrEChk y #flowSel siguen siendo los controles nativos; los segmentados los reflejan (decisión 36). -->
       <details class="pgroup" id="grpRoute" data-group="Dirección" open>
-        <summary><span class="pgTitle">Dirección</span></summary>
+        <summary><span class="pgTitle" data-i18n="prop.group.direction">Dirección</span></summary>
         <div class="pgBody">
-          <p class="pgSub" id="dirKicker" hidden>Dirección</p>
+          <p class="pgSub" id="dirKicker" hidden data-i18n="prop.group.direction">Dirección</p>
           <div class="row inlineSeg" id="rowArrows">
-            <span class="lblText" id="arrowsLbl">Puntas <span class="segValue" id="arrowsValue"></span></span>
+            <span class="lblText" id="arrowsLbl" data-i18n="prop.arrows">Puntas <span class="segValue" id="arrowsValue"></span></span>
             <div class="seg pseg" id="arrowSeg" role="radiogroup" aria-labelledby="arrowsLbl">
-              <button type="button" class="segBtn" role="radio" data-v="none" aria-label="Ninguna" data-tip="Ninguna"><svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><path d="M4 12h16"/></svg></button>
-              <button type="button" class="segBtn" role="radio" data-v="start" aria-label="Inicio" data-tip="Inicio"><svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><path d="M4 12h16M9 7l-5 5 5 5"/></svg></button>
-              <button type="button" class="segBtn" role="radio" data-v="end" aria-label="Fin" data-tip="Fin"><svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><path d="M4 12h16M15 7l5 5-5 5"/></svg></button>
-              <button type="button" class="segBtn" role="radio" data-v="both" aria-label="Ambas" data-tip="Ambas"><svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><path d="M4 12h16M9 7l-5 5 5 5M15 7l5 5-5 5"/></svg></button>
+              <button type="button" class="segBtn" role="radio" data-v="none" aria-label="Ninguna" data-tip="Ninguna" data-i18n-aria-label="prop.arrows.none" data-i18n-tip="prop.arrows.none"><svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><path d="M4 12h16"/></svg></button>
+              <button type="button" class="segBtn" role="radio" data-v="start" aria-label="Inicio" data-tip="Inicio" data-i18n-aria-label="prop.arrows.start" data-i18n-tip="prop.arrows.start"><svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><path d="M4 12h16M9 7l-5 5 5 5"/></svg></button>
+              <button type="button" class="segBtn" role="radio" data-v="end" aria-label="Fin" data-tip="Fin" data-i18n-aria-label="prop.arrows.end" data-i18n-tip="prop.arrows.end"><svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><path d="M4 12h16M15 7l5 5-5 5"/></svg></button>
+              <button type="button" class="segBtn" role="radio" data-v="both" aria-label="Ambas" data-tip="Ambas" data-i18n-aria-label="prop.arrows.both" data-i18n-tip="prop.arrows.both"><svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><path d="M4 12h16M9 7l-5 5 5 5M15 7l5 5-5 5"/></svg></button>
             </div>
           </div>
           <!-- FLUYO-018.27: TAMAÑO de las puntas (edge.arrowSize: 1 · 1,5 · 2; ausente = 1×, el de siempre). Segmentado sobre el control nativo
                #arrowSizeSel (decisión 182); solo se enseña cuando la conexión tiene alguna punta. Es dibujo: no cambia la ruta ni el ancla. -->
           <div class="row inlineSeg" id="rowArrowSize">
-            <span class="lblText" id="arrowSizeLbl">Tamaño de flecha</span>
+            <span class="lblText" id="arrowSizeLbl" data-i18n="prop.arrowSize">Tamaño de flecha</span>
             <div class="seg pseg" id="arrowSizeSeg" role="radiogroup" aria-labelledby="arrowSizeLbl">
-              <button type="button" class="segBtn" role="radio" data-v="1">1×</button>
-              <button type="button" class="segBtn" role="radio" data-v="1.5">1,5×</button>
-              <button type="button" class="segBtn" role="radio" data-v="2">2×</button>
+              <button type="button" translate="no" class="segBtn" role="radio" data-v="1">1×</button>
+              <button type="button" data-i18n="prop.arrowSizeOneHalf" class="segBtn" role="radio" data-v="1.5">1,5×</button>
+              <button type="button" translate="no" class="segBtn" role="radio" data-v="2">2×</button>
             </div>
-            <select id="arrowSizeSel" class="srOnly" tabindex="-1" aria-hidden="true"><option value="1">1×</option><option value="1.5">1,5×</option><option value="2">2×</option></select>
+            <select id="arrowSizeSel" class="srOnly" tabindex="-1" aria-hidden="true"><option value="1" translate="no">1×</option><option value="1.5" data-i18n="prop.arrowSizeOneHalf">1,5×</option><option value="2" translate="no">2×</option></select>
           </div>
-          <div class="row srOnly" id="rowArrS"><label for="arrSChk">Punta al inicio</label><input type="checkbox" id="arrSChk" tabindex="-1" aria-hidden="true"></div>
-          <div class="row srOnly" id="rowArrE"><label for="arrEChk">Punta al final</label><input type="checkbox" id="arrEChk" tabindex="-1" aria-hidden="true"></div>
-          <div class="row" id="rowAnim"><label for="animChk">Puntos en movimiento</label><input type="checkbox" id="animChk"></div>
-          <p class="hint rowNote" id="flowNote">El sentido de los puntos se elige al ponerlos en movimiento.</p>
-          <div class="row" id="rowFlow" data-stack><span class="lblText" id="flowLbl">Sentido de los puntos</span>
+          <div class="row srOnly" id="rowArrS"><label for="arrSChk" data-i18n="prop.arrS">Punta al inicio</label><input type="checkbox" id="arrSChk" tabindex="-1" aria-hidden="true"></div>
+          <div class="row srOnly" id="rowArrE"><label for="arrEChk" data-i18n="prop.arrE">Punta al final</label><input type="checkbox" id="arrEChk" tabindex="-1" aria-hidden="true"></div>
+          <div class="row" id="rowAnim"><label for="animChk" data-i18n="prop.animated">Puntos en movimiento</label><input type="checkbox" id="animChk"></div>
+          <p class="hint rowNote" id="flowNote" data-i18n="prop.flowNote">El sentido de los puntos se elige al ponerlos en movimiento.</p>
+          <div class="row" id="rowFlow" data-stack><span class="lblText" id="flowLbl" data-i18n="prop.flowDir">Sentido de los puntos</span>
             <div class="seg pseg flowSeg" id="flowSeg" role="radiogroup" aria-labelledby="flowLbl">
-              <button type="button" class="segBtn" role="radio" data-v="normal" data-flow="normal" aria-checked="true">Hacia el destino</button>
-              <button type="button" class="segBtn" role="radio" data-v="reverse" data-flow="reverse" aria-checked="false">Hacia el origen</button>
-              <button type="button" class="segBtn" role="radio" data-v="alternate" data-flow="alternate" aria-checked="false">Ida y vuelta</button>
+              <button type="button" data-i18n="prop.flow.normal" class="segBtn" role="radio" data-v="normal" data-flow="normal" aria-checked="true">Hacia el destino</button>
+              <button type="button" data-i18n="prop.flow.reverse" class="segBtn" role="radio" data-v="reverse" data-flow="reverse" aria-checked="false">Hacia el origen</button>
+              <button type="button" data-i18n="prop.flow.alternate" class="segBtn" role="radio" data-v="alternate" data-flow="alternate" aria-checked="false">Ida y vuelta</button>
             </div>
-            <select id="flowSel" class="srOnly" tabindex="-1" aria-hidden="true"><option value="normal">Hacia el destino</option><option value="reverse">Hacia el origen</option><option value="alternate">Ida y vuelta</option></select>
+            <select id="flowSel" class="srOnly" tabindex="-1" aria-hidden="true"><option value="normal" data-i18n="prop.flow.normal">Hacia el destino</option><option value="reverse" data-i18n="prop.flow.reverse">Hacia el origen</option><option value="alternate" data-i18n="prop.flow.alternate">Ida y vuelta</option></select>
           </div>
         </div>
       </details>
       <details class="pgroup" id="grpFlow" data-group="Puntos">
-        <summary><span class="pgTitle">Puntos</span></summary>
+        <summary><span class="pgTitle" data-i18n="prop.group.dots">Puntos</span></summary>
         <div class="pgBody">
           <!-- SCENARIOS-SEMANTICS-001 (D1/D2): semántica de la conexión (edge.kind; ausente = Conexión). En toda conexión
                (ui.js; la bandera labs se retiró en FASE 6). FASE 6 (decisión 254, PO): la primera fila de «Puntos», un grupo plegado por defecto
                para las conexiones; así no suma altura permanente y Puntas y Sentido conservan su sitio (018.23). Antes, primera de «Trazo». -->
           <div class="row" id="rowKind" data-stack style="display:none">
-            <span class="lblText" id="kindLbl">Semántica</span>
+            <span class="lblText" id="kindLbl" data-i18n="prop.kind">Semántica</span>
             <div class="seg pseg" id="kindSeg" role="radiogroup" aria-labelledby="kindLbl">
-              <button type="button" class="segBtn" role="radio" data-v="GENERIC">Conexión</button>
-              <button type="button" class="segBtn" role="radio" data-v="FLOWS_TO">Flujo</button>
-              <button type="button" class="segBtn" role="radio" data-v="REQUIRES">Requisito</button>
+              <button type="button" data-i18n="prop.kind.generic" class="segBtn" role="radio" data-v="GENERIC">Conexión</button>
+              <button type="button" data-i18n="prop.kind.flows" class="segBtn" role="radio" data-v="FLOWS_TO">Flujo</button>
+              <button type="button" data-i18n="prop.kind.requires" class="segBtn" role="radio" data-v="REQUIRES">Requisito</button>
             </div>
           </div>
           <!-- SCENARIOS-SEMANTICS-001 (W5): aviso no bloqueante, cuando la punta visible de un Flujo
                apunta al revés (ui.js, syncKindNote). Nunca cambia origen ni destino. -->
-          <p class="hint rowNote" id="kindNote" role="status" hidden>La punta visible apunta en sentido contrario al flujo. El flujo se calcula de origen a destino; la punta solo cambia la apariencia.</p>
+          <p class="hint rowNote" id="kindNote" role="status" hidden data-i18n="prop.kindNote">La punta visible apunta en sentido contrario al flujo. El flujo se calcula de origen a destino; la punta solo cambia la apariencia.</p>
           <div class="row colorRow" id="rowDotC" data-stack>
-            <span class="lblText">Color de puntos</span>
+            <span class="lblText" data-i18n="prop.dotColor">Color de puntos</span>
             <div class="swRow"><div class="swatches" id="dotSw"></div></div>
             <div class="colorTools">
-              <label class="pickLbl" title="Color de puntos personalizado"><input type="color" id="dotCustom"><span>Personalizado</span></label>
+              <label class="pickLbl" title="Color de puntos personalizado" data-i18n-title="prop.customDot"><input type="color" id="dotCustom"><span data-i18n="prop.custom">Personalizado</span></label>
             </div>
           </div>
           <div class="row" id="rowSpeedF" data-stack>
-            <span class="lblText" id="speedLbl">Velocidad (× global)</span>
+            <span class="lblText" id="speedLbl" data-i18n="prop.speed">Velocidad (× global)</span>
             <div class="seg pseg" id="speedSeg" role="radiogroup" aria-labelledby="speedLbl">
-              <button type="button" class="segBtn" role="radio" data-v="1">1×</button>
-              <button type="button" class="segBtn" role="radio" data-v="2">2×</button>
-              <button type="button" class="segBtn" role="radio" data-v="3">3×</button>
-              <button type="button" class="segBtn" role="radio" data-v="4">4×</button>
+              <button type="button" translate="no" class="segBtn" role="radio" data-v="1">1×</button>
+              <button type="button" translate="no" class="segBtn" role="radio" data-v="2">2×</button>
+              <button type="button" translate="no" class="segBtn" role="radio" data-v="3">3×</button>
+              <button type="button" translate="no" class="segBtn" role="radio" data-v="4">4×</button>
             </div>
             <select id="speedFacSel" class="srOnly" tabindex="-1" aria-hidden="true">
-              <option value="1">1× (global)</option>
-              <option value="2">2×</option>
-              <option value="3">3×</option>
-              <option value="4">4×</option>
+              <option value="1" data-i18n="prop.speedGlobal">1× (global)</option>
+              <option value="2" translate="no">2×</option>
+              <option value="3" translate="no">3×</option>
+              <option value="4" translate="no">4×</option>
             </select>
           </div>
-          <div class="row" id="rowDotsGlobal"><label for="dotsGlobalChk">Puntos globales</label><input type="checkbox" id="dotsGlobalChk"></div>
-          <div class="row" id="rowDots"><label for="edgeDotsIn">Puntos (esta flecha)</label>
+          <div class="row" id="rowDotsGlobal"><label for="dotsGlobalChk" data-i18n="prop.dotsGlobal">Puntos globales</label><input type="checkbox" id="dotsGlobalChk"></div>
+          <div class="row" id="rowDots"><label for="edgeDotsIn" data-i18n="prop.dotsOwn">Puntos (esta flecha)</label>
             <input type="number" id="edgeDotsIn" min="1" max="6" step="1">
           </div>
         </div>

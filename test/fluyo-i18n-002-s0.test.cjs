@@ -279,7 +279,7 @@ test("offline: todo diccionario en el precache del editor; los comunes, en el de
   const A = list("ASSETS"), V = list("VIEWER_ASSETS");
   for (const f of DICT_FILES) assert.ok(A.includes(f), "ASSETS: " + f);
   assert.deepEqual(V.filter((f) => scan.DICT.test(f)), CODES.filter((c) => c !== "es").map(COMMON), "VIEWER_ASSETS: solo los comunes");
-  assert.match(sw, /const CACHE = "fluyo-static-v114";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v115";/);
 });
 
 test("peso: presupuesto de diccionarios (Viewer ≤ 64 KB, editor ≤ 400 KB, sin comprimir); medido aquí, no lazy loading", () => {
@@ -421,7 +421,7 @@ test("alcance frente a " + BASE + ": solo los archivos de esta tarea; undoS0 da 
   assert.deepEqual([...new Set([...changed, ...untracked])].sort(), [...FILES, ...NEW_FILES].sort());
   for (const f of FILES) {
     let out = undoS0(f, read(f));
-    if (f === "sw.js") out = out.replace('"fluyo-static-v114"', '"fluyo-static-v' + (109 - 1) + '"');
+    if (f === "sw.js") out = out.replace('"fluyo-static-v115"', '"fluyo-static-v' + (109 - 1) + '"');
     assert.equal(out, atBase(f), f + ": undoS0 exacto");
   }
   assert.ok(read("test/fluyo-shell-001-undo.cjs").includes("src = undoS0(file, src);"), "undoShell deshace antes esta tarea");

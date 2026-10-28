@@ -234,8 +234,8 @@ test("ui.js / index.html · «Tamaño de flecha»: segmentado 1× · 1,5× · 2�
   const seg = slice(html, '<div class="row inlineSeg" id="rowArrowSize">', "</select>");
   assert.match(seg, /id="arrowSizeSeg" role="radiogroup" aria-labelledby="arrowSizeLbl"/);
   assert.deepEqual([...seg.matchAll(/class="segBtn" role="radio" data-v="([^"]+)">([^<]+)</g)].map((m) => [m[1], m[2]]), [["1", "1×"], ["1.5", "1,5×"], ["2", "2×"]]);
-  assert.match(seg, /<select id="arrowSizeSel" class="srOnly" tabindex="-1" aria-hidden="true"><option value="1">/);
-  assert.match(seg, /<span class="lblText" id="arrowSizeLbl">Tamaño de flecha<\/span>/);
+  assert.match(seg, /<select id="arrowSizeSel" class="srOnly" tabindex="-1" aria-hidden="true"><option value="1" translate="no">/);   /* FLUYO-I18N-002 S3b: marcas de idioma */
+  assert.match(seg, /<span class="lblText" id="arrowSizeLbl" data-i18n="prop\.arrowSize">Tamaño de flecha<\/span>/);
   assert.ok(html.indexOf('id="rowArrowSize"') > html.indexOf('id="arrowSeg"') && html.indexOf('id="rowArrowSize"') < html.indexOf('id="rowAnim"'), "vive junto a Puntas, en Dirección");
   assert.match(ui, /segOnSelect\("arrowSizeSeg","arrowSizeSel"\);/);
   const h = slice(ui, '$("arrowSizeSel").onchange=()=>{', "};");
@@ -286,7 +286,7 @@ test("alcance · rutas (edgePoints, orthoRoute, parallelLane, laneLayout, handle
   assert.equal(sin, mo, "model.js = HEAD + las seis ediciones de 018.27 (kernel, Historias, clonado, integridad: intactos)");
 });
 test("release · CACHE v84; fluyo-mcp (si está al lado) lleva el kernel resincronizado y el port de svg.ts con el mismo factor", () => {
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v114";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v115";/);
   const mcp = path.resolve(root, "..", "fluyo-mcp");
   if (!fs.existsSync(path.join(mcp, "src", "svg.ts"))) return;
   const kernel = fs.readFileSync(path.join(mcp, "src", "generated", "kernel-sources.ts"), "utf8");

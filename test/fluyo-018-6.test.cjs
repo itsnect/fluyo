@@ -84,7 +84,7 @@ test('fill:"none" y colores de conexión: paridad con el editor real (mismo domi
   assert.equal(JSON.stringify(au.project), JSON.stringify(A), "mismo documento, mismo orden de claves");
   assert.equal(K.call("projectFromProjectData(__a).doc.pages[0].nodes[0].fill", au.project), "none");
   assert.match(read("js/render.js"), /n\.fill==="none"\)\s*return null/, "el render trata «none» como forma hueca");
-  assert.match(read("js/ui.js"), /label:"Sin relleno", value:"none"/, "el selector del editor lo ofrece");
+  assert.match(read("js/ui.js"), /label:\(\)=>FluyoI18n\.t\("prop\.sw\.noFill","Sin relleno"\), value:"none"/, "el selector del editor lo ofrece (FLUYO-I18N-002 S3b: su nombre, por clave)");
 });
 
 /* ─────────── colores de conexión ─────────── */

@@ -302,8 +302,8 @@ async function offline(browser, base) {
   const page = await ctx.newPage();
   await page.goto(base + "/?lang=en");
   await page.waitForFunction(async () => { const r = await navigator.serviceWorker.getRegistration(); return !!(r && r.active); }, null, { timeout: 15000 });
-  for (let i = 0; i < 60; i++) { if (await page.evaluate(async () => { const k = await caches.keys(); const c = k.includes("fluyo-static-v114") ? await caches.open("fluyo-static-v114") : null; return !!c && (await c.keys()).length >= 60; })) break; await page.waitForTimeout(250); }
-  check(await page.evaluate(async () => (await caches.keys()).includes("fluyo-static-v114")), "caché fluyo-static-v114 instalada");
+  for (let i = 0; i < 60; i++) { if (await page.evaluate(async () => { const k = await caches.keys(); const c = k.includes("fluyo-static-v115") ? await caches.open("fluyo-static-v115") : null; return !!c && (await c.keys()).length >= 60; })) break; await page.waitForTimeout(250); }
+  check(await page.evaluate(async () => (await caches.keys()).includes("fluyo-static-v115")), "caché fluyo-static-v115 instalada");
   await ctx.setOffline(true);
   await page.goto(base + "/?lang=en");
   await page.waitForFunction(() => typeof enterPresent === "function");

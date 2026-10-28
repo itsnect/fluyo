@@ -212,7 +212,7 @@ test("W5 · markup estático tras el selector, con los textos aprobados; se sinc
   const stroke = html.slice(html.indexOf('id="grpFlow"'), html.indexOf("</details>", html.indexOf('id="grpFlow"')));
   const note = stroke.indexOf('id="kindNote"');
   assert.ok(note > stroke.indexOf('id="rowKind"') && note < stroke.indexOf('id="rowDotC"'), "justo después del selector (los dos en «Puntos», decisión 254)");
-  assert.match(stroke, /<p class="hint rowNote" id="kindNote" role="status" hidden>La punta visible apunta en sentido contrario al flujo\. El flujo se calcula de origen a destino; la punta solo cambia la apariencia\.<\/p>/);
+  assert.match(stroke, /<p class="hint rowNote" id="kindNote" role="status" hidden data-i18n="prop\.kindNote">La punta visible apunta en sentido contrario al flujo\. El flujo se calcula de origen a destino; la punta solo cambia la apariencia\.<\/p>/);
   const ui = read("js/ui.js");
   assert.ok(ui.includes('$("rowKind").style.display=isNode ? "none" : "flex";\n  syncKindNote(isNode ? null : obj);'));
   assert.match(ui, /function syncArrowSeg\(e\)\{[^\n]*syncKindNote\(e\); syncArrowSizeSeg\(e\); \}/, "el contrato de 018.27 (termina en syncArrowSizeSeg) se conserva");
@@ -296,8 +296,8 @@ test("alcance · entre los archivos servidos solo cambian model.js, geometry.js,
   for (const f of ["js/config.js", "js/safe-svg.js", "js/scenario-engine.js", "js/scenario-playback.js", "js/story-playback.js", "js/document-integrity.js", "js/story-authoring.js",
     "js/story-clock.js", "js/skin.js", "js/viewer.js", "js/export.js", "js/state.js", "js/selection.js", "js/editor-scenarios.js", "s/index.html"]) assert.equal(undo4b(f, undo3(f, read(f))), before(f), f);
   const sw = undo3("sw.js", read("sw.js"));
-  assert.match(sw, /const CACHE = "fluyo-static-v114";/);
-  assert.equal(sw.replace('"fluyo-static-v114"', '"fluyo-static-v' + (94 - 1) + '"'), before("sw.js"), "sw.js: solo sube CACHE (sin archivos nuevos)");
+  assert.match(sw, /const CACHE = "fluyo-static-v115";/);
+  assert.equal(sw.replace('"fluyo-static-v115"', '"fluyo-static-v' + (94 - 1) + '"'), before("sw.js"), "sw.js: solo sube CACHE (sin archivos nuevos)");
   /* UNKNOWN sigue fuera (D3): el kernel solo admite UP/DOWN */
   assert.match(read("js/model.js"), /const SCENARIO_STATES=new Set\(\["UP","DOWN"\]\);/);
   assert.match(read("js/scenario-engine.js"), /const VALID_STATES = new Set\(\["UP", "DOWN"\]\);/);

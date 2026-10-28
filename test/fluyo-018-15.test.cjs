@@ -125,7 +125,7 @@ test("editor: la herramienta de animaciones usa DEFAULT_NODE_COLOR; ningún nodo
 
 test("panel: la rejilla de color del nodo empieza por la muestra del color por defecto", () => {
   const ui = read("js/ui.js");
-  assert.match(ui, /if\(field==="color"\)\{ seen\.add\(DEFAULT_NODE_COLOR\); mk\(DEFAULT_NODE_COLOR,"Piedra \(por defecto\)",DEFAULT_NODE_COLOR\); \}\r?\n  PALETTE\.forEach/);
+  assert.match(ui, /if\(field==="color"\)\{ seen\.add\(DEFAULT_NODE_COLOR\); mk\(DEFAULT_NODE_COLOR,\(\)=>FluyoI18n\.t\("prop\.sw\.default","Piedra \(por defecto\)"\),DEFAULT_NODE_COLOR\); \}\r?\n  PALETTE\.forEach/);
   assert.match(ui, /buildNodeSwatches\("swatches","color"\);/);
 });
 
@@ -164,6 +164,6 @@ test("fixture compartido con fluyo-mcp: idéntico si el repo hermano está al la
 
 test("sw.js: CACHE v74 (cambian config, model, render, ui, interaction y styles, todos ya precacheados)", () => {
   const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v114";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v115";/);
   for (const f of ["./js/config.js", "./js/model.js", "./js/render.js", "./js/ui.js", "./js/interaction.js", "./css/styles.css"]) assert.ok(sw.includes('"' + f + '"'), f + " precacheado");
 });

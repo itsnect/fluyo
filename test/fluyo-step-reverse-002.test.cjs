@@ -534,9 +534,9 @@ test("I1 · versiones: engineVersion 2 y version 5 (NO v3); sw.js sube a v97; Vi
   assert.equal(run("FluyoScenarios.ENGINE_VERSION"), 2);
   assert.equal(run("SCENARIO_ENGINE_VERSION"), 2);
   assert.equal(run("projectToSerializable({}, {}).version"), 5);
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v114";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v115";/);
   const { undoI18n } = require("./fluyo-i18n-001-undo.cjs");   /* FLUYO-I18N-001 añade al precache js/i18n-en.js y js/i18n.js */
-  assert.equal(undoI18n("sw.js", read("sw.js")).replace('"fluyo-static-v114"', '"fluyo-static-v' + (97 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante");
+  assert.equal(undoI18n("sw.js", read("sw.js")).replace('"fluyo-static-v115"', '"fluyo-static-v' + (97 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante");
   const { undo4: undo4only, PIECES: PIECES4 } = require("./fluyo-scenarios-semantics-4-undo.cjs"), { undoMsg56: undo5 } = require("./fluyo-step-message-001-undo.cjs"), undo4 = (f, src) => undo4only(f, undo5(f, src));   /* SCENARIOS-SEMANTICS-001 FASE 4 va encima: se deshace antes */
   for (const f of ["js/viewer.js", "js/present-story.js", "js/story-clock.js", "js/flow-semantics.js", "js/link-codec.js", "js/share-url.js", "index.html", "s/index.html", "css/styles.css"])
     assert.equal(undo4(f, read(f)), atBase(f), f + " sin cambios");

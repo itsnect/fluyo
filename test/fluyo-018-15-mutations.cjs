@@ -16,7 +16,7 @@ const HL = "      c.shadowColor = M.ink; c.shadowBlur = 14;\n      c.strokeStyle
 const HL_CYAN = '      c.shadowColor = "#3aa7e8"; c.shadowBlur = 14;\n      c.strokeStyle = "rgba(58,167,232,.9)"; c.lineWidth = 2.5;';
 /* [nombre, suite, archivo, desde, hasta, ONLY del browser test] */
 const MUTATIONS = [
-  ["U1 CACHE no sube (sigue v73)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v114";', 'const CACHE = "fluyo-static-v74";'],
+  ["U1 CACHE no sube (sigue v73)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v115";', 'const CACHE = "fluyo-static-v74";'],
   ["U2 vuelve #6a9fb5 como color con el que nace un nodo", UNIT, "js/config.js", DEF, 'const DEFAULT_NODE_COLOR="#6a9fb5";'],
   ["U3 createNodeIn vuelve a PALETTE[0]", UNIT, "js/model.js", "color:DEFAULT_NODE_COLOR, fill:null", "color:PALETTE[0].c, fill:null"],
   ["U4 migración accidental: un nodo sin color se lee con el default nuevo", UNIT, "js/model.js", NORM, "  if(n.color==null) n.color=DEFAULT_NODE_COLOR;"],
@@ -25,7 +25,7 @@ const MUTATIONS = [
   ["U7 el acento del evento en tránsito vuelve a cian", UNIT, "js/render.js", 'const FLOW_ACCENT = "#d08b5b";', 'const FLOW_ACCENT = "#3aa7e8";'],
   ["U8 «Resaltar» vuelve a cian", UNIT, "js/render.js", HL, HL_CYAN],
   ["U9 la herramienta de animaciones vuelve a PALETTE[0]", UNIT, "js/interaction.js", "color:DEFAULT_NODE_COLOR});", "color:PALETTE[0].c});"],
-  ["U10 el panel pierde la muestra del color por defecto", UNIT, "js/ui.js", '  if(field==="color"){ seen.add(DEFAULT_NODE_COLOR); mk(DEFAULT_NODE_COLOR,"Piedra (por defecto)",DEFAULT_NODE_COLOR); }\n', ""],
+  ["U10 el panel pierde la muestra del color por defecto", UNIT, "js/ui.js", '  if(field==="color"){ seen.add(DEFAULT_NODE_COLOR); mk(DEFAULT_NODE_COLOR,()=>FluyoI18n.t("prop.sw.default","Piedra (por defecto)"),DEFAULT_NODE_COLOR); }\n', ""],
   ["U11 el pulso de una imagen vuelve a brillar en cian", UNIT, "js/render.js", 'if(glow>0){c.shadowColor=n.color; c.shadowBlur=20*glow;}', 'if(glow>0){c.shadowColor="#3aa7e8"; c.shadowBlur=20*glow;}'],
   ["U12 la vista previa de «Resaltar» del diálogo vuelve a cian", UNIT, "css/styles.css", "box-shadow:0 0 0 3px var(--active);", "box-shadow:0 0 0 3px rgba(58,167,232,.5);"],
   ["B1 vuelve #6a9fb5 como color con el que nace un nodo", BROWSER, "js/config.js", DEF, 'const DEFAULT_NODE_COLOR="#6a9fb5";', "d1440"],
@@ -35,7 +35,7 @@ const MUTATIONS = [
   ["B5 el halo del evento vuelve a cian", BROWSER, "js/render.js", 'const FLOW_ACCENT = "#d08b5b";', 'const FLOW_ACCENT = "#3aa7e8";', "m375"],
   ["B6 migración accidental de documentos antiguos al abrir", BROWSER, "js/model.js", NORM, "  if(n.color==null) n.color=DEFAULT_NODE_COLOR;", "d1101"],
   ["B7 se pierde un #6a9fb5 explícito al abrir", BROWSER, "js/model.js", NORM, '  if(n.color==null || n.color==="#6a9fb5") n.color=DEFAULT_NODE_COLOR;', "d1440"],
-  ["B8 el panel pierde la muestra del color por defecto", BROWSER, "js/ui.js", '  if(field==="color"){ seen.add(DEFAULT_NODE_COLOR); mk(DEFAULT_NODE_COLOR,"Piedra (por defecto)",DEFAULT_NODE_COLOR); }\n', "", "m390"],
+  ["B8 el panel pierde la muestra del color por defecto", BROWSER, "js/ui.js", '  if(field==="color"){ seen.add(DEFAULT_NODE_COLOR); mk(DEFAULT_NODE_COLOR,()=>FluyoI18n.t("prop.sw.default","Piedra (por defecto)"),DEFAULT_NODE_COLOR); }\n', "", "m390"],
 ];
 
 function copyTree(dest) {

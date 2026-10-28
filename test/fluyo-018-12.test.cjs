@@ -17,7 +17,7 @@ const ids = (html) => new Set([...html.matchAll(/\sid="([^"]+)"/g)].map((m) => m
 
 test("sw.js: CACHE v72 y todos los assets locales de index.html y s/index.html precacheados", () => {
   const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v114";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v115";/);
   const listed = new Set([...sw.matchAll(/"\.\/([^"]*)"/g)].map((m) => m[1]));
   const local = (html, prefix) => [...html.matchAll(/<(?:script|link)[^>]+(?:src|href)="([^"]+)"/g)].map((m) => m[1])
     .filter((u) => !/^(https?:|data:|#)/.test(u) && !/\.(png|ico|svg)$/.test(u)).map((u) => path.posix.normalize(prefix + u));

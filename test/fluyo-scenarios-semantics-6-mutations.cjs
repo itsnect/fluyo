@@ -46,8 +46,8 @@ const MUTATIONS = [
   ["M20 la herramienta solo se apila en pantallas de teléfono (la ventana, no la herramienta)", CSS, "@container scflow (max-width: 539px){", "@media (max-width: 480px){"],
   /* decisión 254 (018.23): «Semántica» en «Puntos», plegado por defecto */
   ["M21 «Puntos» se abre por defecto con una conexión (la fila vuelve a sumar altura)", UI, 'return kind==="edge" ? ["grpStroke","grpRoute"]', 'return kind==="edge" ? ["grpStroke","grpRoute","grpFlow"]'],
-  ["M22 «Semántica» vuelve a «Trazo»", "index.html", '      <details class="pgroup" id="grpStroke" data-group="Trazo" open>\n        <summary><span class="pgTitle">Trazo</span></summary>\n        <div class="pgBody">\n',
-    '      <details class="pgroup" id="grpStroke" data-group="Trazo" open>\n        <summary><span class="pgTitle">Trazo</span></summary>\n        <div class="pgBody">\n          <div class="row" id="rowKind" data-stack style="display:none"></div>\n'],
+  ["M22 «Semántica» vuelve a «Trazo»", "index.html", '      <details class="pgroup" id="grpStroke" data-group="Trazo" open>\n        <summary><span class="pgTitle" data-i18n="prop.group.stroke">Trazo</span></summary>\n        <div class="pgBody">\n',
+    '      <details class="pgroup" id="grpStroke" data-group="Trazo" open>\n        <summary><span class="pgTitle" data-i18n="prop.group.stroke">Trazo</span></summary>\n        <div class="pgBody">\n          <div class="row" id="rowKind" data-stack style="display:none"></div>\n'],
 ];
 
 function copyTree(dest) {

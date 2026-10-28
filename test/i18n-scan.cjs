@@ -174,11 +174,14 @@ function scanHtml(html) {
     const tag = name.toLowerCase();
     if (close) { while (stack.length && stack.pop().name !== tag); continue; }
     const attrs = attrsOf(rest);
+    /* FLUYO-I18N-002 S3b (D-S3b-6): translate="no" exime también los atributos del elemento y de su subárbol (el placeholder
+       «SELECT FROM WHERE» son palabras clave de SQL, no texto de interfaz) */
+    const noTranslate = attrs.translate === "no" || stack.some((e) => e.attrs.translate === "no");
     for (const [a, mark] of Object.entries(TEXT_ATTRS)) {
       if (attrs[a] === undefined || !/\p{L}/u.test(attrs[a])) continue;
       const k = mark ? attrs[mark] : undefined;
       if (k !== undefined) marks.push({ key: k, es: attrs[a], where: a });
-      else if (!BRAND.test(attrs[a].trim())) issues.push({ kind: a, owner: tag + (attrs.id ? "#" + attrs.id : ""), text: attrs[a] });
+      else if (!noTranslate && !BRAND.test(attrs[a].trim())) issues.push({ kind: a, owner: tag + (attrs.id ? "#" + attrs.id : ""), text: attrs[a] });
     }
     if (!self && !VOID.has(tag)) stack.push({ name: tag, attrs });
   }

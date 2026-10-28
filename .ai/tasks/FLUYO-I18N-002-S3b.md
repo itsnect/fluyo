@@ -1,8 +1,9 @@
 # FLUYO-I18N-002 · S3b — Propiedades: auditoría e implementación
 
-Estado: **READY FOR COMMIT** (2026-10-27). Auditoría READY FOR REVIEW → el PO aprobó D-S3b-1…14 tal cual (decisiones 300–313) →
-implementada en el worktree `fluyo-new/fluyo-s3b` (rama `i18n-002-s3b`, base `747eff8`), `CACHE` v115. Sin commit, merge, push ni
-deploy. La implementación y sus pruebas están en §23; §0–§22 son la auditoría tal como se revisó. Tarea madre:
+Estado: **CLOSED / VERIFIED / IN PRODUCTION** (2026-10-28). Auditoría READY FOR REVIEW → el PO aprobó D-S3b-1…14 tal cual
+(decisiones 300–313) → implementada en el worktree `fluyo-new/fluyo-s3b` (rama `i18n-002-s3b`, base `747eff8`), `CACHE` v115 →
+commit `09d7cea`, integrado en `main` por fast-forward y publicado (fluyo.space sirve v115; §24). La implementación y sus pruebas
+están en §23; §0–§22 son la auditoría tal como se revisó. Tarea madre:
 `.ai/tasks/FLUYO-I18N-002.md`. Precedente: `.ai/tasks/FLUYO-I18N-002-S3.md` (D-S3-9 → decisión 287: «Propiedades tiene una slice
 propia»).
 
@@ -723,13 +724,34 @@ plantillas completas que, en español, dan exactamente el mismo texto (oráculo 
 - **O3** `#scScenarioTitle` (Historias, S2a) contiene «Sin historias» en el HTML con `?lang=en` mientras la hoja está cerrada: es el
   texto base de su `data-i18n-js`; al abrir Historias se pinta «No stories». No es un bug.
 
+## 24. Commit, integración y producción (2026-10-28)
+
+- **Commit** `09d7cea` (árbol `55d89ff1`, padre `747eff8`, 96 archivos) en `i18n-002-s3b`. Tras el commit: propio 9/9, mutaciones
+  23/23, Chrome 46/0.
+- **Integración**: `main` `747eff8` → `09d7cea` por fast-forward (sin merge commit). Antes se borró en `main` la copia sin
+  seguimiento de este documento (solo diferían el título, el estado y el handoff de la auditoría). Sobre `main`: unitarios S3b, S0,
+  S1, S2a, S2b, S3a y S4 en verde; mutaciones 23/23; Chrome S3b 46/0, S3a 35/0, S2b 34/0, S4 102/0, S1 181/0, S2a 223/0, S0 385/0;
+  suite completa 1765 / 83, los mismos 83 por nombre que `747eff8`.
+- **Publicación**: push `747eff8..09d7cea` a `origin/main`; Vercel publicó y fluyo.space sirve `fluyo-static-v115`. Los 83 archivos
+  servidos son idénticos byte a byte a los blobs de `09d7cea`.
+- **Smoke de producción** (fluyo.space, telemetría bloqueada): **22 ✔ · 0 ✘**.
+  - Propiedades en español con creación y selección con el ratón: caja («Caja · id N», Apariencia, Forma, Borde, Relleno), `code`
+    (Código, Panel, Texto del código, Fondo del bloque) y conexión («Conexión · a → b», «Puntas Ambas», Tamaño de flecha).
+  - En vivo es → en → es: el panel pasa a inglés (texto y atributos) y vuelve exacto; el documento y la pila de Undo no cambian.
+  - Propiedades en inglés: Appearance, Shape, Border, Fill, «Box · id N», «Connection · a → b», «Arrowheads Both», Routing; ningún
+    texto ni atributo del panel en español; `missing()` vacío.
+  - Share → Viewer en es y en: el documento llega intacto («Página de pagos», «Usuario final», el SQL del `code`).
+  - Offline: el service worker instala `fluyo-static-v115` y, sin red, el editor carga de la caché con Propiedades en inglés
+    («Box without text»).
+  - Consola sin errores en todas las páginas.
+- `fluyo-mcp` sin cambios (`464f4e0`); kernel sin cambios.
+
 ## Handoff
 
-- **Qué se hizo**: S3b implementada según D-S3b-1…14 (decisiones 300–313); §23.
+- **Qué se hizo**: S3b implementada según D-S3b-1…14 (decisiones 300–313; §23), commiteada, integrada en `main` y publicada (§24).
 - **Archivos**: §23.3.
-- **Pruebas**: §23.4.
-- **Pendiente**: OK del PO para el commit; después, integrar en `main` (antes, borrar en `main` la copia sin seguimiento de este
-  documento, que es la de la auditoría), push y deploy, y verificar producción.
-- **Próximo paso**: con el OK, un commit en `i18n-002-s3b` y parar.
+- **Pruebas**: §23.4 y §24.
+- **Pendiente**: O1–O3 (§23.5) y B1–B7 (§16) siguen registrados, fuera de S3b. Este cierre documental no está commiteado.
+- **Próximo paso**: la siguiente slice de FLUYO-I18N-002 que decida el PO; la próxima `CACHE` libre es **v116**.
 
-Estado: **READY FOR COMMIT**.
+Estado: **CLOSED / VERIFIED / IN PRODUCTION**.

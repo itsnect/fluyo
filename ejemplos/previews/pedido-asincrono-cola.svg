@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="910" height="691" viewBox="70 44 910 691">
+<path d="M 225.74 160.00 L 398.80 160.00" fill="none" stroke="#777" stroke-width="1.5" stroke-linejoin="round"/>
+<path d="M 407.00 160.00 L 396.00 164.00 L 398.80 160.00 L 396.00 156.00 Z" fill="#777"/>
+<path d="M 500.00 195.00 L 500.00 322.80" fill="none" stroke="#777" stroke-width="1.5" stroke-linejoin="round"/>
+<path d="M 500.00 331.00 L 496.00 320.00 L 500.00 322.80 L 504.00 320.00 Z" fill="#777"/>
+<path d="M 474.26 415.39 L 372.04 555.94" fill="none" stroke="#777" stroke-width="1.5" stroke-linejoin="round"/>
+<path d="M 367.22 562.57 L 370.45 551.33 L 372.04 555.94 L 376.92 556.03 Z" fill="#777"/>
+<path d="M 525.74 415.39 L 627.96 555.94" fill="none" stroke="#777" stroke-width="1.5" stroke-linejoin="round"/>
+<path d="M 632.78 562.57 L 623.08 556.03 L 627.96 555.94 L 629.55 551.33 Z" fill="#777"/>
+<path d="M 525.74 380.00 L 718.80 380.00" fill="none" stroke="#777" stroke-width="1.5" stroke-linejoin="round"/>
+<path d="M 727.00 380.00 L 716.00 384.00 L 718.80 380.00 L 716.00 376.00 Z" fill="#777"/>
+<defs>
+<symbol id="fluyo-sym-0" viewBox="0 0 64 64" preserveAspectRatio="xMidYMid meet"><image width="64" height="64" href="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20x%3D%222%22%20y%3D%222%22%20width%3D%2260%22%20height%3D%2260%22%20rx%3D%2214%22%20fill%3D%22%236b7b8c%22%2F%3E%3Ccircle%20cx%3D%2232%22%20cy%3D%2224%22%20r%3D%229%22%20fill%3D%22%23fff%22%2F%3E%3Cpath%20d%3D%22M15%2050%20c2-11%208-15%2017-15%20s15%204%2017%2015z%22%20fill%3D%22%23fff%22%2F%3E%3C%2Fsvg%3E"/></symbol>
+<symbol id="fluyo-sym-1" viewBox="0 0 64 64" preserveAspectRatio="xMidYMid meet"><image width="64" height="64" href="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20x%3D%222%22%20y%3D%222%22%20width%3D%2260%22%20height%3D%2260%22%20rx%3D%2214%22%20fill%3D%22%235b4a72%22%2F%3E%3Crect%20x%3D%2214%22%20y%3D%2218%22%20width%3D%2224%22%20height%3D%228%22%20rx%3D%223%22%20fill%3D%22%23fff%22%2F%3E%3Crect%20x%3D%2214%22%20y%3D%2229%22%20width%3D%2224%22%20height%3D%228%22%20rx%3D%223%22%20fill%3D%22%23fff%22%2F%3E%3Crect%20x%3D%2214%22%20y%3D%2240%22%20width%3D%2224%22%20height%3D%228%22%20rx%3D%223%22%20fill%3D%22%23fff%22%2F%3E%3Cpath%20d%3D%22M42%2028%20l10%205%20-10%205z%22%20fill%3D%22%23fff%22%2F%3E%3C%2Fsvg%3E"/></symbol>
+</defs>
+<g id="node-1">
+<use href="#fluyo-sym-0" xlink:href="#fluyo-sym-0" x="174.26" y="118.00" width="51.48" height="51.48"/>
+<text x="200.00" y="196.00" font-family="Georgia, serif" font-size="14.0" fill="#ededed" text-anchor="middle" dominant-baseline="middle">Cliente</text>
+</g>
+<g id="node-2">
+<rect x="410.00" y="125.00" width="180" height="70" rx="10" ry="10" fill="rgba(155,127,181,0.18)" stroke="#9b7fb5" stroke-width="2.5"/>
+<text x="500.00" y="160.00" font-family="Georgia, serif" font-size="17.0" fill="#ededed" text-anchor="middle" dominant-baseline="middle">API</text>
+</g>
+<g id="node-3">
+<use href="#fluyo-sym-1" xlink:href="#fluyo-sym-1" x="474.26" y="338.00" width="51.48" height="51.48"/>
+<text x="500.00" y="416.00" font-family="Georgia, serif" font-size="14.0" fill="#ededed" text-anchor="middle" dominant-baseline="middle">Cola de eventos</text>
+</g>
+<g id="node-4">
+<rect x="730.00" y="345.00" width="180" height="70" rx="10" ry="10" fill="rgba(143,143,143,0.18)" stroke="#8f8f8f" stroke-width="2.5"/>
+<text x="820.00" y="380.00" font-family="Georgia, serif" font-size="15.2" fill="#ededed" text-anchor="middle" dominant-baseline="middle">DLQ (mensajes fallidos)</text>
+</g>
+<g id="node-5">
+<rect x="250.00" y="565.00" width="180" height="70" rx="10" ry="10" fill="rgba(201,180,88,0.18)" stroke="#c9b458" stroke-width="2.5"/>
+<text x="340.00" y="600.00" font-family="Georgia, serif" font-size="17.0" fill="#ededed" text-anchor="middle" dominant-baseline="middle">Pagos</text>
+</g>
+<g id="node-6">
+<rect x="570.00" y="565.00" width="180" height="70" rx="10" ry="10" fill="rgba(123,184,91,0.18)" stroke="#7bb85b" stroke-width="2.5"/>
+<text x="660.00" y="600.00" font-family="Georgia, serif" font-size="17.0" fill="#ededed" text-anchor="middle" dominant-baseline="middle">Envíos</text>
+</g>
+</svg>

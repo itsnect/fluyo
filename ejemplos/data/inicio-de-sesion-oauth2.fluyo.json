@@ -1,0 +1,345 @@
+{
+  "version": 5,
+  "app": "fluyo",
+  "doc": {
+    "theme": "crema",
+    "customBg": "",
+    "cur": 0,
+    "nextEventTypeId": 5,
+    "eventTypes": [
+      {
+        "id": 1,
+        "name": "Petición",
+        "primitive": "FLOW",
+        "sentenceTemplate": "{source} pide a {target}",
+        "visual": {
+          "kind": "token",
+          "value": "●"
+        },
+        "motion": "normal"
+      },
+      {
+        "id": 2,
+        "name": "Respuesta",
+        "primitive": "FLOW",
+        "sentenceTemplate": "{source} responde a {target}",
+        "visual": {
+          "kind": "token",
+          "value": "◆"
+        },
+        "motion": "normal"
+      }
+    ],
+    "pages": [
+      {
+        "name": "Inicio de sesión (OAuth 2.0)",
+        "nextId": 9,
+        "behaviors": [],
+        "nextScenarioId": 3,
+        "nodes": [
+          {
+            "id": 1,
+            "shape": "icon",
+            "x": 200,
+            "y": 200,
+            "w": 120,
+            "h": 92,
+            "label": "Usuario",
+            "color": "#6a9fb5",
+            "fill": null,
+            "border": "solid",
+            "lblPos": "center",
+            "textBg": null,
+            "font": null,
+            "bold": false,
+            "pulse": false,
+            "order": 1,
+            "icon": "user"
+          },
+          {
+            "id": 2,
+            "shape": "icon",
+            "x": 500,
+            "y": 200,
+            "w": 120,
+            "h": 92,
+            "label": "App",
+            "color": "#9b7fb5",
+            "fill": null,
+            "border": "solid",
+            "lblPos": "center",
+            "textBg": null,
+            "font": null,
+            "bold": false,
+            "pulse": false,
+            "order": 2,
+            "icon": "movil"
+          },
+          {
+            "id": 3,
+            "shape": "icon",
+            "x": 800,
+            "y": 200,
+            "w": 120,
+            "h": 92,
+            "label": "API protegida",
+            "color": "#7bb85b",
+            "fill": null,
+            "border": "solid",
+            "lblPos": "center",
+            "textBg": null,
+            "font": null,
+            "bold": false,
+            "pulse": false,
+            "order": 3,
+            "icon": "api"
+          },
+          {
+            "id": 4,
+            "shape": "icon",
+            "x": 500,
+            "y": 440,
+            "w": 120,
+            "h": 92,
+            "label": "Servidor de autorización",
+            "color": "#c16a6a",
+            "fill": null,
+            "border": "solid",
+            "lblPos": "center",
+            "textBg": null,
+            "font": null,
+            "bold": false,
+            "pulse": false,
+            "order": 4,
+            "icon": "lock"
+          }
+        ],
+        "edges": [
+          {
+            "id": 5,
+            "from": 1,
+            "to": 2,
+            "route": "straight",
+            "fromSide": null,
+            "toSide": null,
+            "waypoints": [],
+            "label": "",
+            "font": null,
+            "bold": false,
+            "endArrow": true,
+            "startArrow": false,
+            "flowDir": "normal"
+          },
+          {
+            "id": 6,
+            "from": 2,
+            "to": 4,
+            "route": "straight",
+            "fromSide": null,
+            "toSide": null,
+            "waypoints": [],
+            "label": "",
+            "font": null,
+            "bold": false,
+            "endArrow": true,
+            "startArrow": false,
+            "flowDir": "normal"
+          },
+          {
+            "id": 7,
+            "from": 1,
+            "to": 4,
+            "route": "straight",
+            "fromSide": null,
+            "toSide": null,
+            "waypoints": [],
+            "label": "",
+            "font": null,
+            "bold": false,
+            "endArrow": true,
+            "startArrow": false,
+            "flowDir": "normal"
+          },
+          {
+            "id": 8,
+            "from": 2,
+            "to": 3,
+            "route": "straight",
+            "fromSide": null,
+            "toSide": null,
+            "waypoints": [],
+            "label": "",
+            "font": null,
+            "bold": false,
+            "endArrow": true,
+            "startArrow": false,
+            "flowDir": "normal"
+          }
+        ],
+        "scenarios": [
+          {
+            "id": 1,
+            "engineVersion": 2,
+            "name": "Iniciar sesión",
+            "nextStepId": 10,
+            "steps": [
+              {
+                "id": 1,
+                "at": 0,
+                "action": "SEND",
+                "edgeId": 5,
+                "eventTypeId": 1,
+                "message": "El usuario pulsa «Entrar»"
+              },
+              {
+                "id": 2,
+                "at": 2400,
+                "action": "SEND",
+                "edgeId": 6,
+                "eventTypeId": 1,
+                "message": "La app le envía al servidor de autorización"
+              },
+              {
+                "id": 3,
+                "at": 4800,
+                "action": "SEND",
+                "edgeId": 7,
+                "eventTypeId": 2,
+                "message": "El servidor pide al usuario que inicie sesión y dé permiso",
+                "reverse": true
+              },
+              {
+                "id": 4,
+                "at": 7200,
+                "action": "SEND",
+                "edgeId": 7,
+                "eventTypeId": 1,
+                "message": "El usuario da su consentimiento"
+              },
+              {
+                "id": 5,
+                "at": 9600,
+                "action": "SEND",
+                "edgeId": 6,
+                "eventTypeId": 2,
+                "message": "El servidor devuelve a la app un código de un solo uso",
+                "reverse": true
+              },
+              {
+                "id": 6,
+                "at": 12000,
+                "action": "SEND",
+                "edgeId": 6,
+                "eventTypeId": 1,
+                "message": "La app cambia el código por un token"
+              },
+              {
+                "id": 7,
+                "at": 14400,
+                "action": "SEND",
+                "edgeId": 6,
+                "eventTypeId": 2,
+                "message": "Llega el access token",
+                "reverse": true
+              },
+              {
+                "id": 8,
+                "at": 14500,
+                "action": "SEND",
+                "edgeId": 8,
+                "eventTypeId": 1,
+                "message": "Solo con el token, la app llama a la API"
+              },
+              {
+                "id": 9,
+                "at": 16900,
+                "action": "SEND",
+                "edgeId": 8,
+                "eventTypeId": 2,
+                "message": "La API responde: acceso concedido",
+                "reverse": true
+              }
+            ],
+            "arrivalDependencies": [
+              {
+                "stepId": 8,
+                "waitsForArrivalOf": [
+                  7
+                ]
+              }
+            ]
+          },
+          {
+            "id": 2,
+            "engineVersion": 2,
+            "name": "El usuario no autoriza",
+            "nextStepId": 7,
+            "steps": [
+              {
+                "id": 1,
+                "at": 0,
+                "action": "SEND",
+                "edgeId": 5,
+                "eventTypeId": 1,
+                "message": "El usuario pulsa «Entrar»"
+              },
+              {
+                "id": 2,
+                "at": 2400,
+                "action": "SEND",
+                "edgeId": 6,
+                "eventTypeId": 1,
+                "message": "La app le envía al servidor de autorización"
+              },
+              {
+                "id": 3,
+                "at": 4800,
+                "action": "SEND",
+                "edgeId": 7,
+                "eventTypeId": 2,
+                "message": "El servidor pide al usuario que inicie sesión y dé permiso",
+                "reverse": true
+              },
+              {
+                "id": 4,
+                "at": 7200,
+                "action": "SEND",
+                "edgeId": 7,
+                "eventTypeId": 1,
+                "message": "El usuario rechaza el permiso"
+              },
+              {
+                "id": 5,
+                "at": 9600,
+                "action": "SEND",
+                "edgeId": 6,
+                "eventTypeId": 2,
+                "message": "El servidor devuelve «access_denied» a la app",
+                "reverse": true
+              },
+              {
+                "id": 6,
+                "at": 12000,
+                "action": "SEND",
+                "edgeId": 5,
+                "eventTypeId": 2,
+                "message": "La app muestra «No se pudo iniciar sesión»: la API nunca se toca",
+                "reverse": true
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "settings": {
+    "speed": 0.5,
+    "dots": 3,
+    "build": false,
+    "stagger": 0.45,
+    "grid": false,
+    "snap": false,
+    "font": "Georgia, serif",
+    "single": false
+  }
+}

@@ -14,6 +14,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs"), path = require("node:path"), vm = require("node:vm");
 const { execFileSync } = require("node:child_process");
 const root = path.resolve(process.env.FLUYO_ROOT || path.join(__dirname, ".."));
+const { historicalExamples } = require("./corpus-historico.cjs");   /* FLUYO-EXAMPLES-001: el corpus de esta slice es el de su commit; los ejemplos nuevos los cubren sus propios tests */
 const gitRoot = process.env.FLUYO_GIT_ROOT || root;
 const BASE = "ce8e699";
 const read = (f) => fs.readFileSync(path.join(root, f), "utf8").replace(/\r\n/g, "\n");
@@ -60,7 +61,7 @@ test("contrato · un contenedor anidado se pinta después de su padre, sea cual 
 /* ───────── sin contenedores: el orden de hoy ───────── */
 test("sin contenedores (8 ejemplos y todas las páginas de los fixtures): containers = [] y leaves = skinPaintOrder(nodes)", () => {
   const docs = [];
-  for (const f of fs.readdirSync(path.join(root, "ejemplos", "data"))) docs.push(["ejemplos/data/" + f, JSON.parse(read("ejemplos/data/" + f))]);
+  for (const f of historicalExamples(root, BASE)) docs.push(["ejemplos/data/" + f, JSON.parse(read("ejemplos/data/" + f))]);
   for (const f of fs.readdirSync(path.join(root, "test", "fixtures")).filter((f) => f.endsWith(".json") && f !== "fluyo-019-d6-capas.json")) {
     try { docs.push(["test/fixtures/" + f, JSON.parse(read("test/fixtures/" + f))]); } catch {}
   }

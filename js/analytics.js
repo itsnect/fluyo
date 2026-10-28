@@ -79,7 +79,7 @@ const ANALYTICS_EVENTS = {
   diagram_saved:{format:["fluyo_json"]}, present_started:{},
   diagram_exported:{format:["png","jpg","svg","gif"]},
   file_imported:{source:["file","link"],format:["fluyo_json"]},
-  example_loaded:{example:["demo","funnel-de-ventas","onboarding-de-cliente","cadena-de-suministro","kafka-event-pipeline","microservicios-api-gateway","oauth2-flujo-autenticacion","pipeline-etl-datos","arquitectura-serverless-aws"]},
+  example_loaded:{example:["demo","compra-online","inicio-de-sesion-oauth2","pedido-asincrono-cola","funnel-de-ventas","onboarding-de-cliente","cadena-de-suministro","kafka-event-pipeline","microservicios-api-gateway","oauth2-flujo-autenticacion","pipeline-etl-datos","arquitectura-serverless-aws"]},
   gif_animation_added:{anim:["spinner","progress","ticket","errmove","check","typing","upload","pulse"]},
   link_failed:{reason:["decode","schema","too_large","unsupported"]},
   share_created:{}, share_viewed:{}, share_opened_in_editor:{}

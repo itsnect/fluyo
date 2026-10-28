@@ -25,6 +25,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs"), path = require("node:path"), os = require("node:os"), http = require("node:http");
 const { execFileSync } = require("node:child_process");
 const root = path.resolve(process.env.FLUYO_ROOT || path.join(__dirname, ".."));
+const { historicalExamples } = require("./corpus-historico.cjs");   /* FLUYO-EXAMPLES-001: el corpus de esta slice es el de su commit; los ejemplos nuevos los cubren sus propios tests */
 const BASE = "22f82eb";
 const mime = { ".html": "text/html", ".js": "application/javascript", ".css": "text/css", ".json": "application/json", ".webmanifest": "application/manifest+json", ".svg": "image/svg+xml", ".png": "image/png", ".gif": "image/gif", ".woff2": "font/woff2" };
 const serve = async (dir) => {
@@ -69,7 +70,7 @@ function matrixDoc(extra) {
   return { cases, doc: { version: 5, app: "fluyo", settings: Object.assign({ speed: 0.5, dots: 3, build: false, stagger: 0.45, grid: false, snap: false, font: "Georgia, serif", single: false }, extra || {}),
     doc: { theme: "crema", customBg: "", eventTypes: [], nextEventTypeId: 1, cur: 0, pages: [{ name: "P", behaviors: [], scenarios: [], nextScenarioId: 1, nextId: id + 10, nodes, edges }] } } };
 }
-const EXAMPLES = fs.readdirSync(path.join(root, "ejemplos", "data")).map((f) => [f, JSON.parse(fs.readFileSync(path.join(root, "ejemplos", "data", f), "utf8"))]);
+const EXAMPLES = historicalExamples(root).map((f) => [f, JSON.parse(fs.readFileSync(path.join(root, "ejemplos", "data", f), "utf8"))]);
 const FIX019_2 = JSON.parse(fs.readFileSync(path.join(root, "test", "fixtures", "fluyo-019-2-skin.fluyo.json"), "utf8"));
 
 const SETUP = () => {

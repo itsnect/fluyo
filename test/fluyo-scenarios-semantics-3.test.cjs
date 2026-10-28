@@ -12,6 +12,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs"), path = require("node:path"), vm = require("node:vm");
 const { execFileSync } = require("node:child_process");
 const root = path.resolve(__dirname, "..");
+const { historicalExamples } = require("./corpus-historico.cjs");   /* FLUYO-EXAMPLES-001: el corpus de esta slice es el de su commit; los ejemplos nuevos los cubren sus propios tests */
 const read = (f) => fs.readFileSync(path.join(root, f), "utf8").replace(/\r\n/g, "\n");
 const gitRoot = process.env.FLUYO_GIT_ROOT || root;
 const BASE = "16ee642";   // main al empezar FASE 3 (producción v95)
@@ -82,7 +83,7 @@ test("A1 · normalización conservadora: ausente no se rellena; null y formas ro
 test("A2 · B4 corpus: ejemplos y fixtures cargan IDÉNTICOS con el model.js de " + BASE + " (byte a byte tras serializar)", () => {
   const OLD = context(atBase, ["config.js", "safe-svg.js", "model.js"]);
   const files = [];
-  for (const dir of ["ejemplos/data", "test/fixtures"]) for (const f of fs.readdirSync(path.join(root, dir))) if (/\.json$/.test(f)) files.push(dir + "/" + f);
+  for (const dir of ["ejemplos/data", "test/fixtures"]) for (const f of (dir === "ejemplos/data" ? historicalExamples(root, BASE) : fs.readdirSync(path.join(root, dir)))) if (/\.json$/.test(f)) files.push(dir + "/" + f);
   let compared = 0;
   for (const f of files) {
     let data; try { data = JSON.parse(read(f)); } catch { continue; }
@@ -502,7 +503,7 @@ test("D2 · carga: el editor carga flow-semantics.js (tras story-clock.js) y lo 
   assert.ok(i("story-clock.js") < i("flow-semantics.js") && i("flow-semantics.js") < i("editor-scenarios.js") && i("flow-semantics.js") > 0);
   assert.ok(!undo4("s/index.html", read("s/index.html")).includes("flow-semantics"), "Viewer sin cambios en FASE 3 (lo carga FASE 5: undo5, dentro de undo4)");
   const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v115";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v116";/);
   assert.ok(sw.includes('"./js/story-clock.js",\n  "./js/flow-semantics.js",\n  "./js/document-integrity.js",'));
 });
 
@@ -534,7 +535,7 @@ test("D5 · undo3 (para los alcances de slices anteriores) deshace EXACTAMENTE F
   const { undoReverseUi } = require("./fluyo-step-reverse-003-undo.cjs");   /* y 003 encima de 002 */
   for (const f of Object.keys(REGIONS)) {
     let back = undo3(f, undoReverse(f, undoReverseUi(f, undo4(f, read(f)))));
-    if (f === "sw.js") back = back.replace('"fluyo-static-v115"', '"fluyo-static-v' + (96 - 1) + '"');
+    if (f === "sw.js") back = back.replace('"fluyo-static-v116"', '"fluyo-static-v' + (96 - 1) + '"');
     assert.equal(back, atBase(f), f);
   }
 });

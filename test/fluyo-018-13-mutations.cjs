@@ -12,7 +12,7 @@ const UNIT = ["--test", "test/fluyo-018-13.test.cjs"];
 const BROWSER = ["test/fluyo-018-13-browser.cjs"];
 /* [nombre, suite, archivo, desde, hasta, ONLY del browser test] */
 const MUTATIONS = [
-  ["U1 CACHE no sube (sigue v72)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v115";', 'const CACHE = "fluyo-static-v74";'],
+  ["U1 CACHE no sube (sigue v72)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v116";', 'const CACHE = "fluyo-static-v74";'],
   ["U2 system.css fuera del precache", UNIT, "sw.js", '  "./css/system.css",\n', ""],
   ["U3 la UI pide una fuente a Google Fonts", UNIT, "index.html", '<link rel="stylesheet" href="css/system.css">', '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono"><link rel="stylesheet" href="css/system.css">'],
   ["U4 vuelve el emoji de Guardar", UNIT, "index.html", '<span class="lbl">Guardar</span>', '<span class="lbl">💾 Guardar</span>'],

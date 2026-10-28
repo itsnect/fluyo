@@ -18,6 +18,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs"), path = require("node:path"), os = require("node:os"), http = require("node:http");
 const { execFileSync } = require("node:child_process");
 const root = path.resolve(process.env.FLUYO_ROOT || path.join(__dirname, ".."));
+const { historicalExamples } = require("./corpus-historico.cjs");   /* FLUYO-EXAMPLES-001: el corpus de esta slice es el de su commit; los ejemplos nuevos los cubren sus propios tests */
 const shots = process.env.FLUYO_SHOTS || fs.mkdtempSync(path.join(os.tmpdir(), "fluyo-019-1-"));
 fs.mkdirSync(shots, { recursive: true });
 const mime = { ".html": "text/html", ".js": "application/javascript", ".css": "text/css", ".json": "application/json", ".webmanifest": "application/manifest+json", ".svg": "image/svg+xml", ".png": "image/png", ".gif": "image/gif", ".woff2": "font/woff2" };
@@ -43,7 +44,7 @@ function headTree() {
 }
 let failed = 0, passed = 0;
 const check = (cond, msg) => { if (cond) { passed++; console.log("  ✔ " + msg); } else { failed++; console.log("  ✘ " + msg); } };
-const EXAMPLES = fs.readdirSync(path.join(root, "ejemplos", "data")).filter((f) => f.endsWith(".fluyo.json")).map((f) => f.replace(".fluyo.json", ""));
+const EXAMPLES = historicalExamples(root).filter((f) => f.endsWith(".fluyo.json")).map((f) => f.replace(".fluyo.json", ""));
 const STORY = fs.readFileSync(path.join(__dirname, "fixtures", "fluyo-017-1-cliente-kafka-comercio.fluyo.json"), "utf8");
 
 const PAGE_HELPERS = () => {

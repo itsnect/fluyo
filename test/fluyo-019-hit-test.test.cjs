@@ -19,6 +19,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs"), path = require("node:path"), vm = require("node:vm");
 const { execFileSync } = require("node:child_process");
 const root = path.resolve(process.env.FLUYO_ROOT || path.join(__dirname, ".."));
+const { historicalExamples } = require("./corpus-historico.cjs");   /* FLUYO-EXAMPLES-001: el corpus de esta slice es el de su commit; los ejemplos nuevos los cubren sus propios tests */
 const gitRoot = process.env.FLUYO_GIT_ROOT || root;
 const BASE = "d31703e";
 const read = (f) => fs.readFileSync(path.join(root, f), "utf8").replace(/\r\n/g, "\n");
@@ -134,7 +135,7 @@ test("hitSideArrowHost: el puerto de una hoja antes que el de un contenedor", ()
 test("sin contenedores (8 ejemplos públicos): hitTarget = acierto de la base (nodo y luego conexión) en una rejilla", () => {
   const dir = path.join(root, "ejemplos", "data");
   let pts = 0;
-  for (const f of fs.readdirSync(dir)) {
+  for (const f of historicalExamples(root, BASE)) {
     const data = JSON.parse(fs.readFileSync(path.join(dir, f), "utf8"));
     for (const pg of data.doc.pages) {
       load(NOW, pg.nodes, pg.edges); load(OLD, pg.nodes, pg.edges);

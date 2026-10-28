@@ -279,7 +279,7 @@ test("offline: todo diccionario en el precache del editor; los comunes, en el de
   const A = list("ASSETS"), V = list("VIEWER_ASSETS");
   for (const f of DICT_FILES) assert.ok(A.includes(f), "ASSETS: " + f);
   assert.deepEqual(V.filter((f) => scan.DICT.test(f)), CODES.filter((c) => c !== "es").map(COMMON), "VIEWER_ASSETS: solo los comunes");
-  assert.match(sw, /const CACHE = "fluyo-static-v115";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v116";/);
 });
 
 test("peso: presupuesto de diccionarios (Viewer ≤ 64 KB, editor ≤ 400 KB, sin comprimir); medido aquí, no lazy loading", () => {
@@ -415,13 +415,14 @@ test("alcance frente a " + BASE + ": solo los archivos de esta tarea; undoS0 da 
   const { PIECES: PIECES_S4 } = require("./fluyo-i18n-002-s4-undo.cjs");   /* FLUYO-I18N-002 S4, encima de S2a */
   const { PIECES: PIECES_S2B } = require("./fluyo-i18n-002-s2b-undo.cjs");   /* FLUYO-I18N-002 S2b, encima de S4 */
   const { PIECES: PIECES_S3A } = require("./fluyo-i18n-002-s3a-undo.cjs");   /* FLUYO-I18N-002 S3a, encima de S2b */
-  const s1Only = (f) => NEW_S1.includes(f) || ((!!PIECES_S1[f] || !!PIECES_S2A[f] || !!PIECES_S4[f] || !!PIECES_S2B[f] || !!PIECES_S3A[f]) && !FILES.includes(f) && !NEW_FILES.includes(f) && undoS1(f, read(f)) === atBase(f));
+  const { undoEx, PIECES: PIECES_EX, NEW_FILES: NEW_EX } = require("./fluyo-examples-001-undo.cjs");   /* FLUYO-EXAMPLES-001 va encima de S3b (undoS3b la deshace antes) */
+  const s1Only = (f) => NEW_S1.includes(f) || NEW_EX.includes(f) || ((!!PIECES_S1[f] || !!PIECES_S2A[f] || !!PIECES_S4[f] || !!PIECES_S2B[f] || !!PIECES_S3A[f] || !!PIECES_EX[f]) && !FILES.includes(f) && !NEW_FILES.includes(f) && undoS1(f, read(f)) === atBase(f));
   const changed = execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean).filter((f) => !s1Only(f));
   const untracked = execFileSync("git", ["-C", gitRoot, "ls-files", "--others", "--exclude-standard", "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean).filter((f) => !s1Only(f));
   assert.deepEqual([...new Set([...changed, ...untracked])].sort(), [...FILES, ...NEW_FILES].sort());
   for (const f of FILES) {
     let out = undoS0(f, read(f));
-    if (f === "sw.js") out = out.replace('"fluyo-static-v115"', '"fluyo-static-v' + (109 - 1) + '"');
+    if (f === "sw.js") out = out.replace('"fluyo-static-v116"', '"fluyo-static-v' + (109 - 1) + '"');
     assert.equal(out, atBase(f), f + ": undoS0 exacto");
   }
   assert.ok(read("test/fluyo-shell-001-undo.cjs").includes("src = undoS0(file, src);"), "undoShell deshace antes esta tarea");

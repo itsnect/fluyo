@@ -18,6 +18,7 @@ const fs = require("node:fs"), path = require("node:path"), vm = require("node:v
 const { execFileSync } = require("node:child_process");
 const { shellOnly } = require("./fluyo-shell-001-undo.cjs");   /* FLUYO-SHELL-001 (páginas públicas, favicon, manifest): lo suyo se descuenta */
 const root = path.resolve(__dirname, "..");
+const { historicalExamples } = require("./corpus-historico.cjs");   /* FLUYO-EXAMPLES-001: el corpus de esta slice es el de su commit; los ejemplos nuevos los cubren sus propios tests */
 const read = (f) => fs.readFileSync(path.join(root, f), "utf8").replace(/\r\n/g, "\n");
 const gitRoot = process.env.FLUYO_GIT_ROOT || root;
 const BASE = "a4bbf2f";   // main al empezar FASE 6 (producción v100)
@@ -40,7 +41,7 @@ const rect = (id, label) => ({ id, shape: "rect", x: id * 200, y: 0, w: 140, h: 
 const doc1 = (pg) => ({ version: 5, app: "fluyo", doc: { theme: "dark", customBg: "", eventTypes: [], nextEventTypeId: 1, cur: 0, pages: [pg] }, settings: {} });
 const plainPage = () => ({ name: "P", nextId: 10, behaviors: [{ nodeId: 2, initialState: "DOWN" }], nextScenarioId: 1, scenarios: [],
   nodes: [rect(1, "A"), rect(2, "B"), rect(3, "C")], edges: [{ id: 4, from: 1, to: 2, route: "straight", fromSide: null, toSide: null, waypoints: [] }] });
-const corpus = () => [...fs.readdirSync(path.join(root, "ejemplos", "data")).filter((f) => f.endsWith(".json")).map((f) => "ejemplos/data/" + f),
+const corpus = () => [...historicalExamples(root, BASE).filter((f) => f.endsWith(".json")).map((f) => "ejemplos/data/" + f),
   ...fs.readdirSync(path.join(root, "test", "fixtures")).filter((f) => f.endsWith(".fluyo.json")).map((f) => "test/fixtures/" + f), "test/fixtures/fluyo-scenarios-semantics-6-b9.json"];
 
 /* ══════════════ A · B1: UNKNOWN se rechaza en todas las entradas ══════════════ */
@@ -249,8 +250,8 @@ test("C2 · alcance frente a " + BASE + ": B1 (model.js, selection.js), «Autom�
   assert.deepEqual([...new Set([...changed, ...untracked])].filter((f) => !NEW_I18N.includes(f)).filter((f) => !(f in PIECESM) || FILES6.includes(f) || undo6(f, read(f)) !== atBase(f)).sort(), FILES6.concat("sw.js").sort());
   assert.deepEqual(Object.keys(PIECES).sort(), FILES6);
   for (const f of FILES6) assert.equal(undo6(f, read(f)), atBase(f), f + ": undo6 exacto");
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v115";/);
-  assert.equal(undoI18n("sw.js", read("sw.js")).replace('"fluyo-static-v115"', '"fluyo-static-v' + (101 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante (el precache no cambia)");
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v116";/);
+  assert.equal(undoI18n("sw.js", read("sw.js")).replace('"fluyo-static-v116"', '"fluyo-static-v' + (101 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante (el precache no cambia)");
   /* en model.js solo cambia cloneStructureIn (y su nota en la cabecera de autoría) */
   const fn = (s) => s.slice(s.indexOf("function cloneStructureIn("), s.indexOf("const DUPLICATE_CONNECTIONS"));
   assert.equal(readM("js/model.js").replace(fn(readM("js/model.js")), "").replace(/ Los Behaviors que se copian pasan la regla de carga\n[\s\S]*?\(SCENARIOS-SEMANTICS-001 FASE 6, B1\)\.\n/, "\n"),

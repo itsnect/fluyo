@@ -130,7 +130,10 @@ const PIECES = {
     ]
   ]
 };
+/* FLUYO-EXAMPLES-001 va encima de S3b (base eb82cb1): se deshace primero (fluyo-examples-001-undo.cjs). */
+const { undoEx } = require("./fluyo-examples-001-undo.cjs");
 function undoS3b(file, src) {
+  src = undoEx(file, src);
   const f = file.replace(/\\/g, "/"), pieces = PIECES[f];
   if (!pieces) return src;
   let out = src.replace(/\r\n/g, "\n");

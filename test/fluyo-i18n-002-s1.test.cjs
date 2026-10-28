@@ -35,6 +35,7 @@ const DICT_FILES = fs.readdirSync(path.join(root, "js")).map((f) => "js/" + f).f
 const { undoS2a, PIECES: PIECES_S2A } = require("./fluyo-i18n-002-s2a-undo.cjs");
 const { PIECES: PIECES_S2B } = require("./fluyo-i18n-002-s2b-undo.cjs");   /* FLUYO-I18N-002 S2b va encima de S4 */
 const { PIECES: PIECES_S3A } = require("./fluyo-i18n-002-s3a-undo.cjs");   /* FLUYO-I18N-002 S3a va encima de S2b */
+const { undoEx, PIECES: PIECES_EX, NEW_FILES: NEW_EX } = require("./fluyo-examples-001-undo.cjs");   /* FLUYO-EXAMPLES-001 va encima de S3b (undoS3b la deshace antes) */
 const { PIECES: PIECES_S4 } = require("./fluyo-i18n-002-s4-undo.cjs");   /* FLUYO-I18N-002 S4 va encima de S2a (undoS2a la deshace antes) */
 const HTML = undoS2a("index.html", read("index.html"));
 const cut = (from, to) => { const a = HTML.indexOf(from), b = HTML.indexOf(to, a); assert.ok(a >= 0 && b > a, "región: " + from); return HTML.slice(a, b); };
@@ -66,8 +67,8 @@ const LEFT_OK = {
   "js/deeplink.js": ["No se pudo abrir el diagrama del enlace:"],                       // console.warn
   "js/state.js": ["Autosave failed:"],                                                    // console.warn
   "js/interaction.js": ["Enter", "Escape", "Backspace", "Home", "End", "Delete"],          // nombres de tecla
-  "js/examples.js": ["Funnel de ventas", "Onboarding de cliente", "Cadena de suministro", "Pipeline de eventos con Apache Kafka", "Arquitectura de microservicios con API Gateway",
-    "Flujo de autenticación OAuth 2.0", "Pipeline ETL de datos", "Arquitectura serverless en AWS", "No se pudo cargar el ejemplo «"],   // títulos de ejemplo (S7) y console.warn
+  "js/examples.js": ["Compra online", "Inicio de sesión (OAuth 2.0)", "Pedido asíncrono con cola", "Funnel de ventas", "Onboarding de cliente", "Cadena de suministro", "Pipeline de eventos con Apache Kafka", "Arquitectura de microservicios con API Gateway",
+    "Flujo de autenticación OAuth 2.0", "Pipeline ETL de datos", "Arquitectura serverless en AWS", "No se pudo cargar el ejemplo «"],   // títulos de ejemplo (S7; FLUYO-EXAMPLES-001 renueva el catálogo) y console.warn
   "js/export.js": ["Ejemplo", "Ejemplo ", "Funnel de ventas", "Visitantes", "Leadnregistrado", "¿Califica?", "Oportunidad", "Propuestanenviada", "Cliente", "Descartado", "sí"],   /* (el léxico del escáner lee \n como «n») */   // ejemplo incorporado: valor sembrado (S3)
 };
 test("JS del cromo: sin texto de interfaz suelto; lo que queda es de otras slices o no es interfaz", () => {
@@ -179,13 +180,13 @@ test("alcance frente a " + BASE + ": solo el cromo del editor; undoS1 da la base
   assert.deepEqual(Object.keys(PIECES).sort(), FILES);
   const SERVED = ["js", "s", "css", "assets", "index.html", "404.html", "sw.js", "manifest.webmanifest", "docs", "ejemplos", "privacidad", "privacy", "soporte", "support", "terminos", "terms"];
   /* S2a va encima: lo que solo cambia S2a (sin S2a, igual que la base) no cuenta para el alcance de S1 */
-  const s2aOnly = (f) => (!!PIECES_S2A[f] || !!PIECES_S4[f] || !!PIECES_S2B[f] || !!PIECES_S3A[f]) && !FILES.includes(f) && undoS2a(f, read(f)) === atBase(f);
+  const s2aOnly = (f) => NEW_EX.includes(f) || ((!!PIECES_S2A[f] || !!PIECES_S4[f] || !!PIECES_S2B[f] || !!PIECES_S3A[f] || !!PIECES_EX[f]) && !FILES.includes(f) && undoS2a(f, read(f)) === atBase(f));
   const changed = execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean).filter((f) => !s2aOnly(f));
   const untracked = execFileSync("git", ["-C", gitRoot, "ls-files", "--others", "--exclude-standard", "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean).filter((f) => !s2aOnly(f));
   assert.deepEqual([...new Set([...changed, ...untracked])].sort(), [...FILES, "sw.js"].sort());
   for (const f of FILES) assert.equal(undoS1(f, read(f)), atBase(f), f + ": undoS1 exacto");
-  assert.equal(read("sw.js").replace('"fluyo-static-v115"', '"fluyo-static-v' + (110 - 1) + '"'), atBase("sw.js"), "sw.js: solo CACHE (sin archivos nuevos)");
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v115";/);
+  assert.equal(undoEx("sw.js", read("sw.js")).replace('"fluyo-static-v116"', '"fluyo-static-v' + (110 - 1) + '"'), atBase("sw.js"), "sw.js: solo CACHE (sin archivos nuevos)");
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v116";/);
   assert.ok(read("test/fluyo-i18n-002-s0-undo.cjs").includes("src = undoS1(file, src);"), "undoS0 deshace antes esta tarea");
   for (const f of ["js/config.js", "js/safe-svg.js", "js/model.js", "js/scenario-engine.js", "js/scenario-playback.js", "js/story-playback.js", "js/document-integrity.js", "js/story-authoring.js",
     "js/story-clock.js", "js/flow-semantics.js", "js/render.js", "js/selection.js", "js/editor-scenarios.js", "js/present-story.js", "js/viewer.js", "js/viewer-viewport.js", "js/share-url.js",

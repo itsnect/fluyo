@@ -32,6 +32,7 @@ const undo4 = (f, src) => undo4only(f, undo5(f, src));
 const undo3 = (f, src) => undo3only(f, undoReverse(f, undoReverseUi(f, undo4(f, src))));
 const { undoSemantics } = require("./fluyo-scenarios-semantics-undo.cjs");   /* SCENARIOS-SEMANTICS-001 (FASE 1) cambia a propósito model.js, geometry.js, render.js, ui.js, index.html y styles.css: se deshace aquí; su alcance lo vigila test/fluyo-scenarios-semantics-1.test.cjs */
 const root = path.resolve(__dirname, "..");
+const { historicalExamples } = require("./corpus-historico.cjs");   /* FLUYO-EXAMPLES-001: el corpus de esta slice es el de su commit; los ejemplos nuevos los cubren sus propios tests */
 const read = (f) => fs.readFileSync(path.join(root, f), "utf8").replace(/\r\n/g, "\n");
 const gitRoot = process.env.FLUYO_GIT_ROOT || root;
 const atBase = (f) => execFileSync("git", ["-C", gitRoot, "show", BASE4A + ":" + f], { encoding: "utf8" }).replace(/\r\n/g, "\n");
@@ -232,7 +233,7 @@ test("convexidad · las capas cerradas y rellenas de skinNode son convexas en to
 /* ───────── corpus ───────── */
 const corpusPages = () => {
   const out = [];
-  for (const f of fs.readdirSync(path.join(root, "ejemplos/data"))) { const j = JSON.parse(read("ejemplos/data/" + f)); j.doc.pages.forEach((p, i) => out.push({ f: f + "#" + i, p })); }
+  for (const f of historicalExamples(root)) { const j = JSON.parse(read("ejemplos/data/" + f)); j.doc.pages.forEach((p, i) => out.push({ f: f + "#" + i, p })); }
   for (const f of ["test/fixtures/fluyo-019-2-skin.fluyo.json"]) { const j = JSON.parse(read(f)); j.doc.pages.forEach((p, i) => out.push({ f: path.basename(f) + "#" + i, p })); }
   for (const c of JSON.parse(read("test/fixtures/fluyo-019-d6-capas.json")).cases) out.push({ f: "d6:" + c.name, p: { nodes: c.nodes, edges: c.edges } });
   return out;
@@ -397,8 +398,8 @@ test("alcance · frente a 22f82eb solo cambian skin.js (aterrizaje), render.js (
     "js/editor-scenarios.js", "js/present-story.js", "js/share-url.js", "js/deeplink.js", "index.html", "s/index.html", "css/styles.css", "css/system.css"])
     if (fs.existsSync(path.join(root, f))) assert.equal(undoSemantics(f, undo4b(f, undo3(f, read(f)))), atBase(f), f + " idéntico");
   const sw = undo3("sw.js", read("sw.js"));
-  assert.match(sw, /const CACHE = "fluyo-static-v115";/);
-  assert.equal(sw.replace('"fluyo-static-v115"', '"fluyo-static-v' + (93 - 1) + '"'), atBase("sw.js"), "sw.js: solo cambia CACHE");
+  assert.match(sw, /const CACHE = "fluyo-static-v116";/);
+  assert.equal(sw.replace('"fluyo-static-v116"', '"fluyo-static-v' + (93 - 1) + '"'), atBase("sw.js"), "sw.js: solo cambia CACHE");
   /* la piel en sí no cambia: mismas capas, extensión, orden, voz y anillo */
   const fn = (src, name) => { const i = src.indexOf("function " + name + "("); assert.ok(i >= 0, name); const j = src.indexOf("\n}\n", i); return src.slice(i, j); };
   for (const name of ["skinNode", "skinExtent", "skinPaintOrder", "skinLabelFont", "skinEdgePort", "skinTones", "skinColor", "skinFaces", "skinHasSkin", "skinActive"])

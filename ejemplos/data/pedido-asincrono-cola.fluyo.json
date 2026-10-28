@@ -1,0 +1,400 @@
+{
+  "version": 5,
+  "app": "fluyo",
+  "doc": {
+    "theme": "crema",
+    "customBg": "",
+    "cur": 0,
+    "nextEventTypeId": 5,
+    "eventTypes": [
+      {
+        "id": 1,
+        "name": "Petición",
+        "primitive": "FLOW",
+        "sentenceTemplate": "{source} pide a {target}",
+        "visual": {
+          "kind": "token",
+          "value": "●"
+        },
+        "motion": "normal"
+      },
+      {
+        "id": 2,
+        "name": "Respuesta",
+        "primitive": "FLOW",
+        "sentenceTemplate": "{source} responde a {target}",
+        "visual": {
+          "kind": "token",
+          "value": "◆"
+        },
+        "motion": "normal"
+      },
+      {
+        "id": 3,
+        "name": "Caída",
+        "primitive": "SET_AVAILABILITY",
+        "sentenceTemplate": "{target} deja de responder",
+        "availability": "DOWN",
+        "visual": {
+          "kind": "token",
+          "value": "✕"
+        }
+      },
+      {
+        "id": 4,
+        "name": "Proceso",
+        "primitive": "OCCURRENCE",
+        "sentenceTemplate": "{target} procesa",
+        "visual": {
+          "kind": "token",
+          "value": "⚙"
+        },
+        "presentation": {
+          "nodeEffects": {
+            "highlight": true
+          }
+        }
+      }
+    ],
+    "pages": [
+      {
+        "name": "Pedido asíncrono con cola",
+        "nextId": 12,
+        "behaviors": [],
+        "nextScenarioId": 3,
+        "nodes": [
+          {
+            "id": 1,
+            "shape": "icon",
+            "x": 200,
+            "y": 160,
+            "w": 120,
+            "h": 92,
+            "label": "Cliente",
+            "color": "#6a9fb5",
+            "fill": null,
+            "border": "solid",
+            "lblPos": "center",
+            "textBg": null,
+            "font": null,
+            "bold": false,
+            "pulse": false,
+            "order": 1,
+            "icon": "user"
+          },
+          {
+            "id": 2,
+            "shape": "rect",
+            "x": 500,
+            "y": 160,
+            "w": 180,
+            "h": 70,
+            "label": "API",
+            "color": "#9b7fb5",
+            "fill": null,
+            "border": "solid",
+            "lblPos": "center",
+            "textBg": null,
+            "font": null,
+            "bold": false,
+            "pulse": false,
+            "order": 2
+          },
+          {
+            "id": 3,
+            "shape": "icon",
+            "x": 500,
+            "y": 380,
+            "w": 120,
+            "h": 92,
+            "label": "Cola de eventos",
+            "color": "#d08b5b",
+            "fill": null,
+            "border": "solid",
+            "lblPos": "center",
+            "textBg": null,
+            "font": null,
+            "bold": false,
+            "pulse": false,
+            "order": 3,
+            "icon": "queue"
+          },
+          {
+            "id": 4,
+            "shape": "rect",
+            "x": 820,
+            "y": 380,
+            "w": 180,
+            "h": 70,
+            "label": "DLQ (mensajes fallidos)",
+            "color": "#8f8f8f",
+            "fill": null,
+            "border": "solid",
+            "lblPos": "center",
+            "textBg": null,
+            "font": null,
+            "bold": false,
+            "pulse": false,
+            "order": 4
+          },
+          {
+            "id": 5,
+            "shape": "rect",
+            "x": 340,
+            "y": 600,
+            "w": 180,
+            "h": 70,
+            "label": "Pagos",
+            "color": "#c9b458",
+            "fill": null,
+            "border": "solid",
+            "lblPos": "center",
+            "textBg": null,
+            "font": null,
+            "bold": false,
+            "pulse": false,
+            "order": 5
+          },
+          {
+            "id": 6,
+            "shape": "rect",
+            "x": 660,
+            "y": 600,
+            "w": 180,
+            "h": 70,
+            "label": "Envíos",
+            "color": "#7bb85b",
+            "fill": null,
+            "border": "solid",
+            "lblPos": "center",
+            "textBg": null,
+            "font": null,
+            "bold": false,
+            "pulse": false,
+            "order": 6
+          }
+        ],
+        "edges": [
+          {
+            "id": 7,
+            "from": 1,
+            "to": 2,
+            "route": "straight",
+            "fromSide": null,
+            "toSide": null,
+            "waypoints": [],
+            "label": "",
+            "font": null,
+            "bold": false,
+            "endArrow": true,
+            "startArrow": false,
+            "flowDir": "normal"
+          },
+          {
+            "id": 8,
+            "from": 2,
+            "to": 3,
+            "route": "straight",
+            "fromSide": null,
+            "toSide": null,
+            "waypoints": [],
+            "label": "",
+            "font": null,
+            "bold": false,
+            "endArrow": true,
+            "startArrow": false,
+            "flowDir": "normal"
+          },
+          {
+            "id": 9,
+            "from": 3,
+            "to": 5,
+            "route": "straight",
+            "fromSide": null,
+            "toSide": null,
+            "waypoints": [],
+            "label": "",
+            "font": null,
+            "bold": false,
+            "endArrow": true,
+            "startArrow": false,
+            "flowDir": "normal"
+          },
+          {
+            "id": 10,
+            "from": 3,
+            "to": 6,
+            "route": "straight",
+            "fromSide": null,
+            "toSide": null,
+            "waypoints": [],
+            "label": "",
+            "font": null,
+            "bold": false,
+            "endArrow": true,
+            "startArrow": false,
+            "flowDir": "normal"
+          },
+          {
+            "id": 11,
+            "from": 3,
+            "to": 4,
+            "route": "straight",
+            "fromSide": null,
+            "toSide": null,
+            "waypoints": [],
+            "label": "",
+            "font": null,
+            "bold": false,
+            "endArrow": true,
+            "startArrow": false,
+            "flowDir": "normal"
+          }
+        ],
+        "scenarios": [
+          {
+            "id": 1,
+            "engineVersion": 2,
+            "name": "Un pedido",
+            "nextStepId": 8,
+            "steps": [
+              {
+                "id": 1,
+                "at": 0,
+                "action": "SEND",
+                "edgeId": 7,
+                "eventTypeId": 1,
+                "message": "El cliente envía el pedido"
+              },
+              {
+                "id": 2,
+                "at": 2400,
+                "action": "SEND",
+                "edgeId": 8,
+                "eventTypeId": 1,
+                "message": "La API publica «pedido creado» en la cola"
+              },
+              {
+                "id": 3,
+                "at": 2400,
+                "action": "SEND",
+                "edgeId": 7,
+                "eventTypeId": 2,
+                "message": "El cliente ya tiene «Recibido»: no espera al resto",
+                "reverse": true
+              },
+              {
+                "id": 4,
+                "at": 4800,
+                "action": "SEND",
+                "edgeId": 9,
+                "eventTypeId": 1,
+                "message": "Pagos lee el evento…"
+              },
+              {
+                "id": 5,
+                "at": 4800,
+                "action": "SEND",
+                "edgeId": 10,
+                "eventTypeId": 1,
+                "message": "…y Envíos lee el mismo evento, a la vez"
+              },
+              {
+                "id": 6,
+                "at": 7200,
+                "action": "OCCURRENCE",
+                "nodeId": 5,
+                "eventTypeId": 4,
+                "message": "Pagos cobra, por su cuenta"
+              },
+              {
+                "id": 7,
+                "at": 7200,
+                "action": "OCCURRENCE",
+                "nodeId": 6,
+                "eventTypeId": 4,
+                "message": "Envíos reserva el transporte, por su cuenta"
+              }
+            ]
+          },
+          {
+            "id": 2,
+            "engineVersion": 2,
+            "name": "Un mensaje que falla",
+            "nextStepId": 8,
+            "steps": [
+              {
+                "id": 1,
+                "at": 0,
+                "action": "SET_STATE",
+                "nodeId": 5,
+                "eventTypeId": 3,
+                "message": "Pagos está caído",
+                "state": "DOWN"
+              },
+              {
+                "id": 2,
+                "at": 2400,
+                "action": "SEND",
+                "edgeId": 7,
+                "eventTypeId": 1,
+                "message": "El cliente envía el pedido"
+              },
+              {
+                "id": 3,
+                "at": 4800,
+                "action": "SEND",
+                "edgeId": 8,
+                "eventTypeId": 1,
+                "message": "La API publica «pedido creado» en la cola"
+              },
+              {
+                "id": 4,
+                "at": 4800,
+                "action": "SEND",
+                "edgeId": 7,
+                "eventTypeId": 2,
+                "message": "El cliente ya tiene «Recibido»",
+                "reverse": true
+              },
+              {
+                "id": 5,
+                "at": 7200,
+                "action": "SEND",
+                "edgeId": 9,
+                "eventTypeId": 1,
+                "message": "El mensaje no llega a Pagos"
+              },
+              {
+                "id": 6,
+                "at": 7200,
+                "action": "SEND",
+                "edgeId": 10,
+                "eventTypeId": 1,
+                "message": "Envíos lo procesa igual: no depende de Pagos"
+              },
+              {
+                "id": 7,
+                "at": 9600,
+                "action": "SEND",
+                "edgeId": 11,
+                "eventTypeId": 1,
+                "message": "El mensaje fallido queda en la DLQ para reintentarlo"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "settings": {
+    "speed": 0.5,
+    "dots": 3,
+    "build": false,
+    "stagger": 0.45,
+    "grid": false,
+    "snap": false,
+    "font": "Georgia, serif",
+    "single": false
+  }
+}

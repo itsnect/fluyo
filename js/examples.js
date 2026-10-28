@@ -38,23 +38,40 @@
    bloqueado y el enlace profundo no carga. El editor funciona igual; solo este
    atajo necesita un servidor, aunque sea `python -m http.server`. */
 
-/* Lista blanca. Añadir un ejemplo = un archivo en ejemplos/data/ y una línea
-   aquí. El texto es el que se usa como nombre visible del diagrama. */
-/* El orden es el de la galería: primero los procesos de negocio, que es lo que
-   busca quien no viene del mundo del software. Aquí es solo cosmética —este mapa
-   es una lista blanca de slugs y una fuente de nombres, no dibuja nada— pero
-   mantenerlo alineado con /ejemplos evita que diverjan. */
+/* Lista blanca. Añadir un ejemplo = un archivo en ejemplos/data/ y una línea aquí. Solo importa la clave (el slug); el nombre
+   visible es el de la página dentro del propio JSON, en el idioma de su edición. */
+/* FLUYO-EXAMPLES-001: 1 = catálogo de /ejemplos, y todos traen dos Historias (regla de producto: ningún ejemplo publicado es
+   solo un diagrama estático); «compra-online» es además el del botón «Ejemplo». 0 = RETIRADO: no se lista en la galería, pero
+   su slug sigue cargando su JSON de siempre para no romper enlaces publicados. */
 const EXAMPLES = {
-  "funnel-de-ventas":            "Funnel de ventas",
-  "onboarding-de-cliente":       "Onboarding de cliente",
-  "cadena-de-suministro":        "Cadena de suministro",
-  "kafka-event-pipeline":        "Pipeline de eventos con Apache Kafka",
-  "microservicios-api-gateway":  "Arquitectura de microservicios con API Gateway",
-  "oauth2-flujo-autenticacion":  "Flujo de autenticación OAuth 2.0",
-  "pipeline-etl-datos":          "Pipeline ETL de datos",
-  "arquitectura-serverless-aws": "Arquitectura serverless en AWS",
+  "compra-online":               1,
+  "inicio-de-sesion-oauth2":     1,
+  "pedido-asincrono-cola":       1,
+  "oauth2-flujo-autenticacion":  0,
+  "funnel-de-ventas":            0,
+  "onboarding-de-cliente":       0,
+  "cadena-de-suministro":        0,
+  "kafka-event-pipeline":        0,
+  "microservicios-api-gateway":  0,
+  "pipeline-etl-datos":          0,
+  "arquitectura-serverless-aws": 0,
 };
 const EXAMPLES_DIR = "ejemplos/data/";
+/* Ediciones escritas a mano en otros idiomas (misma estructura, solo cambia el texto). El idioma se elige al CARGAR, según
+   la interfaz de quien lo abre; después el documento es suyo y no se retraduce (decisión 260). Sin edición → la española. */
+const EXAMPLE_EDITIONS = {
+  "compra-online":              ["en"],
+  "inicio-de-sesion-oauth2": ["en"],
+  "pedido-asincrono-cola":      ["en"],
+};
+const EXAMPLE_DEMO = "compra-online";
+function exampleDataUrl(slug){
+  const loc=FluyoI18n.locale(), eds=EXAMPLE_EDITIONS[slug]||[];
+  return EXAMPLES_DIR+(eds.includes(loc) ? loc+"/" : "")+slug+".fluyo.json";
+}
+function fetchExample(slug){
+  return fetch(exampleDataUrl(slug)).then(r=>{ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); });
+}
 
 /* Se resuelve al cargar el script, antes que ui.js, para que este sepa que hay
    un documento en camino y no ofrezca restaurar la sesión por su cuenta. */
@@ -71,8 +88,7 @@ const EXAMPLE_SLUG = (()=>{
 
 function loadExampleFromURL(){
   if(!EXAMPLE_SLUG) return;
-  fetch(EXAMPLES_DIR+EXAMPLE_SLUG+".fluyo.json")
-    .then(r=>{ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); })
+  fetchExample(EXAMPLE_SLUG)
     .then(d=>{
       /* Ya no se aplica a lo bruto. Si hay una sesión guardada, esto abre el
          modal de conflicto y la decisión es de quien está delante; si no la
@@ -83,7 +99,12 @@ function loadExampleFromURL(){
         paginaLabel:FluyoI18n.t("incoming.addExample","Añadir el ejemplo como página nueva"),
         /* El evento cuenta el ejemplo que se llegó a ver, no el que se pidió:
            si la respuesta fue «seguir con lo mío», aquí no se cargó nada. */
-        onResuelto:eleccion=>{ if(eleccion!=="keep") trackEvent("example_loaded",{example:EXAMPLE_SLUG}); }
+        onResuelto:eleccion=>{
+          if(eleccion==="keep") return;
+          /* Con Historias, se abre en modo Historias con la primera seleccionada (export.js), como el botón «Ejemplo». */
+          showExampleStories();
+          trackEvent("example_loaded",{example:EXAMPLE_SLUG});
+        }
       });
     })
     .catch(err=>{

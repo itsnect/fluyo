@@ -670,23 +670,10 @@ FLUYO_LOCALES.en=Object.assign(FLUYO_LOCALES.en || {}, {
   /* rótulos preparados de dos grupos que el cajón hoy no pinta (decisión 288, D-S3-12 = a) */
   "drawer.groupSecurity":"Security",
   "drawer.groupDevOps":"DevOps",
-  /* FLUYO-I18N-002 S3a · el ejemplo incorporado (botón «Example», decisión 285) */
+  /* FLUYO-I18N-002 S3a · el ejemplo incorporado (botón «Example», decisión 285): el nombre de la página. Su contenido es la
+     edición inglesa escrita a mano de ejemplos/data/en/ (FLUYO-EXAMPLES-001), no claves de este diccionario. */
   "example.page":"Example",
   "example.pageN":"Example {n}",
-  "example.title":"Sales funnel",
-  "example.visitors":"Visitors",
-  "example.lead":"Registered\nlead",
-  "example.qualifies":"Qualified?",
-  "example.opportunity":"Opportunity",
-  "example.proposal":"Proposal\nsent",
-  "example.customer":"Customer",
-  "example.discarded":"Discarded",
-  "example.visit":"visit",
-  "example.form":"form",
-  "example.yes":"yes",
-  "example.demo":"demo",
-  "example.signature":"signature",
-  "example.no":"no",
   /* FLUYO-I18N-002 S3b · Propiedades: grupos, campo de contenido y nombres de forma (D-S3b-3: claves propias; D-S3b-4: una por contexto) */
   "prop.group.appearance":"Appearance",
   "prop.group.text":"Text",

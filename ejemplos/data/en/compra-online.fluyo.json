@@ -1,0 +1,355 @@
+{
+  "version": 5,
+  "app": "fluyo",
+  "doc": {
+    "theme": "crema",
+    "customBg": "",
+    "cur": 0,
+    "nextEventTypeId": 5,
+    "eventTypes": [
+      {
+        "id": 1,
+        "name": "Request",
+        "primitive": "FLOW",
+        "sentenceTemplate": "{source} asks {target}",
+        "visual": {
+          "kind": "token",
+          "value": "●"
+        },
+        "motion": "normal"
+      },
+      {
+        "id": 2,
+        "name": "Response",
+        "primitive": "FLOW",
+        "sentenceTemplate": "{source} answers {target}",
+        "visual": {
+          "kind": "token",
+          "value": "◆"
+        },
+        "motion": "normal"
+      },
+      {
+        "id": 3,
+        "name": "Outage",
+        "primitive": "SET_AVAILABILITY",
+        "sentenceTemplate": "{target} stops responding",
+        "availability": "DOWN",
+        "visual": {
+          "kind": "token",
+          "value": "✕"
+        }
+      }
+    ],
+    "pages": [
+      {
+        "name": "Online checkout",
+        "nextId": 10,
+        "behaviors": [],
+        "nextScenarioId": 3,
+        "nodes": [
+          {
+            "id": 1,
+            "shape": "icon",
+            "x": 200,
+            "y": 200,
+            "w": 120,
+            "h": 92,
+            "label": "Customer",
+            "color": "#6a9fb5",
+            "fill": null,
+            "border": "solid",
+            "lblPos": "center",
+            "textBg": null,
+            "font": null,
+            "bold": false,
+            "pulse": false,
+            "order": 1,
+            "icon": "user"
+          },
+          {
+            "id": 2,
+            "shape": "rect",
+            "x": 480,
+            "y": 200,
+            "w": 180,
+            "h": 70,
+            "label": "Online store",
+            "color": "#9b7fb5",
+            "fill": null,
+            "border": "solid",
+            "lblPos": "center",
+            "textBg": null,
+            "font": null,
+            "bold": false,
+            "pulse": false,
+            "order": 2
+          },
+          {
+            "id": 3,
+            "shape": "rect",
+            "x": 780,
+            "y": 200,
+            "w": 180,
+            "h": 70,
+            "label": "Warehouse",
+            "color": "#7bb85b",
+            "fill": null,
+            "border": "solid",
+            "lblPos": "center",
+            "textBg": null,
+            "font": null,
+            "bold": false,
+            "pulse": false,
+            "order": 3
+          },
+          {
+            "id": 4,
+            "shape": "rect",
+            "x": 480,
+            "y": 420,
+            "w": 180,
+            "h": 70,
+            "label": "Payments",
+            "color": "#d08b5b",
+            "fill": null,
+            "border": "solid",
+            "lblPos": "center",
+            "textBg": null,
+            "font": null,
+            "bold": false,
+            "pulse": false,
+            "order": 4
+          },
+          {
+            "id": 5,
+            "shape": "icon",
+            "x": 780,
+            "y": 420,
+            "w": 120,
+            "h": 92,
+            "label": "Bank",
+            "color": "#c9b458",
+            "fill": null,
+            "border": "solid",
+            "lblPos": "center",
+            "textBg": null,
+            "font": null,
+            "bold": false,
+            "pulse": false,
+            "order": 5,
+            "icon": "vault"
+          }
+        ],
+        "edges": [
+          {
+            "id": 6,
+            "from": 1,
+            "to": 2,
+            "route": "straight",
+            "fromSide": null,
+            "toSide": null,
+            "waypoints": [],
+            "label": "",
+            "font": null,
+            "bold": false,
+            "endArrow": true,
+            "startArrow": false,
+            "flowDir": "normal"
+          },
+          {
+            "id": 7,
+            "from": 2,
+            "to": 4,
+            "route": "straight",
+            "fromSide": null,
+            "toSide": null,
+            "waypoints": [],
+            "label": "",
+            "font": null,
+            "bold": false,
+            "endArrow": true,
+            "startArrow": false,
+            "flowDir": "normal"
+          },
+          {
+            "id": 8,
+            "from": 4,
+            "to": 5,
+            "route": "straight",
+            "fromSide": null,
+            "toSide": null,
+            "waypoints": [],
+            "label": "",
+            "font": null,
+            "bold": false,
+            "endArrow": true,
+            "startArrow": false,
+            "flowDir": "normal"
+          },
+          {
+            "id": 9,
+            "from": 2,
+            "to": 3,
+            "route": "straight",
+            "fromSide": null,
+            "toSide": null,
+            "waypoints": [],
+            "label": "",
+            "font": null,
+            "bold": false,
+            "endArrow": true,
+            "startArrow": false,
+            "flowDir": "normal"
+          }
+        ],
+        "scenarios": [
+          {
+            "id": 1,
+            "engineVersion": 2,
+            "name": "Successful purchase",
+            "nextStepId": 8,
+            "steps": [
+              {
+                "id": 1,
+                "at": 0,
+                "action": "SEND",
+                "edgeId": 6,
+                "eventTypeId": 1,
+                "message": "The customer taps “Pay” ($49)"
+              },
+              {
+                "id": 2,
+                "at": 2400,
+                "action": "SEND",
+                "edgeId": 7,
+                "eventTypeId": 1,
+                "message": "The store asks Payments to charge"
+              },
+              {
+                "id": 3,
+                "at": 4800,
+                "action": "SEND",
+                "edgeId": 8,
+                "eventTypeId": 1,
+                "message": "Payments asks the bank to authorize the card"
+              },
+              {
+                "id": 4,
+                "at": 7200,
+                "action": "SEND",
+                "edgeId": 8,
+                "eventTypeId": 2,
+                "message": "The bank authorizes the charge",
+                "reverse": true
+              },
+              {
+                "id": 5,
+                "at": 9600,
+                "action": "SEND",
+                "edgeId": 7,
+                "eventTypeId": 2,
+                "message": "Payments confirms to the store: charged",
+                "reverse": true
+              },
+              {
+                "id": 6,
+                "at": 9700,
+                "action": "SEND",
+                "edgeId": 9,
+                "eventTypeId": 1,
+                "message": "Only now does the store notify the warehouse"
+              },
+              {
+                "id": 7,
+                "at": 12100,
+                "action": "SEND",
+                "edgeId": 6,
+                "eventTypeId": 2,
+                "message": "The customer sees “Order confirmed”",
+                "reverse": true
+              }
+            ],
+            "arrivalDependencies": [
+              {
+                "stepId": 6,
+                "waitsForArrivalOf": [
+                  5
+                ]
+              }
+            ]
+          },
+          {
+            "id": 2,
+            "engineVersion": 2,
+            "name": "The bank doesn't respond",
+            "nextStepId": 7,
+            "steps": [
+              {
+                "id": 1,
+                "at": 0,
+                "action": "SEND",
+                "edgeId": 6,
+                "eventTypeId": 1,
+                "message": "The customer taps “Pay” ($49)"
+              },
+              {
+                "id": 2,
+                "at": 2400,
+                "action": "SEND",
+                "edgeId": 7,
+                "eventTypeId": 1,
+                "message": "The store asks Payments to charge"
+              },
+              {
+                "id": 3,
+                "at": 4800,
+                "action": "SET_STATE",
+                "nodeId": 5,
+                "eventTypeId": 3,
+                "message": "The bank stops responding",
+                "state": "DOWN"
+              },
+              {
+                "id": 4,
+                "at": 7200,
+                "action": "SEND",
+                "edgeId": 8,
+                "eventTypeId": 1,
+                "message": "Payments tries to authorize… no answer"
+              },
+              {
+                "id": 5,
+                "at": 9600,
+                "action": "SEND",
+                "edgeId": 7,
+                "eventTypeId": 2,
+                "message": "Payments tells the store: not charged",
+                "reverse": true
+              },
+              {
+                "id": 6,
+                "at": 12000,
+                "action": "SEND",
+                "edgeId": 6,
+                "eventTypeId": 2,
+                "message": "The customer sees “Payment not completed”",
+                "reverse": true
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "settings": {
+    "speed": 0.5,
+    "dots": 3,
+    "build": false,
+    "stagger": 0.45,
+    "grid": false,
+    "snap": false,
+    "font": "Georgia, serif",
+    "single": false
+  }
+}

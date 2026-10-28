@@ -17,6 +17,7 @@ const fs = require("node:fs"), path = require("node:path"), vm = require("node:v
 const { execFileSync } = require("node:child_process");
 const { editor, project, page } = require("./fluyo-018-7c-harness.cjs");
 const root = path.resolve(__dirname, "..");
+const { historicalExamples } = require("./corpus-historico.cjs");   /* FLUYO-EXAMPLES-001: el corpus de esta slice es el de su commit; los ejemplos nuevos los cubren sus propios tests */
 const read = (f) => fs.readFileSync(path.join(root, f), "utf8").replace(/\r\n/g, "\n");
 const gitRoot = process.env.FLUYO_GIT_ROOT || root;
 const BASE = "0409f4d";   // main al reintegrar (la línea congelada medía contra ce8e699)
@@ -70,7 +71,7 @@ test("D1 · null y valores que no son texto quitan la clave; un texto desconocid
   assert.deepEqual(es.map((e) => run(NOW, "edgeKind(__a)", e)), ["GENERIC", "GENERIC", "GENERIC", "GENERIC", "GENERIC", "GENERIC"]);
 });
 test("B4 · corpus (ejemplos + fixtures .fluyo.json): la carga es idéntica a la del model.js de " + BASE, () => {
-  const files = [...fs.readdirSync(path.join(root, "ejemplos", "data")).map((f) => "ejemplos/data/" + f),
+  const files = [...historicalExamples(root, BASE).map((f) => "ejemplos/data/" + f),
     ...fs.readdirSync(path.join(root, "test", "fixtures")).filter((f) => f.endsWith(".fluyo.json")).map((f) => "test/fixtures/" + f)].filter((f) => f.endsWith(".json"));
   let n = 0, edges = 0;
   for (const f of files) {
@@ -296,8 +297,8 @@ test("alcance · entre los archivos servidos solo cambian model.js, geometry.js,
   for (const f of ["js/config.js", "js/safe-svg.js", "js/scenario-engine.js", "js/scenario-playback.js", "js/story-playback.js", "js/document-integrity.js", "js/story-authoring.js",
     "js/story-clock.js", "js/skin.js", "js/viewer.js", "js/export.js", "js/state.js", "js/selection.js", "js/editor-scenarios.js", "s/index.html"]) assert.equal(undo4b(f, undo3(f, read(f))), before(f), f);
   const sw = undo3("sw.js", read("sw.js"));
-  assert.match(sw, /const CACHE = "fluyo-static-v115";/);
-  assert.equal(sw.replace('"fluyo-static-v115"', '"fluyo-static-v' + (94 - 1) + '"'), before("sw.js"), "sw.js: solo sube CACHE (sin archivos nuevos)");
+  assert.match(sw, /const CACHE = "fluyo-static-v116";/);
+  assert.equal(sw.replace('"fluyo-static-v116"', '"fluyo-static-v' + (94 - 1) + '"'), before("sw.js"), "sw.js: solo sube CACHE (sin archivos nuevos)");
   /* UNKNOWN sigue fuera (D3): el kernel solo admite UP/DOWN */
   assert.match(read("js/model.js"), /const SCENARIO_STATES=new Set\(\["UP","DOWN"\]\);/);
   assert.match(read("js/scenario-engine.js"), /const VALID_STATES = new Set\(\["UP", "DOWN"\]\);/);

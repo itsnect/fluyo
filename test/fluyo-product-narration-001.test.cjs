@@ -19,6 +19,7 @@ const fs = require("node:fs"), path = require("node:path"), vm = require("node:v
 const { execFileSync } = require("node:child_process");
 const { shellOnly, undoShell } = require("./fluyo-shell-001-undo.cjs");   /* FLUYO-SHELL-001 (páginas públicas, favicon, manifest): lo suyo se descuenta */
 const root = path.resolve(__dirname, "..");
+const { historicalExamples } = require("./corpus-historico.cjs");   /* FLUYO-EXAMPLES-001: el corpus de esta slice es el de su commit; los ejemplos nuevos los cubren sus propios tests */
 const read = (f) => fs.readFileSync(path.join(root, f), "utf8").replace(/\r\n/g, "\n");
 const gitRoot = process.env.FLUYO_GIT_ROOT || root;
 const BASE = "6925ffe";   // FLUYO-I18N-001 (CACHE v105), sobre FLUYO-018.30: esta tarea se integra encima
@@ -325,7 +326,7 @@ test("F1 · Share: el enlace #d= de la Historia conserva el message de los enví
 
 function corpus() {
   const files = [];
-  for (const dir of ["ejemplos/data", "test/fixtures"]) for (const f of fs.readdirSync(path.join(root, dir))) if (/\.json$/.test(f)) files.push(dir + "/" + f);
+  for (const dir of ["ejemplos/data", "test/fixtures"]) for (const f of (dir === "ejemplos/data" ? historicalExamples(root, BASE) : fs.readdirSync(path.join(root, dir)))) if (/\.json$/.test(f)) files.push(dir + "/" + f);
   return files;
 }
 test("F2 · documentos antiguos (ejemplos y fixtures): carga, guardado, integridad, Trace, outcomes, stepMeta y títulos IDÉNTICOS a " + BASE, () => {
@@ -387,10 +388,10 @@ test("G1 · caso real: con 2 eventos y message se lee la MISMA Historia que con 
 test("H1 · versiones: engineVersion 2 y version 5 (NO v3); sw.js sube a v106 y solo cambia la constante", () => {
   assert.equal(run("FluyoScenarios.ENGINE_VERSION"), 2);
   assert.equal(run("projectToSerializable({}, {}).version"), 5);
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v115";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v116";/);
   /* FLUYO-SW-VIEWER-001 va encima: su instalación del Viewer y sus navegaciones a /s/ se deshacen antes (undoSwv) */
   const { undoSwv } = require("./fluyo-sw-viewer-001-undo.cjs");
-  assert.equal(undoSwv("sw.js", read("sw.js")).replace('"fluyo-static-v115"', '"fluyo-static-v' + (106 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante (el precache no cambia)");
+  assert.equal(undoSwv("sw.js", read("sw.js")).replace('"fluyo-static-v116"', '"fluyo-static-v' + (106 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante (el precache no cambia)");
 });
 
 test("H2 · alcance frente a " + BASE + ": solo cambian estos archivos servidos (index.html y s/index.html, no) y undoNarr los devuelve EXACTOS", () => {

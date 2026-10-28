@@ -21,6 +21,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs"), path = require("node:path"), os = require("node:os"), http = require("node:http"), crypto = require("node:crypto");
 const { execFileSync } = require("node:child_process");
 const root = path.resolve(process.env.FLUYO_ROOT || path.join(__dirname, ".."));
+const { historicalExamples } = require("./corpus-historico.cjs");   /* FLUYO-EXAMPLES-001: el corpus de esta slice es el de su commit; los ejemplos nuevos los cubren sus propios tests */
 const BASE = "6701261";
 const GOLD = path.join(root, "test", "fixtures", "fluyo-scenarios-semantics-5-marcas-svg.json");
 const mime = { ".html": "text/html", ".js": "application/javascript", ".css": "text/css", ".json": "application/json", ".webmanifest": "application/manifest+json", ".svg": "image/svg+xml", ".png": "image/png", ".gif": "image/gif", ".woff2": "font/woff2" };
@@ -170,7 +171,7 @@ async function exportAndShare(browser, now, old) {
     await T.page.evaluate(() => scReset());
     check(during === svg, "exportar en plena reproducción (labs apagado): el mismo SVG, sin overlays");
     /* los 8 ejemplos (sin kind): SVG plano y construido y PNG idénticos a 6701261 */
-    const examples = fs.readdirSync(path.join(root, "ejemplos", "data")).filter((f) => /\.fluyo\.json$/.test(f));
+    const examples = historicalExamples(root, BASE).filter((f) => /\.fluyo\.json$/.test(f));
     let same = 0;
     for (const f of examples) {
       const d = JSON.parse(fs.readFileSync(path.join(root, "ejemplos", "data", f), "utf8"));

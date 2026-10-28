@@ -17,6 +17,7 @@ const fs = require("node:fs"), path = require("node:path"), vm = require("node:v
 const { execFileSync } = require("node:child_process");
 const { shellOnly } = require("./fluyo-shell-001-undo.cjs");   /* FLUYO-SHELL-001 (páginas públicas, favicon, manifest): lo suyo se descuenta */
 const root = path.resolve(__dirname, "..");
+const { historicalExamples } = require("./corpus-historico.cjs");   /* FLUYO-EXAMPLES-001: el corpus de esta slice es el de su commit; los ejemplos nuevos los cubren sus propios tests */
 const read = (f) => fs.readFileSync(path.join(root, f), "utf8").replace(/\r\n/g, "\n");
 const gitRoot = process.env.FLUYO_GIT_ROOT || root;
 const BASE = "ae0d619";   // main al empezar FASE 4 (producción v98)
@@ -607,7 +608,7 @@ test("D7 · N3: con la piel, donde se pinta el anillo de Requisito no se pinta e
 test("D8 · labs apagado = producción: un fotograma completo (render) sin `flow`, también reproduciendo, es el de " + BASE + " en los ejemplos (plano y con piel)", () => {
   const R = renderCtx(), OLD = renderCtx(atBase);
   let compared = 0;
-  for (const f of fs.readdirSync(path.join(root, "ejemplos/data")).filter((x) => /\.json$/.test(x))) {
+  for (const f of historicalExamples(root, BASE).filter((x) => /\.json$/.test(x))) {
     const d = JSON.parse(read("ejemplos/data/" + f));
     if (!d || d.app !== "fluyo" || !d.doc) continue;
     for (const skin of [false, true]) {
@@ -655,8 +656,8 @@ test("E2 · alcance frente a " + BASE + ": solo cambian render.js, editor-scenar
   const { NEW_FILES: NEW_I18N, undoI18n } = require("./fluyo-i18n-001-undo.cjs");   /* FLUYO-I18N-001 añade js/i18n.js y js/i18n-en.js (no existen en la base) */
   const mine = [...new Set([...changed, ...untracked])].filter((f) => !NEW_I18N.includes(f)).filter((f) => !((Object.keys(PIECES5).includes(f) || Object.keys(PIECES6).includes(f) || Object.keys(PIECESM).includes(f)) && read4(f) === atBase(f)));
   assert.deepEqual(mine.sort(), ["css/styles.css", "index.html", "js/editor-scenarios.js", "js/flow-semantics.js", "js/render.js", "sw.js"]);
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v115";/);
-  assert.equal(undoI18n("sw.js", read("sw.js")).replace('"fluyo-static-v115"', '"fluyo-static-v' + (99 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante (el precache no cambia)");
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v116";/);
+  assert.equal(undoI18n("sw.js", read("sw.js")).replace('"fluyo-static-v116"', '"fluyo-static-v' + (99 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante (el precache no cambia)");
   for (const f of ["js/model.js", "js/scenario-engine.js", "js/scenario-playback.js", "js/story-playback.js", "js/story-clock.js", "js/document-integrity.js", "js/story-authoring.js",
     "js/viewer.js", "js/present-story.js", "js/export.js", "js/geometry.js", "js/skin.js", "js/interaction.js", "js/ui.js", "s/index.html"])
     assert.equal(read4(f), atBase(f), f + " intacto (kernel del MCP, Viewer, Present y exportación)");

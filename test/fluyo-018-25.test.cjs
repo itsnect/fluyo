@@ -18,6 +18,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs"), path = require("node:path"), vm = require("node:vm");
 const { execFileSync } = require("node:child_process");
 const root = path.resolve(__dirname, "..");
+const { historicalExamples } = require("./corpus-historico.cjs");   /* FLUYO-EXAMPLES-001: el corpus de esta slice es el de su commit; los ejemplos nuevos los cubren sus propios tests */
 const read = (f) => fs.readFileSync(path.join(root, f), "utf8").replace(/\r\n/g, "\n");
 const gitRoot = process.env.FLUYO_GIT_ROOT || root;
 const head = (f) => execFileSync("git", ["-C", gitRoot, "show", "HEAD:" + f], { encoding: "utf8" }).replace(/\r\n/g, "\n");
@@ -302,7 +303,7 @@ const edgesOf = (G, data) => run(G, "(()=>{ const r=projectFromProjectData(__a);
 test("corpus publicado (ejemplos/data): 0 de 61 aristas cambian, byte a byte", () => {
   const dir = path.join(root, "ejemplos", "data");
   let total = 0;
-  for (const f of fs.readdirSync(dir).filter((f) => f.endsWith(".json")).sort()) {
+  for (const f of historicalExamples(root).filter((f) => f.endsWith(".json")).sort()) {
     const data = JSON.parse(fs.readFileSync(path.join(dir, f), "utf8"));
     const now = edgesOf(NOW, data), old = edgesOf(OLD, data);
     now.forEach((r, k) => assert.deepEqual(r, old[k], `${f} página ${r[0]} e${r[1]} cambia`));
@@ -427,5 +428,5 @@ test("alcance: solo los archivos del contrato; kernel, model.js, config.js y edg
     assert.equal(read(f), head(f), f + " no se toca");
   const es = (s) => slice(s, "function edgeStroke(", "\n}\n");
   assert.equal(es(read("js/geometry.js")), es(head("js/geometry.js")), "edgeStroke idéntico");
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v115";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v116";/);
 });

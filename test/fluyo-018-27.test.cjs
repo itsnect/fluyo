@@ -14,6 +14,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs"), path = require("node:path"), vm = require("node:vm");
 const { execFileSync } = require("node:child_process");
 const root = path.resolve(__dirname, "..");
+const { historicalExamples } = require("./corpus-historico.cjs");   /* FLUYO-EXAMPLES-001: el corpus de esta slice es el de su commit; los ejemplos nuevos los cubren sus propios tests */
 const read = (f) => fs.readFileSync(path.join(root, f), "utf8").replace(/\r\n/g, "\n");
 const gitRoot = process.env.FLUYO_GIT_ROOT || root;
 const head = (f) => execFileSync("git", ["-C", gitRoot, "show", "HEAD:" + f], { encoding: "utf8" }).replace(/\r\n/g, "\n");
@@ -36,7 +37,7 @@ const near = (a, b, eps = 1e-9) => Math.abs(a - b) < eps;
 const rect = (id, x, y, w = 180, h = 70) => ({ id, shape: "rect", x, y, w, h, label: "" });
 const edge = (id, from, to, o = {}) => ({ id, from, to, route: "ortho", fromSide: null, toSide: null, waypoints: [], ...o });
 const pg = (nodes, edges) => ({ name: "P", nodes, edges, nextId: 99, behaviors: [], scenarios: [], nextScenarioId: 1 });
-const CORPUS = fs.readdirSync(path.join(root, "ejemplos", "data")).filter((f) => f.endsWith(".json")).map((f) => ({ name: f, doc: JSON.parse(read("ejemplos/data/" + f)) }));
+const CORPUS = historicalExamples(root).filter((f) => f.endsWith(".json")).map((f) => ({ name: f, doc: JSON.parse(read("ejemplos/data/" + f)) }));
 /* trazos de todas las aristas de una página, con un `arrowSize` opcional superpuesto */
 const strokes = (G, page, size) => run(G, "doc.pages=[__a.page]; doc.cur=0; P().edges.map(e=>{ const ee=Object.assign({}, e); if(__a.size!==undefined) ee.arrowSize=__a.size; return {id:e.id, pts:edgePoints(e), st:edgeStroke(ee, edgePoints(e))}; })", { page, size });
 
@@ -286,7 +287,7 @@ test("alcance · rutas (edgePoints, orthoRoute, parallelLane, laneLayout, handle
   assert.equal(sin, mo, "model.js = HEAD + las seis ediciones de 018.27 (kernel, Historias, clonado, integridad: intactos)");
 });
 test("release · CACHE v84; fluyo-mcp (si está al lado) lleva el kernel resincronizado y el port de svg.ts con el mismo factor", () => {
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v115";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v116";/);
   const mcp = path.resolve(root, "..", "fluyo-mcp");
   if (!fs.existsSync(path.join(mcp, "src", "svg.ts"))) return;
   const kernel = fs.readFileSync(path.join(mcp, "src", "generated", "kernel-sources.ts"), "utf8");

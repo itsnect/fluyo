@@ -19,6 +19,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs"), path = require("node:path"), os = require("node:os"), http = require("node:http");
 const { execFileSync } = require("node:child_process");
 const root = path.resolve(process.env.FLUYO_ROOT || path.join(__dirname, ".."));
+const { historicalExamples } = require("./corpus-historico.cjs");   /* FLUYO-EXAMPLES-001: el corpus de esta slice es el de su commit; los ejemplos nuevos los cubren sus propios tests */
 const QUICK = !!process.env.FLUYO_QUICK, UPDATE = process.env.FLUYO_UPDATE_GOLDEN === "1";
 const shots = process.env.FLUYO_SHOTS || fs.mkdtempSync(path.join(os.tmpdir(), "fluyo-019-2-"));
 fs.mkdirSync(shots, { recursive: true });
@@ -46,7 +47,7 @@ function headTree(rev = "HEAD") {
 }
 let failed = 0, passed = 0;
 const check = (cond, msg) => { if (cond) { passed++; console.log("  ✔ " + msg); } else { failed++; console.log("  ✘ " + msg); } };
-const ALL_EXAMPLES = fs.readdirSync(path.join(root, "ejemplos", "data")).filter((f) => f.endsWith(".fluyo.json")).map((f) => f.replace(".fluyo.json", ""));
+const ALL_EXAMPLES = historicalExamples(root).filter((f) => f.endsWith(".fluyo.json")).map((f) => f.replace(".fluyo.json", ""));
 const EXAMPLES = QUICK ? ALL_EXAMPLES.slice(0, 2) : ALL_EXAMPLES;
 const STORY = fs.readFileSync(path.join(root, "test", "fixtures", "fluyo-017-1-cliente-kafka-comercio.fluyo.json"), "utf8");
 /* la misma extracción que test/fluyo-019-2.test.cjs (y la que portará el MCP en 019.3) */
@@ -367,16 +368,16 @@ async function main() {
         check(true, "0409f4d servido: caché fluyo-static-v93 instalada y worker activado");
         sw.state.dir = root;
         await pg.evaluate(async () => { const r = await navigator.serviceWorker.getRegistration(); await r.update(); });
-        await installed("fluyo-static-v115"); await activated();
+        await installed("fluyo-static-v116"); await activated();
         await until(async () => !(await caches.keys()).includes("fluyo-static-v93"), null, "v93 borrada");
-        const after = await pg.evaluate(async () => { const r = await navigator.serviceWorker.getRegistration(); const c = await caches.open("fluyo-static-v115"); return { state: r.active.state, entries: (await c.keys()).length, keys: await caches.keys() }; });
-        check(after.state === "activated" && after.entries >= 50 && after.keys.join() === "fluyo-static-v115", `árbol nuevo: v95 instalada (${after.entries} entradas) y activada (skipWaiting + claim), v93 borrada`);
+        const after = await pg.evaluate(async () => { const r = await navigator.serviceWorker.getRegistration(); const c = await caches.open("fluyo-static-v116"); return { state: r.active.state, entries: (await c.keys()).length, keys: await caches.keys() }; });
+        check(after.state === "activated" && after.entries >= 50 && after.keys.join() === "fluyo-static-v116", `árbol nuevo: v95 instalada (${after.entries} entradas) y activada (skipWaiting + claim), v93 borrada`);
         await pg.close();
         const vw = await ctx.newPage(), errs = [];
         vw.on("pageerror", (e) => errs.push(e.message));
         await vw.goto(sw.base + "/s/#d=" + payloads.crema.built); await vw.waitForFunction(() => window.__viewer && window.__viewer.phase === "ready");
         await vw.evaluate(VIEWER_HELPERS); await vw.evaluate(() => __v.frame());
-        const fromSW = await vw.evaluate(async () => { const c = await caches.open("fluyo-static-v115"); return !!(await c.match(location.origin + "/js/skin.js")); });
+        const fromSW = await vw.evaluate(async () => { const c = await caches.open("fluyo-static-v116"); return !!(await c.match(location.origin + "/js/skin.js")); });
         const vtp = await vw.evaluate((id) => __v.top(id), ids.w1);
         const tone = await vw.evaluate((id) => __v.hex(skinTones(nodeById(id).color, doc.theme, __v.bg()).top), ids.w1);
         check(fromSW && (await vw.evaluate(() => typeof skinNode)) === "function" && await vw.evaluate(([p, c]) => __v.near(__v.px(p), c), [vtp, tone]) && errs.length === 0, "tras el upgrade, el Viewer sirve skin.js desde la caché v95 y pinta construido");

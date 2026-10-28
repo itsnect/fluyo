@@ -49,35 +49,22 @@ $("incomingKeep").onclick=incomingKeepMine;
 
 /* ===================== Ejemplo ===================== */
 /* ===================== El botón «Ejemplo» =====================
-   Es la única muestra que ve quien aterriza en la portada, y el 94 % del tráfico
-   aterriza ahí: la galería de /ejemplos vive detrás de un enlace en el pie.
+   Es la única muestra que ve quien aterriza en la portada, y el 94 % del tráfico aterriza ahí.
 
-   Por eso carga un FUNNEL DE VENTAS y no una arquitectura. Antes cargaba un
-   pipeline de pagos con Kafka —el artefacto más técnico de todo el producto—
-   detrás del único botón que alguien con curiosidad pulsa en los primeros diez
-   segundos. Alguien que quiere diagramar un proceso de negocio veía eso y
-   concluía, con razón, que la herramienta no era para él.
+   FLUYO-EXAMPLES-001: carga el ejemplo canónico de la galería, «Compra online», con sus dos Historias («Compra con éxito» y
+   «El banco no responde»), y lo abre en modo Historias con la primera seleccionada: lo primero que se ve es «▶ Reproducir» y
+   las frases de los pasos, no un diagrama estático. Antes era un funnel cableado aquí, sin Historias, que no estaba en la
+   galería: ya no hay dos «ejemplos base».
 
-   No le quita nada a los técnicos: este diagrama estaba cableado aquí, no es
-   ninguno de los ocho de la galería y no se puede enlazar. Sustituirlo no retira
-   nada del catálogo.
+   Una sola fuente de verdad, el JSON de ejemplos/data/ (edición del idioma de la interfaz, js/examples.js). Funciona sin red
+   porque ese JSON está en la lista OBLIGATORIA de sw.js, que era lo que justificaba tenerlo cableado.
 
-   Se mantiene cableado en vez de hacer fetch del JSON a propósito: así el botón
-   funciona en la primera carga sin red, sin depender de que el service worker ya
-   haya precacheado el archivo.
-
-   Y se mantiene el slug "demo" en el evento para no partir la serie histórica.
-
-   Enciende `build`: la aparición escalonada es lo que hace que un funnel se lea
-   como un proceso y no como un dibujo, y es el diferenciador del producto. Es lo
-   mismo que traen los tres ejemplos de negocio en sus `settings`. */
-/* FLUYO-018.12 (D9): «Ejemplo» abre el funnel en una página NUEVA y nunca toca la
-   actual. Antes vaciaba la página activa (nodos y conexiones) y la única vuelta
-   atrás era Ctrl+Z: con el dedo, el trabajo se perdía. La página se crea con la
-   misma autoridad que «＋» (createPageIn) y, como crear páginas, queda fuera de
-   Undo: no destruye nada que haya que recuperar, y se elimina como cualquier otra. */
-/* FLUYO-I18N-002 S3a (decisiones 282 y 285): la página y las etiquetas del ejemplo nacen en el idioma de la interfaz; después son
-   contenido. El nombre libre se busca en ese idioma («Example», «Example 2»…). */
+   Se mantiene el slug "demo" en el evento para no partir la serie histórica. */
+/* FLUYO-018.12 (D9): «Ejemplo» abre el ejemplo en una página NUEVA y nunca toca la actual. Como crear páginas, queda fuera de
+   Undo: no destruye nada que haya que recuperar, y se elimina como cualquier otra. Sus EventTypes entran con ids nuevos
+   (importPagesIn, la misma autoridad que «Añadir como página nueva»). */
+/* FLUYO-I18N-002 S3a (decisiones 282 y 285): el nombre de la página nace en el idioma de la interfaz; después es contenido.
+   El nombre libre se busca en ese idioma («Example», «Example 2»…). */
 function examplePageName(){
   const used=new Set(doc.pages.map(p=>p.name));
   const first=FluyoI18n.t("example.page","Ejemplo");
@@ -85,30 +72,33 @@ function examplePageName(){
   let k=2; while(used.has(FluyoI18n.t("example.pageN","Ejemplo {n}",{n:k}))) k++;
   return FluyoI18n.t("example.pageN","Ejemplo {n}",{n:k});
 }
+/* Modo Historias con la primera Historia de la página actual seleccionada (también lo usa ?ejemplo=, en js/examples.js). */
+function showExampleStories(){
+  const first=(P().scenarios||[])[0];
+  if(!first) return;
+  scSelectStory(first.id);
+  setUiMode("story");
+}
+let demoLoading=false;
 $("btnDemo").onclick=()=>{
   if(typeof isScenarioPlaybackActive==="function" && isScenarioPlaybackActive()){ if(typeof scReset==="function") scReset(); return; }
-  const r=createPageIn(doc, examplePageName()); doc.cur=r.pageIndex; clearSel();
-  const T=newNode("text",1180,300,{label:FluyoI18n.t("example.title","Funnel de ventas")}); T.color="#d08b5b"; T.w=620; T.order=0;
-  const A=newNode("icon",460,580,{icon:"users",label:FluyoI18n.t("example.visitors","Visitantes")}); A.color="#6a9fb5"; A.order=1;
-  const B=newNode("rect",790,580);  B.label=FluyoI18n.t("example.lead","Lead\nregistrado");  B.color="#6a9fb5"; B.order=2;
-  const C=newNode("diamond",1120,580); C.label=FluyoI18n.t("example.qualifies","¿Califica?");     C.color="#c9b458"; C.order=3;
-  const D=newNode("rect",1480,580); D.label=FluyoI18n.t("example.opportunity","Oportunidad");       D.color="#9b7fb5"; D.order=4;
-  const E2=newNode("rect",1810,580);E2.label=FluyoI18n.t("example.proposal","Propuesta\nenviada");E2.color="#9b7fb5";E2.order=5;
-  const F=newNode("circle",2130,580); F.label=FluyoI18n.t("example.customer","Cliente");         F.color="#7bb85b"; F.pulse=true; F.order=6;
-  const G=newNode("rect",1120,900); G.label=FluyoI18n.t("example.discarded","Descartado");        G.color="#8f8f8f"; G.order=7;
-  let e;
-  e=newEdge(A.id,B.id);  e.label=FluyoI18n.t("example.visit","visita");     e.fromSide="e"; e.toSide="w"; e.route="ortho";
-  e=newEdge(B.id,C.id);  e.label=FluyoI18n.t("example.form","formulario"); e.fromSide="e"; e.toSide="w"; e.route="ortho";
-  e=newEdge(C.id,D.id);  e.label=FluyoI18n.t("example.yes","sí");         e.fromSide="e"; e.toSide="w"; e.route="ortho";
-  e=newEdge(D.id,E2.id); e.label=FluyoI18n.t("example.demo","demo");       e.fromSide="e"; e.toSide="w"; e.route="ortho";
-  e=newEdge(E2.id,F.id); e.label=FluyoI18n.t("example.signature","firma");      e.fromSide="e"; e.toSide="w"; e.route="ortho";
-  e=newEdge(C.id,G.id);  e.label=FluyoI18n.t("example.no","no");         e.fromSide="s"; e.toSide="n"; e.route="ortho"; e.dashed=true;
-  settings.build=true; t0=performance.now(); pausedAt=0; syncProjectControls();
-  renderTabs();
-  centerView();
-  scheduleAutosave();
-  resetAnalyticsBaseline();
-  trackEvent("example_loaded",{example:"demo"});
+  if(demoLoading) return;
+  demoLoading=true;
+  fetchExample(EXAMPLE_DEMO)
+    .then(d=>{
+      const nd=documentFromProjectData(d);
+      nd.pages[0].name=examplePageName();
+      const {pageIndex}=importPagesIn(doc, nd);
+      doc.cur=pageIndex; clearSel();
+      renderTabs();
+      showExampleStories();
+      centerView();
+      scheduleAutosave();
+      resetAnalyticsBaseline();
+      trackEvent("example_loaded",{example:"demo"});
+    })
+    .catch(err=>{ console.warn(err); })   // sin red y sin caché: el botón no hace nada, como cualquier fetch fallido
+    .finally(()=>{ demoLoading=false; });
 };
 
 /* ===================== Exportación SVG ===================== */

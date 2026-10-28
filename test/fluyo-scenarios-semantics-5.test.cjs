@@ -17,6 +17,7 @@ const fs = require("node:fs"), path = require("node:path"), vm = require("node:v
 const { execFileSync } = require("node:child_process");
 const { shellOnly } = require("./fluyo-shell-001-undo.cjs");   /* FLUYO-SHELL-001 (páginas públicas, favicon, manifest): lo suyo se descuenta */
 const root = path.resolve(__dirname, "..");
+const { historicalExamples } = require("./corpus-historico.cjs");   /* FLUYO-EXAMPLES-001: el corpus de esta slice es el de su commit; los ejemplos nuevos los cubren sus propios tests */
 const read = (f) => fs.readFileSync(path.join(root, f), "utf8").replace(/\r\n/g, "\n");
 const gitRoot = process.env.FLUYO_GIT_ROOT || root;
 const BASE = "6701261";   // main al empezar FASE 5 (producción v99)
@@ -380,7 +381,7 @@ test("D1 · raster (PNG/JPG/GIF): las marcas salen al exportar, con N3; los over
 test("D2 · sin `kind`, la exportación raster de los ejemplos es la de " + BASE + " operación a operación (plano y piel)", () => {
   const R = renderCtx(), OLD = renderCtx(atBase);
   let n = 0;
-  for (const f of fs.readdirSync(path.join(root, "ejemplos/data")).filter((x) => /\.json$/.test(x))) {
+  for (const f of historicalExamples(root, BASE).filter((x) => /\.json$/.test(x))) {
     const d = JSON.parse(read("ejemplos/data/" + f));
     if (!d || d.app !== "fluyo" || !d.doc) continue;
     assert.ok(!JSON.stringify(d).includes('"kind"'), f + ": ningún ejemplo usa kind (premisa)");
@@ -399,7 +400,7 @@ test("D2 · sin `kind`, la exportación raster de los ejemplos es la de " + BASE
 test("D3 · SVG (export.js): sin `kind` cada conexión de los ejemplos sale byte a byte como en " + BASE + " (plano y piel); con kind, las marcas en el orden del lienzo y N3", () => {
   const R = renderCtx(), OLD = renderCtx(atBase);
   let edges = 0;
-  for (const f of fs.readdirSync(path.join(root, "ejemplos/data")).filter((x) => /\.json$/.test(x))) {
+  for (const f of historicalExamples(root, BASE).filter((x) => /\.json$/.test(x))) {
     const d = JSON.parse(read("ejemplos/data/" + f));
     if (!d || d.app !== "fluyo" || !d.doc) continue;
     for (const R2 of [R, OLD]) { R2.__d = J(d); vm.runInContext("doc = projectFromProjectData(__d).doc; doc.cur = 0; edgeLabelPos = new Map();", R2); }
@@ -443,7 +444,7 @@ test("E1 · validateProject: W2 y W3 son avisos (no cambian `valid`) y solo exis
   const K = context(read, INTEGRITY), OLD = context(atBase, INTEGRITY);
   const val = (C, p) => { C.__p = J(p); return vm.runInContext("JSON.stringify(FluyoIntegrity.validateProject(__p))", C); };
   let n = 0;
-  for (const dir of ["ejemplos/data", "test/fixtures"]) for (const f of fs.readdirSync(path.join(root, dir)).filter((x) => /\.json$/.test(x))) {
+  for (const dir of ["ejemplos/data", "test/fixtures"]) for (const f of (dir === "ejemplos/data" ? historicalExamples(root, BASE) : fs.readdirSync(path.join(root, dir))).filter((x) => /\.json$/.test(x))) {
     let d; try { d = JSON.parse(read(dir + "/" + f)); } catch { continue; }
     if (!d || d.app !== "fluyo" || !d.doc) continue;
     assert.equal(val(K, d), val(OLD, d), dir + "/" + f); n++;
@@ -535,8 +536,8 @@ test("G3 · alcance frente a " + BASE + ": solo los archivos de FASE 5 y sw.js (
   assert.deepEqual([...new Set([...changed, ...untracked])].filter((f) => !NEW_I18N.includes(f)).filter((f) => !(f in PIECES6 || f in PIECESM) || read5(f) !== atBase(f)).sort(), FILES.concat("sw.js").sort());
   assert.deepEqual(Object.keys(PIECES).sort(), FILES);
   for (const f of FILES) assert.equal(undo5(f, read5(f)), atBase(f), f + ": undo5 exacto");
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v115";/);
-  assert.equal(undoI18n("sw.js", read("sw.js")).replace('"fluyo-static-v115"', '"fluyo-static-v' + (100 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante; flow-semantics.js, viewer.js y s/ ya se precachean");
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v116";/);
+  assert.equal(undoI18n("sw.js", read("sw.js")).replace('"fluyo-static-v116"', '"fluyo-static-v' + (100 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante; flow-semantics.js, viewer.js y s/ ya se precachean");
   for (const f of ["js/model.js", "js/scenario-engine.js", "js/scenario-playback.js", "js/story-playback.js", "js/story-clock.js", "js/geometry.js", "js/skin.js", "js/interaction.js", "js/ui.js", "js/state.js", "js/share-url.js", "js/editor-share.js", "js/deeplink.js"])
     assert.equal(read5(f), atBase(f), f + " intacto (modelo, motor, reloj, geometría, piel, Share y #d= sin cambios)");
   /* FASE 2/3/4 intactas en flow-semantics.js: FASE 5 solo añade al final (y una nota en la cabecera) */

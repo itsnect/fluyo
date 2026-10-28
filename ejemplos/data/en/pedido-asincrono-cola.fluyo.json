@@ -1,0 +1,400 @@
+{
+  "version": 5,
+  "app": "fluyo",
+  "doc": {
+    "theme": "crema",
+    "customBg": "",
+    "cur": 0,
+    "nextEventTypeId": 5,
+    "eventTypes": [
+      {
+        "id": 1,
+        "name": "Request",
+        "primitive": "FLOW",
+        "sentenceTemplate": "{source} asks {target}",
+        "visual": {
+          "kind": "token",
+          "value": "●"
+        },
+        "motion": "normal"
+      },
+      {
+        "id": 2,
+        "name": "Response",
+        "primitive": "FLOW",
+        "sentenceTemplate": "{source} answers {target}",
+        "visual": {
+          "kind": "token",
+          "value": "◆"
+        },
+        "motion": "normal"
+      },
+      {
+        "id": 3,
+        "name": "Outage",
+        "primitive": "SET_AVAILABILITY",
+        "sentenceTemplate": "{target} stops responding",
+        "availability": "DOWN",
+        "visual": {
+          "kind": "token",
+          "value": "✕"
+        }
+      },
+      {
+        "id": 4,
+        "name": "Processing",
+        "primitive": "OCCURRENCE",
+        "sentenceTemplate": "{target} processes",
+        "visual": {
+          "kind": "token",
+          "value": "⚙"
+        },
+        "presentation": {
+          "nodeEffects": {
+            "highlight": true
+          }
+        }
+      }
+    ],
+    "pages": [
+      {
+        "name": "Async order with a queue",
+        "nextId": 12,
+        "behaviors": [],
+        "nextScenarioId": 3,
+        "nodes": [
+          {
+            "id": 1,
+            "shape": "icon",
+            "x": 200,
+            "y": 160,
+            "w": 120,
+            "h": 92,
+            "label": "Customer",
+            "color": "#6a9fb5",
+            "fill": null,
+            "border": "solid",
+            "lblPos": "center",
+            "textBg": null,
+            "font": null,
+            "bold": false,
+            "pulse": false,
+            "order": 1,
+            "icon": "user"
+          },
+          {
+            "id": 2,
+            "shape": "rect",
+            "x": 500,
+            "y": 160,
+            "w": 180,
+            "h": 70,
+            "label": "API",
+            "color": "#9b7fb5",
+            "fill": null,
+            "border": "solid",
+            "lblPos": "center",
+            "textBg": null,
+            "font": null,
+            "bold": false,
+            "pulse": false,
+            "order": 2
+          },
+          {
+            "id": 3,
+            "shape": "icon",
+            "x": 500,
+            "y": 380,
+            "w": 120,
+            "h": 92,
+            "label": "Event queue",
+            "color": "#d08b5b",
+            "fill": null,
+            "border": "solid",
+            "lblPos": "center",
+            "textBg": null,
+            "font": null,
+            "bold": false,
+            "pulse": false,
+            "order": 3,
+            "icon": "queue"
+          },
+          {
+            "id": 4,
+            "shape": "rect",
+            "x": 820,
+            "y": 380,
+            "w": 180,
+            "h": 70,
+            "label": "DLQ (failed messages)",
+            "color": "#8f8f8f",
+            "fill": null,
+            "border": "solid",
+            "lblPos": "center",
+            "textBg": null,
+            "font": null,
+            "bold": false,
+            "pulse": false,
+            "order": 4
+          },
+          {
+            "id": 5,
+            "shape": "rect",
+            "x": 340,
+            "y": 600,
+            "w": 180,
+            "h": 70,
+            "label": "Payments",
+            "color": "#c9b458",
+            "fill": null,
+            "border": "solid",
+            "lblPos": "center",
+            "textBg": null,
+            "font": null,
+            "bold": false,
+            "pulse": false,
+            "order": 5
+          },
+          {
+            "id": 6,
+            "shape": "rect",
+            "x": 660,
+            "y": 600,
+            "w": 180,
+            "h": 70,
+            "label": "Shipping",
+            "color": "#7bb85b",
+            "fill": null,
+            "border": "solid",
+            "lblPos": "center",
+            "textBg": null,
+            "font": null,
+            "bold": false,
+            "pulse": false,
+            "order": 6
+          }
+        ],
+        "edges": [
+          {
+            "id": 7,
+            "from": 1,
+            "to": 2,
+            "route": "straight",
+            "fromSide": null,
+            "toSide": null,
+            "waypoints": [],
+            "label": "",
+            "font": null,
+            "bold": false,
+            "endArrow": true,
+            "startArrow": false,
+            "flowDir": "normal"
+          },
+          {
+            "id": 8,
+            "from": 2,
+            "to": 3,
+            "route": "straight",
+            "fromSide": null,
+            "toSide": null,
+            "waypoints": [],
+            "label": "",
+            "font": null,
+            "bold": false,
+            "endArrow": true,
+            "startArrow": false,
+            "flowDir": "normal"
+          },
+          {
+            "id": 9,
+            "from": 3,
+            "to": 5,
+            "route": "straight",
+            "fromSide": null,
+            "toSide": null,
+            "waypoints": [],
+            "label": "",
+            "font": null,
+            "bold": false,
+            "endArrow": true,
+            "startArrow": false,
+            "flowDir": "normal"
+          },
+          {
+            "id": 10,
+            "from": 3,
+            "to": 6,
+            "route": "straight",
+            "fromSide": null,
+            "toSide": null,
+            "waypoints": [],
+            "label": "",
+            "font": null,
+            "bold": false,
+            "endArrow": true,
+            "startArrow": false,
+            "flowDir": "normal"
+          },
+          {
+            "id": 11,
+            "from": 3,
+            "to": 4,
+            "route": "straight",
+            "fromSide": null,
+            "toSide": null,
+            "waypoints": [],
+            "label": "",
+            "font": null,
+            "bold": false,
+            "endArrow": true,
+            "startArrow": false,
+            "flowDir": "normal"
+          }
+        ],
+        "scenarios": [
+          {
+            "id": 1,
+            "engineVersion": 2,
+            "name": "One order",
+            "nextStepId": 8,
+            "steps": [
+              {
+                "id": 1,
+                "at": 0,
+                "action": "SEND",
+                "edgeId": 7,
+                "eventTypeId": 1,
+                "message": "The customer sends the order"
+              },
+              {
+                "id": 2,
+                "at": 2400,
+                "action": "SEND",
+                "edgeId": 8,
+                "eventTypeId": 1,
+                "message": "The API publishes “order created” to the queue"
+              },
+              {
+                "id": 3,
+                "at": 2400,
+                "action": "SEND",
+                "edgeId": 7,
+                "eventTypeId": 2,
+                "message": "The customer already has “Received”: no waiting for the rest",
+                "reverse": true
+              },
+              {
+                "id": 4,
+                "at": 4800,
+                "action": "SEND",
+                "edgeId": 9,
+                "eventTypeId": 1,
+                "message": "Payments reads the event…"
+              },
+              {
+                "id": 5,
+                "at": 4800,
+                "action": "SEND",
+                "edgeId": 10,
+                "eventTypeId": 1,
+                "message": "…and Shipping reads the same event, at the same time"
+              },
+              {
+                "id": 6,
+                "at": 7200,
+                "action": "OCCURRENCE",
+                "nodeId": 5,
+                "eventTypeId": 4,
+                "message": "Payments charges, on its own"
+              },
+              {
+                "id": 7,
+                "at": 7200,
+                "action": "OCCURRENCE",
+                "nodeId": 6,
+                "eventTypeId": 4,
+                "message": "Shipping books the delivery, on its own"
+              }
+            ]
+          },
+          {
+            "id": 2,
+            "engineVersion": 2,
+            "name": "A message that fails",
+            "nextStepId": 8,
+            "steps": [
+              {
+                "id": 1,
+                "at": 0,
+                "action": "SET_STATE",
+                "nodeId": 5,
+                "eventTypeId": 3,
+                "message": "Payments is down",
+                "state": "DOWN"
+              },
+              {
+                "id": 2,
+                "at": 2400,
+                "action": "SEND",
+                "edgeId": 7,
+                "eventTypeId": 1,
+                "message": "The customer sends the order"
+              },
+              {
+                "id": 3,
+                "at": 4800,
+                "action": "SEND",
+                "edgeId": 8,
+                "eventTypeId": 1,
+                "message": "The API publishes “order created” to the queue"
+              },
+              {
+                "id": 4,
+                "at": 4800,
+                "action": "SEND",
+                "edgeId": 7,
+                "eventTypeId": 2,
+                "message": "The customer already has “Received”",
+                "reverse": true
+              },
+              {
+                "id": 5,
+                "at": 7200,
+                "action": "SEND",
+                "edgeId": 9,
+                "eventTypeId": 1,
+                "message": "The message doesn't reach Payments"
+              },
+              {
+                "id": 6,
+                "at": 7200,
+                "action": "SEND",
+                "edgeId": 10,
+                "eventTypeId": 1,
+                "message": "Shipping processes it anyway: it doesn't depend on Payments"
+              },
+              {
+                "id": 7,
+                "at": 9600,
+                "action": "SEND",
+                "edgeId": 11,
+                "eventTypeId": 1,
+                "message": "The failed message waits in the DLQ to be retried"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "settings": {
+    "speed": 0.5,
+    "dots": 3,
+    "build": false,
+    "stagger": 0.45,
+    "grid": false,
+    "snap": false,
+    "font": "Georgia, serif",
+    "single": false
+  }
+}

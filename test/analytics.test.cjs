@@ -135,8 +135,11 @@ test('importación válida lleva formato/origen; inválida y demo no son edició
   input('{"doc":{"pages":[{"name":"Privado","nodes":[],"edges":[]}]}}');await Promise.resolve();e.flush();
   assert.deepEqual(e.names(),['file_imported']);assert.equal(e.events[0].props.source,'file');
   assert.equal(e.events[0].props.format,'fluyo_json');
-  e.element('btnDemo').onclick();e.flush();
+  /* FLUYO-EXAMPLES-001: «Ejemplo» trae el JSON del ejemplo canónico (fetch) y lo añade como página. */
+  e.run('EXAMPLE_DEMO="compra-online"; fetchExample=()=>Promise.resolve({}); documentFromProjectData=()=>({pages:[{}],eventTypes:[]}); importPagesIn=()=>({pageIndex:0}); showExampleStories=()=>{}');
+  e.element('btnDemo').onclick();await new Promise(r=>setTimeout(r,0));e.flush();
   assert.deepEqual(e.names(),['file_imported','example_loaded']);
+  assert.equal(e.events[1].props.example,'demo');
 });
 test('GIF sólo cuenta al terminar; cancelación y error no cuentan',async()=>{
   for(const result of ['terminado','cancelado','fallo']){

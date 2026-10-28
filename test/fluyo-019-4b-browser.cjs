@@ -471,7 +471,7 @@ async function press(T, p, touch) {
         const keys = await pg.evaluate(async () => caches.keys());
         await pg.reload(); await pg.waitForFunction(() => typeof renderTabs === "function");
         const live = await pg.evaluate(async (cur) => ({ fn: typeof editorSkinOn, ctrl: !!navigator.serviceWorker.controller, cached: (await (await (await caches.open(cur)).match(location.origin + "/js/editor-runtime.js")).text()).includes("function editorSkinOn") }), CUR);
-        check(CUR === "fluyo-static-v115" && keys.join() === CUR && live.fn === "function" && live.ctrl && live.cached, `${CUR} instalada y activada, ${PREV} borrada (${keys.join()}); tras recargar, la página ejecuta el editor nuevo desde la caché`);
+        check(CUR === "fluyo-static-v116" && keys.join() === CUR && live.fn === "function" && live.ctrl && live.cached, `${CUR} instalada y activada, ${PREV} borrada (${keys.join()}); tras recargar, la página ejecuta el editor nuevo desde la caché`);
       } finally { await ctx.close(); sw.server.close(); }
     }
   } finally {

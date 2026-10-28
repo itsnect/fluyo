@@ -170,6 +170,11 @@ td code{ white-space:nowrap; }
 .card p{ flex:1; }
 .card .actions{ display:flex; flex-wrap:wrap; align-items:center; gap:var(--s-2); }
 .card .actions .meta{ margin-inline-start:auto; font-size:var(--fs-label); }
+/* Qué se aprende y las Historias: la acción principal es reproducir (▶), una por Historia, porque el Viewer reproduce la primera. */
+.card .learn{ flex:none; color:var(--ink-2); }
+.card .stories{ list-style:none; margin:0 0 var(--s-3); padding:0; display:flex; flex-direction:column; gap:var(--s-2); }
+.card .stories .btn{ display:flex; width:100%; justify-content:flex-start; text-align:start; }
+.card .stories .kind{ margin-inline-start:auto; padding-inline-start:var(--s-3); font:400 var(--fs-label)/1.4 var(--font-mono); opacity:.8; }
 
 /* ===================== Estado: 404 ===================== */
 .state{ padding-block:var(--s-8); }

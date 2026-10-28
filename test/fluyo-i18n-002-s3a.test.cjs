@@ -101,8 +101,7 @@ function load({ lang = "es", base = false, i18n = true, probe = false } = {}) {
     /* stubs del resto del editor que toca el botón «Ejemplo» */
     "var t0=0, pausedAt=0; const __btn={}; function $(id){ return id===\"btnDemo\" ? __btn : {}; }",
     "function clearSel(){} function syncProjectControls(){} function renderTabs(){} function centerView(){} function scheduleAutosave(){}",
-    "function resetAnalyticsBaseline(){} function trackEvent(){}",
-    demoHandler(ex)
+    "function resetAnalyticsBaseline(){} function trackEvent(){}"
   ].filter(Boolean).join("\n");
   vm.runInContext(code, ctx, { filename: "editor#extract" });
   const R = (c) => vm.runInContext(c, ctx);
@@ -111,7 +110,9 @@ function load({ lang = "es", base = false, i18n = true, probe = false } = {}) {
     ctx, R,
     doc: () => JSON.parse(R("JSON.stringify(doc)")),
     pageNames: () => R("JSON.stringify(doc.pages.map(p=>p.name))"),
-    example: () => R("__btn.onclick(); JSON.stringify(P())"),
+    /* FLUYO-EXAMPLES-001: el contenido del ejemplo es ahora un JSON escrito a mano por idioma (ejemplos/data/); de S3a queda el
+       nombre de la página que crea «Ejemplo», que sí nace en el idioma de la interfaz. */
+    example: () => R("(function(){ const r=createPageIn(doc, examplePageName()); doc.cur=r.pageIndex; return JSON.stringify({name:P().name}); })()"),
     /* en la base, los nombres de la interfaz son los de config.js */
     icon: (k) => has("iconName") ? R(`iconName(${JSON.stringify(k)})`) : R(`ICONS[${JSON.stringify(k)}].n`),
     anim: (k) => has("animName") ? R(`animName(${JSON.stringify(k)})`) : R(`ANIMS[${JSON.stringify(k)}].n`),
@@ -173,8 +174,6 @@ test("E · inglés: Page 1, Page 2, Node, Text, el ejemplo, los nombres de confi
   assert.equal(labels.icon, "", "icono sin etiqueta dada: el kernel no siembra nombre");
   const ex = JSON.parse(h.example());
   assert.equal(ex.name, "Example");
-  assert.deepEqual(ex.nodes.map((n) => n.label), ["Sales funnel", "Visitors", "Registered\nlead", "Qualified?", "Opportunity", "Proposal\nsent", "Customer", "Discarded"]);
-  assert.deepEqual(ex.edges.map((e) => e.label), ["visit", "form", "yes", "demo", "signature", "no"]);
   assert.equal(JSON.parse(h.example()).name, "Example 2", "el nombre libre se busca en el idioma de la interfaz");
   h.R('doc.pages.push(blankPage("Example 3"));');
   assert.equal(JSON.parse(h.example()).name, "Example 4");
@@ -187,14 +186,14 @@ test("E · inglés: Page 1, Page 2, Node, Text, el ejemplo, los nombres de confi
   assert.equal(h.R('doc.cur=0; scSentenceAt({name:"Down",primitive:"SET_AVAILABILITY",sentenceTemplate:"{source} warns {target}"}, 900)'), "Source warns Bank");
   /* todo lo que sale en inglés, sin restos en español */
   const { icons, anims, palette } = configKeys(h);
-  const all = [...icons.map(h.icon), ...anims.map(h.anim), ...Array.from({ length: palette }, (_, i) => h.palette(i)), ...ex.nodes.map((n) => n.label), ...ex.edges.map((e) => e.label)];
+  const all = [...icons.map(h.icon), ...anims.map(h.anim), ...Array.from({ length: palette }, (_, i) => h.palette(i)), ex.name];
   for (const s of all) assert.doesNotMatch(s, SPANISH, s);
   assert.equal(h.R("JSON.stringify(FluyoI18n.missing())"), "[]", "ninguna clave cae al español");
   /* fr/ja/zh (sin claves de S3a, decisión 288): caen al inglés, nunca al español */
   for (const lang of ["fr", "ja", "zh"]) {
     const o = load({ lang });
     assert.equal(o.icon("db"), "DB", lang); assert.equal(o.anim("spinner"), "Loading", lang);
-    assert.equal(JSON.parse(o.example()).nodes[0].label, "Sales funnel", lang);
+    assert.equal(JSON.parse(o.example()).name, "Example", lang);
     assert.equal(JSON.parse(o.R("JSON.stringify(newNode('rect',0,0))")).label, "Node", lang);
   }
 });
@@ -202,7 +201,7 @@ test("E · inglés: Page 1, Page 2, Node, Text, el ejemplo, los nombres de confi
 /* ───────── N · nunca se retraduce ───────── */
 test("N · nunca se retraduce: cambiar de idioma no renombra; lo que llega con nombre (sesión, archivo, enlace) no se toca", () => {
   const h = load({ lang: "en" });
-  h.R("addPage(); newNode('rect',0,0); newNode('text',0,0); __btn.onclick();");
+  h.R("addPage(); newNode('rect',0,0); newNode('text',0,0);"); h.example();
   const before = JSON.stringify(h.doc());
   for (const l of ["es", "fr", "en", "es"]) { h.R(`FluyoI18n.setLocale(${JSON.stringify(l)})`); assert.equal(JSON.stringify(h.doc()), before, "cambio en vivo a " + l); }
   /* con la interfaz en español, lo nuevo nace en español junto a lo inglés: documentos mixtos (decisión 282) */
@@ -313,7 +312,7 @@ test("S · estático: quien siembra pasa el valor traducido; render.js sin reser
   const d = scan.dictionaries();
   const S3A = /^(seed\.(node|text|source)|icon\.|anim\.|palette\.|example\.|drawer\.group(Security|DevOps)$)/;
   const mine = scan.catalog().uses.filter((u) => S3A.test(u.key)).map((u) => u.key);
-  assert.equal(new Set(mine).size, 3 + 42 + 8 + 14 + 16 + 2, "claves de S3a");
+  assert.equal(new Set(mine).size, 3 + 42 + 8 + 14 + 2 + 2, "claves de S3a (del ejemplo queda el nombre de la página: FLUYO-EXAMPLES-001)");
   for (const k of mine) { assert.ok(k in d.en.editor, "en editor: " + k); assert.ok(!(k in d.en.common), "no en el común: " + k); }
   assert.ok("page.untitled" in d.en.common);
   for (const lang of ["fr", "ja", "zh"]) for (const k of mine) assert.ok(!(k in d[lang].editor) && !(k in d[lang].common), lang + " sin " + k);
@@ -323,19 +322,20 @@ test("S · estático: quien siembra pasa el valor traducido; render.js sin reser
 test("A · alcance frente a 7305355: solo estos archivos; undoS3a da la base EXACTA y va encima de undoS2b; kernel intacto; CACHE v114", { skip: !hasGit && "sin git" }, () => {
   const { undoS3a, PIECES, NEW_FILES } = require("./fluyo-i18n-002-s3a-undo.cjs");
   const { undoS3b, PIECES: PIECES_S3B } = require("./fluyo-i18n-002-s3b-undo.cjs");   /* FLUYO-I18N-002 S3b va encima (undoS3a la deshace antes) */
+  const { undoEx, PIECES: PIECES_EX, NEW_FILES: NEW_EX } = require("./fluyo-examples-001-undo.cjs");   /* FLUYO-EXAMPLES-001 va encima de S3b (undoS3b la deshace antes) */
   assert.deepEqual(NEW_FILES, []);
   const FILES = ["js/editor-scenarios.js", "js/export.js", "js/i18n-en-editor.js", "js/interaction.js", "js/render.js", "js/state.js", "js/ui.js"];
   assert.deepEqual(Object.keys(PIECES).sort(), FILES);
   const SERVED = ["js", "s", "css", "assets", "index.html", "404.html", "sw.js", "manifest.webmanifest", "docs", "ejemplos", "privacidad", "privacy", "soporte", "support", "terminos", "terms"];
   /* lo que solo cambia S3b (sin S3b, igual que la base) no cuenta para el alcance de S3a */
-  const s3bOnly = (f) => !!PIECES_S3B[f] && !FILES.includes(f) && undoS3b(f, read(f)) === atBase(f);
+  const s3bOnly = (f) => NEW_EX.includes(f) || ((!!PIECES_S3B[f] || !!PIECES_EX[f]) && !FILES.includes(f) && undoS3b(f, read(f)) === atBase(f));
   const changed = execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean).filter((f) => !s3bOnly(f));
   const untracked = execFileSync("git", ["-C", gitRoot, "ls-files", "--others", "--exclude-standard", "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean).filter((f) => !s3bOnly(f));
   assert.deepEqual([...new Set([...changed, ...untracked])].sort(), [...FILES, "sw.js"].sort());
   for (const f of FILES) assert.equal(undoS3a(f, read(f)), atBase(f), f + ": undoS3a exacto");
-  assert.equal(read("sw.js").replace('"fluyo-static-v115"', '"fluyo-static-v' + (114 - 1) + '"'), atBase("sw.js"), "sw.js: solo CACHE (sin archivos nuevos)");
+  assert.equal(undoEx("sw.js", read("sw.js")).replace('"fluyo-static-v116"', '"fluyo-static-v' + (114 - 1) + '"'), atBase("sw.js"), "sw.js: solo CACHE (sin archivos nuevos)");
   assert.ok(read("test/fluyo-i18n-002-s3a-undo.cjs").includes("src = undoS3b(file, src);"), "undoS3a deshace antes S3b, que va encima");
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v115";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v116";/);
   assert.ok(read("test/fluyo-i18n-002-s2b-undo.cjs").includes("src = undoS3a(file, src);"), "undoS2b deshace antes esta tarea");
   for (const f of ["js/config.js", "js/model.js", "js/story-playback.js", "js/safe-svg.js", "js/i18n-en.js", "js/i18n-fr.js", "js/i18n-ja.js", "js/i18n-zh.js",
     "js/i18n-fr-editor.js", "js/i18n-ja-editor.js", "js/i18n-zh-editor.js", "index.html", "s/index.html", "404.html", "css/system.css", "css/styles.css"])

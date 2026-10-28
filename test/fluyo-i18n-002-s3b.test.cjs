@@ -292,17 +292,20 @@ test("N · coherencia (D-S3b-11): prop.orderNote cita el texto de canvas.build y
 const KERNEL_SCRIPTS = ["config.js", "safe-svg.js", "model.js", "scenario-engine.js", "scenario-playback.js", "story-playback.js", "document-integrity.js", "story-authoring.js"];
 test("A · alcance frente a 747eff8: solo estos archivos; undoS3b da la base EXACTA y va encima de undoS3a; kernel y MCP intactos; trinquete; CACHE v115", { skip: !hasGit && "sin git" }, () => {
   const { undoS3b, PIECES, NEW_FILES, BASE_S3B } = require("./fluyo-i18n-002-s3b-undo.cjs");
+  const { undoEx, PIECES: PIECES_EX, NEW_FILES: NEW_EX } = require("./fluyo-examples-001-undo.cjs");   /* FLUYO-EXAMPLES-001 va encima de S3b (undoS3b la deshace antes) */
+  /* lo que solo cambia FLUYO-EXAMPLES-001 (sin ella, igual que la base) no cuenta para el alcance de S3b */
+  const exOnly = (f) => NEW_EX.includes(f) || (!!PIECES_EX[f] && !Object.keys(PIECES).includes(f) && undoEx(f, read(f)) === atBase(f));
   assert.equal(BASE_S3B, BASE);
   assert.deepEqual(NEW_FILES, []);
   const FILES = ["index.html", "js/i18n-en-editor.js", "js/ui.js"];
   assert.deepEqual(Object.keys(PIECES).sort(), FILES);
   const SERVED = ["js", "s", "css", "assets", "index.html", "404.html", "sw.js", "manifest.webmanifest", "docs", "ejemplos", "privacidad", "privacy", "soporte", "support", "terminos", "terms"];
-  const changed = execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean);
-  const untracked = execFileSync("git", ["-C", gitRoot, "ls-files", "--others", "--exclude-standard", "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean);
+  const changed = execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean).filter((f) => !exOnly(f));
+  const untracked = execFileSync("git", ["-C", gitRoot, "ls-files", "--others", "--exclude-standard", "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean).filter((f) => !exOnly(f));
   assert.deepEqual([...new Set([...changed, ...untracked])].sort(), [...FILES, "sw.js"].sort());
   for (const f of FILES) assert.equal(undoS3b(f, read(f)), atBase(f), f + ": undoS3b exacto");
-  assert.equal(read("sw.js").replace('"fluyo-static-v115"', '"fluyo-static-v' + (115 - 1) + '"'), atBase("sw.js"), "sw.js: solo CACHE (sin archivos nuevos)");
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v115";/);
+  assert.equal(undoEx("sw.js", read("sw.js")).replace('"fluyo-static-v116"', '"fluyo-static-v' + (115 - 1) + '"'), atBase("sw.js"), "sw.js: solo CACHE (sin archivos nuevos)");
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v116";/);
   assert.ok(read("test/fluyo-i18n-002-s3a-undo.cjs").includes("src = undoS3b(file, src);"), "undoS3a deshace antes esta tarea");
   for (const f of [...KERNEL_SCRIPTS.map((k) => "js/" + k), "js/state.js", "js/selection.js", "js/interaction.js", "js/render.js", "js/i18n.js", "js/i18n-en.js", "js/i18n-fr.js",
     "js/i18n-ja.js", "js/i18n-zh.js", "js/i18n-fr-editor.js", "js/i18n-ja-editor.js", "js/i18n-zh-editor.js", "js/editor-scenarios.js", "s/index.html", "404.html", "css/system.css", "css/styles.css"])

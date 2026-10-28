@@ -387,8 +387,8 @@ const textsOf = (dump, { visible = false } = {}) => JSON.parse(dump).filter((l) 
       try {
         await boot(b, mine.base, "en");
         await b.ev("navigator.serviceWorker.register('./sw.js').then(()=>navigator.serviceWorker.ready).then(()=>true)");
-        for (let i = 0; i < 60; i++) { if (await b.ev("caches.keys().then(k=>k.includes('fluyo-static-v115'))")) break; await sleep(250); }
-        check(await b.ev("caches.keys().then(k=>JSON.stringify(k)==='[\"fluyo-static-v115\"]' || k.includes('fluyo-static-v115'))"), "precache fluyo-static-v115: " + (await b.ev("caches.keys().then(k=>JSON.stringify(k))")));
+        for (let i = 0; i < 60; i++) { if (await b.ev("caches.keys().then(k=>k.includes('fluyo-static-v116'))")) break; await sleep(250); }
+        check(await b.ev("caches.keys().then(k=>JSON.stringify(k)==='[\"fluyo-static-v116\"]' || k.includes('fluyo-static-v116'))"), "precache fluyo-static-v116: " + (await b.ev("caches.keys().then(k=>JSON.stringify(k))")));
         await boot(b, mine.base, "en");
         mine.setOffline(true);
         await boot(b, mine.base, "en");

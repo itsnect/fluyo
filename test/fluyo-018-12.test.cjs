@@ -17,7 +17,7 @@ const ids = (html) => new Set([...html.matchAll(/\sid="([^"]+)"/g)].map((m) => m
 
 test("sw.js: CACHE v72 y todos los assets locales de index.html y s/index.html precacheados", () => {
   const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v115";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v116";/);
   const listed = new Set([...sw.matchAll(/"\.\/([^"]*)"/g)].map((m) => m[1]));
   const local = (html, prefix) => [...html.matchAll(/<(?:script|link)[^>]+(?:src|href)="([^"]+)"/g)].map((m) => m[1])
     .filter((u) => !/^(https?:|data:|#)/.test(u) && !/\.(png|ico|svg)$/.test(u)).map((u) => path.posix.normalize(prefix + u));
@@ -113,22 +113,30 @@ test("render.js: respaldo a caja × densidad (tope 2) y una sola escala antes de
   assert.match(read("js/viewer.js"), /width:sv\.width\/dpr/, "el Viewer también");
 });
 
-test("export.js: «Ejemplo» crea una página nueva y no toca la activa (D9)", () => {
+test("export.js: «Ejemplo» crea una página nueva y no toca la activa (D9)", async () => {
   const { fullEditor } = require("./fluyo-018-8-harness.cjs");
   const E = fullEditor();
   E.ctx.performance = { now: () => 0 };
-  E.run(`var t0=0, pausedAt=0; function trackEvent(){} function syncProjectControls(){} function scheduleAnalyticsEdit(){}`);
+  /* FLUYO-EXAMPLES-001: el contenido es el JSON del ejemplo canónico («Compra online», con sus dos Historias). */
+  E.ctx.__json = JSON.parse(read("ejemplos/data/compra-online.fluyo.json"));
+  E.run(`var t0=0, pausedAt=0; function trackEvent(){} function syncProjectControls(){} function scheduleAnalyticsEdit(){}
+    var EXAMPLE_DEMO="compra-online"; function fetchExample(){ return Promise.resolve(JSON.parse(JSON.stringify(__json))); }
+    var __shown=0; function showExampleStories(){ __shown++; }`);
   E.run(`addPage(); doc.pages[0].name="Mía"; doc.cur=0; newNode("rect",10,10); newNode("rect",200,10);`);
   const before = E.run("JSON.stringify(doc.pages[0])");
   const src = read("js/export.js");
   const a = src.indexOf("function examplePageName(){"), b = src.indexOf("/* ===================== Exportación SVG");
   assert.ok(a >= 0 && b > a);
-  E.run(src.slice(a, b).replace('$("btnDemo").onclick=', "var __demo="));
-  E.run("__demo()");
+  E.run(src.slice(a, b).replace("function showExampleStories(){", "function __unused(){").replace('$("btnDemo").onclick=', "var __demo="));
+  const tick = () => new Promise((r) => setTimeout(r, 0));
+  E.run("__demo()"); await tick();
   assert.deepEqual(E.call("doc.pages.map(p=>p.name)"), ["Mía", "Página 2", "Ejemplo"]);
   assert.equal(E.call("doc.cur"), 2, "la página nueva queda activa");
   assert.equal(E.run("JSON.stringify(doc.pages[0])"), before, "la página que había no cambia ni un byte");
-  assert.equal(E.call("P().nodes.length"), 8);
-  E.run("__demo()");
+  assert.equal(E.call("P().nodes.length"), 5);
+  assert.equal(E.call("P().scenarios.length"), 2, "con sus dos Historias");
+  assert.equal(E.call("__shown"), 1, "se abre en modo Historias");
+  E.run("__demo()"); await tick();
   assert.deepEqual(E.call("doc.pages.map(p=>p.name)").slice(-2), ["Ejemplo", "Ejemplo 2"], "un segundo Ejemplo no repite nombre");
 });
+

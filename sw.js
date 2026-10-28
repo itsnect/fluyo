@@ -11,7 +11,7 @@
    estaba sirviendo al iframe una copia vieja de js/interaction.js. Por eso ese
    test ahora desregistra el SW antes de cargar nada — y por eso esta versión
    sube también cuando solo cambia el contenido. */
-const CACHE = "fluyo-static-v115";
+const CACHE = "fluyo-static-v116";
 /* Núcleo: si algo de aquí falla, la instalación falla (cache.addAll es atómico)
    y es lo correcto, porque sin estos archivos la app no funciona. */
 const ASSETS = [
@@ -65,7 +65,10 @@ const ASSETS = [
   "./js/editor-analytics.js",
   "./js/share-loader.js",
   "./js/viewer-viewport.js",
-  "./js/viewer.js"
+  "./js/viewer.js",
+  /* El botón «Ejemplo» carga este JSON (FLUYO-EXAMPLES-001): obligatorio, para que siga funcionando sin red. */
+  "./ejemplos/data/compra-online.fluyo.json",
+  "./ejemplos/data/en/compra-online.fluyo.json"
 ];
 /* Páginas estáticas y ejemplos: se cachean si se puede, pero su fallo no debe
    tumbar la instalación — el editor funciona perfectamente sin ellos. */
@@ -88,7 +91,11 @@ const PAGE_ASSETS = [
   "./ejemplos/data/microservicios-api-gateway.fluyo.json",
   "./ejemplos/data/oauth2-flujo-autenticacion.fluyo.json",
   "./ejemplos/data/pipeline-etl-datos.fluyo.json",
-  "./ejemplos/data/arquitectura-serverless-aws.fluyo.json"
+  "./ejemplos/data/arquitectura-serverless-aws.fluyo.json",
+  "./ejemplos/data/inicio-de-sesion-oauth2.fluyo.json",
+  "./ejemplos/data/pedido-asincrono-cola.fluyo.json",
+  "./ejemplos/data/en/inicio-de-sesion-oauth2.fluyo.json",
+  "./ejemplos/data/en/pedido-asincrono-cola.fluyo.json"
 ];
 const GIF_CDN = "https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/";
 const CDN_ASSETS = [

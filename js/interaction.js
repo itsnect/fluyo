@@ -921,7 +921,7 @@ function handleTouchTap(ev){
   /* En «Seleccionar varios» dos toques seguidos sobre un elemento son sumar y
      quitar, no editar su texto; y tocar el vacío no tira la selección construida. */
   if(touchMulti) return;
-  if(isDoubleTap(ev)){ openEditorAt(p); return; }
+  if(isDoubleTap(ev)){ if(uiMode!=="story") openEditorAt(p); return; }   // S1a: en Historias, igual que el doble clic
   if(!hitNode(p.x,p.y) && !hitEdge(p.x,p.y)) clearSel();
 }
 
@@ -948,7 +948,8 @@ function handleTouchTap(ev){
    —una línea más larga encoge la fuente—, así que hay que recolocar en cada
    pulsación, no solo al abrir. */
 const editBox=$("editBox");
-cv.addEventListener("dblclick", ev=>{ if(!presenting) openEditorAt(toWorld(ev)); });
+/* FLUYO-STORIES-2.0 S1a (D1): en Historias tocar cuenta un paso; un doble clic no abre el texto del elemento ni quita codos */
+cv.addEventListener("dblclick", ev=>{ if(!presenting && uiMode!=="story") openEditorAt(toWorld(ev)); });
 
 /* Geometría del textarea en coordenadas de MUNDO, derivada de la misma
    maquetación que usa el renderer. Es la única función que sabe convertir un

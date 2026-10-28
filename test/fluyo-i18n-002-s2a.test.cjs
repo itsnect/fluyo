@@ -330,10 +330,11 @@ test("A · alcance frente a " + BASE + ": solo estos archivos; undoS2a da la bas
   const { PIECES: PIECES_S2B } = require("./fluyo-i18n-002-s2b-undo.cjs");   /* S2b va encima de S4 (undoS4 la deshace antes) */
   const { PIECES: PIECES_S3A } = require("./fluyo-i18n-002-s3a-undo.cjs");   /* y S3a encima de S2b (undoS2b la deshace antes) */
   const { undoEx, PIECES: PIECES_EX, NEW_FILES: NEW_EX } = require("./fluyo-examples-001-undo.cjs");   /* FLUYO-EXAMPLES-001 va encima de S3b (undoS3b la deshace antes) */
-  const s4Only = (f) => NEW_EX.includes(f) || ((!!PIECES_S4[f] || !!PIECES_S2B[f] || !!PIECES_S3A[f] || !!PIECES_EX[f]) && undoS4(f, read(f)) === atBase(f));
+  const { PIECES: PIECES_S1A } = require("./fluyo-stories-2-0-s1a-undo.cjs");   /* FLUYO-STORIES-2.0 S1a va encima de EXAMPLES (undoEx la deshace antes) */
+  const s4Only = (f) => NEW_EX.includes(f) || ((!!PIECES_S4[f] || !!PIECES_S2B[f] || !!PIECES_S3A[f] || !!PIECES_EX[f] || !!PIECES_S1A[f]) && undoS4(f, read(f)) === atBase(f));
   assert.deepEqual([...new Set([...changed, ...untracked])].filter((f) => !s4Only(f) || FILES.includes(f)).sort(), [...FILES, "sw.js"].sort());
   for (const f of FILES) assert.equal(undoS2a(f, read(f)), atBase(f), f + ": undoS2a exacto");
-  assert.equal(undoEx("sw.js", read("sw.js")).replace('"fluyo-static-v116"', '"fluyo-static-v' + (111 - 1) + '"'), atBase("sw.js"), "sw.js: solo CACHE (sin archivos nuevos)");
+  assert.equal(undoEx("sw.js", read("sw.js")).replace('"fluyo-static-v117"', '"fluyo-static-v' + (111 - 1) + '"'), atBase("sw.js"), "sw.js: solo CACHE (sin archivos nuevos)");
   assert.ok(read("test/fluyo-i18n-002-s1-undo.cjs").includes("src = undoS2a(file, src);"), "undoS1 deshace antes esta tarea");
   for (const f of ["js/config.js", "js/safe-svg.js", "js/model.js", "js/scenario-engine.js", "js/scenario-playback.js", "js/story-playback.js", "js/document-integrity.js", "js/story-authoring.js",
     "js/story-clock.js", "js/render.js", "s/index.html", "404.html", "css/system.css", "css/styles.css", "css/share.css", "js/i18n-fr.js", "js/i18n-ja.js", "js/i18n-zh.js",

@@ -109,7 +109,10 @@ const PIECES = {
     ]
   ]
 };
+/* FLUYO-STORIES-2.0 S1a va encima de EXAMPLES (base c2c63ec): se deshace primero (fluyo-stories-2-0-s1a-undo.cjs). */
+const { undoS1a } = require("./fluyo-stories-2-0-s1a-undo.cjs");
 function undoEx(file, src) {
+  src = undoS1a(file, src);
   const f = file.replace(/\\/g, "/"), pieces = PIECES[f];
   if (!pieces) return src;
   let out = src.replace(/\r\n/g, "\n");

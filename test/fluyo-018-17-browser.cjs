@@ -391,7 +391,7 @@ async function serviceWorker(browser, base) {
   await page.goto(base + "/"); await page.waitForFunction(() => typeof renderTabs === "function");
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
   const keys = await page.evaluate(() => caches.keys());
-  check(keys.length === 1 && keys[0] === "fluyo-static-v116", "caché instalada: fluyo-static-v116 " + JSON.stringify(keys));
+  check(keys.length === 1 && keys[0] === "fluyo-static-v117", "caché instalada: fluyo-static-v117 " + JSON.stringify(keys));
   await ctx.setOffline(true);
   await page.reload(); await page.waitForFunction(() => typeof storyState === "function");
   const off = await page.evaluate(() => ({ css: getComputedStyle(document.documentElement).getPropertyValue("--ctl-h-touch").trim(), hint: !!document.getElementById("scRunHint") }));

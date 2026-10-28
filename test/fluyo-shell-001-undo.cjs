@@ -150,6 +150,7 @@ const { PIECES: PIECES_S4, NEW_FILES: NEW_S4 } = require("./fluyo-i18n-002-s4-un
 const { PIECES: PIECES_S2B, NEW_FILES: NEW_S2B } = require("./fluyo-i18n-002-s2b-undo.cjs");   /* S2b, dentro de undoS4 */
 const { PIECES: PIECES_S3A, NEW_FILES: NEW_S3A } = require("./fluyo-i18n-002-s3a-undo.cjs");   /* S3a, dentro de undoS2b */
 const { PIECES: PIECES_EX, NEW_FILES: NEW_EX } = require("./fluyo-examples-001-undo.cjs");   /* FLUYO-EXAMPLES-001, dentro de undoS3b */
+const { PIECES: PIECES_S1A } = require("./fluyo-stories-2-0-s1a-undo.cjs");   /* FLUYO-STORIES-2.0 S1a, dentro de undoEx */
 function undoShell(file, src) {
   src = undoS0(file, src);
   const f = file.replace(/\\/g, "/"), pieces = PIECES[f];
@@ -163,7 +164,7 @@ function undoShell(file, src) {
 function shellOnly(file, read, atBase) {
   const f = file.replace(/\\/g, "/");
   if (NEW_FILES.includes(f) || NEW_S0.includes(f) || NEW_S1.includes(f) || NEW_S2A.includes(f) || NEW_S4.includes(f) || NEW_S2B.includes(f) || NEW_S3A.includes(f) || NEW_EX.includes(f)) return true;   /* también lo nuevo de I18N-002 S0, S1, S2a, S4 y S2b, y de FLUYO-EXAMPLES-001, que van encima */
-  if (!PIECES[f] && !PIECES_S0[f] && !PIECES_S1[f] && !PIECES_S2A[f] && !PIECES_S4[f] && !PIECES_S2B[f] && !PIECES_S3A[f] && !PIECES_EX[f]) return false;
+  if (!PIECES[f] && !PIECES_S0[f] && !PIECES_S1[f] && !PIECES_S2A[f] && !PIECES_S4[f] && !PIECES_S2B[f] && !PIECES_S3A[f] && !PIECES_EX[f] && !PIECES_S1A[f]) return false;
   try { return undoShell(f, read(f)) === atBase(f); } catch { return false; }
 }
 module.exports = { undoShell, shellOnly, BASE_SHELL, PIECES, NEW_FILES };

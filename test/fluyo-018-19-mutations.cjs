@@ -21,7 +21,7 @@ const NO_REFIT = ["  if(diagramInsideBox(prev.w, prev.h)) fitView();", "  if(fal
 /* [nombre, suite, archivo, desde, hasta, ONLY del browser test] */
 const MUTATIONS = [
   /* release y alcance */
-  ["U1 CACHE no sube (sigue v77)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v116";', 'const CACHE = "fluyo-static-v77";'],
+  ["U1 CACHE no sube (sigue v77)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v117";', 'const CACHE = "fluyo-static-v77";'],
   ["U2 model.js tocado", UNIT, "js/model.js", "function validateEventType(et){", "function validateEventType(et){ /* 018.19 */"],
   /* crear → colocar */
   ["U3 Crear no entra en colocación", UNIT, "js/editor-scenarios.js", ...NO_PLACE],

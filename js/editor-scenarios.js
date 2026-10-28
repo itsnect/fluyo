@@ -531,6 +531,150 @@ function scCanvasAddEdgeSend() {
   scAddSendStep(s.obj.id);
 }
 
+/* ===================== FLUYO-STORIES-2.0 S1a · Contar con clics =====================
+   En Historias (D1) tocar una conexión o un elemento CUENTA: crea el paso al final de la Historia activa (o de una nueva) y deja su
+   frase lista para escribir en la fila. Sin diálogo de Evento: el paso lleva un tipo IMPLÍCITO (scImplicitEventType). Mayús, Ctrl,
+   Cmd y Alt siguen siendo seleccionar; arrastrar sigue moviendo (un toque es ≤ SC_TAP_SLOP px). Nada del kernel cambia: se llaman
+   createScenario, createEventType, stepDefinitionForEvent y createStep como hace la colocación. Una sola entrada de Undo. */
+const SC_TAP_SLOP = 8,
+  SC_TAP_EDGE_PX = 12,
+  SC_TAP_REPEAT_MS = 400;
+let scTap = null,
+  scLastTap = null,
+  scInlineStep = null;
+function scTapEnabled(ev) {
+  return (
+    uiMode === "story" && !presenting && !scPlacement && !scDrag && !scStoryDrag && scCanPlaceEvents() &&
+    (ev.button === undefined || ev.button === 0) && !ev.shiftKey && !ev.ctrlKey && !ev.metaKey && !ev.altKey
+  );
+}
+/* Lo que se toca: un elemento hoja, si no la conexión más cercana a ≤ 12 px de pantalla (varias casi a la misma distancia: se
+   elige en un menú), y si no el contenedor. El mismo orden que hitTarget (D1 de 019-HIT-TEST). */
+function scTapTarget(x, y) {
+  const leaf = hitLeafNode(x, y);
+  if (leaf) return { kind: "node", ids: [leaf.id] };
+  const edges = scEdgeCandidates(x, y, SC_TAP_EDGE_PX);
+  if (edges.length) return { kind: "edge", ids: edges.map((e) => e.id) };
+  const n = hitNode(x, y);
+  return n ? { kind: "node", ids: [n.id] } : null;
+}
+/* El tipo del paso tocado: el último de esa clase que ya usa la Historia (en un ejemplo, su «Petición»); si no hay, el implícito
+   del documento («Paso» en una conexión, «Nota» en un elemento), que nace la primera vez en el idioma de la interfaz y después
+   es contenido (decisión 282): nunca se retraduce. */
+function scImplicitEventType(sc, kind) {
+  const primitive = kind === "edge" ? "FLOW" : "OCCURRENCE";
+  const used = storyboardOrderedSteps(sc.steps)
+    .map((s) => s.eventTypeId && eventTypeById(s.eventTypeId))
+    .filter((et) => et && et.primitive === primitive);
+  if (used.length) return used[used.length - 1];
+  const edge = kind === "edge";
+  const name = edge ? FluyoI18n.t("step.implicit.edge", "Paso") : FluyoI18n.t("step.implicit.node", "Nota");
+  const same = (doc.eventTypes || []).find((et) => et.primitive === primitive && et.name === name);
+  if (same) return same;
+  return createEventType(
+    eventTypeDefinition({
+      name,
+      primitive,
+      sentenceTemplate: edge ? "{source} → {target}" : FluyoI18n.t("step.implicit.nodeSentence", "Algo ocurre en {target}"),
+      symbol: edge ? "●" : "💬",
+      connectionEffects: edge ? defaultConnectionEffects() : undefined,
+      nodeEffects: edge ? undefined : defaultNodeEffects(),
+    }),
+  );
+}
+function scTapAddStep(kind, targetId, pointerType) {
+  if (!scCanPlaceEvents() || !(kind === "edge" ? edgeById(targetId) : nodeById(targetId))) return null;
+  const now = performance.now();
+  /* el segundo clic de un doble clic (o un doble toque) no cuenta el mismo paso dos veces */
+  if (scLastTap && scLastTap.kind === kind && scLastTap.id === targetId && now - scLastTap.t < SC_TAP_REPEAT_MS) return null;
+  let sc = scActiveScenario();
+  if (sc && sc.engineVersion !== FluyoScenarios.ENGINE_VERSION) return null;
+  clearSel();
+  pushUndo();
+  let created = false;
+  if (!sc) {
+    sc = createScenario(P(), defaultScenarioName(P(), scSeedNames()));
+    scSelectStory(sc.id);
+    created = true;
+  }
+  const step = createStep(sc, stepDefinitionForEvent(scImplicitEventType(sc, kind), targetId, scStepDefaultTime(sc)));
+  scLastTap = { kind, id: targetId, t: now };
+  scSelectedStep = step.id;
+  /* con el dedo no se abre el teclado sobre el lienzo: el campo queda en la fila, listo para tocarlo */
+  scInlineStep = { id: step.id, focus: pointerType !== "touch" };
+  scFeedback = { kind, ids: [targetId], until: now + 750 };
+  scCommit();
+  scScrollIntoView($("scStoryboard")?.querySelector?.('[data-step-id="' + step.id + '"]'));
+  if (created) scNotice(FluyoI18n.t("stories.created", "{name} creada", { name: sc.name }));
+  return step;
+}
+function scTapPointerDown(ev) {
+  /* un segundo dedo convierte el gesto en pellizco: ya no es un toque */
+  if (scTap) { scTap = null; return; }
+  if (scTapEnabled(ev)) scTap = { id: ev.pointerId, x: ev.clientX, y: ev.clientY };
+}
+function scTapPointerUp(ev) {
+  const t = scTap;
+  scTap = null;
+  if (!t || t.id !== ev.pointerId || Math.hypot(ev.clientX - t.x, ev.clientY - t.y) > SC_TAP_SLOP || !scTapEnabled(ev)) return;
+  const p = toWorldFromClient(t.x, t.y),
+    target = scTapTarget(p.x, p.y);
+  if (!target) return;
+  const type = ev.pointerType;
+  if (target.ids.length > 1) {
+    const anchor = { getBoundingClientRect: () => ({ left: ev.clientX, bottom: ev.clientY }) };
+    scMenu(anchor, target.ids.map((id) => [scEdgeLabel(id), () => scTapAddStep("edge", id, type)]));
+    return;
+  }
+  scTapAddStep(target.kind, target.ids[0], type);
+}
+if (typeof cv !== "undefined" && cv && typeof cv.addEventListener === "function") {
+  /* después de los de interaction.js (este archivo carga detrás): la selección y el arrastre ya se resolvieron */
+  cv.addEventListener("pointerdown", scTapPointerDown);
+  cv.addEventListener("pointerup", scTapPointerUp);
+  cv.addEventListener("pointercancel", () => { scTap = null; });
+}
+
+/* Frase en línea (S1a, levanta D-PO-4 de NARRATION-001): la frase del paso se escribe en su fila. Enter o salir del campo la
+   guardan (una entrada de Undo, scSetStepMessage); vacía, la quitan; Escape deja la que había. «⋯ → Mensaje del paso…» sigue. */
+function scBeginInlineMessage(id) {
+  if (!scEditable() || !scActiveScenario().steps.some((s) => s.id === id)) return;
+  scClosePopover(false);
+  scInlineStep = { id, focus: true };
+  scStorySignature = "";
+  scRenderStoryboard();
+}
+function scInlineMessageField(step) {
+  const own = scStepMessage(step),
+    et = step.eventTypeId ? eventTypeById(step.eventTypeId) : null,
+    input = scEl("input", "scStepMessageInput");
+  input.type = "text";
+  input.value = own || "";
+  input.maxLength = STEP_MESSAGE_MAX_LEN;
+  input.placeholder = (et && FluyoStory.sentence(P(), step, et, FluyoI18n.t)) || FluyoI18n.t("step.inline.placeholder", "¿Qué pasa aquí?");
+  input.setAttribute("aria-label", FluyoI18n.t("step.inline.aria", "Frase de este paso"));
+  input.setAttribute("enterkeyhint", "done");
+  let done = false;
+  const finish = (save) => {
+    if (done) return;
+    done = true;
+    if (scInlineStep && scInlineStep.id === step.id) scInlineStep = null;
+    const text = input.value.trim();
+    if (!save || !scSetStepMessage(step.id, text ? text : null)) {
+      scStorySignature = "";
+      scRenderStoryboard();
+    }
+  };
+  /* por código de tecla (13 Enter, 27 Escape): el Enter de un IME llega como 229 o con isComposing y no confirma (S4) */
+  input.onkeydown = (e) => {
+    if (e.keyCode === 13 && !e.isComposing) { e.preventDefault(); finish(true); }
+    else if (e.keyCode === 27) { e.preventDefault(); e.stopPropagation(); finish(false); }
+  };
+  input.onblur = () => finish(true);
+  input.onclick = (e) => e.stopPropagation();
+  return input;
+}
+
 /* Eliminar: si el momento desaparece, su espera se colapsa (misma política que unirse, model.js). */
 function scDeleteStep(id) {
   if (!scEditable()) return;
@@ -1511,7 +1655,8 @@ function scRenderEventLibrary() {
       scEl(
         "span",
         "",
-        FluyoI18n.t("event.emptyHint", "Crea un evento, como Pago, Aprobación o Cierre. Después podrás arrastrarlo al sistema."),
+        /* S1a: para empezar no hace falta ningún evento */
+        FluyoI18n.t("event.emptyHintTap", "Para empezar no hace falta: toca el sistema. Crea un evento solo si quieres reutilizar su símbolo y su aspecto."),
       ),
     );
     box.appendChild(empty);
@@ -1601,23 +1746,28 @@ function scRenderStoryboard() {
     groups.flatMap((g) => g.steps.map((x) => [describeScenarioStep(x), scRuntimeStateForStep(x)])),
     scSelectedStep,
     scStatus,
+    scInlineStep && scInlineStep.id,
   ]);
   if (signature === scStorySignature) return;
   scStorySignature = signature;
   const scroll = board.parentElement?.scrollTop || 0;
+  /* la frase en línea que se está escribiendo sobrevive a un repintado: mismo texto, mismo foco (y su blur no guarda a medias) */
+  const live = board.querySelector?.(".scStepMessageInput"),
+    keep = live && document.activeElement === live ? live.value : null;
+  if (live) live.onblur = null;
   board.replaceChildren();
   if (empty) {
     empty.replaceChildren();
     empty.hidden = !!groups.length;
+    /* S1a: se empieza tocando el sistema, no creando un evento */
+    const tap = FluyoI18n.t("stories.emptyTap", "Toca una conexión o un elemento del sistema para contar el primer paso.");
     if (!s) {
       empty.append(
         scEl("p", "", FluyoI18n.t("stories.emptyNone", "Aún no hay historias.")),
+        scEl("p", "", tap),
         scButton("+ " + FluyoI18n.t("stories.new", "Nueva historia"), scNewScenario),
       );
-    } else
-      empty.textContent = doc.eventTypes?.length
-        ? FluyoI18n.t("stories.emptyDrag", "Arrastra un evento sobre el sistema para empezar.")
-        : FluyoI18n.t("stories.emptyWillAppear", "La historia aparecerá aquí.");
+    } else empty.textContent = tap;
   }
   let prev = 0;
   for (const g of groups) {
@@ -1654,6 +1804,12 @@ function scRenderStoryboard() {
     prev = g.at;
   }
   if (board.parentElement) board.parentElement.scrollTop = scroll;
+  const field = board.querySelector?.(".scStepMessageInput");
+  if (field && (keep !== null || (scInlineStep && scInlineStep.focus))) {
+    if (keep !== null) field.value = keep;
+    if (scInlineStep) scInlineStep.focus = false;
+    field.focus({ preventScroll: true });
+  }
 }
 function scStoryRow(step) {
   const d = describeScenarioStep(step),
@@ -1728,7 +1884,18 @@ function scStoryRow(step) {
   }
   /* FLUYO-MCP-STEP-MESSAGE-001 / PRODUCT-NARRATION-001: la frase propia del paso, de cualquier evento, bajo la del evento. Al reproducir
      es el título del momento (y, en un evento de elemento, su globo). Sin ella, lo de siempre. */
-  if (scStepMessage(step)) text.appendChild(scEl("div", "scStepMessage", FluyoI18n.t("step.quoted", "«{text}»", { text: step.message })));
+  /* S1a: la frase se escribe aquí mismo. Tocar la frase (o doble clic en la fila) la edita en línea. */
+  const inline = !isScenarioPlaybackActive() && !d.missing && scEditable();
+  if (inline && scInlineStep && scInlineStep.id === step.id) text.appendChild(scInlineMessageField(step));
+  else if (scStepMessage(step)) {
+    const said = scEl("div", "scStepMessage", FluyoI18n.t("step.quoted", "«{text}»", { text: step.message }));
+    if (inline) {
+      said.title = FluyoI18n.t("step.inline.edit", "Editar la frase");
+      said.onclick = (ev) => { ev.stopPropagation(); scBeginInlineMessage(step.id); };
+    }
+    text.appendChild(said);
+  }
+  if (inline) text.ondblclick = (ev) => { if (!ev.target.closest?.("input")) scBeginInlineMessage(step.id); };
   if (r.detail) text.appendChild(scEl("div", "scStepDetail", r.detail));
   if (d.missing && !isScenarioPlaybackActive())
     text.appendChild(scButton(FluyoI18n.t("step.chooseOther", "Elegir otro"), () => scChangeTarget(step), "scStoryRepair"));
@@ -2975,13 +3142,13 @@ function scUpdatePlacementBar() {
   $("scPlacementConfirm").hidden = p?.kind !== "multi";
   $("scPlacementConfirm").disabled = !p?.targets?.size;
 }
-function scEdgeCandidates(x, y) {
-  // Geometría compartida con el renderer; radio constante en píxeles de pantalla.
+function scEdgeCandidates(x, y, px = 10) {
+  // Geometría compartida con el renderer; radio constante en píxeles de pantalla (10 al colocar; 12 al tocar para contar, S1a).
   if (typeof edgePoints !== "function") {
     const e = hitEdge(x, y);
     return e ? [e] : [];
   }
-  const radius = 10 / (typeof viewZoom === "number" ? viewZoom : 1),
+  const radius = px / (typeof viewZoom === "number" ? viewZoom : 1),
     found = [];
   for (const e of P().edges) {
     const pts = edgePoints(e);

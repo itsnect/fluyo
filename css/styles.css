@@ -580,6 +580,10 @@ aside.scenariosOpen{box-sizing:border-box;width:320px;flex:0 0 320px;overflow:hi
 .scStepSecondary{color:var(--muted);font-size:12px;padding:0 4px 4px;line-height:1.4;}
 /* FLUYO-MCP-STEP-MESSAGE-001: el mensaje propio del paso (su globo), bajo la frase; entero, sin recortar. */
 .scStepMessage{color:var(--text);font-size:12px;font-style:italic;padding:0 4px 4px;line-height:1.4;overflow-wrap:anywhere;}
+/* FLUYO-STORIES-2.0 S1a: la frase del paso se escribe en su fila */
+.scStepMessage[title]{cursor:text;}
+.scStepMessageInput{display:block;box-sizing:border-box;width:calc(100% - 8px);margin:2px 4px 4px;padding:6px 8px;font:inherit;font-size:13px;color:var(--text);background:var(--panel2);border:1px solid var(--line);border-radius:6px;}
+.scStepMessageInput::placeholder{color:var(--ink-3);font-style:italic;}
 .scPopover input.scMessageInput{display:block;width:100%;margin-top:4px;}
 .scStoryRepair{font-size:11px;padding:3px 5px;margin:3px;}
 .scGroupWarning{font-size:11px;line-height:1.4;color:var(--muted);margin:5px 0;}

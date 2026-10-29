@@ -40,6 +40,7 @@ const { PIECES: PIECES_S1A } = require("./fluyo-stories-2-0-s1a-undo.cjs");   /*
 const { PIECES: PIECES_S1B } = require("./fluyo-stories-2-0-s1b-undo.cjs");   /* FLUYO-STORIES-2.0 S1b va encima de S1a (undoS1a la deshace antes) */
 const { PIECES: PIECES_ST2A } = require("./fluyo-stories-2-0-s2a-undo.cjs");   /* FLUYO-STORIES-2.0 S2a va encima de S1b (undoS1b la deshace antes) */
 const { PIECES: PIECES_ST2B } = require("./fluyo-stories-2-0-s2b-undo.cjs");   /* FLUYO-STORIES-2.0 S2b va encima de S2a (undoS2a la deshace antes) */
+const { PIECES: PIECES_OUT } = require("./fluyo-stories-2-0-outcome-undo.cjs");   /* FLUYO-STORIES-2.0 · etiqueta del desenlace, encima de S2b (undoS2b la deshace antes) */
 const { PIECES: PIECES_S4 } = require("./fluyo-i18n-002-s4-undo.cjs");   /* FLUYO-I18N-002 S4 va encima de S2a (undoS2a la deshace antes) */
 const HTML = undoS2a("index.html", read("index.html"));
 const cut = (from, to) => { const a = HTML.indexOf(from), b = HTML.indexOf(to, a); assert.ok(a >= 0 && b > a, "región: " + from); return HTML.slice(a, b); };
@@ -184,13 +185,13 @@ test("alcance frente a " + BASE + ": solo el cromo del editor; undoS1 da la base
   assert.deepEqual(Object.keys(PIECES).sort(), FILES);
   const SERVED = ["js", "s", "css", "assets", "index.html", "404.html", "sw.js", "manifest.webmanifest", "docs", "ejemplos", "privacidad", "privacy", "soporte", "support", "terminos", "terms"];
   /* S2a va encima: lo que solo cambia S2a (sin S2a, igual que la base) no cuenta para el alcance de S1 */
-  const s2aOnly = (f) => NEW_EX.includes(f) || ((!!PIECES_S2A[f] || !!PIECES_S4[f] || !!PIECES_S2B[f] || !!PIECES_S3A[f] || !!PIECES_EX[f] || !!PIECES_S1A[f] || !!PIECES_S1B[f] || !!PIECES_ST2A[f] || !!PIECES_ST2B[f]) && !FILES.includes(f) && undoS2a(f, read(f)) === atBase(f));
+  const s2aOnly = (f) => NEW_EX.includes(f) || ((!!PIECES_S2A[f] || !!PIECES_S4[f] || !!PIECES_S2B[f] || !!PIECES_S3A[f] || !!PIECES_EX[f] || !!PIECES_S1A[f] || !!PIECES_S1B[f] || !!PIECES_ST2A[f] || !!PIECES_ST2B[f] || !!PIECES_OUT[f]) && !FILES.includes(f) && undoS2a(f, read(f)) === atBase(f));
   const changed = execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean).filter((f) => !s2aOnly(f));
   const untracked = execFileSync("git", ["-C", gitRoot, "ls-files", "--others", "--exclude-standard", "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean).filter((f) => !s2aOnly(f));
   assert.deepEqual([...new Set([...changed, ...untracked])].sort(), [...FILES, "sw.js"].sort());
   for (const f of FILES) assert.equal(undoS1(f, read(f)), atBase(f), f + ": undoS1 exacto");
-  assert.equal(undoEx("sw.js", read("sw.js")).replace('"fluyo-static-v120"', '"fluyo-static-v' + (110 - 1) + '"'), atBase("sw.js"), "sw.js: solo CACHE (sin archivos nuevos)");
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v120";/);
+  assert.equal(undoEx("sw.js", read("sw.js")).replace('"fluyo-static-v121"', '"fluyo-static-v' + (110 - 1) + '"'), atBase("sw.js"), "sw.js: solo CACHE (sin archivos nuevos)");
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v121";/);
   assert.ok(read("test/fluyo-i18n-002-s0-undo.cjs").includes("src = undoS1(file, src);"), "undoS0 deshace antes esta tarea");
   for (const f of ["js/config.js", "js/safe-svg.js", "js/model.js", "js/scenario-engine.js", "js/scenario-playback.js", "js/story-playback.js", "js/document-integrity.js", "js/story-authoring.js",
     "js/story-clock.js", "js/flow-semantics.js", "js/render.js", "js/selection.js", "js/editor-scenarios.js", "js/present-story.js", "js/viewer.js", "js/viewer-viewport.js", "js/share-url.js",

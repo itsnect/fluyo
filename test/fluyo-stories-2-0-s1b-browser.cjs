@@ -1,6 +1,6 @@
 "use strict";
 /* FLUYO-STORIES-2.0 S1b · Fallar — QA funcional en Chrome real (cdp-lite, sin dependencias, ratón, teclas y dedo de verdad por CDP).
-   A éxito: A → B → C «Termina bien». D duplicar como fallo: la copia falla, se modifica y la original no cambia. E Viewer: el enlace
+   A éxito: A → B → C «Sin fallos». D duplicar como fallo: la copia falla, se modifica y la original no cambia. E Viewer: el enlace
    reproduce el mismo fallo y el mismo desenlace. B fallo: «Falla aquí» en el envío a B; al reproducir B cae, lo que depende de B
    falla y el desenlace dice «Falla en el paso 2», también en Present. C Undo: una vez y la Historia vuelve tal cual. F inglés.
    Además: móvil 375×812 y los ejemplos (Compra online y OAuth) con sus desenlaces, sin cambiar el documento.
@@ -101,9 +101,9 @@ async function viewer(link) {
         /* A · éxito */
         await tell(b, "El cliente paga", "El banco avisa a pagos");
         let s = await state(b);
-        check(s.steps.length === 2 && s.outcome === "Termina bien" && !s.failed, "A · A → B → C contada con clics: «" + s.outcome + "»");
+        check(s.steps.length === 2 && s.outcome === "Sin fallos" && !s.failed, "A · A → B → C contada con clics: «" + s.outcome + "»");
         check(await playEditor(b), "A · se reproduce hasta el final");
-        check((await state(b)).outcome === "Termina bien" && await b.ev(`scPlayback.logEvents.every((e) => e.type !== "send_failed")`), "A · al terminar sigue «Termina bien» (el motor no registra fallos)");
+        check((await state(b)).outcome === "Sin fallos" && await b.ev(`scPlayback.logEvents.every((e) => e.type !== "send_failed")`), "A · al terminar sigue «Sin fallos» (el motor no registra fallos)");
         await b.press(`document.getElementById("scReset")`);
         const original = await page(b);
         const originalStory = await b.ev(`JSON.stringify(P().scenarios[0])`);
@@ -136,7 +136,7 @@ async function viewer(link) {
         check(vf.seen.includes("El banco se cae") && vf.summary === "2 eventos no pudieron realizarse", "E · con su frase y el mismo resumen del motor («" + vf.summary + "»)");
         const okLink = await b.ev(`createShareUrl(serializeProject(), location.href, { kind: "story", scenarioId: P().scenarios[0].id })`);
         const vo = await viewer(okLink);
-        check(vo.outcome === "Termina bien" && vo.summary === "", "E · la original en el Viewer: «" + vo.outcome + "»");
+        check(vo.outcome === "Sin fallos" && vo.summary === "", "E · la original en el Viewer: «" + vo.outcome + "»");
 
         /* B · «Falla aquí» en la original, desde el ⋯ de la fila */
         await b.ev(`scSwitchScenario(P().scenarios[0].id); true`); await sleep(200);
@@ -170,7 +170,7 @@ async function viewer(link) {
         await b.key("z", 2); await sleep(200);
         s = await state(b);
         check(noCounter(await page(b)) === noCounter(before), "C · un Ctrl+Z devuelve la página exacta (salvo nextStepId, que nunca baja)");
-        check(s.outcome === "Termina bien" && s.undo === undo0, "C · vuelve a «Termina bien» con una sola entrada menos");
+        check(s.outcome === "Sin fallos" && s.undo === undo0, "C · vuelve a «Sin fallos» con una sola entrada menos");
         check(noCounter(JSON.stringify(JSON.parse(await page(b)).scenarios[0])) === noCounter(JSON.stringify(JSON.parse(original).scenarios[0])), "C · la original, como al principio");
         check(!b.errors.length, "sin errores de consola " + b.errors.join(" | "));
       } finally { b.close(); } }
@@ -181,7 +181,7 @@ async function viewer(link) {
         await loadDoc(b);
         await tell(b, "The customer pays", "The bank tells payments");
         let s = await state(b);
-        check(s.outcome === "Ends well", "F · «" + s.outcome + "»");
+        check(s.outcome === "No failures", "F · «" + s.outcome + "»");
         await b.press(`document.getElementById("scScenarioMenu")`);
         await b.press(b.menuItem("Duplicate as failure")); await sleep(200);
         const choose = await b.menu(), name = (await state(b)).name;
@@ -218,7 +218,7 @@ async function viewer(link) {
         const ab = await b.at(360, 250), bc = await b.at(680, 250);
         await b.touch(ab.x, ab.y); await b.touch(bc.x, bc.y);
         await b.press(`document.getElementById("btnStoryExpand")`, "touch"); await sleep(500);
-        check((await state(b)).outcome === "Termina bien", "la línea del desenlace: «Termina bien»");
+        check((await state(b)).outcome === "Sin fallos", "la línea del desenlace: «Sin fallos»");
         /* el aviso «Historia 1 creada» tapa la fila unos segundos (ya era así): se espera, y el menú se abre tocando la fila */
         await untilDone(b, `document.getElementById("scNotice").hidden`, 8000);
         await b.press(`document.querySelector('.scStoryRow[data-step-id="1"] .scStepPrimary')`, "touch");
@@ -232,8 +232,8 @@ async function viewer(link) {
       } finally { b.close(); } }
 
     console.log("\nEJEMPLOS · los desenlaces previstos y el documento intacto");
-    for (const [slug, expect] of [["compra-online", { "Compra con éxito": "Termina bien", "El banco no responde": "Falla en el paso 4" }],
-      ["inicio-de-sesion-oauth2", { "Iniciar sesión": "Termina bien", "El usuario no autoriza": "Termina bien" }]]) {
+    for (const [slug, expect] of [["compra-online", { "Compra con éxito": "Sin fallos", "El banco no responde": "Falla en el paso 4" }],
+      ["inicio-de-sesion-oauth2", { "Iniciar sesión": "Sin fallos", "El usuario no autoriza": "Sin fallos" }]]) {
       const b = await open(srv, "?ejemplo=" + slug);
       try {
         await sleep(700);

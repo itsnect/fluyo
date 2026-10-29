@@ -34,9 +34,9 @@ const MUTATIONS = [
   /* desenlace */
   ["M19 N cuenta pasos, no momentos", SC, `    return {ok:false, moment:k+1,`, `    return {ok:false, moment:storyboardOrderedSteps(scenario.steps).findIndex(s=>failed.has(s.id))+1,`],
   ["M20 una caída cuenta como fallo", SC, `if(ev.type==="send_failed") failed.add(ev.stepId);`, `if(ev.type==="send_failed" || ev.type==="state_changed") failed.add(ev.stepId);`],
-  ["M21 sin pasos dice «Termina bien»", SC, `if(!groups.length || !trace || !trace.events) return null;`, `if(!trace || !trace.events) return null;`],
+  ["M21 sin pasos dice «Sin fallos»", SC, `if(!groups.length || !trace || !trace.events) return null;`, `if(!trace || !trace.events) return null;`],
   ["M22 la línea sale antes de terminar", SC, `return phase==="finished" ? outcomeText(`, `return phase!=="ready" ? outcomeText(`],
-  ["M23 «Termina bien» no sigue el idioma", SC, `tx("story.outcome.ok", "Termina bien")`, `"Termina bien"`],
+  ["M23 «Sin fallos» no sigue el idioma", SC, `tx("story.outcome.ok", "Sin fallos")`, `"Sin fallos"`],
   ["M24 Present no pinta el desenlace", PS, `typeof FluyoStoryClock!=="undefined" ? FluyoStoryClock.outcomeLine(dphase, sc, scPlayback, FluyoI18n.t) : ""`, `""`],
   ["M25 el Viewer no pinta el desenlace", VW, `  if($("stOutcome")) storySet("stOutcome","text",FluyoStoryClock.outcomeLine(phase, sc, story && story.playback, FluyoI18n.t));\n`, ``],
   ["M26 el editor no enseña el desenlace", ED, `  if (outcome) board.appendChild(scEl("div", "scOutcome " + (info.outcome.ok ? "ok" : "failed"), outcome));\n`, ``],

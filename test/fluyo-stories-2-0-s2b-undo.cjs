@@ -67,7 +67,10 @@ const PIECES = {
     ]
   ]
 };
+/* FLUYO-STORIES-2.0 · etiqueta del desenlace va encima de S2b (base 9d3096d): se deshace primero (fluyo-stories-2-0-outcome-undo.cjs). */
+const { undoOutcome } = require("./fluyo-stories-2-0-outcome-undo.cjs");
 function undoS2b(file, src) {
+  src = undoOutcome(file, src);
   const f = file.replace(/\\/g, "/"), pieces = PIECES[f];
   if (!pieces) return src;
   let out = src.replace(/\r\n/g, "\n");

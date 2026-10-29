@@ -139,7 +139,7 @@ var FluyoStoryClock = (function(){
 
   /* FLUYO-STORIES-2.0 S1b. Desenlace de una Historia, el MISMO en el editor, Present y el Viewer: sale del Trace del motor,
      no de una etiqueta. «Falla en el paso N»: N es el momento (la unidad del progreso «n / total») del primer envío que no
-     se completó (`send_failed`, lo mismo que cuenta FluyoStory.failedCount). «Termina bien»: hay pasos y ningún envío falla,
+     se completó (`send_failed`, lo mismo que cuenta FluyoStory.failedCount). «Sin fallos»: hay pasos y ningún envío falla,
      también en una ruta alternativa (D2; la marca de variante es de S2). Sin pasos o sin Trace: null (no se dice nada).
      Las esperas de llegada solo desplazan instantes sin cambiar el orden de los momentos, así que el horario visible da el
      mismo N. */
@@ -155,7 +155,9 @@ var FluyoStoryClock = (function(){
   function outcomeText(o, text){
     if(!o) return "";
     const tx = typeof text==="function" ? text : (k, fb, p)=>fb.replace(/\{(\w+)\}/g, (m, name)=>p && p[name]!==undefined ? String(p[name]) : m);
-    return o.ok ? tx("story.outcome.ok", "Termina bien") : tx("story.outcome.failed", "Falla en el paso {n}", {n:o.moment});
+    /* «Sin fallos» dice solo lo que el motor comprueba (ningún envío falló), no que el resultado sea bueno: una ruta alternativa
+       («El banco rechaza la tarjeta») también es «Sin fallos» (FLUYO-STORIES-2.0, etiqueta del desenlace, decisión 319). */
+    return o.ok ? tx("story.outcome.ok", "Sin fallos") : tx("story.outcome.failed", "Falla en el paso {n}", {n:o.moment});
   }
   /* La línea de Present y el Viewer: solo terminada, del Trace de esa reproducción ("" en las demás fases). */
   function outcomeLine(phase, scenario, playback, text){

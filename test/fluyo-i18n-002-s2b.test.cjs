@@ -364,18 +364,19 @@ test("A · alcance frente a 86d910a: solo estos archivos; undoS2b da la base EXA
   const { PIECES: PIECES_S1B } = require("./fluyo-stories-2-0-s1b-undo.cjs");   /* FLUYO-STORIES-2.0 S1b va encima de S1a (undoS1a la deshace antes) */
   const { PIECES: PIECES_ST2A } = require("./fluyo-stories-2-0-s2a-undo.cjs");   /* FLUYO-STORIES-2.0 S2a va encima de S1b (undoS1b la deshace antes) */
   const { PIECES: PIECES_ST2B } = require("./fluyo-stories-2-0-s2b-undo.cjs");   /* FLUYO-STORIES-2.0 S2b va encima de S2a (undoS2a la deshace antes) */
+  const { PIECES: PIECES_OUT } = require("./fluyo-stories-2-0-outcome-undo.cjs");   /* FLUYO-STORIES-2.0 · etiqueta del desenlace, encima de S2b (undoS2b la deshace antes) */
   assert.deepEqual(NEW_FILES, []);
   const FILES = ["js/editor-scenarios.js", "js/i18n-en-editor.js", "js/i18n-en.js", "js/model.js", "js/present-story.js", "js/story-clock.js", "js/story-playback.js", "js/viewer.js"];
   assert.deepEqual(Object.keys(PIECES).sort(), FILES);
   const SERVED = ["js", "s", "css", "assets", "index.html", "404.html", "sw.js", "manifest.webmanifest", "docs", "ejemplos", "privacidad", "privacy", "soporte", "support", "terminos", "terms"];
   /* lo que solo cambia S3a o S3b (sin ellas, igual que la base) no cuenta para el alcance de S2b */
-  const s3aOnly = (f) => NEW_EX.includes(f) || ((!!PIECES_S3A[f] || !!PIECES_S3B[f] || !!PIECES_EX[f] || !!PIECES_S1A[f] || !!PIECES_S1B[f] || !!PIECES_ST2A[f] || !!PIECES_ST2B[f]) && !FILES.includes(f) && undoS3a(f, read(f)) === atBase(f));
+  const s3aOnly = (f) => NEW_EX.includes(f) || ((!!PIECES_S3A[f] || !!PIECES_S3B[f] || !!PIECES_EX[f] || !!PIECES_S1A[f] || !!PIECES_S1B[f] || !!PIECES_ST2A[f] || !!PIECES_ST2B[f] || !!PIECES_OUT[f]) && !FILES.includes(f) && undoS3a(f, read(f)) === atBase(f));
   const changed = execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean).filter((f) => !s3aOnly(f));
   const untracked = execFileSync("git", ["-C", gitRoot, "ls-files", "--others", "--exclude-standard", "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean).filter((f) => !s3aOnly(f));
   assert.deepEqual([...new Set([...changed, ...untracked])].sort(), [...FILES, "sw.js"].sort());
   for (const f of FILES) assert.equal(undoS2b(f, read(f)), atBase(f), f + ": undoS2b exacto");
-  assert.equal(undoEx("sw.js", read("sw.js")).replace('"fluyo-static-v120"', '"fluyo-static-v' + (113 - 1) + '"'), atBase("sw.js"), "sw.js: solo CACHE (sin archivos nuevos)");
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v120";/);
+  assert.equal(undoEx("sw.js", read("sw.js")).replace('"fluyo-static-v121"', '"fluyo-static-v' + (113 - 1) + '"'), atBase("sw.js"), "sw.js: solo CACHE (sin archivos nuevos)");
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v121";/);
   assert.ok(read("test/fluyo-i18n-002-s4-undo.cjs").includes("src = undoS2b(file, src);"), "undoS4 deshace antes esta tarea");
   /* el resto del kernel, sin tocar (safe-svg, config, motor, integridad y autoría: no cambia su sha) */
   for (const f of ["js/config.js", "js/safe-svg.js", "js/scenario-engine.js", "js/scenario-playback.js", "js/document-integrity.js", "js/story-authoring.js", "js/geometry.js", "js/render.js", "js/export.js",

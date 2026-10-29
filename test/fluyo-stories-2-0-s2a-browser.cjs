@@ -101,12 +101,12 @@ async function viewerPlay(v, how = "click") {
       try {
         let s = await vstate(v);
         const href0 = s.href, doc0 = s.doc;
-        check(s.kicker === "Compra online" && s.title === "Compra con éxito" && s.outcome === "Termina bien" && s.outcomeVisible && s.play && s.others === null,
+        check(s.kicker === "Compra online" && s.title === "Compra con éxito" && s.outcome === "Sin fallos" && s.outcomeVisible && s.play && s.others === null,
           "B · portada: «" + s.kicker + "» / «" + s.title + "» · «" + s.outcome + "», un CTA y nada más");
         await v.shot("b-viewer-cover");
         check(await viewerPlay(v), "B · Reproducir de verdad, hasta el final");
         s = await vstate(v);
-        check(s.outcome === "Termina bien" && s.head === "Otras formas" && JSON.stringify(s.others) === JSON.stringify(["El banco no responde · Falla en el paso 4"]),
+        check(s.outcome === "Sin fallos" && s.head === "Otras formas" && JSON.stringify(s.others) === JSON.stringify(["El banco no responde · Falla en el paso 4"]),
           "B · al terminar: «" + s.outcome + "» y «" + s.head + "»: " + (s.others || []).join(" | "));
         await v.shot("b-viewer-end");
         await v.press(`document.querySelector("#stOthersList .stOther")`); await sleep(400);
@@ -117,7 +117,7 @@ async function viewerPlay(v, how = "click") {
         await v.shot("b-viewer-other-cover");
         check(await viewerPlay(v), "B · se reproduce la otra forma");
         s = await vstate(v);
-        check(s.outcome === "Falla en el paso 4" && JSON.stringify(s.others) === JSON.stringify(["Compra con éxito · Termina bien"]), "B · acaba como anunciaba la portada; y ofrece volver: " + (s.others || []).join(" | "));
+        check(s.outcome === "Falla en el paso 4" && JSON.stringify(s.others) === JSON.stringify(["Compra con éxito · Sin fallos"]), "B · acaba como anunciaba la portada; y ofrece volver: " + (s.others || []).join(" | "));
         const sum = await v.ev(`${$("stSummary")}.textContent`);
         check(sum === "1 evento no pudo realizarse", "B · el resumen del motor de siempre: «" + sum + "»");
         check(!v.errors.length, "B · sin errores de consola " + v.errors.join(" | "));
@@ -127,10 +127,10 @@ async function viewerPlay(v, how = "click") {
     { const v = await open(links.one);
       try {
         let s = await vstate(v);
-        check(s.kicker === "Compra online" && s.title === "Compra con éxito" && s.outcome === "Termina bien", "C · abre con portada");
+        check(s.kicker === "Compra online" && s.title === "Compra con éxito" && s.outcome === "Sin fallos", "C · abre con portada");
         await viewerPlay(v);
         s = await vstate(v);
-        check(s.outcome === "Termina bien" && s.others === null, "C · al terminar no hay «Otras formas» (el enlace no las trae)");
+        check(s.outcome === "Sin fallos" && s.others === null, "C · al terminar no hay «Otras formas» (el enlace no las trae)");
         check(!v.errors.length, "C · sin errores de consola " + v.errors.join(" | "));
       } finally { v.close(); } }
 
@@ -141,7 +141,7 @@ async function viewerPlay(v, how = "click") {
         const editor = {};
         for (const id of await b.ev(`P().scenarios.map((s) => s.id)`)) { await b.ev(`scSwitchScenario(${id}); true`); await sleep(150); editor[await b.ev(`scActiveScenario().name`)] = await b.ev(`(document.querySelector(".scOutcome") || {}).textContent || ""`); }
         await b.ev(`scSwitchScenario(P().scenarios[0].id); true`); await sleep(150);
-        check(editor["Compra con éxito"] === "Termina bien" && editor["El banco no responde"] === "Falla en el paso 4", "D · el editor: " + JSON.stringify(editor));
+        check(editor["Compra con éxito"] === "Sin fallos" && editor["El banco no responde"] === "Falla en el paso 4", "D · el editor: " + JSON.stringify(editor));
         await b.press($("btnPresent")); await sleep(700);
         let s = await pstate(b);
         const doc0 = s.doc, undo0 = s.undo, view0 = s.view;
@@ -150,7 +150,7 @@ async function viewerPlay(v, how = "click") {
         await b.press($("psPlay"));
         check(await until(b, `!${$("psOthers")}.hidden`), "D · Reproducir de verdad, hasta el final");
         s = await pstate(b);
-        check(s.kicker === "Historia · Compra con éxito" && s.outcome === "Termina bien" && s.head === "Otras formas" && JSON.stringify(s.others) === JSON.stringify(["El banco no responde · Falla en el paso 4"]),
+        check(s.kicker === "Historia · Compra con éxito" && s.outcome === "Sin fallos" && s.head === "Otras formas" && JSON.stringify(s.others) === JSON.stringify(["El banco no responde · Falla en el paso 4"]),
           "D · al terminar: «" + s.outcome + "», «" + s.head + "»: " + (s.others || []).join(" | "));
         check(s.view === view0, "D · el diagrama no se movió (el encabezado ya tenía su sitio): " + s.view);
         await b.shot("d-present-end");
@@ -162,7 +162,7 @@ async function viewerPlay(v, how = "click") {
         await b.press($("psPlay"));
         await until(b, `!${$("psOthers")}.hidden`);
         s = await pstate(b);
-        check(s.outcome === "Falla en el paso 4" && JSON.stringify(s.others) === JSON.stringify(["Compra con éxito · Termina bien"]), "D · acaba como el editor y el Viewer: «" + s.outcome + "»");
+        check(s.outcome === "Falla en el paso 4" && JSON.stringify(s.others) === JSON.stringify(["Compra con éxito · Sin fallos"]), "D · acaba como el editor y el Viewer: «" + s.outcome + "»");
         await b.press($("prExit")); await sleep(300);
         check(!(await b.ev(`presenting`)) && await b.ev(`undoStack.length`) === undo0, "D · al salir, Deshacer sigue igual");
         check(!b.errors.length, "D · sin errores de consola " + b.errors.join(" | "));
@@ -180,7 +180,7 @@ async function viewerPlay(v, how = "click") {
         /* en inglés, «Ejemplo» abre la versión inglesa (EXAMPLES-001): los nombres son los de ese documento */
         const names = await b.ev(`({ page: P().name, stories: P().scenarios.map((x) => x.name) })`);
         let s = await pstate(b);
-        check(s.kicker === names.page && names.page === "Online checkout" && s.outcome === "Ends well", "E · Present: «" + s.kicker + "» · «" + s.outcome + "»");
+        check(s.kicker === names.page && names.page === "Online checkout" && s.outcome === "No failures", "E · Present: «" + s.kicker + "» · «" + s.outcome + "»");
         await b.press($("psPlay")); await until(b, `!${$("psOthers")}.hidden`);
         s = await pstate(b);
         check(s.kicker === "Story · " + names.stories[0] && s.head === "Other ways" && JSON.stringify(s.others) === JSON.stringify([names.stories[1] + " · Fails at step 4"]), "E · Present al terminar: «" + s.kicker + "», «" + s.head + "»: " + (s.others || []).join(" | "));
@@ -189,7 +189,7 @@ async function viewerPlay(v, how = "click") {
     { const v = await open(links.family.replace("/s/", "/s/?lang=en"));
       try {
         let s = await vstate(v);
-        check(s.kicker === "Compra online" && s.outcome === "Ends well", "E · Viewer: «" + s.kicker + "» · «" + s.outcome + "»");
+        check(s.kicker === "Compra online" && s.outcome === "No failures", "E · Viewer: «" + s.kicker + "» · «" + s.outcome + "»");
         await viewerPlay(v);
         s = await vstate(v);
         check(s.head === "Other ways" && JSON.stringify(s.others) === JSON.stringify(["El banco no responde · Fails at step 4"]), "E · Viewer al terminar: «" + s.head + "»: " + (s.others || []).join(" | "));
@@ -197,7 +197,7 @@ async function viewerPlay(v, how = "click") {
         const doc0 = s.doc;
         await v.ev(`FluyoI18n.setLocale("es"); true`); await sleep(300);
         s = await vstate(v);
-        check(s.head === "Otras formas" && s.outcome === "Termina bien" && JSON.stringify(s.others) === JSON.stringify(["El banco no responde · Falla en el paso 4"]), "E · cambiar a español en vivo repinta: «" + s.head + "»");
+        check(s.head === "Otras formas" && s.outcome === "Sin fallos" && JSON.stringify(s.others) === JSON.stringify(["El banco no responde · Falla en el paso 4"]), "E · cambiar a español en vivo repinta: «" + s.head + "»");
         check(s.doc === doc0, "E · cambiar de idioma no toca el documento");
         check(!v.errors.length, "E · sin errores de consola " + v.errors.join(" | "));
       } finally { v.close(); } }
@@ -205,7 +205,7 @@ async function viewerPlay(v, how = "click") {
       try {
         await viewerPlay(v);
         const s = await vstate(v);
-        check(s.head === "Other ways" && s.outcome === "Ends well", "E · fr cae al inglés, como S1b: «" + s.head + "» · «" + s.outcome + "»");
+        check(s.head === "Other ways" && s.outcome === "No failures", "E · fr cae al inglés, como S1b: «" + s.head + "» · «" + s.outcome + "»");
       } finally { v.close(); } }
 
     console.log("\nF · MÓVIL 375×812 · con el dedo");
@@ -213,7 +213,7 @@ async function viewerPlay(v, how = "click") {
       try {
         let s = await vstate(v);
         const card = await v.box($("stNow"));
-        check(s.kicker === "Compra online" && s.outcome === "Termina bien" && card && card.left >= 0 && card.right <= 375, "F · portada dentro de la pantalla (" + Math.round(card.left) + "–" + Math.round(card.right) + " px)");
+        check(s.kicker === "Compra online" && s.outcome === "Sin fallos" && card && card.left >= 0 && card.right <= 375, "F · portada dentro de la pantalla (" + Math.round(card.left) + "–" + Math.round(card.right) + " px)");
         await v.shot("f-mobile-cover");
         check(await viewerPlay(v, "touch"), "F · Reproducir con el dedo, hasta el final");
         const other = await v.box(`document.querySelector("#stOthersList .stOther")`);

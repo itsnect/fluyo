@@ -206,7 +206,7 @@ test("B1 · el selector: cada Historia con su desenlace, el mismo que su línea 
   ctx.run("scNewScenario()");
   const items = menu(ctx, "scChooseScenario(document.createElement('button'))");
   assert.deepEqual(items.map((i) => [i.label, i.hint]), [
-    ["○ Compra", "Falla en el paso 3"], ["○ Compra — otra forma", "Termina bien"], ["● Historia 3", ""], ["+ Nueva historia", ""]]);
+    ["○ Compra", "Falla en el paso 3"], ["○ Compra — otra forma", "Sin fallos"], ["● Historia 3", ""], ["+ Nueva historia", ""]]);
   for (const id of J(ctx, "P().scenarios.filter((s) => s.steps.length).map((s) => s.id)")) {
     ctx.run(`scSwitchScenario(${id}); scStorySignature = ""; scRenderStoryboard();`);
     const line = ctx.run(`(($("scStoryboard").children.find((c) => /scOutcome/.test(c.className))) || {}).textContent || ""`);
@@ -218,9 +218,9 @@ test("B1 · el selector: cada Historia con su desenlace, el mismo que su línea 
 test("B2 · los ejemplos: el selector dice lo mismo que FluyoStoryClock.outcomeOf y el documento no cambia", () => {
   const ctx = boot();
   const expect = {
-    "compra-online": ["Termina bien", "Falla en el paso 4"],
-    "inicio-de-sesion-oauth2": ["Termina bien", "Termina bien"],
-    "pedido-asincrono-cola": ["Termina bien", "Falla en el paso 4"],
+    "compra-online": ["Sin fallos", "Falla en el paso 4"],
+    "inicio-de-sesion-oauth2": ["Sin fallos", "Sin fallos"],
+    "pedido-asincrono-cola": ["Sin fallos", "Falla en el paso 4"],
   };
   for (const [slug, out] of Object.entries(expect)) {
     ctx.raw = read(`ejemplos/data/${slug}.fluyo.json`);
@@ -242,7 +242,7 @@ test("S1 · guardar, cargar y compartir conservan la variante y su nombre (una H
   for (const k of keys) assert.ok(["id", "engineVersion", "name", "nextStepId", "steps", "arrivalDependencies", "observedFlow"].includes(k), "clave conocida: " + k);
 });
 
-test("E1 · en inglés: «Another way from here», «— another way», «Another way from step N», «Ends well» en el selector", () => {
+test("E1 · en inglés: «Another way from here», «— another way», «Another way from step N», «No failures» en el selector", () => {
   const ctx = story("en");
   const items = menu(ctx, "scStoryMenu(scActiveScenario().steps[0], document.createElement('button'))");
   assert.deepEqual([items[1].label, items[1].hint], ["Another way from here", "Copies the story up to this step and continues another way"]);
@@ -251,7 +251,7 @@ test("E1 · en inglés: «Another way from here», «— another way», «Anothe
   items[1].click();
   assert.equal(ctx.run("scActiveScenario().name"), "Compra — another way");
   key(ctx, 27);
-  assert.deepEqual(menu(ctx, "scChooseScenario(document.createElement('button'))").slice(0, 2).map((i) => i.hint), ["Ends well", "Ends well"]);
+  assert.deepEqual(menu(ctx, "scChooseScenario(document.createElement('button'))").slice(0, 2).map((i) => i.hint), ["No failures", "No failures"]);
   ctx.run("scSwitchScenario(P().scenarios[0].id); scRun(); scSeekMoment(0);");
   assert.ok(menu(ctx, "scScenarioMenu(document.createElement('button'))").some((i) => i.label === "Another way from step 1"));
   /* el nombre es contenido: volver a español no lo retraduce */
@@ -261,9 +261,12 @@ test("E1 · en inglés: «Another way from here», «— another way», «Anothe
 
 test("C1 · kernel, formato, codec, Share, Present, Viewer, render, ejemplos y fluyo-mcp intactos", () => {
   const KEEP = ["js/config.js", "js/safe-svg.js", "js/model.js", "js/scenario-engine.js", "js/scenario-playback.js", "js/story-playback.js", "js/document-integrity.js",
-    "js/story-authoring.js", "js/story-clock.js", "js/render.js", "js/link-codec.js", "js/deeplink.js", "js/share-url.js", "js/editor-share.js", "js/present-story.js",
+    "js/story-authoring.js", "js/render.js", "js/link-codec.js", "js/deeplink.js", "js/share-url.js", "js/editor-share.js", "js/present-story.js",
     "js/viewer.js", "js/examples.js", "index.html", "s", "ejemplos"];
   assert.equal(execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...KEEP], { encoding: "utf8" }).trim(), "");
+  /* story-clock.js lo cambia la etiqueta del desenlace («Sin fallos»): con ella deshecha, igual que en la base */
+  const { undoOutcome } = require("./fluyo-stories-2-0-outcome-undo.cjs");
+  assert.equal(undoOutcome("js/story-clock.js", read("js/story-clock.js")), execFileSync("git", ["-C", gitRoot, "show", BASE + ":js/story-clock.js"], { encoding: "utf8" }).replace(/\r\n/g, "\n"));
   const mcp = path.join(root, "..", "fluyo-mcp");
   if (fs.existsSync(path.join(mcp, ".git"))) {
     assert.equal(execFileSync("git", ["-C", mcp, "rev-parse", "--short", "HEAD"], { encoding: "utf8" }).trim(), "464f4e0", "fluyo-mcp sigue en 464f4e0");
@@ -274,12 +277,13 @@ test("C1 · kernel, formato, codec, Share, Present, Viewer, render, ejemplos y f
 test("C2 · alcance frente a 699bd7a: solo estos archivos servidos; undoS2b (para los alcances antiguos) los devuelve EXACTOS", () => {
   const SERVED = ["js", "s", "css", "assets", "index.html", "404.html", "sw.js", "manifest.webmanifest", "docs", "ejemplos", "privacidad", "privacy", "soporte", "support", "terminos", "terms"];
   const { undoS2b, PIECES, NEW_FILES } = require("./fluyo-stories-2-0-s2b-undo.cjs");
+  const { PIECES: PIECES_OUT } = require("./fluyo-stories-2-0-outcome-undo.cjs");   /* la etiqueta del desenlace va encima (undoS2b la deshace antes) */
   const changed = execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean);
   const untracked = execFileSync("git", ["-C", gitRoot, "ls-files", "--others", "--exclude-standard", "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean);
-  assert.deepEqual([...new Set([...changed, ...untracked])].sort(), ["css/styles.css", "js/editor-scenarios.js", "js/i18n-en-editor.js", "sw.js"]);
+  assert.deepEqual([...new Set([...changed, ...untracked])].sort(), [...new Set(["css/styles.css", "js/editor-scenarios.js", "js/i18n-en-editor.js", "sw.js", ...Object.keys(PIECES_OUT)])].sort());
   assert.deepEqual(NEW_FILES, []);
   const noCache = (t) => t.replace(/\r\n/g, "\n").replace(/const CACHE = "fluyo-static-v\d+";/, "");
-  for (const f of Object.keys(PIECES).concat("sw.js"))
+  for (const f of [...new Set(Object.keys(PIECES).concat(Object.keys(PIECES_OUT), "sw.js"))])
     assert.equal(noCache(undoS2b(f, read(f))), noCache(execFileSync("git", ["-C", gitRoot, "show", BASE + ":" + f], { encoding: "utf8" })), f + ": undoS2b exacto");
 });
 
@@ -292,5 +296,5 @@ test("C3 · claves nuevas en inglés y usadas; «Guardar nombre» retirada; sin 
   assert.ok(!ed.includes('"stories.saveName"') && !en.includes('"stories.saveName"'), "la clave del popover se retira con él");
   const diff = execFileSync("git", ["-C", gitRoot, "diff", "-U0", BASE, "--", "js/editor-scenarios.js"], { encoding: "utf8" }).split("\n").filter((l) => /^\+[^+]/.test(l)).join("\n");
   assert.doesNotMatch(diff, /trackEvent|\.(purpose|variantOf|family)\b/);
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v120";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v121";/);
 });

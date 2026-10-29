@@ -1,7 +1,7 @@
 "use strict";
 /* FLUYO-STORIES-2.0 S1b · Fallar — tests de unidad (vm, sobre el editor de Historias real).
    «Falla aquí» convierte un envío en un fallo real del motor (el destino cae en un momento propio justo antes); «Duplicar como
-   fallo» copia la Historia y deja elegir dónde falla; el desenlace («Termina bien» / «Falla en el paso N») sale de una sola
+   fallo» copia la Historia y deja elegir dónde falla; el desenlace («Sin fallos» / «Falla en el paso N») sale de una sola
    función (FluyoStoryClock.outcome) para el editor, Present y el Viewer. Undo de una acción; es/en; nada más cambia. */
 const test = require("node:test");
 const assert = require("node:assert/strict");
@@ -78,7 +78,7 @@ test("F1 · «Falla aquí» en el paso 1: el destino cae en un momento propio ju
 test("F2 · es un fallo del MOTOR: el envío termina en target_down, lo que depende de Tienda también falla, y el desenlace es «Falla en el paso 2»", () => {
   const ctx = story();
   assert.deepEqual(outcome(ctx), { ok: true });
-  assert.equal(boardOutcome(ctx), "scOutcome ok | Termina bien");
+  assert.equal(boardOutcome(ctx), "scOutcome ok | Sin fallos");
   ctx.run("scFailHere(1)");
   const out = J(ctx, "FluyoStory.outcomes(FluyoStory.run(P(), scActiveScenario()).trace, scActiveScenario(), P())").map((o) => [o.action, o.status, o.reason || "", o.reasonNodeId || ""]);
   assert.deepEqual(out, [["SET_STATE", "state_changed", "", ""], ["SEND", "not_completed", "target_down", 2], ["SEND", "not_completed", "source_down", 2]]);
@@ -214,10 +214,10 @@ test("O1 · el desenlace es UNA función: la línea de Present y el Viewer (outc
     const ph = (p, vt) => { st.playback.cursorVirtual = vt; return FluyoStoryClock.outcomeLine(p, sc, st.playback, FluyoI18n.t); };
     return [ph("ready", 0), ph("playing", 500), ph("finished", 99999)]; })()`);
   assert.deepEqual(d, ["", "", "Falla en el paso 2"]);
-  /* sin pasos, sin desenlace; con éxito, «Termina bien» */
+  /* sin pasos, sin desenlace; con éxito, «Sin fallos» */
   assert.equal(J(ctx, "FluyoStoryClock.outcome({ steps: [] }, { events: [] })"), null);
   assert.equal(J(ctx, "FluyoStoryClock.outcome(scActiveScenario(), null)"), null);
-  assert.equal(ctx.run("FluyoStoryClock.outcomeText({ ok: true })"), "Termina bien", "sin función de texto, la reserva");
+  assert.equal(ctx.run("FluyoStoryClock.outcomeText({ ok: true })"), "Sin fallos", "sin función de texto, la reserva");
   assert.equal(ctx.run("FluyoStoryClock.outcomeText({ ok: false, moment: 7 })"), "Falla en el paso 7");
   assert.equal(ctx.run("FluyoStoryClock.outcomeText(null)"), "");
 });
@@ -234,9 +234,9 @@ test("O2 · con esperas de llegada (horario visible desplazado) el desenlace dic
 test("O3 · las Historias de los ejemplos: los desenlaces previstos, y calcularlos no cambia nada del documento", () => {
   const ctx = boot();
   const expect = {
-    "compra-online": { "Compra con éxito": "Termina bien", "El banco no responde": "Falla en el paso 4" },
-    "inicio-de-sesion-oauth2": { "Iniciar sesión": "Termina bien", "El usuario no autoriza": "Termina bien" },
-    "pedido-asincrono-cola": { "Un pedido": "Termina bien", "Un mensaje que falla": "Falla en el paso 4" },
+    "compra-online": { "Compra con éxito": "Sin fallos", "El banco no responde": "Falla en el paso 4" },
+    "inicio-de-sesion-oauth2": { "Iniciar sesión": "Sin fallos", "El usuario no autoriza": "Sin fallos" },
+    "pedido-asincrono-cola": { "Un pedido": "Sin fallos", "Un mensaje que falla": "Falla en el paso 4" },
   };
   for (const [slug, stories] of Object.entries(expect)) {
     const raw = read(`ejemplos/data/${slug}.fluyo.json`);
@@ -264,11 +264,11 @@ test("O4 · pintar el desenlace en el editor no toca el documento ni el Undo, y 
   assert.equal(ctx.run("undoStack.length"), 0);
 });
 
-test("E1 · en inglés: «Fail here», «{name} doesn't respond», «— fails», «Where does it fail?», «Ends well» / «Fails at step N»", () => {
+test("E1 · en inglés: «Fail here», «{name} doesn't respond», «— fails», «Where does it fail?», «No failures» / «Fails at step N»", () => {
   const ctx = story("en");
   const items = menu(ctx, "scStoryMenu(scActiveScenario().steps[0], document.createElement('button'))");
   assert.deepEqual([items[0].label, items[0].hint], ["Fail here", "Tienda doesn't respond just before"]);
-  assert.equal(boardOutcome(ctx), "scOutcome ok | Ends well");
+  assert.equal(boardOutcome(ctx), "scOutcome ok | No failures");
   const sm = menu(ctx, "scScenarioMenu(document.createElement('button'))");
   sm.find((i) => i.label === "Duplicate as failure").click();
   assert.equal(ctx.run("scActiveScenario().name"), "Story 1 — fails");
@@ -311,12 +311,13 @@ test("C2b · alcance frente a a7af856: solo estos archivos servidos; undoS1b (pa
   const { undoS1b, PIECES, NEW_FILES } = require("./fluyo-stories-2-0-s1b-undo.cjs");
   const { PIECES: PIECES_ST2A } = require("./fluyo-stories-2-0-s2a-undo.cjs");   /* FLUYO-STORIES-2.0 S2a va encima (undoS1b la deshace antes) */
   const { PIECES: PIECES_ST2B } = require("./fluyo-stories-2-0-s2b-undo.cjs");   /* FLUYO-STORIES-2.0 S2b va encima de S2a (undoS2a la deshace antes) */
+  const { PIECES: PIECES_OUT } = require("./fluyo-stories-2-0-outcome-undo.cjs");   /* FLUYO-STORIES-2.0 · etiqueta del desenlace, encima de S2b (undoS2b la deshace antes) */
   const changed = execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean);
   const untracked = execFileSync("git", ["-C", gitRoot, "ls-files", "--others", "--exclude-standard", "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean);
   assert.deepEqual([...new Set([...changed, ...untracked])].sort(), ["css/share.css", "css/styles.css", "index.html", "js/editor-scenarios.js", "js/i18n-en-editor.js", "js/i18n-en.js",
-    "js/present-story.js", "js/story-clock.js", "js/viewer.js", "s/index.html", "sw.js", ...Object.keys(PIECES_ST2A), ...Object.keys(PIECES_ST2B)].filter((f, i, a) => a.indexOf(f) === i).sort());
+    "js/present-story.js", "js/story-clock.js", "js/viewer.js", "s/index.html", "sw.js", ...Object.keys(PIECES_ST2A), ...Object.keys(PIECES_ST2B), ...Object.keys(PIECES_OUT)].filter((f, i, a) => a.indexOf(f) === i).sort());
   assert.deepEqual(NEW_FILES, []);
-  for (const f of [...new Set(Object.keys(PIECES).concat(Object.keys(PIECES_ST2A), Object.keys(PIECES_ST2B), "sw.js"))]) {
+  for (const f of [...new Set(Object.keys(PIECES).concat(Object.keys(PIECES_ST2A), Object.keys(PIECES_ST2B), Object.keys(PIECES_OUT), "sw.js"))]) {
     /* la constante CACHE no es una pieza (sube en cada tarea): se compara sin ella; y sin CRLF (checkouts con core.autocrlf) */
     const noCache = (t) => t.replace(/\r\n/g, "\n").replace(/const CACHE = "fluyo-static-v\d+";/, "");
     const base = execFileSync("git", ["-C", gitRoot, "show", BASE + ":" + f], { encoding: "utf8" });
@@ -335,5 +336,5 @@ test("C3 · claves nuevas en inglés, todas usadas, y CACHE v118", () => {
     assert.ok(sc.includes(`"${k}"`), k + " se usa (story-clock.js)");
     assert.ok(en.includes(`"${k}":`), k + " en inglés (también el Viewer)");
   }
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v120";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v121";/);
 });

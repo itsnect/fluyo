@@ -250,8 +250,8 @@ test("C2 · alcance frente a " + BASE + ": B1 (model.js, selection.js), «Autom�
   assert.deepEqual([...new Set([...changed, ...untracked])].filter((f) => !NEW_I18N.includes(f)).filter((f) => !(f in PIECESM) || FILES6.includes(f) || undo6(f, read(f)) !== atBase(f)).sort(), FILES6.concat("sw.js").sort());
   assert.deepEqual(Object.keys(PIECES).sort(), FILES6);
   for (const f of FILES6) assert.equal(undo6(f, read(f)), atBase(f), f + ": undo6 exacto");
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v120";/);
-  assert.equal(undoI18n("sw.js", read("sw.js")).replace('"fluyo-static-v120"', '"fluyo-static-v' + (101 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante (el precache no cambia)");
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v121";/);
+  assert.equal(undoI18n("sw.js", read("sw.js")).replace('"fluyo-static-v121"', '"fluyo-static-v' + (101 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante (el precache no cambia)");
   /* en model.js solo cambia cloneStructureIn (y su nota en la cabecera de autoría) */
   const fn = (s) => s.slice(s.indexOf("function cloneStructureIn("), s.indexOf("const DUPLICATE_CONNECTIONS"));
   assert.equal(readM("js/model.js").replace(fn(readM("js/model.js")), "").replace(/ Los Behaviors que se copian pasan la regla de carga\n[\s\S]*?\(SCENARIOS-SEMANTICS-001 FASE 6, B1\)\.\n/, "\n"),

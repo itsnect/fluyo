@@ -125,11 +125,11 @@ test("S3 · el diálogo: la casilla aparece marcada con los nombres; marcada lle
 test("V1 · portada del Viewer: sistema, Historia y desenlace antes de reproducir; al terminar, «Otras formas» con su desenlace", async () => {
   const p = example("compra-online");
   const v = await viewer((await link(p, { kind: "story", scenarioId: idOf(p, "Compra con éxito"), withOthers: true })).url);
-  assert.deepEqual(v.read(), { kicker: "Compra online", title: "Compra con éxito", outcome: "Termina bien", others: null, story: "Compra con éxito" });
+  assert.deepEqual(v.read(), { kicker: "Compra online", title: "Compra con éxito", outcome: "Sin fallos", others: null, story: "Compra con éxito" });
   v.finish();
   const end = v.read();
   assert.equal(v.run("story.status"), "completed");
-  assert.equal(end.outcome, "Termina bien", "el mismo desenlace al terminar");
+  assert.equal(end.outcome, "Sin fallos", "el mismo desenlace al terminar");
   assert.deepEqual(end.others, ["El banco no responde · Falla en el paso 4"]);
 });
 
@@ -145,7 +145,7 @@ test("V2 · elegir otra forma la abre en su portada, sin recargar ni tocar el do
   assert.equal(v.run("story"), null, "queda lista, en su portada");
   v.finish();
   assert.equal(v.read().outcome, "Falla en el paso 4", "la portada no mentía");
-  assert.deepEqual(v.read().others, ["Compra con éxito · Termina bien"]);
+  assert.deepEqual(v.read().others, ["Compra con éxito · Sin fallos"]);
   assert.equal(v.run("JSON.stringify(doc)"), doc0, "el documento instalado no cambia");
   assert.equal(v.context.location.hash, hash0, "la URL no cambia");
 });
@@ -162,14 +162,14 @@ test("V3 · un enlace de v118 (una sola Historia) abre igual, con portada y sin 
   assert.deepEqual(raw.read().others, ["Un mensaje que falla · Falla en el paso 4"]);
 });
 
-test("V4 · una página con nombre de semilla dice «Historia», como hoy; en inglés, «Story», «Ends well» y «Other ways»", async () => {
+test("V4 · una página con nombre de semilla dice «Historia», como hoy; en inglés, «Story», «No failures» y «Other ways»", async () => {
   const p = example("compra-online");
   p.doc.pages[0].name = "Página 1";
   const url = (await link(p, { kind: "story", scenarioId: idOf(p, "Compra con éxito"), withOthers: true })).url;
   assert.equal((await viewer(url)).read().kicker, "Historia");
   const en = await viewer(url, "en");
   assert.equal(en.read().kicker, "Story", "«Página 1» también es semilla en inglés");
-  assert.equal(en.read().outcome, "Ends well");
+  assert.equal(en.read().outcome, "No failures");
   en.finish();
   assert.deepEqual(en.read().others, ["El banco no responde · Fails at step 4"], "el nombre es contenido: no se traduce; el rótulo «Other ways» (data-i18n) lo mira el QA en Chrome");
 });
@@ -179,7 +179,7 @@ test("V5 · cambiar de idioma con la portada o el final a la vista repinta y no 
   const v = await viewer((await link(p, { kind: "story", scenarioId: idOf(p, "Compra con éxito"), withOthers: true })).url);
   const doc0 = v.run("JSON.stringify(doc)");
   v.run(`FluyoI18n.setLocale("en")`); v.frames(1);
-  assert.equal(v.read().outcome, "Ends well");
+  assert.equal(v.read().outcome, "No failures");
   v.finish();
   v.run(`FluyoI18n.setLocale("es")`); v.frames(1);
   assert.deepEqual(v.read().others, ["El banco no responde · Falla en el paso 4"]);
@@ -189,9 +189,9 @@ test("V5 · cambiar de idioma con la portada o el final a la vista repinta y no 
 test("K1 · FluyoStoryClock: outcomeOf = el desenlace del motor (los tres ejemplos), otherForms = la página, systemName sin semillas", () => {
   const c = makeViewer();
   const expect = {
-    "compra-online": { "Compra con éxito": "Termina bien", "El banco no responde": "Falla en el paso 4" },
-    "inicio-de-sesion-oauth2": { "Iniciar sesión": "Termina bien", "El usuario no autoriza": "Termina bien" },
-    "pedido-asincrono-cola": { "Un pedido": "Termina bien", "Un mensaje que falla": "Falla en el paso 4" },
+    "compra-online": { "Compra con éxito": "Sin fallos", "El banco no responde": "Falla en el paso 4" },
+    "inicio-de-sesion-oauth2": { "Iniciar sesión": "Sin fallos", "El usuario no autoriza": "Sin fallos" },
+    "pedido-asincrono-cola": { "Un pedido": "Sin fallos", "Un mensaje que falla": "Falla en el paso 4" },
   };
   for (const [slug, stories] of Object.entries(expect)) {
     c.context.raw = read(`ejemplos/data/${slug}.fluyo.json`);
@@ -236,13 +236,14 @@ test("C2 · alcance frente a 7aa22f1: solo estos archivos servidos; undoS2a (par
   const SERVED = ["js", "s", "css", "assets", "index.html", "404.html", "sw.js", "manifest.webmanifest", "docs", "ejemplos", "privacidad", "privacy", "soporte", "support", "terminos", "terms"];
   const { undoS2a, PIECES, NEW_FILES } = require("./fluyo-stories-2-0-s2a-undo.cjs");
   const { PIECES: PIECES_ST2B } = require("./fluyo-stories-2-0-s2b-undo.cjs");   /* FLUYO-STORIES-2.0 S2b va encima (undoS2a la deshace antes) */
+  const { PIECES: PIECES_OUT } = require("./fluyo-stories-2-0-outcome-undo.cjs");   /* FLUYO-STORIES-2.0 · etiqueta del desenlace, encima de S2b (undoS2b la deshace antes) */
   const changed = execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean);
   const untracked = execFileSync("git", ["-C", gitRoot, "ls-files", "--others", "--exclude-standard", "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean);
   assert.deepEqual([...new Set([...changed, ...untracked])].sort(), ["css/share.css", "css/styles.css", "index.html", "js/editor-share.js", "js/i18n-en-editor.js", "js/i18n-en.js",
-    "js/present-story.js", "js/share-url.js", "js/story-clock.js", "js/viewer.js", "s/index.html", "sw.js", ...Object.keys(PIECES_ST2B)].filter((f, i, a) => a.indexOf(f) === i).sort());
+    "js/present-story.js", "js/share-url.js", "js/story-clock.js", "js/viewer.js", "s/index.html", "sw.js", ...Object.keys(PIECES_ST2B), ...Object.keys(PIECES_OUT)].filter((f, i, a) => a.indexOf(f) === i).sort());
   assert.deepEqual(NEW_FILES, []);
   const noCache = (t) => t.replace(/\r\n/g, "\n").replace(/const CACHE = "fluyo-static-v\d+";/, "");
-  for (const f of [...new Set(Object.keys(PIECES).concat(Object.keys(PIECES_ST2B), "sw.js"))]) assert.equal(noCache(undoS2a(f, read(f))), noCache(atBase(f)), f + ": undoS2a exacto");
+  for (const f of [...new Set(Object.keys(PIECES).concat(Object.keys(PIECES_ST2B), Object.keys(PIECES_OUT), Object.keys(PIECES_OUT), "sw.js"))]) assert.equal(noCache(undoS2a(f, read(f))), noCache(atBase(f)), f + ": undoS2a exacto");
 });
 
 test("C3 · claves nuevas en inglés y usadas; sin Undo, analíticas ni campos nuevos; CACHE v119", () => {
@@ -255,5 +256,5 @@ test("C3 · claves nuevas en inglés y usadas; sin Undo, analíticas ni campos n
   assert.ok(html.includes('data-i18n="story.others"') && en.includes('"story.others":"Other ways"'), "«Otras formas» / «Other ways»");
   assert.doesNotMatch(diff, /pushUndo|undoStack|trackEvent|scheduleAutosave/, "nada nuevo entra en Undo, autoguardado ni analíticas");
   assert.doesNotMatch(diff, /\.(purpose|variantOf|family)\b/, "ningún campo nuevo en el documento");
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v120";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v121";/);
 });

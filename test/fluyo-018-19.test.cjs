@@ -33,7 +33,7 @@ test("alcance: kernel, story-clock, render, geometría, exportación, Viewer y S
 
 test("release: CACHE v78; nada de lo que carga index.html queda fuera del precache", () => {
   const sw = read("sw.js"), html = read("index.html");
-  assert.match(sw, /const CACHE = "fluyo-static-v120";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v121";/);
   const local = [...html.matchAll(/(?:src|href)="((?!https?:|#|data:)[^"]+\.(?:js|css|woff2))"/g)].map((m) => m[1]);
   for (const u of local) assert.ok(sw.includes('"./' + u.replace(/^\.\//, "") + '"'), "en el precache: " + u);
 });

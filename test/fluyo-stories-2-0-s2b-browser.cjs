@@ -151,7 +151,7 @@ const shape = (b, js) => b.ev(`JSON.stringify(${js}.steps.map((s) => [s.id, s.at
         await b.ev(`scBranchFrom(${id2}); true`); await b.type("El usuario cancela"); await b.key("Enter");
         await b.press($("scScenarioTitle"));
         const sel = await b.menu();
-        check(JSON.stringify(sel.map((x) => [x[0], x[1]])) === JSON.stringify([["○ Compra con éxito", "Termina bien"], ["● El usuario cancela", "Termina bien"], ["○ El banco no responde", "Falla en el paso 4"], ["+ Nueva historia", ""]]),
+        check(JSON.stringify(sel.map((x) => [x[0], x[1]])) === JSON.stringify([["○ Compra con éxito", "Sin fallos"], ["● El usuario cancela", "Sin fallos"], ["○ El banco no responde", "Falla en el paso 4"], ["+ Nueva historia", ""]]),
           "D · el selector con el desenlace de cada una: " + sel.map((x) => x[0] + " · " + x[1]).join(" | "));
         const same = await b.ev(`P().scenarios.filter((s) => s.steps.length).every((s) => FluyoStoryClock.outcomeText(FluyoStoryClock.outcomeOf(P(), s), FluyoI18n.t) === [...document.querySelectorAll("#scPopover > button")].find((x) => x.firstChild.textContent.slice(2) === s.name).querySelector(".scMenuHint").textContent)`);
         check(same, "D · cada pista es FluyoStoryClock.outcomeOf (la regla de Present y el Viewer)");
@@ -166,7 +166,7 @@ const shape = (b, js) => b.ev(`JSON.stringify(${js}.steps.map((s) => [s.id, s.at
           await v.ev(`storyPlay(); storySeek(storyNav().times.length - 1); true`);
           await until(v, `!!story && story.status === "completed"`);
           const others = await v.ev(`[...document.querySelectorAll("#stOthersList .stOther")].map((x) => x.children[0].textContent + " · " + x.children[1].textContent)`);
-          check(JSON.stringify(others) === JSON.stringify(["El usuario cancela · Termina bien", "El banco no responde · Falla en el paso 4"]), "D · Share: el Viewer la ofrece en «Otras formas»: " + others.join(" | "));
+          check(JSON.stringify(others) === JSON.stringify(["El usuario cancela · Sin fallos", "El banco no responde · Falla en el paso 4"]), "D · Share: el Viewer la ofrece en «Otras formas»: " + others.join(" | "));
         } finally { v.close(); }
         check(!b.errors.length, "D · sin errores de consola " + b.errors.join(" | "));
       } finally { b.close(); } }
@@ -184,7 +184,7 @@ const shape = (b, js) => b.ev(`JSON.stringify(${js}.steps.map((s) => [s.id, s.at
         await b.key("Escape");
         await b.press($("scScenarioTitle"));
         const hints = (await b.menu()).map((x) => x[1]);
-        check(hints.includes("Ends well") && hints.includes("Fails at step 4"), "E · el selector: " + hints.filter(Boolean).join(" | "));
+        check(hints.includes("No failures") && hints.includes("Fails at step 4"), "E · el selector: " + hints.filter(Boolean).join(" | "));
         await b.key("Escape");
         await b.ev(`scSwitchScenario(P().scenarios[0].id); true`); await sleep(150);
         await b.press($("scRun")); await sleep(300); await b.press($("scNext")); await b.press($("scPause"));

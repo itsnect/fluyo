@@ -2,7 +2,7 @@
 
 Fecha: 2026-10-29 · Base: `main` = `7aa22f1` (fluyo.space sirve `fluyo-static-v118`; `fluyo-mcp` en `464f4e0`) · Solo lectura: sin código, tests, CACHE, kernel, MCP, commits ni deploy.
 
-**Estado: auditoría APROBADA (D1–D5 tal como se recomendaban). S2a READY FOR PO REVIEW** (worktree `fluyo-s2a`, rama `stories-2.0-s2a`, sin commit); ver «S2a · Implementación» al final.
+**Estado: auditoría APROBADA (D1–D5 tal como se recomendaban). S2a CLOSED / VERIFIED / IN PRODUCTION** (`96d91fa`, fluyo.space sirve v119, smoke de producción 50/0); ver «S2a · Implementación» y «S2a · Publicación» al final. S2b sin empezar.
 
 Objetivo: que una Historia diga qué explica y que sus fallos y alternativas se vean juntos, sin bifurcar ninguna Historia. Regla que no cambia: **una Historia es lineal; las alternativas viven entre Historias.**
 
@@ -428,3 +428,24 @@ PO: D1–D5 aprobadas tal como se recomendaban; «Otras formas» / «Other ways�
 ### Próximo paso
 
 Revisión del PO → commit en `stories-2.0-s2a`, merge a `main`, push y deploy (v119), y verificación en producción. Después, S2b (v120).
+
+## S2a · Publicación (29-10-2026)
+
+- **Commit:** QA del PO aprobada. Commit `96d91fa` en `stories-2.0-s2a` (110 archivos). `main` estaba en `7aa22f1` y avanzó por fast-forward. Su copia sin seguimiento de este documento era la auditoría sin la implementación (solo cambiaba la línea de estado) y se descartó.
+- **Integración en `main`** (checkout con `core.autocrlf`):
+  - en verde: S2a, S1b, S1a, 016, I18N-002 S0, S1 y S3b, SHELL, i18n-001, SEMANTICS-5 y EXAMPLES (196 tests);
+  - el único fallo es 016.1, que ya fallaba en la base.
+- **Push y deploy:** push `7aa22f1..96d91fa` a `origin/main`. fluyo.space sirve `fluyo-static-v119`. Coinciden byte a byte con `96d91fa`:
+  - `sw.js`;
+  - los 11 archivos servidos de S2a;
+  - `model.js`, `render.js`, `story-playback.js` y `link-codec.js`.
+- **Smoke de producción** (el QA de Chrome de S2a contra https://fluyo.space, Umami bloqueado): 50/0.
+  - Recorre Share, Viewer, enlace de una sola Historia, Present, inglés y fr, y móvil.
+  - La primera pasada dio 47/3. Las 3 fallas eran del Viewer en inglés: abrió aún sin terminar de cargar tras la espera fija de 1 s.
+  - Reproducido a mano en producción, funciona: «Compra online» / «Compra con éxito» · «Ends well».
+  - La segunda pasada dio 50/0.
+- **Deuda conocida, fuera de S2a:**
+  - `fluyo-i18n-002-s3a-browser.cjs` 29/6;
+  - `fluyo-step-message-001-browser.cjs` 3 fallos;
+  - `fluyo-shell-001-browser.cjs` 2 fallos (también en `7aa22f1`).
+- **Siguiente CACHE libre:** v120 (S2b).

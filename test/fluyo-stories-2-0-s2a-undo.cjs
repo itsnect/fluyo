@@ -152,7 +152,10 @@ const PIECES = {
     ]
   ]
 };
+/* FLUYO-STORIES-2.0 S2b va encima de S2a (base 699bd7a): se deshace primero (fluyo-stories-2-0-s2b-undo.cjs). */
+const { undoS2b } = require("./fluyo-stories-2-0-s2b-undo.cjs");
 function undoS2a(file, src) {
+  src = undoS2b(file, src);
   const f = file.replace(/\\/g, "/"), pieces = PIECES[f];
   if (!pieces) return src;
   let out = src.replace(/\r\n/g, "\n");

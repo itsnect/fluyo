@@ -633,6 +633,8 @@ test("UX: el panel habla de Historias, no de Escenarios", () => {
   const ctx = editor();
   const labels = [];
   ctx.scMenu = (a, items) => items.forEach((i) => labels.push(i[0]));
+  /* FLUYO-STORIES-2.0 S2b: el selector es un menú por secciones (con el desenlace como pista) */
+  ctx.scMenuSections = (a, m) => (m.sections || [m.items]).forEach((items) => items.forEach((i) => labels.push(i.label)));
   ctx.run("scScenarioMenu(null); scChooseScenario(null)");
   const text = labels.join("|");
   assert.match(text, /Renombrar/); assert.match(text, /Duplicar historia/); assert.match(text, /Eliminar historia/);

@@ -310,12 +310,13 @@ test("C2b · alcance frente a a7af856: solo estos archivos servidos; undoS1b (pa
   const SERVED = ["js", "s", "css", "assets", "index.html", "404.html", "sw.js", "manifest.webmanifest", "docs", "ejemplos", "privacidad", "privacy", "soporte", "support", "terminos", "terms"];
   const { undoS1b, PIECES, NEW_FILES } = require("./fluyo-stories-2-0-s1b-undo.cjs");
   const { PIECES: PIECES_ST2A } = require("./fluyo-stories-2-0-s2a-undo.cjs");   /* FLUYO-STORIES-2.0 S2a va encima (undoS1b la deshace antes) */
+  const { PIECES: PIECES_ST2B } = require("./fluyo-stories-2-0-s2b-undo.cjs");   /* FLUYO-STORIES-2.0 S2b va encima de S2a (undoS2a la deshace antes) */
   const changed = execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean);
   const untracked = execFileSync("git", ["-C", gitRoot, "ls-files", "--others", "--exclude-standard", "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean);
   assert.deepEqual([...new Set([...changed, ...untracked])].sort(), ["css/share.css", "css/styles.css", "index.html", "js/editor-scenarios.js", "js/i18n-en-editor.js", "js/i18n-en.js",
-    "js/present-story.js", "js/story-clock.js", "js/viewer.js", "s/index.html", "sw.js", ...Object.keys(PIECES_ST2A)].filter((f, i, a) => a.indexOf(f) === i).sort());
+    "js/present-story.js", "js/story-clock.js", "js/viewer.js", "s/index.html", "sw.js", ...Object.keys(PIECES_ST2A), ...Object.keys(PIECES_ST2B)].filter((f, i, a) => a.indexOf(f) === i).sort());
   assert.deepEqual(NEW_FILES, []);
-  for (const f of [...new Set(Object.keys(PIECES).concat(Object.keys(PIECES_ST2A), "sw.js"))]) {
+  for (const f of [...new Set(Object.keys(PIECES).concat(Object.keys(PIECES_ST2A), Object.keys(PIECES_ST2B), "sw.js"))]) {
     /* la constante CACHE no es una pieza (sube en cada tarea): se compara sin ella; y sin CRLF (checkouts con core.autocrlf) */
     const noCache = (t) => t.replace(/\r\n/g, "\n").replace(/const CACHE = "fluyo-static-v\d+";/, "");
     const base = execFileSync("git", ["-C", gitRoot, "show", BASE + ":" + f], { encoding: "utf8" });
@@ -334,5 +335,5 @@ test("C3 · claves nuevas en inglés, todas usadas, y CACHE v118", () => {
     assert.ok(sc.includes(`"${k}"`), k + " se usa (story-clock.js)");
     assert.ok(en.includes(`"${k}":`), k + " en inglés (también el Viewer)");
   }
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v119";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v120";/);
 });

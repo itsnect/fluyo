@@ -292,7 +292,8 @@ test("interaction: el cuadro de edición del texto usa la misma pila con reserva
 
 /* ───────────── IME: guardas listas (parche posterior a S2a) ───────────── */
 test("IME: las tres confirmaciones con Enter respetan isComposing — todas o ninguna (el parche posterior a S2a se aplica entero)", () => {
-  const ui = lf(read("js/ui.js")), sc = lf(read("js/editor-scenarios.js"));
+  /* FLUYO-STORIES-2.0 S2b retira el popover de renombrar la Historia (una de estas confirmaciones): se mira con S2b deshecha */
+  const ui = lf(read("js/ui.js")), sc = lf(require("./fluyo-stories-2-0-s2b-undo.cjs").undoS2b("js/editor-scenarios.js", read("js/editor-scenarios.js")));
   const guarded = [
     /input\.onkeydown=ev=>\{ if\(ev\.key==="Enter" && !ev\.isComposing && ev\.keyCode!==229\)/.test(ui),
     (sc.match(/if \(e\.key === "Enter" && !e\.isComposing && e\.keyCode !== 229\) \{/g) || []).length === 2,

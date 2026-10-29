@@ -288,7 +288,6 @@ FLUYO_LOCALES.en=Object.assign(FLUYO_LOCALES.en || {}, {
   "stories.details":"Details",
   "stories.closeDetails":"Close details",
   "stories.nameLabel":"Story name",
-  "stories.saveName":"Save name",
   "stories.created":"{name} created",
   "stories.duplicated":"Story duplicated: {name}",
   "stories.deleteConfirm":"Delete the story “{name}”? Events in the library are kept.",
@@ -619,6 +618,13 @@ FLUYO_LOCALES.en=Object.assign(FLUYO_LOCALES.en || {}, {
   "seed.storyCopyN":"{name} copy {n}",
   "seed.storyFail":"{name} — fails",
   "seed.storyFailN":"{name} — fails {n}",
+  /* FLUYO-STORIES-2.0 S2b · «Otra forma desde aquí» y el nombre en línea */
+  "seed.storyBranch":"{name} — another way",
+  "seed.storyBranchN":"{name} — another way {n}",
+  "step.branchHere":"Another way from here",
+  "step.branchHereHint":"Copies the story up to this step and continues another way",
+  "step.branchLast":"This is the last step: use “Duplicate story”",
+  "stories.branchAt":"Another way from step {n}",
   /* FLUYO-I18N-002 S3a · valores que siembra el editor (decisión 282): nacen en el idioma de quien crea y después son contenido */
   "seed.node":"Node",
   "seed.text":"Text",

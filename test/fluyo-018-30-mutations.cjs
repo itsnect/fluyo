@@ -27,7 +27,7 @@ const PRESENT_KEEPS = ["  if(followed) fitView();\n", ""];
 const NO_FOCUS = ["  if(focus){", "  if(false){"];
 /* [nombre, suite, archivo, desde, hasta, ONLY del browser test] */
 const MUTATIONS = [
-  ["U1 CACHE no sube (sigue v103)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v119";', 'const CACHE = "fluyo-static-v103";'],
+  ["U1 CACHE no sube (sigue v103)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v120";', 'const CACHE = "fluyo-static-v103";'],
   ["U2 el suelo de zoom baja a 0,2", UNIT, VP, ...FLOOR],
   ["B2 el suelo de zoom baja a 0,2", BROWSER, VP, ...FLOOR, "l844"],
   ["U3 la cámara no sigue la Historia", UNIT, V, ...NO_FOLLOW],

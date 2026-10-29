@@ -966,6 +966,9 @@ body.storyMode #bottomBar > footer{padding-left:8px;}
 .g-replay{--m:var(--mask-replay);}
 .g-chev{--m:var(--mask-chevron); color:var(--ink-3);}
 #scScenarioTitle .glyph{margin-left:6px;}
+/* FLUYO-STORIES-2.0 S2b: el nombre de la Historia en línea ocupa el sitio del título (que se oculta mientras se edita) */
+#scScenarioTitle[hidden]{display:none !important;}
+#scStoryNameInput{flex:1;min-width:0;min-height:var(--ctl-h);box-sizing:border-box;padding:2px 8px;font:400 var(--fs-title)/1.25 var(--font-serif);color:var(--text);background:var(--panel2);border:1px solid var(--line);border-radius:6px;}
 .glyphText{white-space:nowrap;}
 /* FLUYO-018.18: el transporte. Reproducir (primaria) · Pausar/Reanudar · momento anterior/siguiente · Detener a la derecha. */
 .scTransport{display:flex; align-items:center; gap:8px; min-width:0; flex-wrap:wrap;}   /* en la columna de tableta (dedo, 44 px) Detener baja a otra fila: nunca se sale */
@@ -1145,7 +1148,7 @@ body.scPlaybackOn #wrap::after{box-shadow:inset 0 0 0 2px var(--active), inset 0
   body[data-story="playing"] .scPlaybackControls{grid-area:ctl;}
   body[data-story="playing"] #scReset{grid-area:stop; justify-self:start; margin:0;}
   body.storyMode .storyKicker, body.storyMode #panelScenarios #scStoryAdd, body.storyMode #scStoriesLabel, body.storyMode #scStatus, body.storyMode #scPaletteToggle{display:none;}
-  #scScenarioTitle{grid-area:title; margin:0;}
+  #scScenarioTitle, #scStoryNameInput{grid-area:title; margin:0;}
   #scScenarioMenu{grid-area:menu; justify-self:end;}
   #btnStoryExpand{display:inline-flex; grid-area:expand; justify-self:end;}
   body.storyExpanded #btnStoryExpand .ic{transform:rotate(180deg);}

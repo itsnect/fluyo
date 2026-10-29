@@ -398,6 +398,7 @@ function scSelectStory(id) {
   scStorySignature = "";
   scErrors = [];
   scFlowPending = null;
+  scInlineName = null;
 }
 
 /* FLUYO-I18N-002 S2b (K1, decisión 283): los nombres que siembra el kernel nacen en el idioma de la interfaz de quien crea («Story 2»,
@@ -421,6 +422,7 @@ function scNewScenario() {
   scheduleAutosave();
   scRenderPanel();
   scNotice(FluyoI18n.t("stories.created", "{name} creada", { name: sc.name }));
+  scBeginInlineName(true);
 }
 
 function scDuplicateScenario() {
@@ -1083,6 +1085,7 @@ function scRenderHeader() {
   const s = scActiveScenario(),
     title = $("scScenarioTitle");
   if (title) scGlyphText(title, "▾", "g-chev", s ? s.name : FluyoI18n.t("stories.none", "Sin historias"), false);
+  scRenderInlineName(s);
   const u = $("scUnsupported");
   if (u) u.hidden = !s || s.engineVersion === FluyoScenarios.ENGINE_VERSION;
 }
@@ -1525,45 +1528,32 @@ function scFlowWrite(sc, flow) {
 /* ===================== fin de la ruta observada ===================== */
 
 function scScenarioMenu(anchor) {
-  const none = !scActiveScenario();
+  const none = !scActiveScenario(),
+    branch = scBranchNow();
   scMenu(anchor, [
-    [FluyoI18n.t("stories.rename", "Renombrar"), () => scRenameUI(anchor), none],
+    [FluyoI18n.t("stories.rename", "Renombrar"), () => scBeginInlineName(true), none],
     [FluyoI18n.t("stories.duplicate", "Duplicar historia"), scDuplicateScenario, none],
     [FluyoI18n.t("stories.duplicateAsFail", "Duplicar como fallo"), () => scDuplicateAsFailure(anchor), none],
+    ...(branch ? [[FluyoI18n.t("stories.branchAt", "Otra forma desde el paso {n}", { n: branch.moment }), () => scBranchFrom(branch.stepId), !branch.ok]] : []),
     [FluyoI18n.t("stories.delete", "Eliminar historia"), scDeleteScenario, none],
     [FluyoI18n.t("conditions.title", "Condiciones iniciales de esta página"), () => scOpenDetails("conditions")],
     [FluyoI18n.t("stories.details", "Detalles"), () => scOpenDetails("trace")],
   ]);
 }
+/* FLUYO-STORIES-2.0 S2b: cada Historia con su desenlace («Termina bien» / «Falla en el paso N») debajo del nombre. Una sola regla:
+   FluyoStoryClock.outcomeOf, la misma ejecución que la línea del storyboard, Present y el Viewer; sin pasos, nada. */
 function scChooseScenario(anchor) {
   const active = scActiveScenario();
-  scMenu(anchor, [
-    ...(P().scenarios || []).map((s) => [(active && s.id === active.id ? "● " : "○ ") + s.name, () => scSwitchScenario(s.id)]),
-    ["+ " + FluyoI18n.t("stories.new", "Nueva historia"), scNewScenario],
-  ]);
-}
-function scRenameUI(anchor) {
-  const p = scOpenPopover(anchor);
-  if (!p) return;
-  const label = scEl("label", "", FluyoI18n.t("stories.nameLabel", "Nombre de la historia")),
-    input = scEl("input");
-  input.value = scActiveScenario()?.name || "";
-  input.maxLength = 120;
-  label.appendChild(input);
-  p.appendChild(label);
-  const save = () => {
-    if (!input.value.trim()) return;
-    scRenameScenario(input.value);
-    scClosePopover();
-  };
-  p.appendChild(scButton(FluyoI18n.t("stories.saveName", "Guardar nombre"), save));
-  input.onkeydown = (e) => {
-    if (e.key === "Enter" && !e.isComposing && e.keyCode !== 229) {   // FLUYO-I18N-002 S4: el Enter de un IME no confirma
-      /* Sin esto, el foco vuelve al botón ⋯ durante la misma pulsación y Enter lo activa: el menú se reabría. */
-      e.preventDefault();
-      save();
-    }
-  };
+  scMenuSections(anchor, {
+    sections: [[
+      ...(P().scenarios || []).map((s) => ({
+        label: (active && s.id === active.id ? "● " : "○ ") + s.name,
+        hint: FluyoStoryClock.outcomeText(FluyoStoryClock.outcomeOf(P(), s), FluyoI18n.t),
+        fn: () => scSwitchScenario(s.id),
+      })),
+      { label: "+ " + FluyoI18n.t("stories.new", "Nueva historia"), fn: scNewScenario },
+    ]],
+  });
 }
 function scRenderCanvasActions() {} // La autoría ya no vive en el inspector de propiedades.
 function scOpenDetails(kind) {
@@ -2014,7 +2004,7 @@ function scStoryMenu(step, anchor) {
   const waitItem = scArrivalMenuItem(step);
   if (et?.primitive === "FLOW") addItems.push({ label: FluyoI18n.t("step.add.multi", "Esta misma acción en otras conexiones…"), fn: () => scBeginMulti(step.id) });
   const sections = [
-    ...(step.action === "SEND" ? [[scFailHereMenuItem(step)]] : []),
+    [...(step.action === "SEND" ? [scFailHereMenuItem(step)] : []), scBranchMenuItem(step)],
     [
       ...(et ? [{ label: FluyoI18n.t("step.editEvent", "Editar este evento…"), hint: uses > 1 ? FluyoI18n.t("step.editEventUses", "Cambia «{name}» en sus {count} usos", { name: et.name, count: uses }) : FluyoI18n.t("step.editEventOne", "Cambia «{name}»", { name: et.name }), fn: () => scOpenEventDialog(et.id) }] : []),
       { label: FluyoI18n.t("step.useOther", "Usar otro evento aquí…"), hint: FluyoI18n.t("step.useOtherHint", "Sólo cambia esta aparición"), fn: () => scChangeEvent(step, anchor) },
@@ -2163,6 +2153,120 @@ function scChooseFailure(anchor) {
       fn: () => scFailHere(x.id),
     }))],
   });
+}
+/* ─────────── FLUYO-STORIES-2.0 S2b: «Otra forma desde aquí» (D1, D3) ───────────
+   Una variante es una Historia normal de la página (decisión 314): la copia de siempre (duplicateScenario: detrás de la original,
+   id nuevo, nombre único) con los momentos 1..k, el del paso elegido incluido. Lo posterior se quita y las esperas de llegada que
+   apuntaban a lo quitado se podan (la misma poda que Eliminar). Frases, sentidos y caídas van con sus pasos; las condiciones
+   iniciales son de la página. La original no se toca. Una sola entrada de Undo; después, el nombre queda listo para escribirse
+   (D2) y se sigue contando tocando el sistema. En el último momento no se ofrece (sería «Duplicar historia»). */
+function scBranchNames() {
+  return {
+    copy: (name) => FluyoI18n.t("seed.storyBranch", "{name} — otra forma", { name }),
+    copyN: (name, n) => FluyoI18n.t("seed.storyBranchN", "{name} — otra forma {n}", { name, n }),
+  };
+}
+/* Momento k (0..) del paso en su Historia, y si se puede abrir una variante desde él. */
+function scBranchMoment(sc, stepId) {
+  const groups = storyboardGroups((sc && sc.steps) || []),
+    k = groups.findIndex((g) => g.steps.some((x) => x.id === stepId));
+  return { groups, k, ok: !!sc && sc.engineVersion === FluyoScenarios.ENGINE_VERSION && k >= 0 && k < groups.length - 1 };
+}
+function scBranchMenuItem(step) {
+  const ok = scBranchMoment(scActiveScenario(), step.id).ok;
+  return {
+    label: FluyoI18n.t("step.branchHere", "Otra forma desde aquí"),
+    hint: ok ? FluyoI18n.t("step.branchHereHint", "Copia la historia hasta este paso y sigue por otro camino") : FluyoI18n.t("step.branchLast", "Es el último paso: usa «Duplicar historia»"),
+    fn: () => scBranchFrom(step.id),
+    disabled: !ok,
+  };
+}
+/* Reproduciendo (también en pausa y terminada), el momento en curso: su número y su primer paso. Antes del primero, nada (D1). */
+function scBranchNow() {
+  if (!isScenarioPlaybackActive()) return null;
+  const sc = scActiveScenario(),
+    k = scMomentNav().index,
+    groups = storyboardGroups((sc && sc.steps) || []);
+  if (!sc || k < 0 || !groups[k]) return null;
+  const stepId = storyboardOrderedSteps(groups[k].steps)[0].id;
+  return { moment: k + 1, stepId, ok: scBranchMoment(sc, stepId).ok };
+}
+function scBranchFrom(stepId) {
+  const src = scActiveScenario(),
+    m = scBranchMoment(src, stepId);
+  if (!m.ok) return false;
+  if (isScenarioPlaybackActive()) scReset();
+  scCancelPlacement();
+  const at = m.groups[m.k].at,
+    pg = P();
+  pushUndo();
+  const copy = duplicateScenario(pg, src.id, scBranchNames());
+  copy.steps = copy.steps.filter((x) => x.at <= at);
+  scSetArrivalDependencies(copy, FluyoStoryClock.pruneArrivalDependencies(copy));
+  scSelectStory(copy.id);
+  scCommit();
+  scBeginInlineName(true);
+  return true;
+}
+/* ─────────── FLUYO-STORIES-2.0 S2b: el nombre de la Historia, en línea (D2) ───────────
+   «Renombrar» y el doble clic en el título lo abren en la cabecera, en lugar del botón «nombre ▾» (que no cambia: un clic sigue
+   abriendo el selector). Se guarda con scRenameScenario (una entrada de Undo; sin cambio o vacío, ninguna). Enter o salir del campo
+   guardan; Escape lo deja como estaba; el Enter de un IME (229 o isComposing) no confirma. Reproduciendo, abrirlo detiene la
+   reproducción (como hacía el popover de antes). */
+let scInlineName = null,
+  scInlineNameEl = null;
+function scBeginInlineName(select) {
+  const sc = scActiveScenario();
+  if (!sc) return false;
+  if (isScenarioPlaybackActive()) scReset();
+  scClosePopover(false);
+  scInlineName = { id: sc.id, select: !!select };
+  scRenderHeader();
+  return true;
+}
+function scRenderInlineName(s) {
+  const title = $("scScenarioTitle");
+  if (!title || !title.parentNode) return;
+  const on = !!s && !!scInlineName && scInlineName.id === s.id;
+  if (!on) {
+    /* se suelta antes de quitarlo: quitar el campo con el foco dispara su blur, que vuelve a pintar la cabecera */
+    const el = scInlineNameEl;
+    scInlineNameEl = null;
+    if (el) (el.parentNode || title.parentNode).removeChild(el);
+    title.hidden = false;
+    return;
+  }
+  if (scInlineNameEl) return;
+  scInlineNameEl = scInlineNameField(s);
+  title.parentNode.insertBefore(scInlineNameEl, title);
+  title.hidden = true;
+  scInlineNameEl.focus({ preventScroll: true });
+  if (scInlineName.select && scInlineNameEl.select) scInlineNameEl.select();
+}
+function scInlineNameField(sc) {
+  const input = scEl("input", "scStoryNameInput");
+  input.id = "scStoryNameInput";
+  input.type = "text";
+  input.value = sc.name;
+  input.maxLength = 120;
+  input.setAttribute("aria-label", FluyoI18n.t("stories.nameLabel", "Nombre de la historia"));
+  input.setAttribute("enterkeyhint", "done");
+  let done = false;
+  const finish = (save) => {
+    if (done) return;
+    done = true;
+    scInlineName = null;
+    const text = input.value.trim();
+    if (save && text && text !== sc.name && scActiveScenario() === sc) scRenameScenario(text);
+    else scRenderHeader();
+  };
+  input.onkeydown = (e) => {
+    if (e.keyCode === 13 && !e.isComposing) { e.preventDefault(); finish(true); }
+    else if (e.keyCode === 27) { e.preventDefault(); e.stopPropagation(); finish(false); }
+  };
+  input.onblur = () => finish(true);
+  input.onclick = (e) => e.stopPropagation();
+  return input;
 }
 /* ─────────── FLUYO-MCP-STEP-MESSAGE-001 y PRODUCT-NARRATION-001: «Mensaje del paso…» (decisiones 255 y 258) ───────────
    La frase de ESTA aparición, escrita por el autor: al reproducir es el título de su momento (editor, Present, Viewer) en vez del
@@ -3586,6 +3690,7 @@ function scInitUI() {
     if (el) el.onclick = fn;
   };
   bind("scScenarioTitle", () => scChooseScenario($("scScenarioTitle")));
+  if ($("scScenarioTitle")) $("scScenarioTitle").ondblclick = () => scBeginInlineName(true);   /* S2b (D2) */
   bind("scStoryAdd", scNewScenario);
   bind("scScenarioMenu", () => scScenarioMenu($("scScenarioMenu")));
   bind("scRun", scRun);

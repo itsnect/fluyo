@@ -95,9 +95,9 @@ const VACIO = `(() => { ${RESET}
     assert.deepEqual(await names(), ["Historia 1", "Historia 2"]);
     assert.equal(await undoCount(), 2);
     await shot(ed, "01-panel-historias");
-    /* renombrar desde ⋯ */
+    /* renombrar desde ⋯ (FLUYO-STORIES-2.0 S2b, D2: en línea, en la cabecera) */
     await menuItem("#scScenarioMenu", "Renombrar");
-    const input = ed.locator("#scPopover input");
+    const input = ed.locator("#scStoryNameInput");
     await input.fill("Pago exitoso"); await input.press("Enter");
     assert.equal(await title(), "Pago exitoso ▾");
     assert.deepEqual(await names(), ["Historia 1", "Pago exitoso"]);
@@ -193,7 +193,7 @@ const VACIO = `(() => { ${RESET}
       ["duplicar", async () => menuItem("#scScenarioMenu", "Duplicar historia")],
       ["eliminar la activa", async () => menuItem("#scScenarioMenu", "Eliminar historia")],
       ["nueva", async () => ed.locator("#scStoryAdd").click()],
-      ["renombrar", async () => { await menuItem("#scScenarioMenu", "Renombrar"); await ed.locator("#scPopover input").fill("Otro nombre"); await ed.locator("#scPopover input").press("Enter"); }],
+      ["renombrar", async () => { await menuItem("#scScenarioMenu", "Renombrar"); await ed.locator("#scStoryNameInput").fill("Otro nombre"); await ed.locator("#scStoryNameInput").press("Enter"); }],
     ]) {
       await ed.evaluate(TRES);
       await ed.locator("#scRun").click(); await ed.waitForFunction(() => scStatus === "running");
@@ -233,7 +233,7 @@ const VACIO = `(() => { ${RESET}
     /* un menú de acción sigue funcionando tras conmutar: Renombrar con Enter no reabre el ⋯ */
     await ed.locator("#scScenarioMenu").click(); await ed.locator("#scScenarioMenu").click();
     await menuItem("#scScenarioMenu", "Renombrar");
-    await ed.locator("#scPopover input").fill("Tras interruptor"); await ed.locator("#scPopover input").press("Enter");
+    await ed.locator("#scStoryNameInput").fill("Tras interruptor"); await ed.locator("#scStoryNameInput").press("Enter");
     assert.equal(await popOpen(), false); assert.equal(await title(), "Tras interruptor ▾");
     /* Share: bloqueado (no detiene, no modifica) mientras hay Playback; vuelve a funcionar después */
     await ed.evaluate(TRES);

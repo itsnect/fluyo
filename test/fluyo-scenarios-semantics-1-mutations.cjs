@@ -11,7 +11,7 @@ const UNIT = ["--test", "test/fluyo-scenarios-semantics-1.test.cjs"];
 const MOD = "js/model.js", GEO = "js/geometry.js", REN = "js/render.js", UI = "js/ui.js", HTML = "index.html";
 /* [nombre, archivo, desde, hasta] */
 const MUTATIONS = [
-  ["U0 CACHE no sube (sigue v93)", "sw.js", 'const CACHE = "fluyo-static-v119";', 'const CACHE = "fluyo-static-v93";'],
+  ["U0 CACHE no sube (sigue v93)", "sw.js", 'const CACHE = "fluyo-static-v120";', 'const CACHE = "fluyo-static-v93";'],
   ["U1 la carga rellena kind ausente con GENERIC (migra documentos)", MOD,
     '  if(e.kind===null || (e.kind!==undefined && typeof e.kind!=="string")) delete e.kind;',
     '  if(e.kind===undefined) e.kind="GENERIC";\n  if(e.kind===null || (e.kind!==undefined && typeof e.kind!=="string")) delete e.kind;'],

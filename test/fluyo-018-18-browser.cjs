@@ -379,8 +379,8 @@ async function serviceWorker(browser, base) {
   await page.goto(base + "/"); await page.waitForFunction(() => typeof renderTabs === "function");
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
   const keys = await page.evaluate(() => caches.keys());
-  check(keys.length === 1 && keys[0] === "fluyo-static-v119", "caché instalada: fluyo-static-v119 " + JSON.stringify(keys));
-  const clock = await page.evaluate(async (b) => !!(await (await caches.open("fluyo-static-v119")).match(b + "/js/story-clock.js")), base);
+  check(keys.length === 1 && keys[0] === "fluyo-static-v120", "caché instalada: fluyo-static-v120 " + JSON.stringify(keys));
+  const clock = await page.evaluate(async (b) => !!(await (await caches.open("fluyo-static-v120")).match(b + "/js/story-clock.js")), base);
   check(clock, "story-clock.js en la caché");
   await ctx.setOffline(true);
   await page.reload(); await page.waitForFunction(() => typeof scTogglePause === "function" && typeof FluyoStoryClock === "object");

@@ -2,7 +2,7 @@
 
 Fecha: 2026-10-29 · Base: `main` = `9d3096d` (fluyo.space sirve `fluyo-static-v120`) → CACHE **v121**.
 
-**Estado: IMPLEMENTED / VERIFIED** (pendiente de publicación).
+**Estado: CLOSED / VERIFIED / IN PRODUCTION** (`1d9286f`, fluyo.space sirve v121). Con este fix, Stories 2.0 queda cerrada.
 
 ## Problema (gate de producto de Stories 2.0)
 
@@ -49,3 +49,18 @@ Los comentarios de `index.html` y `editor-scenarios.js` que citan «Termina bien
   - S2a 21/21 y S2b 24/24;
   - S1b 25/28: M12, M24 y M25 tienen patrones obsoletos, igual en la base `9d3096d`. Son deuda de tests de S1b desde S2a/S2b, no de este fix.
 - **Chrome** (clon): S2b 40/0, S2a 50/0, S1b 47/0, EXAMPLES 40/0. Cubren selector, portada, «Otras formas», Present, inglés y Share → Viewer con «Sin fallos» / «No failures» y «Falla en el paso N».
+
+## Publicación (29-10-2026)
+
+- **Commit:** `1d9286f` en `stories-2.0-outcome-label`; `main` avanzó por fast-forward desde `9d3096d`.
+- **En `main`:** S1a, S1b, S2a y S2b, 65/65.
+- **Push y deploy:** push `9d3096d..1d9286f`. fluyo.space sirve `fluyo-static-v121`. 10 archivos servidos coinciden byte a byte con el commit, entre ellos `story-clock.js`, `i18n-en.js`, `sw.js`, el editor, el Viewer, Present y Share.
+- **Smoke de producción** (QA de Chrome contra https://fluyo.space, Umami bloqueado): S2b 40/0, S2a 50/0, S1b 47/0.
+- **A mano en producción**, con la Historia «Compra con éxito» (falla en el paso 4) y su variante «El banco rechaza la tarjeta»:
+  - selector: «Falla en el paso 4» / «Sin fallos»;
+  - storyboard: «Sin fallos»;
+  - Share → Viewer: portada «Compra online / El banco rechaza la tarjeta · Sin fallos» y tarjeta «Otras formas: El banco rechaza la tarjeta · Sin fallos»;
+  - inglés: «No failures».
+- **Encontrado, no bloquea y fuera de este fix:** si se cambia el idioma en vivo con `FluyoI18n.setLocale` en el Viewer, el `data-i18n` de `#stKicker` repinta «Story» encima del nombre del sistema, y la caché de `storySet` no lo corrige. No se puede alcanzar desde la interfaz: el Viewer no tiene selector de idioma ni sincroniza el idioma entre pestañas, y al cargar con `?lang=` sale bien.
+- **Deuda de tests conocida:** mutaciones de S1b M12/M24/M25 obsoletas desde S2a/S2b; S3a 29/6, STEP-MESSAGE 83/86, SHELL 137/2.
+- **Siguiente CACHE libre:** v122.

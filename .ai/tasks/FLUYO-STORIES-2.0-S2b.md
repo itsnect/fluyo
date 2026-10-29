@@ -2,7 +2,7 @@
 
 Fecha: 2026-10-29 · Base: `origin/main` = `699bd7a` (fluyo.space sirve `fluyo-static-v119`) · Solo lectura: sin código, tests, CACHE, commits ni deploy.
 
-**Estado: auditoría APROBADA (D1–D3). S2b IMPLEMENTED / VERIFIED**, lista para commit (worktree `fluyo-s2b`, rama `stories-2.0-s2b`, sin commit); ver «S2b · Implementación» al final.
+**Estado: auditoría APROBADA (D1–D3). S2b CLOSED / VERIFIED / IN PRODUCTION** (`9d3096d`, fluyo.space sirve v120, smoke de producción 40/0 + S2a 50/0 + S1b 47/0); ver «S2b · Implementación» y «S2b · Publicación» al final.
 
 Origen: el alcance de S2b de la auditoría S2 (`.ai/tasks/FLUYO-STORIES-2.0-S2.md`, § 8 y § 17) y las decisiones 314–316. La familia es la página; las variantes son Historias normales de esa página.
 
@@ -334,3 +334,21 @@ Decisiones 317–318.
 ### Próximo paso
 
 Revisión del PO → commit en `stories-2.0-s2b`, merge a `main`, push y deploy (v120), y smoke de producción (el QA de Chrome de S2b contra fluyo.space).
+
+## S2b · Publicación (29-10-2026)
+
+- **Commit:** PO aprobado. Commit `9d3096d` en `stories-2.0-s2b` (103 archivos). `main` estaba en `699bd7a` y avanzó por fast-forward. Su copia sin seguimiento de este documento era la auditoría (solo cambiaba la línea de estado) y se descartó.
+- **Integración en `main`** (checkout con `core.autocrlf`):
+  - vm: S2b, S2a, S1b, S1a, 016, I18N-002 S0, S2a y S4, i18n-001, SHELL y EXAMPLES. 206 tests; el único fallo es 016.1, que ya fallaba en la base.
+  - mutaciones de S2b: 24/24;
+  - Chrome: S2b 40/0, S2a 50/0, S1b 47/0, S1a 35/0, 016 17 bloques OK, 014 13 bloques OK.
+- **Push y deploy:** push `699bd7a..9d3096d` a `origin/main`. fluyo.space sirve `fluyo-static-v120`. 16 archivos servidos coinciden byte a byte con `9d3096d`:
+  - `sw.js`;
+  - los 3 de S2b;
+  - el editor, el Viewer, Present, Share y el kernel que se lee.
+- **Smoke de producción** (los QA de Chrome contra https://fluyo.space, Umami bloqueado):
+  - **S2b 40/0:** variante desde el paso y reproduciendo, 1..N, original intacta, frases, selector, nombre en línea y doble clic, Undo/Redo, Share/Viewer, inglés y móvil;
+  - **S2a 50/0:** portada, «Otras formas» en el Viewer y Present, Share;
+  - **S1b 47/0:** regresión de S1.
+- **Deuda conocida, sin cambios y fuera de S2b:** S3a 29/6, STEP-MESSAGE 83/86, SHELL 137/2.
+- **Siguiente CACHE libre:** v121.

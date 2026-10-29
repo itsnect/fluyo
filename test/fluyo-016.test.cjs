@@ -518,7 +518,8 @@ test("applyShareKind: contrato puro (Historia seleccionada, otras páginas vací
 });
 
 test("El diálogo de Share del editor comparte la Historia seleccionada y cae a «sólo diagrama» sin Historia", () => {
-  const src = read("js/editor-share.js");
+  /* FLUYO-STORIES-2.0 S2a añade las otras formas a esta llamada (su test las cubre): aquí se mira con S2a deshecha */
+  const src = require("./fluyo-stories-2-0-s2a-undo.cjs").undoS2a("js/editor-share.js", read("js/editor-share.js"));
   assert.match(src, /createShareUrl\(project,location\.href,story\?\{kind,scenarioId:story\.id\}:\{kind:"diagram"\}\)/);
   assert.match(src, /scActiveScenario\(\)/);
 });
@@ -539,7 +540,8 @@ test("Viewer de un Share nuevo: «Historia», nombre, «▶ Reproducir historia�
   const v = makeViewer({ search: "", hash: new URL(r.url).hash }); v.connect();
   await v.boot(); await v.waitForPhase((x) => x === "ready");
   assert.equal(v.el("story").hidden, false);
-  assert.equal(v.el("stKicker").textContent, "Historia");
+  /* FLUYO-STORIES-2.0 S2a (D2): en la portada, el sistema (el nombre de la página) en vez de «Historia» */
+  assert.equal(v.el("stKicker").textContent, "Pedidos");
   assert.equal(v.el("stTitle").textContent, "Historia B");
   assert.equal(v.el("stPlay").textContent, "▶ Reproducir historia");
   assert.equal(v.run("storyScenario().name"), "Historia B");

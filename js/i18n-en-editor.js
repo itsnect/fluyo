@@ -208,6 +208,10 @@ FLUYO_LOCALES.en=Object.assign(FLUYO_LOCALES.en || {}, {
   "share.creating":"Creating link…",
   "share.noteStory":"Anyone who opens this link will see the diagram and can play the story. Later changes won't modify this link.",
   "share.noteDiagram":"This link contains a copy of the current diagram. Later changes won't modify this link.",
+  /* FLUYO-STORIES-2.0 S2a · las otras formas viajan con la historia (D3) */
+  "share.others":"Include its other ways",
+  "share.noteStoryOthers":"Anyone who opens this link will see the diagram and can play the story and its other ways. Later changes won't modify this link.",
+  "share.othersTooLarge":"With its other ways the link was too large: only this story travels.",
   "share.publicViewer":"The link opens the public viewer at fluyo.space.",
   "share.tooLarge":"This diagram is too large to share as a link. You can export it as a file for now.",
   "share.failed":"Couldn't create the link. You can export the diagram as a file.",

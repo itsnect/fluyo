@@ -318,6 +318,11 @@ footer .tab > span:first-child{min-width:0; overflow:hidden; text-overflow:ellip
 #shareDialog .shareKind input{accent-color:var(--active); margin-top:2px;}
 #shareDialog .shareKind small{display:block; color:var(--ink-3); margin-top:2px; overflow-wrap:anywhere;}
 #shareDialog .shareKind[hidden]{display:none;}
+/* FLUYO-STORIES-2.0 S2a: la casilla de las otras formas cuelga de «Compartir historia»; con «sólo el diagrama» no aplica */
+#shareDialog .shareKind label.shareOthers{margin:-2px 0 8px 28px; padding:6px 10px; background:none; border-style:dashed;}
+#shareDialog .shareKind label.shareOthers:has(input:checked){border-color:var(--rule-2); background:none;}
+#shareDialog .shareKind label.shareOthers[hidden]{display:none;}
+#shareDialog .shareKind:has(#shareKindDiagram:checked) label.shareOthers{opacity:.45; pointer-events:none;}
 #shareLink{display:block; box-sizing:border-box; width:100%; margin-top:8px; padding:10px; resize:vertical;}
 /* Tres salidas con etiquetas que dicen lo que hacen no caben en una fila sin
    quedar ilegibles en móvil. En columna cada una se lee entera, que es el
@@ -390,6 +395,22 @@ body.presenting #presentBar{display:flex;}
 }
 body.presenting #presentStory:not([hidden]){display:flex;}
 #presentStory .psTitle{font:400 17px/1.25 var(--font-serif); overflow-wrap:anywhere;}
+/* FLUYO-STORIES-2.0 S2a: el sistema (o la Historia, reproduciendo) encima del título, y «Otras formas» al terminar. El encabezado no
+   recibe el puntero; los botones de las otras formas, sí. */
+#presentStory .psKicker{font:500 var(--fs-micro)/1.3 var(--font-mono); letter-spacing:.02em; color:var(--ink-3); max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+#presentStory .psKicker:empty{display:none;}
+#presentStory .psOthers{display:flex; flex-direction:column; align-items:center; gap:4px; margin-top:4px; padding-top:6px; border-top:1px solid var(--rule-2); width:100%;}
+#presentStory .psOthers[hidden]{display:none;}
+#presentStory .psOthersHead{font:500 var(--fs-micro)/1.3 var(--font-mono); letter-spacing:.02em; color:var(--ink-3);}
+#presentStory .psOthersList{display:flex; flex-wrap:wrap; justify-content:center; gap:6px;}
+#presentStory .psOther{pointer-events:auto; display:inline-flex; align-items:baseline; gap:8px; max-width:100%; min-height:32px; padding:4px 12px; cursor:pointer; color:var(--ink); background:transparent; border:1px solid var(--rule-2); border-radius:var(--r-pill);}
+#presentStory .psOther:hover, #presentStory .psOther:focus-visible{border-color:var(--ink-3); background:var(--active-veil);}
+#presentStory .psOtherName{font:400 15px/1.25 var(--font-serif); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+#presentStory .psOtherOutcome{font:500 var(--fs-label)/1.3 var(--font-mono); color:var(--ink-3); white-space:nowrap;}
+@media (pointer:coarse){ #presentStory .psOther{min-height:var(--ctl-h-touch);} }
+/* en un teléfono apaisado el encabezado de Present no da para más filas sin tapar el diagrama o el mando (018.29 R1): el sistema y
+   «Otras formas» se omiten ahí (el Viewer los sigue mostrando) */
+@media (orientation:landscape) and (max-height:500px){ #presentStory .psKicker, #presentStory .psOthers{display:none !important;} }
 #presentStory .psTitleReady{color:var(--ink-3);}
 #presentStory .psDots{display:flex; gap:6px; align-items:center; color:var(--ink-3); font-size:var(--fs-label);}
 #presentStory .psDot{width:9px; height:9px; border-radius:50%; border:1.5px solid var(--ink-3); box-sizing:border-box;}

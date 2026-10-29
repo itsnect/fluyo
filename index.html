@@ -964,6 +964,8 @@ try{ if(localStorage.getItem("fluyo.ui.props")==="folded") document.documentElem
 </div>
 <!-- Encabezado de la Historia en Present: qué está pasando ahora (secundario al Canvas) -->
 <div id="presentStory" hidden>
+  <!-- FLUYO-STORIES-2.0 S2a: lista, el sistema (la página) encima de la Historia; reproduciendo, la Historia (como el Viewer) -->
+  <div id="psKicker" class="psKicker"></div>
   <div id="psTitle" class="psTitle"></div>
   <div id="psDots" class="psDots" hidden></div>
   <div id="psCaption" class="psCaption" role="status" aria-live="polite"></div>
@@ -972,6 +974,11 @@ try{ if(localStorage.getItem("fluyo.ui.props")==="folded") document.documentElem
   <div id="psSummary" class="psSummary"></div>
   <!-- SCENARIOS-SEMANTICS-001 FASE 5 (D8, decisión 246): la línea de estado de la ruta observada, reproduciendo y con par -->
   <div id="psFlow" class="psFlow" role="status" hidden></div>
+  <!-- FLUYO-STORIES-2.0 S2a: al terminar, las otras Historias de la página (la familia es la página, D1); elegir una la abre -->
+  <div id="psOthers" class="psOthers" hidden>
+    <div class="psOthersHead" data-i18n="story.others">Otras formas</div>
+    <div id="psOthersList" class="psOthersList"></div>
+  </div>
 </div>
 
 <dialog id="shareDialog" class="card" aria-labelledby="shareTitle">
@@ -981,6 +988,9 @@ try{ if(localStorage.getItem("fluyo.ui.props")==="folded") document.documentElem
       <legend data-i18n="share.what">¿Qué quieres compartir?</legend>
       <label><input id="shareKindStory" type="radio" name="shareKind" value="story" checked>
         <span><b data-i18n="share.story">Compartir historia</b><small id="shareStoryName"></small></span></label>
+      <!-- FLUYO-STORIES-2.0 S2a (D3): las otras Historias de la página viajan con ella, salvo que se desmarque -->
+      <label id="shareOthersRow" class="shareOthers" hidden><input id="shareOthers" type="checkbox" checked>
+        <span><b data-i18n="share.others">Incluir sus otras formas</b><small id="shareOthersNames"></small></span></label>
       <label><input id="shareKindDiagram" type="radio" name="shareKind" value="diagram">
         <span><b data-i18n="share.diagramOnly">Compartir sólo el diagrama</b><small data-i18n="share.withoutStory">Sin la historia.</small></span></label>
     </fieldset>

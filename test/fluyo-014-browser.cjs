@@ -274,8 +274,17 @@ const LARGO = `(() => { ${RESET}
     assert.equal(await editor.evaluate(() => JSON.stringify(serializeProject())), docMulti, "documento original intacto");
     const vm = await openViewer(urlMulti);
     assert.equal(await vm.locator("#stTitle").innerText(), "Segunda historia");
-    assert.equal(await vm.evaluate(() => doc.pages[0].scenarios.length), 1, "FLUYO-016: sólo la Historia compartida");
+    /* FLUYO-STORIES-2.0 S2a (D3, decisión 315): por defecto viajan detrás sus otras formas; la compartida sigue siendo scenarios[0] */
+    assert.deepEqual(await vm.evaluate(() => doc.pages[0].scenarios.map((s) => s.id)), [second, ...(await editor.evaluate((id) => P().scenarios.filter((s) => s.id !== id && s.steps.length).map((s) => s.id), second))], "S2a: la compartida y detrás sus otras formas");
     await vm.close();
+    /* desmarcada la casilla, el contrato de FLUYO-016: sólo la Historia compartida */
+    await editor.locator("#btnShare").click(); await editor.locator("#shareOthers").click();
+    await editor.locator("#shareCreate").click();
+    await editor.waitForFunction(() => document.getElementById("shareLink").value.startsWith("http"));
+    const urlOne = await editor.locator("#shareLink").inputValue(); await editor.locator("#shareClose").click();
+    const vOne = await openViewer(urlOne);
+    assert.equal(await vOne.evaluate(() => doc.pages[0].scenarios.length), 1, "FLUYO-016: sólo la Historia compartida");
+    await vOne.close();
     ok("varios Scenarios: el activo del autor es scenarios[0]");
 
     /* ───────── Navegación y carreras ───────── */

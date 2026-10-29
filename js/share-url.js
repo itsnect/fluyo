@@ -30,7 +30,10 @@ function buildShareUrl(baseUrl,payload){
      nunca lo usa: siempre pasa scenarioId o kind "diagram"). El viewer reproduce
      scenarios[0] de cada página, así que los enlaces anteriores a 016 (con N Historias)
      siguen reproduciendo la primera, como antes.
-   El documento del autor nunca se modifica y no hay campo de schema nuevo. */
+   El documento del autor nunca se modifica y no hay campo de schema nuevo.
+   FLUYO-STORIES-2.0 S2a (D1, D3): con `withOthers`, detrás de la elegida viajan sus «otras formas», las demás Historias CON pasos
+   de la misma página, en su orden (la familia es la página). La elegida sigue siendo scenarios[0]: un viewer anterior la reproduce
+   igual y no ve las demás. Sin `withOthers`, el enlace de siempre, byte a byte. */
 function applyShareKind(normalized,options){
   const kind=options&&options.kind==="diagram"?"diagram":"story";
   if(kind==="diagram"){
@@ -41,8 +44,9 @@ function applyShareKind(normalized,options){
   if(id==null) return normalized;
   const current=normalized.doc.pages[normalized.doc.cur];
   const selected=current&&(current.scenarios||[]).find(s=>s.id===id);
+  const others=selected&&options.withOthers?current.scenarios.filter(s=>s!==selected&&s.steps.length>0):[];
   for(const page of normalized.doc.pages) page.scenarios=[];
-  if(selected) current.scenarios=[selected];
+  if(selected) current.scenarios=[selected,...others];
   return normalized;
 }
 async function createShareUrl(projectData,baseUrl,options){

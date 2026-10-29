@@ -322,9 +322,11 @@ const VACIO = `(() => { ${RESET}
       return p;
     };
     const waitStory = (p, s, timeout = 30000) => p.waitForFunction((s) => window.__viewer.story === s, s, { timeout });
-    const shareVia = async (kind) => {
+    /* FLUYO-STORIES-2.0 S2a (D3): por defecto viajan también las otras formas; «alone» desmarca la casilla (el contrato de 016) */
+    const shareVia = async (kind, alone = true) => {
       await ed.locator("#btnShare").click();
       if (kind === "diagram") await ed.locator("#shareKindDiagram").check();
+      else if (alone) await ed.locator("#shareOthers").uncheck();
       await ed.locator("#shareCreate").click();
       await ed.waitForFunction(() => document.getElementById("shareLink").value.startsWith("http"));
       const url = await ed.locator("#shareLink").inputValue();
@@ -346,6 +348,8 @@ const VACIO = `(() => { ${RESET}
       assert.deepEqual(sc.map((s) => s.name), [n], "el enlace lleva sólo " + n);
       assert.doesNotMatch(JSON.stringify(payload), new RegExp(["Camino feliz", "Pago rechazado", "Cliente abandona"].filter((x) => x !== n).join("|")));
     }
+    const fam = (await decodeLink(await shareVia("story", false))).doc.pages[0].scenarios.map((s) => s.name);
+    assert.deepEqual(fam, ["Cliente abandona", "Camino feliz", "Pago rechazado"], "S2a: por defecto, la seleccionada primero y sus otras formas detrás");
     assert.equal(await ed.evaluate(() => JSON.stringify(serializeProject())), docBefore, "el documento del autor no cambia");
     const urlDia = await shareVia("diagram");
     assert.deepEqual((await decodeLink(urlDia)).doc.pages.map((p) => p.scenarios.length), [0]);

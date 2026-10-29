@@ -162,6 +162,42 @@ var FluyoStoryClock = (function(){
     return phase==="finished" ? outcomeText(outcome(scenario, playback && playback.trace), text) : "";
   }
 
+  /* FLUYO-STORIES-2.0 S2a. La portada y «Otras formas», una sola regla para Present y el Viewer.
+     · outcomeOf: el desenlace SIN reproducir (D5), la misma ejecución del motor que la reproducción (FluyoStory.run) y el mismo
+       cálculo que el editor; memorizado por contenido (Present y el Viewer pintan cada fotograma). null si no se puede ejecutar.
+     · phaseOutcome: la línea del desenlace de Present y el Viewer: lista (portada), sin reproducir; terminada, la de esa
+       reproducción (outcomeLine); reproduciendo, nada.
+     · otherForms: la familia es la página (D1): las demás Historias CON pasos de la misma página, en su orden. Sin campo nuevo.
+     · systemName: el nombre de la página como sistema de la portada; "" si es el de semilla («Página 2», «Page 2» o la del idioma
+       activo), que no dice nada. */
+  let outcomeMemo = new Map();
+  function outcomeOf(page, scenario){
+    if(!page || !scenario || !Array.isArray(scenario.steps) || !scenario.steps.length) return null;
+    const key = JSON.stringify([scenario, page.behaviors || [], (page.nodes || []).map(n=>n.id), (page.edges || []).map(e=>[e.id, e.from, e.to])]);
+    if(outcomeMemo.has(key)) return outcomeMemo.get(key);
+    const run = FluyoStory.run(page, scenario), value = run.ok ? outcome(scenario, run.trace) : null;
+    if(outcomeMemo.size>=32) outcomeMemo = new Map();
+    outcomeMemo.set(key, value);
+    return value;
+  }
+  function phaseOutcome(phase, page, scenario, playback, text){
+    if(phase==="ready") return outcomeText(outcomeOf(page, scenario), text);
+    return outcomeLine(phase, scenario, playback, text);
+  }
+  function otherForms(page, scenario){
+    return ((page && page.scenarios) || []).filter(s=>s && s!==scenario && !(scenario && s.id===scenario.id) && Array.isArray(s.steps) && s.steps.length>0);
+  }
+  function systemName(page, text){
+    const name = page && typeof page.name==="string" ? page.name.trim() : "";
+    if(!name || /^(Página|Page) \d+$/.test(name)) return "";
+    if(typeof text==="function"){
+      const tx = text, parts = String(tx("page.untitled", "Página {n}", {n:"\u0000"})).split("\u0000");
+      if(parts.length===2 && name.length>parts[0].length+parts[1].length && name.startsWith(parts[0]) && name.endsWith(parts[1])
+        && /^\d+$/.test(name.slice(parts[0].length, name.length-parts[1].length))) return "";
+    }
+    return name;
+  }
+
   /* El texto de Present, el Viewer y el editor (FluyoStory.describe) con el momento en curso según el instante VISIBLE. */
   function describe(phase, scenario, playback, nodeName, edgeEnds, text){
     const d = FluyoStory.describe(phase, scenario, playback, nodeName, edgeEnds, text);
@@ -173,5 +209,5 @@ var FluyoStoryClock = (function(){
   return {create, now, isPaused, pause, resume, momentTimes, momentIndex, prevTarget, nextTarget, seek, reveal,
           arrivalDependencies, arrivalCandidates, stepWaits, momentWaits, pruneArrivalDependencies, withArrivalWait,
           withoutArrivalWaits, copyArrivalWaits, travelMs, schedule, visibleTrace, start, visibleAt, describe,
-          outcome, outcomeText, outcomeLine};
+          outcome, outcomeText, outcomeLine, outcomeOf, phaseOutcome, otherForms, systemName};
 })();

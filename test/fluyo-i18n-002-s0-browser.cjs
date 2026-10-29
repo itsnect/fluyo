@@ -339,7 +339,9 @@ async function share(browser, base) {
   await b.page.goto(link);
   await b.page.waitForFunction(() => window.__viewer && window.__viewer.phase === "ready");
   check(await b.page.evaluate(() => FluyoI18n.locale()) === "ja", "el Viewer abre en el idioma de quien mira (preferencia ja), no en el del autor");
-  if (story) check(await txt(b.page, "#stKicker") === T("ja", "story.group") && await txt(b.page, "#stTitle") === story, `Historia del autor intacta: «${story}»`);
+  /* FLUYO-STORIES-2.0 S2a (D2): en la portada el kicker es el sistema (el nombre de la página, contenido del autor); si es de semilla, «Historia» */
+  const kicker = (await b.page.evaluate(() => FluyoStoryClock.systemName(P(), FluyoI18n.t))) || T("ja", "story.group");
+  if (story) check(await txt(b.page, "#stKicker") === kicker && await txt(b.page, "#stTitle") === story, `Historia del autor intacta: «${story}» bajo «${kicker}»`);
   await b.page.click("#btnOpen");
   await b.page.waitForFunction(() => typeof applyProjectData === "function" && typeof FluyoI18n === "object", null, { timeout: 8000 });
   await b.page.waitForTimeout(500);
@@ -364,8 +366,8 @@ async function offlineFlow(browser, base) {
   const until = async (pg, fn, arg, ms = 30000) => { const t = Date.now(); while (Date.now() - t < ms) { if (await pg.evaluate(fn, arg).catch(() => false)) return true; await pg.waitForTimeout(250); } return false; };
   const swReady = (pg, l) => until(pg, async (l) => { const r = await navigator.serviceWorker.getRegistration();
     if (!(r && r.active && r.active.state === "activated" && navigator.serviceWorker.controller)) return false;
-    const k = await caches.keys(); if (k.length !== 1 || k[0] !== "fluyo-static-v118") return false;
-    const c = await caches.open("fluyo-static-v118");
+    const k = await caches.keys(); if (k.length !== 1 || k[0] !== "fluyo-static-v119") return false;
+    const c = await caches.open("fluyo-static-v119");
     return (await Promise.all(l.map((u) => c.match(location.origin + u)))).every(Boolean); }, l);
   const list = [...DICTS_ALL, "/js/i18n.js"];
   check(await swReady(page, list), `SW v109 activo y controlando el editor; los ${DICTS_ALL.length} diccionarios y el runtime, en caché`);
@@ -393,7 +395,7 @@ async function offlineFlow(browser, base) {
   await pv.goto(link);
   await pv.waitForFunction(() => window.__viewer && window.__viewer.phase === "ready");
   check(await swReady(pv, [...DICTS_ALL.filter((u) => !u.includes("-editor")), "/js/i18n.js"]), "solo-Viewer: SW v109 activo, controlando, con los diccionarios comunes");
-  const vc = await pv.evaluate(async (list) => { const c = await caches.open("fluyo-static-v118"); return Promise.all(list.map(async (u) => !!(await c.match(location.origin + u)))); }, DICTS_ALL);
+  const vc = await pv.evaluate(async (list) => { const c = await caches.open("fluyo-static-v119"); return Promise.all(list.map(async (u) => !!(await c.match(location.origin + u)))); }, DICTS_ALL);
   const want = DICTS_ALL.map((u) => !u.includes("-editor"));
   check(JSON.stringify(vc) === JSON.stringify(want), "instalación solo-Viewer: los comunes sí, los del editor no");
   offline = true; await ctxV.setOffline(true);

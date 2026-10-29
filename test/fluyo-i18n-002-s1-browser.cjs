@@ -184,7 +184,9 @@ async function chrome(browser, base, lang, vp) {
   await page.screenshot({ path: path.join(shots, `share-${tag}.png`) });
   await page.click("#shareCreate");
   await page.waitForFunction(() => /\/s\/#d=/.test(document.getElementById("shareLink").value), null, { timeout: 8000 });
-  check(await txt(page, "#shareResultNote") === L("share.noteStory") && await txt(page, "#shareClose") === L("common.close"), "Compartir: enlace creado, nota y Cerrar");
+  /* FLUYO-STORIES-2.0 S2a: con otras formas en la página (y la casilla marcada, por defecto) la nota lo dice */
+  const others = await page.evaluate(() => !document.getElementById("shareOthersRow").hidden);
+  check(await txt(page, "#shareResultNote") === L(others ? "share.noteStoryOthers" : "share.noteStory") && await txt(page, "#shareClose") === L("common.close"), "Compartir: enlace creado, nota y Cerrar");
   await page.click("#shareClose");
   /* Exportar: diálogo y un PNG de verdad */
   if (vp.mobile) { await page.click("#btnMore"); await page.waitForTimeout(100); }

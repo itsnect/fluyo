@@ -42,6 +42,13 @@ function presentStop(){
 function presentTogglePause(){ if(presenting && typeof scTogglePause==="function") scTogglePause(); presentStoryRefresh(); }
 function presentPrevMoment(){ if(presenting && typeof scPrevMoment==="function") scPrevMoment(); presentStoryRefresh(); }
 function presentNextMoment(){ if(presenting && typeof scNextMoment==="function") scNextMoment(); presentStoryRefresh(); }
+/* FLUYO-STORIES-2.0 S2a: abrir otra forma desde «Otras formas»: la Historia activa del editor cambia (estado efímero: ni el documento
+   ni Deshacer) y queda lista, en su portada. Se vuelve a encajar: el encabezado se mide con la Historia nueva. */
+function presentOpenStory(id){
+  if(!presenting || typeof scSwitchScenario!=="function") return;
+  scSwitchScenario(id);
+  fitViewPresent();
+}
 
 /* Glifo (▶ ■ ↻) como texto accesible pintado con el trazo del sistema, y el rótulo, en UN elemento en línea: el texto del
    botón (y su innerText) sigue siendo «▶ Reproducir» aunque el botón sea flex (FLUYO-018.18). */
@@ -97,6 +104,8 @@ function presentStoryRefresh(){
   /* encabezado de la historia */
   psSet("presentStory","hidden",!has && !scErrors.length);
   if(!has){
+    psSet("psKicker","text","");
+    psOthers([]);
     psSet("psTitle","text","");
     psSet("psDots","hidden",true);
     psSet("psCaption","text","");
@@ -109,6 +118,10 @@ function presentStoryRefresh(){
   const d=(typeof FluyoStoryClock!=="undefined" ? FluyoStoryClock : FluyoStory).describe(dphase, sc, scPlayback, id=>scNodeFallback(id), id=>edgeById(id), FluyoI18n.t);
   const ms=d.moments, idx=d.idx;
 
+  /* S2a: lista, el sistema (la página; «Historia» si es el de semilla) encima del nombre de la Historia; reproduciendo y terminada,
+     «Historia · {nombre}», como el Viewer. Siempre una línea: el encabezado no cambia de alto entre fases. */
+  psSet("psKicker","text", dphase==="ready" ? ((typeof FluyoStoryClock!=="undefined" && FluyoStoryClock.systemName(P(), FluyoI18n.t)) || FluyoI18n.t("story.group","Historia"))
+    : FluyoI18n.t("story.kicker","Historia · {name}",{name:sc.name}));
   psSet("psTitle","text", d.title);
   psSet("psTitle","className", "psTitle "+(phase==="ready"?"psTitleReady":""));
 
@@ -137,14 +150,36 @@ function presentStoryRefresh(){
   if(dphase!=="playing" && dphase!=="finished" && scErrors.length) cap=scErrors[0];
   if(phase==="paused") cap=cap ? FluyoI18n.t("story.pausedCaption","En pausa · {caption}",{caption:cap}) : FluyoI18n.t("story.paused","En pausa");
   psSet("psCaption","text",cap);
-  /* FLUYO-STORIES-2.0 S1b: el desenlace, solo terminada (FluyoStoryClock.outcomeLine, el mismo del Viewer y el editor) */
-  psSet("psOutcome","text",typeof FluyoStoryClock!=="undefined" ? FluyoStoryClock.outcomeLine(dphase, sc, scPlayback, FluyoI18n.t) : "");
+  /* FLUYO-STORIES-2.0 S1b: el desenlace al terminar (el mismo del Viewer y el editor); S2a (D5): también en la portada, sin reproducir */
+  psSet("psOutcome","text",typeof FluyoStoryClock!=="undefined" ? FluyoStoryClock.phaseOutcome(dphase, P(), sc, scPlayback, FluyoI18n.t) : "");
   psSet("psSummary","text",sum);
   /* SCENARIOS-SEMANTICS-001 FASE 5 (D8, decisión 246): la línea de estado de la ruta observada, en el rótulo (la fila de controles no
      cambia). La MISMA línea que la herramienta del editor, solo reproduciendo (también en pausa y terminada) y con par. */
   const route=dphase!=="ready" && typeof scFlowPresentLine==="function" ? scFlowPresentLine() : null;
   psSet("psFlow","hidden",!route);
   if(route){ psSet("psFlow","text",route.text); psSet("psFlow","className","psFlow is"+route.status); }
+  /* S2a: al terminar, «Otras formas» (hasta 3 Historias más de la página, la misma regla que el Viewer) */
+  psOthers(dphase==="finished" && typeof FluyoStoryClock!=="undefined" ? FluyoStoryClock.otherForms(P(), sc).slice(0, 3) : []);
+}
+/* «Otras formas»: nombre (contenido del autor) y desenlace de cada una. Solo se reescribe si cambia la lista o el idioma. */
+function psOthers(list){
+  const box=$("psOthersList");
+  if(!box) return;
+  const items=list.map(s=>({id:s.id, name:s.name, outcome:FluyoStoryClock.outcomeText(FluyoStoryClock.outcomeOf(P(), s), FluyoI18n.t)}));
+  const sig=JSON.stringify(items);
+  if(psLast["psOthers.sig"]===sig) return;
+  psLast["psOthers.sig"]=sig;
+  box.textContent="";
+  for(const it of items){
+    const b=document.createElement("button"), name=document.createElement("span"), out=document.createElement("span");
+    b.type="button"; b.className="psOther";
+    name.className="psOtherName"; name.textContent=it.name;
+    out.className="psOtherOutcome"; out.textContent=it.outcome;
+    b.appendChild(name); b.appendChild(out);
+    b.onclick=()=>presentOpenStory(it.id);
+    box.appendChild(b);
+  }
+  $("psOthers").hidden=!items.length;
 }
 
 /* FLUYO-018.29 (R1): borde inferior del encabezado en su forma MÁS ALTA, medido (0 si no hay encabezado). Lista, el encabezado
@@ -170,12 +205,16 @@ function presentHeaderBottom(){
   if(end && end.summary && !$("psSummary").textContent) probe("psSummary", end.summary);
   const route=$("psFlow").hidden && sc && typeof scFlowPresentLine==="function" ? scFlowPresentLine() : null;
   if(route) probe("psFlow is"+route.status, route.text);
+  /* S2a: «Otras formas» también se reserva (aparece al terminar): la misma lista, puesta y quitada en la misma tarea */
+  const others=$("psOthers"), reserve=!!others && others.hidden && !!sc && typeof FluyoStoryClock!=="undefined" && FluyoStoryClock.otherForms(P(), sc).length>0;
+  if(reserve){ psOthers(FluyoStoryClock.otherForms(P(), sc).slice(0, 3)); others.hidden=false; }
   const title=$("psTitle"), own=title.textContent;
   const longest=end ? end.moments.reduce((a, m)=>m.narrated && (m.label||"").length>a.length ? m.label : a, own) : own;
   if(longest!==own) title.textContent=longest;
   const bottom=ps.getBoundingClientRect().bottom;
   if(longest!==own) title.textContent=own;
   for(const el of probes) el.remove();
+  if(reserve){ others.hidden=true; psLast["psOthers.sig"]=undefined; }
   return bottom;
 }
 

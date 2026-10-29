@@ -235,11 +235,12 @@ test("C2b · alcance frente a c2c63ec: solo estos archivos servidos; undoS1a (pa
   const { undoS1a, PIECES, NEW_FILES } = require("./fluyo-stories-2-0-s1a-undo.cjs");
   /* FLUYO-STORIES-2.0 S1b va encima: sus archivos también cambian frente a c2c63ec y undoS1a la deshace antes */
   const { PIECES: PIECES_S1B } = require("./fluyo-stories-2-0-s1b-undo.cjs");
+  const { PIECES: PIECES_ST2A } = require("./fluyo-stories-2-0-s2a-undo.cjs");   /* FLUYO-STORIES-2.0 S2a va encima de S1b (undoS1b la deshace antes) */
   const changed = execFileSync("git", ["-C", gitRoot, "diff", "--name-only", "c2c63ec", "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean);
   const untracked = execFileSync("git", ["-C", gitRoot, "ls-files", "--others", "--exclude-standard", "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean);
-  assert.deepEqual([...new Set([...changed, ...untracked])].sort(), [...new Set(["css/styles.css", "js/editor-scenarios.js", "js/i18n-en-editor.js", "js/interaction.js", "sw.js", ...Object.keys(PIECES_S1B)])].sort());
+  assert.deepEqual([...new Set([...changed, ...untracked])].sort(), [...new Set(["css/styles.css", "js/editor-scenarios.js", "js/i18n-en-editor.js", "js/interaction.js", "sw.js", ...Object.keys(PIECES_S1B), ...Object.keys(PIECES_ST2A)])].sort());
   assert.deepEqual(NEW_FILES, []);
-  for (const f of [...new Set(Object.keys(PIECES).concat(Object.keys(PIECES_S1B), "sw.js"))]) {
+  for (const f of [...new Set(Object.keys(PIECES).concat(Object.keys(PIECES_S1B), Object.keys(PIECES_ST2A), "sw.js"))]) {
     /* la constante CACHE no es una pieza (sube en cada tarea): se compara sin ella */
     const noCache = (t) => t.replace(/const CACHE = "fluyo-static-v\d+";/, "");
     const base = execFileSync("git", ["-C", gitRoot, "show", "c2c63ec:" + f], { encoding: "utf8" }).replace(/\r\n/g, "\n");
@@ -257,7 +258,7 @@ test("C3 · claves nuevas en inglés, ninguna clave muerta y CACHE actual (v118 
   for (const k of ["stories.emptyDrag", "stories.emptyWillAppear", "event.emptyHint"]) {
     assert.ok(!ed.includes(`"${k}"`) && !en.includes(`"${k}":`), k + " retirada de los dos lados");
   }
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v118";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v119";/);
 });
 
 test("C4 · en Historias el doble clic y el doble toque no editan el texto del elemento", () => {

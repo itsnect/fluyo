@@ -72,7 +72,7 @@ function clearViewerDocument(){
     try{sv?.releasePointerCapture?.(id);}catch(e){/* Puntero ya liberado. */}
   }
   viewerPointers.clear();viewerPinch=null;
-  story=null;storyError=null;storyLast={};
+  story=null;storyError=null;storyLast={};storyChoice=null;
   followOn=followApplied=false;followKey=camera=null;followMemo={scenario:null, page:null, boxes:null};
   $("story").hidden=true;
   $("stNow").hidden=true;
@@ -160,9 +160,20 @@ function viewerLoop(generation=viewerGeneration){
    pertenece a esta generación del viewer y se descarta al cambiar de documento
    o de página. */
 let story=null, storyError=null, storyLast={};
+/* FLUYO-STORIES-2.0 S2a: la Historia elegida en «Otras formas» (id, de la página abierta), efímera como el runtime: nunca toca el
+   documento, se olvida al cambiar de página o de documento. Sin elección, la de siempre: scenarios[0] (la que se compartió). La
+   familia es la página (D1): las otras formas solo existen si scenarios[0] es una Historia con pasos. */
+let storyChoice=null;
 function storyScenario(){
   const pg=doc.pages[doc.cur], sc=pg && pg.scenarios && pg.scenarios[0];
-  return sc && sc.steps.length ? sc : null;
+  if(!sc || !sc.steps.length) return null;
+  return (storyChoice!==null && pg.scenarios.find(s=>s.id===storyChoice && s.steps.length)) || sc;
+}
+/* Abrir otra forma: se detiene la que había (y la vista vuelve al diagrama entero si la cámara la seguía) y queda lista, con su portada. */
+function storyOpen(id){
+  if(viewerPhase!=="ready") return;
+  storyChoice=id;
+  storyStop();
 }
 function storyNodeName(id){
   const n=nodeById(id);
@@ -352,13 +363,16 @@ function storyRefresh(){
   const paused=storyPaused();
   const phase=!story ? "ready" : story.status==="running" ? "playing" : "finished";
   const d=FluyoStoryClock.describe(phase, sc, story && story.playback, storyNodeName, id=>edgeById(id), FluyoI18n.t);
-  storySet("stKicker","text",phase==="ready" ? FluyoI18n.t("story.group","Historia") : FluyoI18n.t("story.kicker","Historia · {name}",{name:sc.name}));
+  /* S2a: en la portada, el sistema (el nombre de la página; «Historia» si es el de semilla) encima del nombre de la Historia */
+  storySet("stKicker","text",phase==="ready" ? (FluyoStoryClock.systemName(P(), FluyoI18n.t) || FluyoI18n.t("story.group","Historia")) : FluyoI18n.t("story.kicker","Historia · {name}",{name:sc.name}));
   storySet("stTitle","text",d.title);
   /* PRODUCT-NARRATION-001 (D-PO-2): solo el título con una frase del autor puede crecer en vez de cortarse (share.css) */
   storySet("stTitle","className","stTitle"+(phase!=="ready" && d.moments[d.idx] && d.moments[d.idx].narrated ? " narrated" : ""));
   storySet("stCaption","text",storyError || (paused ? (d.caption ? FluyoI18n.t("story.pausedCaption","En pausa · {caption}",{caption:d.caption}) : FluyoI18n.t("story.paused","En pausa")) : d.caption));
-  /* FLUYO-STORIES-2.0 S1b: el desenlace al terminar, del mismo cálculo que Present y el editor (FluyoStoryClock) */
-  if($("stOutcome")) storySet("stOutcome","text",FluyoStoryClock.outcomeLine(phase, sc, story && story.playback, FluyoI18n.t));
+  /* FLUYO-STORIES-2.0 S1b: el desenlace al terminar, del mismo cálculo que Present y el editor (FluyoStoryClock); S2a (D5): también
+     en la portada, antes de reproducir */
+  if($("stOutcome")) storySet("stOutcome","text",FluyoStoryClock.phaseOutcome(phase, P(), sc, story && story.playback, FluyoI18n.t));
+  if($("stOthers")) storyOthers(phase==="finished" ? FluyoStoryClock.otherForms(P(), sc).slice(0, 3) : []);
   storySet("stSummary","text",d.summary);
   storySet("stProgress","text",phase!=="ready" && d.moments.length>1 ? Math.max(0,d.idx+1)+" / "+d.moments.length : "");
   /* SCENARIOS-SEMANTICS-001 FASE 5 (D7, decisión 246): la línea de estado de la ruta, solo reproduciendo (también en pausa y terminada) */
@@ -381,6 +395,26 @@ function storyRefresh(){
   if(phase!=="ready") storyGlyph("stStop","■","g-stop",FluyoI18n.t("story.stop","Detener"));
   /* «Abrir en Fluyo» está siempre en la cabecera: repetirlo en la banda la partía en dos filas al terminar (018.18). */
   storySet("stOpen","hidden",true);
+}
+/* FLUYO-STORIES-2.0 S2a: «Otras formas», al terminar: hasta 3 Historias más de la página, con su nombre (contenido del autor) y su
+   desenlace. Elegir una la abre en su portada, sin recargar. Solo se reescribe si cambia la lista o el idioma. */
+function storyOthers(list){
+  const items=list.map(s=>({id:s.id, name:s.name, outcome:FluyoStoryClock.outcomeText(FluyoStoryClock.outcomeOf(P(), s), FluyoI18n.t)}));
+  const sig=JSON.stringify(items);
+  if(storyLast["stOthers.sig"]===sig) return;
+  storyLast["stOthers.sig"]=sig;
+  const box=$("stOthersList");
+  box.textContent="";
+  for(const it of items){
+    const b=document.createElement("button"), name=document.createElement("span"), out=document.createElement("span");
+    b.type="button"; b.className="stOther";
+    name.className="stOtherName"; name.textContent=it.name;
+    out.className="stOtherOutcome"; out.textContent=it.outcome;
+    b.appendChild(name); b.appendChild(out);
+    b.onclick=()=>storyOpen(it.id);
+    box.appendChild(b);
+  }
+  $("stOthers").hidden=!items.length;
 }
 /* El rótulo de la Historia va arriba del lienzo; si el destino del momento en curso queda debajo, baja al pie. */
 let storyPlaceKey="";
@@ -484,6 +518,7 @@ function goPage(i){
   try{
     const j=clamp(i, 0, doc.pages.length-1);
     if(j===doc.cur) return;
+    storyChoice=null;
     storyReset();
     doc.cur=j;
     /* la aparición escalonada se reinicia en cada página, como en el editor */

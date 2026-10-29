@@ -284,31 +284,38 @@ test("E1 · en inglés: «Fail here», «{name} doesn't respond», «— fails»
 });
 
 test("C1 · Present y el Viewer pintan el desenlace de FluyoStoryClock.outcomeLine en su propia línea, encima del resumen", () => {
-  const html = read("index.html"), share = read("s/index.html"), ps = read("js/present-story.js"), vw = read("js/viewer.js");
+  /* S2a (portada y otras formas) cambia estas líneas: se miran con S2a deshecha */
+  const { undoS2a } = require("./fluyo-stories-2-0-s2a-undo.cjs"), r = (f) => undoS2a(f, read(f));
+  const html = r("index.html"), share = r("s/index.html"), ps = r("js/present-story.js"), vw = r("js/viewer.js");
   assert.match(html, /<div id="psCaption"[^>]*><\/div>\s*<!--[^>]*-->\s*<div id="psOutcome" class="psOutcome"><\/div>\s*<div id="psSummary"/);
   assert.match(share, /<span id="stCaption"[^>]*><\/span><span id="stOutcome" class="stOutcome"><\/span><span id="stSummary"/);
   assert.match(ps, /psSet\("psOutcome","text",typeof FluyoStoryClock!=="undefined" \? FluyoStoryClock\.outcomeLine\(dphase, sc, scPlayback, FluyoI18n\.t\) : ""\);/);
   assert.match(vw, /storySet\("stOutcome","text",FluyoStoryClock\.outcomeLine\(phase, sc, story && story\.playback, FluyoI18n\.t\)\);/);
   for (const src of [ps, vw]) assert.ok(!/outcome\w*\s*\(/i.test(src.replace(/FluyoStoryClock\.outcome(Text|Line)?\(/g, "")), "ninguna superficie calcula su propio desenlace");
-  assert.match(read("js/story-clock.js"), /const d = FluyoStory\.describe\(phase, scenario, playback, nodeName, edgeEnds, text\);/, "describe() no cambia");
+  assert.match(r("js/story-clock.js"), /const d = FluyoStory\.describe\(phase, scenario, playback, nodeName, edgeEnds, text\);/, "describe() no cambia");
 });
 
 test("C2 · kernel, render, formato, Share, ejemplos y MCP intactos respecto a la base", () => {
   const KEEP = ["js/config.js", "js/safe-svg.js", "js/model.js", "js/scenario-engine.js", "js/scenario-playback.js", "js/story-playback.js", "js/document-integrity.js", "js/story-authoring.js",
-    "js/render.js", "js/share-url.js", "js/editor-share.js", "js/link-codec.js", "js/deeplink.js", "js/examples.js", "ejemplos"];
+    "js/render.js", "js/link-codec.js", "js/deeplink.js", "js/examples.js", "ejemplos"];
   const changed = execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...KEEP], { encoding: "utf8" }).trim();
   assert.equal(changed, "", "nada de esto cambia");
+  /* Share lo cambia S2a (las otras formas): con S2a deshecha, igual que en la base */
+  const { undoS2a } = require("./fluyo-stories-2-0-s2a-undo.cjs");
+  for (const f of ["js/share-url.js", "js/editor-share.js"])
+    assert.equal(undoS2a(f, read(f)), execFileSync("git", ["-C", gitRoot, "show", BASE + ":" + f], { encoding: "utf8" }).replace(/\r\n/g, "\n"), f);
 });
 
 test("C2b · alcance frente a a7af856: solo estos archivos servidos; undoS1b (para los alcances antiguos) los devuelve EXACTOS", () => {
   const SERVED = ["js", "s", "css", "assets", "index.html", "404.html", "sw.js", "manifest.webmanifest", "docs", "ejemplos", "privacidad", "privacy", "soporte", "support", "terminos", "terms"];
   const { undoS1b, PIECES, NEW_FILES } = require("./fluyo-stories-2-0-s1b-undo.cjs");
+  const { PIECES: PIECES_ST2A } = require("./fluyo-stories-2-0-s2a-undo.cjs");   /* FLUYO-STORIES-2.0 S2a va encima (undoS1b la deshace antes) */
   const changed = execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean);
   const untracked = execFileSync("git", ["-C", gitRoot, "ls-files", "--others", "--exclude-standard", "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean);
   assert.deepEqual([...new Set([...changed, ...untracked])].sort(), ["css/share.css", "css/styles.css", "index.html", "js/editor-scenarios.js", "js/i18n-en-editor.js", "js/i18n-en.js",
-    "js/present-story.js", "js/story-clock.js", "js/viewer.js", "s/index.html", "sw.js"]);
+    "js/present-story.js", "js/story-clock.js", "js/viewer.js", "s/index.html", "sw.js", ...Object.keys(PIECES_ST2A)].filter((f, i, a) => a.indexOf(f) === i).sort());
   assert.deepEqual(NEW_FILES, []);
-  for (const f of Object.keys(PIECES).concat("sw.js")) {
+  for (const f of [...new Set(Object.keys(PIECES).concat(Object.keys(PIECES_ST2A), "sw.js"))]) {
     /* la constante CACHE no es una pieza (sube en cada tarea): se compara sin ella; y sin CRLF (checkouts con core.autocrlf) */
     const noCache = (t) => t.replace(/\r\n/g, "\n").replace(/const CACHE = "fluyo-static-v\d+";/, "");
     const base = execFileSync("git", ["-C", gitRoot, "show", BASE + ":" + f], { encoding: "utf8" });
@@ -327,5 +334,5 @@ test("C3 · claves nuevas en inglés, todas usadas, y CACHE v118", () => {
     assert.ok(sc.includes(`"${k}"`), k + " se usa (story-clock.js)");
     assert.ok(en.includes(`"${k}":`), k + " en inglés (también el Viewer)");
   }
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v118";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v119";/);
 });

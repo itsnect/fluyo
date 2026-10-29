@@ -12,6 +12,16 @@ function shareStory(){
 function selectedShareKind(){
   return shareStory() && shareControl("shareKindDiagram").checked ? "diagram" : "story";
 }
+/* FLUYO-STORIES-2.0 S2a (D3): las «otras formas» de la Historia, las demás Historias con pasos de su página, en su orden (la familia
+   es la página, D1). Viajan con ella si la casilla sigue marcada; marcada cada vez que se abre el diálogo. */
+function shareOthers(story){
+  return story ? P().scenarios.filter(s=>s!==story && s.steps.length>0) : [];
+}
+function shareWithOthers(story){
+  return !!story && selectedShareKind()==="story" && shareOthers(story).length>0 && shareControl("shareOthers").checked;
+}
+/* Un enlace que no cabe con la familia se intenta solo con la Historia (lo dice el diálogo). */
+const shareTooBig=e=>(e.code==="too_large" && e.stage==="url") || e.reason==="uncompressed_limit";
 /* FLUYO-I18N-002 S1: los textos del diálogo que dependen del estado se guardan como función y se pintan con shareText(): así,
    si el idioma cambia con el diálogo abierto, se repintan en el nuevo (onChange, abajo). El nombre de la Historia es contenido
    del autor: viaja como parámetro y nunca se traduce. */
@@ -60,6 +70,16 @@ function showShareDialog(){
     shareControl("shareKindStory").checked=true;
     shareControl("shareKindDiagram").checked=false;
   }
+  const others=shareOthers(story);
+  shareControl("shareOthersRow").hidden=!others.length;
+  shareControl("shareOthers").checked=true;
+  /* los nombres son contenido del autor: cada uno en su propio nodo, sin traducir (como el de la Historia) */
+  const names=shareControl("shareOthersNames");
+  names.textContent="";
+  others.forEach((s,i)=>{
+    if(i) names.appendChild(document.createTextNode(" · "));
+    const span=document.createElement("span"); span.textContent=s.name; names.appendChild(span);
+  });
   /* Desde un archivo local el enlace apunta al visor público: se avisa, no se bloquea. */
   shareText("shareMessage", ()=>isWebOrigin(location.href)? "" : FluyoI18n.t("share.localFile","Estás usando Fluyo desde un archivo local: el enlace se creará para el visor público (fluyo.space)."));
   shareDialog.showModal();
@@ -75,10 +95,19 @@ async function confirmShare(){
     let project;
     try{project=serializeProject();}catch{throw shareUrlError("serialization_failed");}
     const kind=selectedShareKind(), story=shareStory();
-    /* La unidad que se comparte es la Historia seleccionada; sin Historia con momentos, sólo el diagrama. */
-    const url=await createShareUrl(project,location.href,story?{kind,scenarioId:story.id}:{kind:"diagram"});
+    let withOthers=shareWithOthers(story), dropped=false;
+    /* La unidad que se comparte es la Historia seleccionada (con sus otras formas detrás, S2a); sin Historia con momentos, sólo el diagrama. */
+    let url;
+    try{url=await createShareUrl(project,location.href,story?{kind,scenarioId:story.id,withOthers}:{kind:"diagram"});}
+    catch(e){
+      if(!withOthers || !shareTooBig(e)) throw e;
+      withOthers=false; dropped=true;
+      url=await createShareUrl(project,location.href,{kind,scenarioId:story.id});
+    }
     shareText("shareResultNote", ()=>kind==="story"&&story
-      ?FluyoI18n.t("share.noteStory","Quien abra este enlace verá el diagrama y podrá reproducir la historia. Los cambios posteriores no modificarán este enlace.")
+      ?(withOthers
+        ?FluyoI18n.t("share.noteStoryOthers","Quien abra este enlace verá el diagrama y podrá reproducir la historia y sus otras formas. Los cambios posteriores no modificarán este enlace.")
+        :FluyoI18n.t("share.noteStory","Quien abra este enlace verá el diagrama y podrá reproducir la historia. Los cambios posteriores no modificarán este enlace."))
       :FluyoI18n.t("share.noteDiagram","Este enlace contiene una copia del diagrama actual. Los cambios posteriores no modificarán este enlace."));
     shareControl("shareLink").value=url;
     shareControl("shareConfirm").hidden=true;
@@ -86,7 +115,9 @@ async function confirmShare(){
     shareControl("shareCreate").hidden=true;
     shareControl("shareCopy").hidden=false;
     shareText("shareClose", ()=>FluyoI18n.t("common.close","Cerrar"));
-    shareText("shareMessage", ()=>isWebOrigin(location.href)? "" : FluyoI18n.t("share.publicViewer","El enlace abre el visor público de fluyo.space."));
+    shareText("shareMessage", ()=>dropped
+      ?FluyoI18n.t("share.othersTooLarge","Con sus otras formas el enlace era demasiado grande: solo viaja esta historia.")
+      :isWebOrigin(location.href)? "" : FluyoI18n.t("share.publicViewer","El enlace abre el visor público de fluyo.space."));
     trackEvent("share_created");
     shareControl("shareCopy").focus();
   }catch(e){

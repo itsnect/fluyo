@@ -5,7 +5,7 @@
    B) Navegación: cabecera (Ejemplos ↔ Docs, marca y «Abrir Fluyo» → editor) y pie (legales ↔ hermana en inglés).
    C) 404: el servidor responde 404.html con estado 404 en cualquier ruta (como el hosting); en inglés con la preferencia guardada.
    D) Ejemplos sigue funcionando: «Abrir en el editor» carga el ejemplo en el editor.
-   E) Service worker: el editor instala fluyo-static-v118, precachea las páginas y, sin red, /docs/ se abre con el shell.
+   E) Service worker: el editor instala fluyo-static-v119, precachea las páginas y, sin red, /docs/ se abre con el shell.
    F) Comparación con el editor y el Viewer: misma cabecera (alto, filete, fondo) y misma marca (voz, cuerpo, colores).
    Capturas en FLUYO_SHOTS (o un directorio temporal). Uso: node test/fluyo-shell-001-browser.cjs (playwright-core vía NODE_PATH). */
 let chromium;
@@ -155,8 +155,8 @@ const VIEWS = [
       await page.evaluate(async () => { await navigator.serviceWorker.ready; });
       /* waitForFunction no espera a un predicado async: sondeo explícito, como fluyo-018-10-browser.cjs */
       for (const t0 = Date.now(); Date.now() - t0 < 30000; await page.waitForTimeout(200))
-        if (await page.evaluate(async () => { const c = await caches.open("fluyo-static-v118"); return !!(await c.match("./docs/")) && !!(await c.match("./css/pages.css")) && !!navigator.serviceWorker.controller; })) break;
-      check(JSON.stringify(await page.evaluate(() => caches.keys())) === '["fluyo-static-v118"]', "el editor instala fluyo-static-v118 con las páginas");
+        if (await page.evaluate(async () => { const c = await caches.open("fluyo-static-v119"); return !!(await c.match("./docs/")) && !!(await c.match("./css/pages.css")) && !!navigator.serviceWorker.controller; })) break;
+      check(JSON.stringify(await page.evaluate(() => caches.keys())) === '["fluyo-static-v119"]', "el editor instala fluyo-static-v119 con las páginas");
       offline = true; await ctx.setOffline(true);
       const doc = watch(await ctx.newPage(), "sw offline");
       await doc.goto(base + "/docs/");

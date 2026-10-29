@@ -82,6 +82,8 @@ FLUYO_LOCALES.en=Object.assign(FLUYO_LOCALES.en || {}, {
   /* FLUYO-STORIES-2.0 S1b · el desenlace (FluyoStoryClock.outcomeText): editor, Present y Viewer */
   "story.outcome.ok":"Ends well",
   "story.outcome.failed":"Fails at step {n}",
+  /* FLUYO-STORIES-2.0 S2a · «Otras formas»: las demás historias de la página, al terminar (Present y Viewer) */
+  "story.others":"Other ways",
   "story.cap.down":"{name} is unavailable",
   "story.cap.up":"{name} is available again",
   "story.cap.failed":"Not completed · {name} is unavailable",

@@ -28,7 +28,7 @@ const STALE = ["  presentStoryRefresh();\n  /* el mando", "  /* el mando"];
 const NO_TRACE = ['FluyoStory.describe("finished", sc, {logEvents:run.trace.events, cursorVirtual:0}, ()=>"", ()=>null)', 'FluyoStory.describe("finished", sc, null, ()=>"", ()=>null)'];
 /* [nombre, suite, archivo, desde, hasta, ONLY del browser test] */
 const MUTATIONS = [
-  ["U1 CACHE no sube (sigue v102)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v118";', 'const CACHE = "fluyo-static-v102";'],
+  ["U1 CACHE no sube (sigue v102)", UNIT, "sw.js", 'const CACHE = "fluyo-static-v119";', 'const CACHE = "fluyo-static-v102";'],
   ["U2 el kernel se toca (scenario-playback.js)", UNIT, "js/scenario-playback.js", "const CUE_FADE_IN_MS = 140;", "const CUE_FADE_IN_MS = 0;"],
   ["U3 se revela también reproduciendo", UNIT, "js/story-clock.js", ...ALWAYS],
   ["B3 se revela también reproduciendo", BROWSER, "js/story-clock.js", ...ALWAYS, "l844"],

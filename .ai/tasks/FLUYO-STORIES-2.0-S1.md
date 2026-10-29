@@ -2,7 +2,7 @@
 
 Fecha: 2026-10-28 · Base: `main` = `c2c63ec` (fluyo.space sirve `fluyo-static-v116`) · Solo lectura: sin código, CACHE, commits ni deploy.
 
-**Estado: auditoría APROBADA (D1 y D2 tal como se recomendaban). S1a IMPLEMENTADA · QA del PO aprobada, commiteada** (worktree `fluyo-s1a`, rama `stories-2.0-s1a`, CACHE v117); ver «S1a · Implementación» al final. S1b no empezada.
+**Estado: auditoría APROBADA (D1 y D2 tal como se recomendaban). S1a CLOSED / VERIFIED / IN PRODUCTION** (`370043b` + `a7af856`, fluyo.space sirve v117, smoke de producción 35/0); ver «S1a · Implementación» y «S1a · Publicación» al final. **S1b IMPLEMENTADA · QA del PO aprobada, commiteada** (worktree `fluyo-s1b`, rama `stories-2.0-s1b`, CACHE v118); ver «S1b · Implementación».
 
 Objetivo: que crear una Historia se sienta como contar algo sobre el diagrama, no como programar un motor de eventos. Origen: el discovery STORIES-2.0 (MVP «Contar con clics»).
 
@@ -236,3 +236,87 @@ PO: D1 (tocar crea el paso; Mayús/Ctrl seleccionan; arrastrar mueve) y D2 («Te
 
 Revisión del PO → commit en `stories-2.0-s1a`, merge a `main`, push y deploy (v117), y verificación en producción. Después, S1b (v118).
 
+## S1a · Publicación (28-10-2026)
+
+- QA del PO aprobada. Commit `370043b` en `stories-2.0-s1a` (96 archivos); `main` estaba en `c2c63ec` y avanzó por fast-forward.
+- Integración en `main`: el test propio C2b falló porque este checkout (`core.autocrlf`) trae `sw.js` en CRLF y la base va en LF. Corregido solo en el test (`a7af856`, sin archivos servidos). Después: S1a 18/18, mutaciones 28/28, alcances S0–S4, SHELL, EXAMPLES, 019-1 e i18n-001 en verde; kernel, render y `fluyo-mcp` sin cambios.
+- Push `c2c63ec..a7af856` a `origin/main`. fluyo.space sirve `fluyo-static-v117`; `sw.js`, los 4 archivos de S1a, `index.html`, `model.js` y `render.js` coinciden byte a byte con `a7af856`.
+- Smoke de producción (el QA de Chrome de S1a contra https://fluyo.space, Umami bloqueado): 35/0. Escritorio, lo que no cuenta, móvil con el dedo, inglés y Compra online.
+- Deuda conocida, fuera de S1a: `fluyo-i18n-002-s3a-browser.cjs` 29/6 desde EXAMPLES (espera el «Ejemplo» anterior).
+- Siguiente: S1b «Fallar» (v118).
+
+## S1b · Implementación (28-10-2026)
+
+Base `a7af856` (S1a en producción, v117) → CACHE **v118**. Kernel, formato, `render.js`, Share/codec, EXAMPLES y `fluyo-mcp` sin cambios.
+
+### Qué hace
+
+- **«Falla aquí»**: primera acción del menú de un envío (⋯ de la fila, o tocar la fila).
+  - Crea un paso `SET_STATE DOWN` sobre el destino del recorrido (`traversalEnds`, respeta `reverse`), sin evento y con la frase «{destino} no responde» en el idioma de la interfaz («{name} doesn't respond»). Es contenido: no se retraduce.
+  - Lo coloca en un momento propio justo antes del momento del envío (`createStep` al final + `storyboardMoveStep` «gap»): los momentos siguientes conservan su orden y sus ranuras, y las esperas de llegada siguen valiendo.
+  - Es un fallo del motor: al reproducir, el envío termina en `send_failed / target_down` y lo que sale del nodo caído también falla (`source_down`).
+  - Una sola entrada de Undo; un Undo devuelve la página tal cual (salvo `nextStepId`, que nunca baja: regla de `restorePageContent`).
+  - Solo se ofrece en un envío que hoy se completa; si ya no se completa, aparece desactivada con «Este envío ya no se completa».
+- **«Duplicar como fallo»**, en el menú de la Historia: la duplicación de siempre (una entrada de Undo, la original intacta) con el nombre «{nombre} — falla» («— fails»), y enseguida «¿Dónde falla?» con los envíos de la copia que se completan. Elegir uno es «Falla aquí» (otra entrada). Cerrar el menú deja la copia tal cual. Sin envíos que puedan fallar, lo dice y no abre el menú.
+- **Desenlace**, una sola función en `story-clock.js` (no es kernel):
+  - `FluyoStoryClock.outcome(scenario, trace)`: «Falla en el paso N», con N el momento del primer `send_failed` (la unidad del progreso «n / total»), o «Termina bien» si hay pasos y ningún envío falla. Sin pasos o sin Trace: nada.
+  - `outcomeText` lo pone en palabras; `outcomeLine(phase, …)` es la línea de Present y el Viewer, solo terminada.
+  - **Editor:** una línea bajo el último momento, siempre a la vista (memorizada: el motor solo se vuelve a ejecutar si cambian la Historia, los Behaviors o la estructura).
+  - **Present** (`#psOutcome`) y **Viewer** (`#stOutcome`): al terminar, en su propia línea encima del resumen, que no cambia.
+  - `FluyoStoryClock.describe` no cambia.
+- **Ejemplos** (sin tocar sus archivos): Compra con éxito «Termina bien», El banco no responde «Falla en el paso 4», OAuth «Iniciar sesión» y «El usuario no autoriza» «Termina bien» (D2), Un pedido «Termina bien», Un mensaje que falla «Falla en el paso 4».
+
+### Diferencias con la auditoría
+
+- **«¿Dónde falla?» es un menú** con los envíos de la copia, no un modo con barra para tocar el lienzo: lo pidió el PO («no diseñar todavía una UI compleja de selección»). Reutiliza `scMenuSections`.
+- **El desenlace no está en el selector de Historias**, solo en el panel de la Historia activa, en Present y en el Viewer.
+
+### Archivos
+
+| Archivo | Cambio |
+|---|---|
+| `js/editor-scenarios.js` | «Falla aquí» (`scOutcomeInfo`, `scCanFailHere`, `scFailHereMenuItem`, `scFailHere`), «Duplicar como fallo» (`scFailCopyNames`, `scDuplicateAsFailure`, `scChooseFailure`), la línea del desenlace en el storyboard |
+| `js/story-clock.js` | `outcome`, `outcomeText`, `outcomeLine` |
+| `index.html` · `js/present-story.js` | `#psOutcome` y su reserva de altura en `presentHeaderBottom` |
+| `s/index.html` · `js/viewer.js` | `#stOutcome` |
+| `css/styles.css` · `css/share.css` | La línea del desenlace (editor, Present, Viewer) |
+| `js/i18n-en.js` · `js/i18n-en-editor.js` | 2 + 11 claves nuevas |
+| `sw.js` | CACHE v118 |
+| `test/fluyo-stories-2-0-s1b.test.cjs` | 20 tests vm (F fallo, D duplicar, O desenlace, E inglés, C formato y alcance) |
+| `test/fluyo-stories-2-0-s1b-mutations.cjs` | 28 mutaciones |
+| `test/fluyo-stories-2-0-s1b-browser.cjs` | QA en Chrome real: casos A–F, móvil y ejemplos |
+| `test/fluyo-stories-2-0-s1b-undo.cjs` | Capa de deshacer de S1b (`undoS1b`, base a7af856), generada del diff |
+| `test/fluyo-stories-2-0-s1a-undo.cjs` | `undoS1a` deshace antes S1b (cadena `… → undoEx → undoS1a → undoS1b`) |
+| Alcances S0–S3b, SHELL, S1a | Registran `PIECES_S1B` donde ya registraban S1a (razón A). K de S3a y H de S3b pasan por la cadena |
+| Narración, mensaje del paso, S2a | Su menú del paso se mira con S1b deshecha (sus extracciones no llevan las funciones de «Falla aquí») |
+| 85 tests | CACHE v117 → v118 |
+
+### Pruebas
+
+- **Propios:**
+  - vm 20/20;
+  - mutaciones 28/28;
+  - Chrome 47/0:
+    - A: A → B → C contada con clics, «Termina bien», también al terminar de reproducir;
+    - D: «Duplicar como fallo» desde el menú real, «¿Dónde falla?», la copia falla, se modifica y la original no cambia;
+    - E: el Viewer del enlace reproduce el mismo fallo y acaba en «Falla en el paso 2»; la original, «Termina bien»;
+    - B: «Falla aquí» desde el ⋯ de la fila; el motor registra B DOWN, `target_down` y `source_down`; Present acaba en «Falla en el paso 2»;
+    - C: un Ctrl+Z devuelve la página exacta;
+    - F: inglés (menús, frase, copia, editor, Present y Viewer);
+    - móvil 375×812 con el dedo; Compra online y OAuth con sus desenlaces y el documento intacto.
+- **Suite completa** en un clon con S1b commiteada: 1812 tests / 83 fallos, los mismos 83 de la base (`a7af856`), 0 nuevos. Los 20 de más son los de S1b.
+- **Regresiones en Chrome**, en el worktree (secuenciales): S1a 35/0, S0 385/0, S1 181/0, S2a 179/0, S2b 26/0, S3b 46/0, S4 102/0, EXAMPLES 40/0, i18n-001 78/0, NARRATION 100/0, 018.21 36/0, 018.29 396/0, SW-VIEWER 63/0, SEMANTICS-5 85/0, 014 verde.
+  - S0 falló una vez por el salto de zoom ya conocido (80 % → 127 %); solo, 385/0.
+  - S3a 29/6: los mismos 6 de EXAMPLES (deuda conocida, fuera de S1b).
+  - STEP-MESSAGE: 3 fallos, los mismos en la base S1a (comprobaciones de antes de NARRATION).
+
+### Riesgos
+
+- «Falla aquí» deja el nodo caído hasta el final (verdad del motor): lo que salga de él después también falla. El desenlace marca el primero.
+- En una Historia que ya falla, «Falla aquí» se desactiva en los envíos que ya no se completan; para cambiar dónde falla hay que borrar o mover la caída.
+- En móvil, el aviso «Historia N creada» tapa unos segundos la fila de abajo de la hoja (ya era así, no es de S1b).
+- Una ruta alternativa sin fallo de motor dice «Termina bien» (D2): la marca de variante llega en S2.
+
+### Próximo paso
+
+Revisión del PO → commit en `stories-2.0-s1b`, merge a `main`, push y deploy (v118), y verificación en producción.

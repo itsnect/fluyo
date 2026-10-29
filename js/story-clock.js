@@ -137,6 +137,31 @@ var FluyoStoryClock = (function(){
     return rs;
   }
 
+  /* FLUYO-STORIES-2.0 S1b. Desenlace de una Historia, el MISMO en el editor, Present y el Viewer: sale del Trace del motor,
+     no de una etiqueta. «Falla en el paso N»: N es el momento (la unidad del progreso «n / total») del primer envío que no
+     se completó (`send_failed`, lo mismo que cuenta FluyoStory.failedCount). «Termina bien»: hay pasos y ningún envío falla,
+     también en una ruta alternativa (D2; la marca de variante es de S2). Sin pasos o sin Trace: null (no se dice nada).
+     Las esperas de llegada solo desplazan instantes sin cambiar el orden de los momentos, así que el horario visible da el
+     mismo N. */
+  function outcome(scenario, trace){
+    const groups = storyboardGroups((scenario && scenario.steps) || []);
+    if(!groups.length || !trace || !trace.events) return null;
+    const failed = new Set();
+    for(const ev of trace.events) if(ev.type==="send_failed") failed.add(ev.stepId);
+    const k = groups.findIndex(g=>g.steps.some(s=>failed.has(s.id)));
+    if(k<0) return {ok:true};
+    return {ok:false, moment:k+1, stepId:storyboardOrderedSteps(groups[k].steps).find(s=>failed.has(s.id)).id};
+  }
+  function outcomeText(o, text){
+    if(!o) return "";
+    const tx = typeof text==="function" ? text : (k, fb, p)=>fb.replace(/\{(\w+)\}/g, (m, name)=>p && p[name]!==undefined ? String(p[name]) : m);
+    return o.ok ? tx("story.outcome.ok", "Termina bien") : tx("story.outcome.failed", "Falla en el paso {n}", {n:o.moment});
+  }
+  /* La línea de Present y el Viewer: solo terminada, del Trace de esa reproducción ("" en las demás fases). */
+  function outcomeLine(phase, scenario, playback, text){
+    return phase==="finished" ? outcomeText(outcome(scenario, playback && playback.trace), text) : "";
+  }
+
   /* El texto de Present, el Viewer y el editor (FluyoStory.describe) con el momento en curso según el instante VISIBLE. */
   function describe(phase, scenario, playback, nodeName, edgeEnds, text){
     const d = FluyoStory.describe(phase, scenario, playback, nodeName, edgeEnds, text);
@@ -147,5 +172,6 @@ var FluyoStoryClock = (function(){
 
   return {create, now, isPaused, pause, resume, momentTimes, momentIndex, prevTarget, nextTarget, seek, reveal,
           arrivalDependencies, arrivalCandidates, stepWaits, momentWaits, pruneArrivalDependencies, withArrivalWait,
-          withoutArrivalWaits, copyArrivalWaits, travelMs, schedule, visibleTrace, start, visibleAt, describe};
+          withoutArrivalWaits, copyArrivalWaits, travelMs, schedule, visibleTrace, start, visibleAt, describe,
+          outcome, outcomeText, outcomeLine};
 })();

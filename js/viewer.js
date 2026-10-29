@@ -357,6 +357,8 @@ function storyRefresh(){
   /* PRODUCT-NARRATION-001 (D-PO-2): solo el título con una frase del autor puede crecer en vez de cortarse (share.css) */
   storySet("stTitle","className","stTitle"+(phase!=="ready" && d.moments[d.idx] && d.moments[d.idx].narrated ? " narrated" : ""));
   storySet("stCaption","text",storyError || (paused ? (d.caption ? FluyoI18n.t("story.pausedCaption","En pausa · {caption}",{caption:d.caption}) : FluyoI18n.t("story.paused","En pausa")) : d.caption));
+  /* FLUYO-STORIES-2.0 S1b: el desenlace al terminar, del mismo cálculo que Present y el editor (FluyoStoryClock) */
+  if($("stOutcome")) storySet("stOutcome","text",FluyoStoryClock.outcomeLine(phase, sc, story && story.playback, FluyoI18n.t));
   storySet("stSummary","text",d.summary);
   storySet("stProgress","text",phase!=="ready" && d.moments.length>1 ? Math.max(0,d.idx+1)+" / "+d.moments.length : "");
   /* SCENARIOS-SEMANTICS-001 FASE 5 (D7, decisión 246): la línea de estado de la ruta, solo reproduciendo (también en pausa y terminada) */

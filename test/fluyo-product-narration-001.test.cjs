@@ -1,4 +1,5 @@
 "use strict";
+const { undoS1b } = require("./fluyo-stories-2-0-s1b-undo.cjs");   /* FLUYO-STORIES-2.0 S1b: «Falla aquí» va encima del menú de esta tarea */
 /* FLUYO-PRODUCT-NARRATION-001 — La frase del autor en CUALQUIER paso de una Historia (decisión 258; contrato en
    .ai/tasks/FLUYO-PRODUCT-NARRATION-001.md). Extiende STEP-MESSAGE-001 (decisión 255): `message` también en un SEND, y al reproducir es
    el título de su momento en vez del nombre del evento. Presentación pura: ni el motor ni el reloj lo leen.
@@ -250,7 +251,8 @@ function extract(src, name) {
 const ED_FNS = ["scNodeLabel", "scNodeFallback", "scSourceFallback", "scEdgeLabel", "scEdgeSecondary", "scTargetLabel", "scIsTargetMissing", "describeScenarioStep",
   "scWhereLabel", "scStepTitle", "scStoryMenu", "scReverseMenuItem", "scToggleStepReverse", "scEditable", "scOrderedSteps",
   "scDuplicateStep", "scSetArrivalDependencies", "scUseTarget", "scStepMessage", "scMessageMenuItem", "scSetStepMessage"];
-function editor(src = read("js/editor-scenarios.js")) {
+/* el editor de esta tarea: S1b («Falla aquí», con funciones que no se extraen aquí) deshecha */
+function editor(src = undoS1b("js/editor-scenarios.js", read("js/editor-scenarios.js"))) {
   const fakeNode = (tag) => ({ tag, children: [], textContent: "", className: "", classList: { add() {}, contains() { return false; } }, appendChild(c) { this.children.push(c); return c; } });
   const els = {}, $ = (id) => (els[id] = els[id] || fakeNode(id));
   const ctx = vm.createContext({ TextEncoder, TextDecoder, atob, btoa, URL, console, $, GRID: 20, innerWidth: 1280, innerHeight: 800,
@@ -388,10 +390,10 @@ test("G1 · caso real: con 2 eventos y message se lee la MISMA Historia que con 
 test("H1 · versiones: engineVersion 2 y version 5 (NO v3); sw.js sube a v106 y solo cambia la constante", () => {
   assert.equal(run("FluyoScenarios.ENGINE_VERSION"), 2);
   assert.equal(run("projectToSerializable({}, {}).version"), 5);
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v117";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v118";/);
   /* FLUYO-SW-VIEWER-001 va encima: su instalación del Viewer y sus navegaciones a /s/ se deshacen antes (undoSwv) */
   const { undoSwv } = require("./fluyo-sw-viewer-001-undo.cjs");
-  assert.equal(undoSwv("sw.js", read("sw.js")).replace('"fluyo-static-v117"', '"fluyo-static-v' + (106 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante (el precache no cambia)");
+  assert.equal(undoSwv("sw.js", read("sw.js")).replace('"fluyo-static-v118"', '"fluyo-static-v' + (106 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante (el precache no cambia)");
 });
 
 test("H2 · alcance frente a " + BASE + ": solo cambian estos archivos servidos (index.html y s/index.html, no) y undoNarr los devuelve EXACTOS", () => {

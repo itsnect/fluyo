@@ -100,6 +100,7 @@ function presentStoryRefresh(){
     psSet("psTitle","text","");
     psSet("psDots","hidden",true);
     psSet("psCaption","text","");
+    psSet("psOutcome","text","");
     psSet("psSummary","text","");
     psSet("psFlow","hidden",true);
     return;
@@ -136,6 +137,8 @@ function presentStoryRefresh(){
   if(dphase!=="playing" && dphase!=="finished" && scErrors.length) cap=scErrors[0];
   if(phase==="paused") cap=cap ? FluyoI18n.t("story.pausedCaption","En pausa · {caption}",{caption:cap}) : FluyoI18n.t("story.paused","En pausa");
   psSet("psCaption","text",cap);
+  /* FLUYO-STORIES-2.0 S1b: el desenlace, solo terminada (FluyoStoryClock.outcomeLine, el mismo del Viewer y el editor) */
+  psSet("psOutcome","text",typeof FluyoStoryClock!=="undefined" ? FluyoStoryClock.outcomeLine(dphase, sc, scPlayback, FluyoI18n.t) : "");
   psSet("psSummary","text",sum);
   /* SCENARIOS-SEMANTICS-001 FASE 5 (D8, decisión 246): la línea de estado de la ruta observada, en el rótulo (la fila de controles no
      cambia). La MISMA línea que la herramienta del editor, solo reproduciendo (también en pausa y terminada) y con par. */
@@ -161,6 +164,9 @@ function presentHeaderBottom(){
   const sc=presentHasStory() ? scActiveScenario() : null, run=sc ? FluyoStory.run(P(), sc) : null;
   const end=run && run.ok ? FluyoStory.describe("finished", sc, {logEvents:run.trace.events, cursorVirtual:0}, ()=>"", ()=>null, FluyoI18n.t) : null;
   if(!$("psCaption").textContent) probe("psCaption", end ? end.caption : FluyoI18n.t("story.paused","En pausa"));
+  /* S1b: la fila del desenlace también se reserva (siempre la hay al terminar una Historia con pasos) */
+  const outcome=run && run.ok && typeof FluyoStoryClock!=="undefined" ? FluyoStoryClock.outcomeText(FluyoStoryClock.outcome(sc, run.trace), FluyoI18n.t) : "";
+  if(outcome && !$("psOutcome").textContent) probe("psOutcome", outcome);
   if(end && end.summary && !$("psSummary").textContent) probe("psSummary", end.summary);
   const route=$("psFlow").hidden && sc && typeof scFlowPresentLine==="function" ? scFlowPresentLine() : null;
   if(route) probe("psFlow is"+route.status, route.text);

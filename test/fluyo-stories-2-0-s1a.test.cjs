@@ -233,11 +233,13 @@ test("C2 · kernel, motor, formato y MCP: ningún archivo del kernel cambia resp
 test("C2b · alcance frente a c2c63ec: solo estos archivos servidos; undoS1a (para los alcances antiguos) los devuelve EXACTOS", () => {
   const SERVED = ["js", "s", "css", "assets", "index.html", "404.html", "sw.js", "manifest.webmanifest", "docs", "ejemplos", "privacidad", "privacy", "soporte", "support", "terminos", "terms"];
   const { undoS1a, PIECES, NEW_FILES } = require("./fluyo-stories-2-0-s1a-undo.cjs");
+  /* FLUYO-STORIES-2.0 S1b va encima: sus archivos también cambian frente a c2c63ec y undoS1a la deshace antes */
+  const { PIECES: PIECES_S1B } = require("./fluyo-stories-2-0-s1b-undo.cjs");
   const changed = execFileSync("git", ["-C", gitRoot, "diff", "--name-only", "c2c63ec", "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean);
   const untracked = execFileSync("git", ["-C", gitRoot, "ls-files", "--others", "--exclude-standard", "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean);
-  assert.deepEqual([...new Set([...changed, ...untracked])].sort(), ["css/styles.css", "js/editor-scenarios.js", "js/i18n-en-editor.js", "js/interaction.js", "sw.js"]);
+  assert.deepEqual([...new Set([...changed, ...untracked])].sort(), [...new Set(["css/styles.css", "js/editor-scenarios.js", "js/i18n-en-editor.js", "js/interaction.js", "sw.js", ...Object.keys(PIECES_S1B)])].sort());
   assert.deepEqual(NEW_FILES, []);
-  for (const f of Object.keys(PIECES).concat("sw.js")) {
+  for (const f of [...new Set(Object.keys(PIECES).concat(Object.keys(PIECES_S1B), "sw.js"))]) {
     /* la constante CACHE no es una pieza (sube en cada tarea): se compara sin ella */
     const noCache = (t) => t.replace(/const CACHE = "fluyo-static-v\d+";/, "");
     const base = execFileSync("git", ["-C", gitRoot, "show", "c2c63ec:" + f], { encoding: "utf8" }).replace(/\r\n/g, "\n");
@@ -246,7 +248,7 @@ test("C2b · alcance frente a c2c63ec: solo estos archivos servidos; undoS1a (pa
   }
 });
 
-test("C3 · claves nuevas en inglés, ninguna clave muerta y CACHE v117", () => {
+test("C3 · claves nuevas en inglés, ninguna clave muerta y CACHE actual (v118 desde S1b)", () => {
   const ed = read("js/editor-scenarios.js"), en = read("js/i18n-en-editor.js");
   for (const k of ["stories.emptyTap", "event.emptyHintTap", "step.implicit.edge", "step.implicit.node", "step.implicit.nodeSentence", "step.inline.placeholder", "step.inline.aria", "step.inline.edit"]) {
     assert.ok(ed.includes(`"${k}"`), k + " se usa");
@@ -255,7 +257,7 @@ test("C3 · claves nuevas en inglés, ninguna clave muerta y CACHE v117", () => 
   for (const k of ["stories.emptyDrag", "stories.emptyWillAppear", "event.emptyHint"]) {
     assert.ok(!ed.includes(`"${k}"`) && !en.includes(`"${k}":`), k + " retirada de los dos lados");
   }
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v117";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v118";/);
 });
 
 test("C4 · en Historias el doble clic y el doble toque no editan el texto del elemento", () => {

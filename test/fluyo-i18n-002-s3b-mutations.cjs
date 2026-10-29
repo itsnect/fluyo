@@ -36,7 +36,7 @@ const MUTATIONS = [
   ["U14 una muestra especial pasa su nombre ya hecho (no se repinta)", UNIT, UI, '{label:()=>FluyoI18n.t("prop.sw.noFill","Sin relleno"), value:"none"', '{label:FluyoI18n.t("prop.sw.noFill","Sin relleno"), value:"none"'],
   ["U15 un rótulo que pinta JS pierde data-i18n-js", UNIT, HTML, '<span class="lblText" id="colorLbl" data-i18n-js="prop.border">Borde</span>', '<span class="lblText" id="colorLbl">Borde</span>'],
   ["U16 el escáner deja de eximir los atributos de translate=no", UNIT, "test/i18n-scan.cjs", 'else if (!noTranslate && !BRAND.test(attrs[a].trim()))', "else if (!BRAND.test(attrs[a].trim()))"],
-  ["A1 CACHE no sube (sigue v114)", SCOPE, SW, 'const CACHE = "fluyo-static-v117";', 'const CACHE = "fluyo-static-v114";'],
+  ["A1 CACHE no sube (sigue v114)", SCOPE, SW, 'const CACHE = "fluyo-static-v118";', 'const CACHE = "fluyo-static-v114";'],
   ["A2 undoS3b deja de ser exacto", SCOPE, UNDO, "prop.group.motion", "prop.group.motionX"],
   ["B1 paintChromeText no repinta las muestras especiales", BROWSER, UI, '  for(const sw of document.querySelectorAll("#selBody .swatch")) if(sw._name){ const n=sw._name(); sw.title=n; sw.setAttribute("aria-label",n); }\n', ""],
   ["B2 paintChromeText no repinta el rótulo de las rejillas", BROWSER, UI, 'if(g._label) g.setAttribute("aria-label",g._label()); ', ""],

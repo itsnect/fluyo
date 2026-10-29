@@ -1529,6 +1529,7 @@ function scScenarioMenu(anchor) {
   scMenu(anchor, [
     [FluyoI18n.t("stories.rename", "Renombrar"), () => scRenameUI(anchor), none],
     [FluyoI18n.t("stories.duplicate", "Duplicar historia"), scDuplicateScenario, none],
+    [FluyoI18n.t("stories.duplicateAsFail", "Duplicar como fallo"), () => scDuplicateAsFailure(anchor), none],
     [FluyoI18n.t("stories.delete", "Eliminar historia"), scDeleteScenario, none],
     [FluyoI18n.t("conditions.title", "Condiciones iniciales de esta página"), () => scOpenDetails("conditions")],
     [FluyoI18n.t("stories.details", "Detalles"), () => scOpenDetails("trace")],
@@ -1738,6 +1739,9 @@ function scRenderStoryboard() {
   if (!board) return;
   const s = scActiveScenario(),
     groups = scGroups();
+  /* S1b: el desenlace del motor, siempre a la vista bajo el último momento (el mismo cálculo que Present y el Viewer) */
+  const info = s && groups.length ? scOutcomeInfo(s) : null,
+    outcome = info ? FluyoStoryClock.outcomeText(info.outcome, FluyoI18n.t) : "";
   const signature = JSON.stringify([
     s?.id,
     s?.steps,
@@ -1747,6 +1751,7 @@ function scRenderStoryboard() {
     scSelectedStep,
     scStatus,
     scInlineStep && scInlineStep.id,
+    outcome,
   ]);
   if (signature === scStorySignature) return;
   scStorySignature = signature;
@@ -1803,6 +1808,7 @@ function scRenderStoryboard() {
     board.appendChild(section);
     prev = g.at;
   }
+  if (outcome) board.appendChild(scEl("div", "scOutcome " + (info.outcome.ok ? "ok" : "failed"), outcome));
   if (board.parentElement) board.parentElement.scrollTop = scroll;
   const field = board.querySelector?.(".scStepMessageInput");
   if (field && (keep !== null || (scInlineStep && scInlineStep.focus))) {
@@ -2008,6 +2014,7 @@ function scStoryMenu(step, anchor) {
   const waitItem = scArrivalMenuItem(step);
   if (et?.primitive === "FLOW") addItems.push({ label: FluyoI18n.t("step.add.multi", "Esta misma acción en otras conexiones…"), fn: () => scBeginMulti(step.id) });
   const sections = [
+    ...(step.action === "SEND" ? [[scFailHereMenuItem(step)]] : []),
     [
       ...(et ? [{ label: FluyoI18n.t("step.editEvent", "Editar este evento…"), hint: uses > 1 ? FluyoI18n.t("step.editEventUses", "Cambia «{name}» en sus {count} usos", { name: et.name, count: uses }) : FluyoI18n.t("step.editEventOne", "Cambia «{name}»", { name: et.name }), fn: () => scOpenEventDialog(et.id) }] : []),
       { label: FluyoI18n.t("step.useOther", "Usar otro evento aquí…"), hint: FluyoI18n.t("step.useOtherHint", "Sólo cambia esta aparición"), fn: () => scChangeEvent(step, anchor) },
@@ -2052,6 +2059,110 @@ function scToggleStepReverse(id) {
   setStepReverse(sc, id, s.reverse !== true);
   scCommit();
   return true;
+}
+/* ─────────── FLUYO-STORIES-2.0 S1b: «Falla aquí» y «Duplicar como fallo» ───────────
+   Un fallo de verdad, del motor: antes del envío, en un momento propio, el destino de su recorrido (traversalEnds, respeta
+   `reverse`) se cae con un paso SET_STATE DOWN sin evento y con la frase «{destino} no responde» en el idioma de la interfaz (es
+   contenido: no se retraduce). Al reproducir, el envío termina en `send_failed / target_down` y el nodo sigue caído hasta el
+   final, como cualquier caída. Una sola entrada de Undo. El paso se crea al final y se lleva al hueco del momento del envío
+   (storyboardMoveStep, «gap»): los momentos siguientes conservan su orden y sus ranuras, y las esperas de llegada siguen valiendo. */
+let scOutcomeMemo = { key: null, value: null };
+/* Trace de la Historia sin reproducir, para el desenlace y para saber qué envíos se completan. El motor solo lee ids, from/to y
+   Behaviors de la página: con eso basta como clave (scRenderStoryboard llama a cada fotograma). */
+function scOutcomeInfo(sc) {
+  if (!sc || !sc.steps.length || sc.engineVersion !== FluyoScenarios.ENGINE_VERSION) return null;
+  const pg = P(),
+    key = JSON.stringify([sc, pg.behaviors || [], pg.nodes.map((n) => n.id), pg.edges.map((e) => [e.id, e.from, e.to])]);
+  if (scOutcomeMemo.key !== key) {
+    const run = FluyoStory.run(pg, sc);
+    scOutcomeMemo = { key, value: run.ok ? { outcome: FluyoStoryClock.outcome(sc, run.trace), outcomes: FluyoStory.outcomes(run.trace, sc, pg) } : null };
+  }
+  return scOutcomeMemo.value;
+}
+/* Solo se ofrece en un envío que hoy se completa (si ya no se completa, no hay nada que hacer fallar). */
+function scCanFailHere(sc, step) {
+  if (!sc || !step || step.action !== "SEND" || scIsTargetMissing(step)) return false;
+  const info = scOutcomeInfo(sc),
+    o = info && info.outcomes.find((x) => x.stepId === step.id);
+  return !!o && o.status === "completed";
+}
+function scFailHereMenuItem(step) {
+  const sc = scActiveScenario(),
+    ok = scCanFailHere(sc, step);
+  return {
+    label: FluyoI18n.t("step.failHere", "Falla aquí"),
+    hint: !ok
+      ? FluyoI18n.t("step.failHereNo", "Este envío ya no se completa")
+      : FluyoI18n.t("step.failHereHint", "{name} no responde justo antes", { name: scNodeFallback(traversalEnds(edgeById(step.edgeId), step.reverse === true).target) }),
+    fn: () => scFailHere(step.id),
+    disabled: !ok,
+  };
+}
+function scFailHere(id) {
+  if (!scEditable()) return false;
+  const sc = scActiveScenario(),
+    step = sc.steps.find((x) => x.id === id);
+  if (!scCanFailHere(sc, step)) return false;
+  if (sc.steps.length >= FluyoScenarios.MAX_SCENARIO_STEPS) {
+    scNotice(FluyoI18n.t("stories.full", "La historia ya tiene el máximo de eventos."));
+    return false;
+  }
+  const target = traversalEnds(edgeById(step.edgeId), step.reverse === true).target,
+    gap = storyboardGroups(sc.steps).findIndex((g) => g.steps.some((x) => x.id === id)),
+    text = FluyoI18n.t("step.failHereMessage", "{name} no responde", { name: scNodeFallback(target) }).slice(0, STEP_MESSAGE_MAX_LEN);
+  pushUndo();
+  const down = createStep(sc, { action: "SET_STATE", nodeId: target, state: "DOWN", at: scStepDefaultTime(sc) });
+  setStepMessage(sc, down.id, text);
+  const moved = storyboardMoveStep(sc.steps, down.id, { kind: "gap", index: gap });
+  if (moved && moved.changed) sc.steps = moved.steps;
+  scSelectedStep = down.id;
+  scCommit();
+  const info = scOutcomeInfo(sc);
+  if (info && info.outcome && !info.outcome.ok) scNotice(FluyoI18n.t("step.failHereDone", "Ahora la historia falla en el paso {n}.", { n: info.outcome.moment }));
+  return true;
+}
+/* «Duplicar como fallo»: la duplicación de siempre (una entrada de Undo, la original intacta) con el nombre «{nombre} — falla», y
+   enseguida «¿Dónde falla?» con los envíos de la copia que se completan; elegir uno es «Falla aquí» (otra entrada). Cerrar el
+   menú deja la copia tal cual. */
+function scFailCopyNames() {
+  return {
+    copy: (name) => FluyoI18n.t("seed.storyFail", "{name} — falla", { name }),
+    copyN: (name, n) => FluyoI18n.t("seed.storyFailN", "{name} — falla {n}", { name, n }),
+  };
+}
+function scDuplicateAsFailure(anchor) {
+  const src = scActiveScenario();
+  if (!src) return;
+  if (isScenarioPlaybackActive()) scReset();
+  scCancelPlacement();
+  const pg = P();
+  pushUndo();
+  const copy = duplicateScenario(pg, src.id, scFailCopyNames());
+  scSelectStory(copy.id);
+  scheduleAutosave();
+  scRenderPanel();
+  scNotice(FluyoI18n.t("stories.duplicated", "Historia duplicada: {name}", { name: copy.name }));
+  scChooseFailure(anchor);
+}
+function scChooseFailure(anchor) {
+  const sc = scActiveScenario();
+  if (!sc) return;
+  const groups = storyboardGroups(sc.steps),
+    sends = storyboardOrderedSteps(sc.steps).filter((x) => scCanFailHere(sc, x));
+  if (!sends.length) {
+    scNotice(FluyoI18n.t("stories.chooseFailNone", "Esta historia no tiene envíos que puedan fallar."));
+    return;
+  }
+  const momentOf = (x) => groups.findIndex((g) => g.steps.some((y) => y.id === x.id)) + 1;
+  scMenuSections(anchor, {
+    title: FluyoI18n.t("stories.chooseFail", "¿Dónde falla?"),
+    subtitle: sc.name,
+    sections: [sends.map((x) => ({
+      label: FluyoI18n.t("stories.chooseFailStep", "Paso {n} · {title}", { n: momentOf(x), title: x.message || scStepTitle(x) }),
+      hint: scWhereLabel(x),
+      fn: () => scFailHere(x.id),
+    }))],
+  });
 }
 /* ─────────── FLUYO-MCP-STEP-MESSAGE-001 y PRODUCT-NARRATION-001: «Mensaje del paso…» (decisiones 255 y 258) ───────────
    La frase de ESTA aparición, escrita por el autor: al reproducir es el título de su momento (editor, Present, Viewer) en vez del

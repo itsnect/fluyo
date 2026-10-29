@@ -1,4 +1,5 @@
 "use strict";
+const { undoS1b } = require("./fluyo-stories-2-0-s1b-undo.cjs");   /* FLUYO-STORIES-2.0 S1b: «Falla aquí» va encima del menú de esta tarea */
 /* FLUYO-I18N-002 S2a — Historias en el idioma de la interfaz, sin tocar el kernel (decisiones D-S2-1…7 aprobadas por el PO; la
    reproducción que compone story-playback.js es S2b).
    · O  Oráculo: el texto que componen las funciones de Historias (fila del paso, motivo de un envío fallido, menú del paso, mensaje
@@ -81,7 +82,8 @@ function harness({ lang = "es", src = read, edSrc } = {}) {
      function scCoarsePointer(){ return __coarse; } function scReset(){} function scMenuSections(anchor, menu){ __menu = menu; } function scEdgeCandidates(){ return []; }`);
   R(src("js/state.js").split("/* ===================== Viewport")[0]);
   vm.runInContext(src("js/selection.js"), ctx, { filename: "js/selection.js" });
-  const ed = edSrc || src("js/editor-scenarios.js");
+  /* el editor de esta tarea: S1b («Falla aquí», con funciones que no se extraen aquí) deshecha; en la base no hace nada */
+  const ed = edSrc || undoS1b("js/editor-scenarios.js", src("js/editor-scenarios.js"));
   vm.runInContext(ED_FNS.map((n) => extract(ed, n)).filter(Boolean).join("\n"), ctx, { filename: "js/editor-scenarios.js#extract" });
   const flow = ed.match(/\nconst SC_FLOW_WORDS = \{[\s\S]*?\n\};/);
   R(flow[0].replace("const SC_FLOW_WORDS", "var SC_FLOW_WORDS"));
@@ -331,10 +333,11 @@ test("A · alcance frente a " + BASE + ": solo estos archivos; undoS2a da la bas
   const { PIECES: PIECES_S3A } = require("./fluyo-i18n-002-s3a-undo.cjs");   /* y S3a encima de S2b (undoS2b la deshace antes) */
   const { undoEx, PIECES: PIECES_EX, NEW_FILES: NEW_EX } = require("./fluyo-examples-001-undo.cjs");   /* FLUYO-EXAMPLES-001 va encima de S3b (undoS3b la deshace antes) */
   const { PIECES: PIECES_S1A } = require("./fluyo-stories-2-0-s1a-undo.cjs");   /* FLUYO-STORIES-2.0 S1a va encima de EXAMPLES (undoEx la deshace antes) */
-  const s4Only = (f) => NEW_EX.includes(f) || ((!!PIECES_S4[f] || !!PIECES_S2B[f] || !!PIECES_S3A[f] || !!PIECES_EX[f] || !!PIECES_S1A[f]) && undoS4(f, read(f)) === atBase(f));
+  const { PIECES: PIECES_S1B } = require("./fluyo-stories-2-0-s1b-undo.cjs");   /* FLUYO-STORIES-2.0 S1b va encima de S1a (undoS1a la deshace antes) */
+  const s4Only = (f) => NEW_EX.includes(f) || ((!!PIECES_S4[f] || !!PIECES_S2B[f] || !!PIECES_S3A[f] || !!PIECES_EX[f] || !!PIECES_S1A[f] || !!PIECES_S1B[f]) && undoS4(f, read(f)) === atBase(f));
   assert.deepEqual([...new Set([...changed, ...untracked])].filter((f) => !s4Only(f) || FILES.includes(f)).sort(), [...FILES, "sw.js"].sort());
   for (const f of FILES) assert.equal(undoS2a(f, read(f)), atBase(f), f + ": undoS2a exacto");
-  assert.equal(undoEx("sw.js", read("sw.js")).replace('"fluyo-static-v117"', '"fluyo-static-v' + (111 - 1) + '"'), atBase("sw.js"), "sw.js: solo CACHE (sin archivos nuevos)");
+  assert.equal(undoEx("sw.js", read("sw.js")).replace('"fluyo-static-v118"', '"fluyo-static-v' + (111 - 1) + '"'), atBase("sw.js"), "sw.js: solo CACHE (sin archivos nuevos)");
   assert.ok(read("test/fluyo-i18n-002-s1-undo.cjs").includes("src = undoS2a(file, src);"), "undoS1 deshace antes esta tarea");
   for (const f of ["js/config.js", "js/safe-svg.js", "js/model.js", "js/scenario-engine.js", "js/scenario-playback.js", "js/story-playback.js", "js/document-integrity.js", "js/story-authoring.js",
     "js/story-clock.js", "js/render.js", "s/index.html", "404.html", "css/system.css", "css/styles.css", "css/share.css", "js/i18n-fr.js", "js/i18n-ja.js", "js/i18n-zh.js",

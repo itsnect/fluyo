@@ -278,8 +278,10 @@ test("D · D-S3-12 = a: rótulos de Seguridad y DevOps preparados; la lista de g
 /* ───────── K · kernel y MCP ───────── */
 const KERNEL_SCRIPTS = ["config.js", "safe-svg.js", "model.js", "scenario-engine.js", "scenario-playback.js", "story-playback.js", "document-integrity.js", "story-authoring.js"];
 test("K · kernel y MCP: los archivos del kernel idénticos a la base; ninguno nombra FluyoI18n; el MCP lleva este kernel", { skip: !hasGit && "sin git" }, () => {
+  /* las capas posteriores (S3b, EXAMPLES, STORIES-2.0 S1a y S1b: el desenlace en story-clock.js, Present y el Viewer) se deshacen antes */
+  const { undoS3b } = require("./fluyo-i18n-002-s3b-undo.cjs");
   for (const f of [...KERNEL_SCRIPTS, "story-clock.js", "flow-semantics.js", "geometry.js", "selection.js", "i18n.js", "viewer.js", "present-story.js"])
-    assert.equal(read("js/" + f), atBase("js/" + f), f + " idéntico a la base");
+    assert.equal(undoS3b("js/" + f, read("js/" + f)), atBase("js/" + f), f + " idéntico a la base");
   for (const f of KERNEL_SCRIPTS) assert.doesNotMatch(read("js/" + f).replace(/\/\*[\s\S]*?\*\//g, ""), /FluyoI18n/, f + ": no nombra la interfaz");
   const mcp = path.join(root, "..", "fluyo-mcp", "src", "generated", "kernel-sources.ts");
   if (!fs.existsSync(mcp)) return;
@@ -324,19 +326,20 @@ test("A · alcance frente a 7305355: solo estos archivos; undoS3a da la base EXA
   const { undoS3b, PIECES: PIECES_S3B } = require("./fluyo-i18n-002-s3b-undo.cjs");   /* FLUYO-I18N-002 S3b va encima (undoS3a la deshace antes) */
   const { undoEx, PIECES: PIECES_EX, NEW_FILES: NEW_EX } = require("./fluyo-examples-001-undo.cjs");   /* FLUYO-EXAMPLES-001 va encima de S3b (undoS3b la deshace antes) */
   const { PIECES: PIECES_S1A } = require("./fluyo-stories-2-0-s1a-undo.cjs");   /* FLUYO-STORIES-2.0 S1a va encima de EXAMPLES (undoEx la deshace antes) */
+  const { PIECES: PIECES_S1B } = require("./fluyo-stories-2-0-s1b-undo.cjs");   /* FLUYO-STORIES-2.0 S1b va encima de S1a (undoS1a la deshace antes) */
   assert.deepEqual(NEW_FILES, []);
   const FILES = ["js/editor-scenarios.js", "js/export.js", "js/i18n-en-editor.js", "js/interaction.js", "js/render.js", "js/state.js", "js/ui.js"];
   assert.deepEqual(Object.keys(PIECES).sort(), FILES);
   const SERVED = ["js", "s", "css", "assets", "index.html", "404.html", "sw.js", "manifest.webmanifest", "docs", "ejemplos", "privacidad", "privacy", "soporte", "support", "terminos", "terms"];
   /* lo que solo cambia S3b (sin S3b, igual que la base) no cuenta para el alcance de S3a */
-  const s3bOnly = (f) => NEW_EX.includes(f) || ((!!PIECES_S3B[f] || !!PIECES_EX[f] || !!PIECES_S1A[f]) && !FILES.includes(f) && undoS3b(f, read(f)) === atBase(f));
+  const s3bOnly = (f) => NEW_EX.includes(f) || ((!!PIECES_S3B[f] || !!PIECES_EX[f] || !!PIECES_S1A[f] || !!PIECES_S1B[f]) && !FILES.includes(f) && undoS3b(f, read(f)) === atBase(f));
   const changed = execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean).filter((f) => !s3bOnly(f));
   const untracked = execFileSync("git", ["-C", gitRoot, "ls-files", "--others", "--exclude-standard", "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean).filter((f) => !s3bOnly(f));
   assert.deepEqual([...new Set([...changed, ...untracked])].sort(), [...FILES, "sw.js"].sort());
   for (const f of FILES) assert.equal(undoS3a(f, read(f)), atBase(f), f + ": undoS3a exacto");
-  assert.equal(undoEx("sw.js", read("sw.js")).replace('"fluyo-static-v117"', '"fluyo-static-v' + (114 - 1) + '"'), atBase("sw.js"), "sw.js: solo CACHE (sin archivos nuevos)");
+  assert.equal(undoEx("sw.js", read("sw.js")).replace('"fluyo-static-v118"', '"fluyo-static-v' + (114 - 1) + '"'), atBase("sw.js"), "sw.js: solo CACHE (sin archivos nuevos)");
   assert.ok(read("test/fluyo-i18n-002-s3a-undo.cjs").includes("src = undoS3b(file, src);"), "undoS3a deshace antes S3b, que va encima");
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v117";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v118";/);
   assert.ok(read("test/fluyo-i18n-002-s2b-undo.cjs").includes("src = undoS3a(file, src);"), "undoS2b deshace antes esta tarea");
   for (const f of ["js/config.js", "js/model.js", "js/story-playback.js", "js/safe-svg.js", "js/i18n-en.js", "js/i18n-fr.js", "js/i18n-ja.js", "js/i18n-zh.js",
     "js/i18n-fr-editor.js", "js/i18n-ja-editor.js", "js/i18n-zh-editor.js", "index.html", "s/index.html", "404.html", "css/system.css", "css/styles.css"])

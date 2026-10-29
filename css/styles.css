@@ -396,7 +396,8 @@ body.presenting #presentStory:not([hidden]){display:flex;}
 #presentStory .psDot.done{background:var(--ink-3);}
 #presentStory .psDot.now{background:var(--ink); border-color:var(--ink); transform:scale(1.25);}
 #presentStory .psCaption{font-size:var(--fs-body); min-height:0; overflow-wrap:anywhere;}
-#presentStory .psCaption:empty, #presentStory .psSummary:empty{display:none;}
+#presentStory .psCaption:empty, #presentStory .psOutcome:empty, #presentStory .psSummary:empty{display:none;}
+#presentStory .psOutcome{font-size:var(--fs-body); font-weight:600;}
 #presentStory .psSummary{font-size:var(--fs-label); color:var(--ink-3);}
 /* SCENARIOS-SEMANTICS-001 FASE 5 (D8, decisión 246): la línea de estado de la ruta observada, en el rótulo (la fila de controles no
    cambia). Solo el borde dice el estado de la RUTA (oliva pálido / terracota clara, los de la interfaz oscura: el rótulo es material
@@ -584,6 +585,9 @@ aside.scenariosOpen{box-sizing:border-box;width:320px;flex:0 0 320px;overflow:hi
 .scStepMessage[title]{cursor:text;}
 .scStepMessageInput{display:block;box-sizing:border-box;width:calc(100% - 8px);margin:2px 4px 4px;padding:6px 8px;font:inherit;font-size:13px;color:var(--text);background:var(--panel2);border:1px solid var(--line);border-radius:6px;}
 .scStepMessageInput::placeholder{color:var(--ink-3);font-style:italic;}
+/* FLUYO-STORIES-2.0 S1b: el desenlace del motor bajo el último momento */
+.scOutcome{margin:8px 4px 2px;padding:6px 8px;border-radius:6px;border:1px solid var(--line);font-weight:600;font-size:12px;}
+.scOutcome.failed{border-color:var(--attention);color:var(--attention);background:var(--attention-veil);}
 .scPopover input.scMessageInput{display:block;width:100%;margin-top:4px;}
 .scStoryRepair{font-size:11px;padding:3px 5px;margin:3px;}
 .scGroupWarning{font-size:11px;line-height:1.4;color:var(--muted);margin:5px 0;}

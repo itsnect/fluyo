@@ -1,4 +1,5 @@
 "use strict";
+const { undoS1b } = require("./fluyo-stories-2-0-s1b-undo.cjs");   /* FLUYO-STORIES-2.0 S1b: «Falla aquí» va encima del menú de esta tarea */
 /* FLUYO-MCP-STEP-MESSAGE-001 — `message` en un Step de elemento: el texto del globo de ESA ocurrencia (decisión 255; contrato en
    .ai/tasks/FLUYO-MCP-STEP-MESSAGE-001.md). Presentación pura: ni el motor ni el reloj lo leen.
    · Kernel (model.js): validatePersistedStep (solo OCCURRENCE/SET_STATE; 1..120 UTF-16 con algo más que espacios; "" y solo espacios se
@@ -347,7 +348,8 @@ function extract(src, name) {
 const ED_FNS = ["scNodeLabel", "scNodeFallback", "scSourceFallback", "scEdgeLabel", "scEdgeSecondary", "scTargetLabel", "scIsTargetMissing", "describeScenarioStep",
   "scWhereLabel", "scStepTitle", "scStoryMenu", "scReverseMenuItem", "scToggleStepReverse", "scEditable", "scOrderedSteps",
   "scDuplicateStep", "scSetArrivalDependencies", "scUseTarget", "scStepMessage", "scMessageMenuItem", "scSetStepMessage"];
-function editor(src = read("js/editor-scenarios.js"), fns = ED_FNS) {
+/* el editor de esta tarea: S1b («Falla aquí», con funciones que no se extraen aquí) deshecha */
+function editor(src = undoS1b("js/editor-scenarios.js", read("js/editor-scenarios.js")), fns = ED_FNS) {
   const fakeNode = (tag) => ({ tag, children: [], textContent: "", className: "", classList: { add() {}, contains() { return false; } }, appendChild(c) { this.children.push(c); return c; } });
   const els = {}, $ = (id) => (els[id] = els[id] || fakeNode(id));
   const ctx = vm.createContext({ TextEncoder, TextDecoder, atob, btoa, URL, console, $, GRID: 20, innerWidth: 1280, innerHeight: 800,
@@ -480,9 +482,9 @@ test("H3 · un lector anterior (" + BASE + ") RECHAZA un documento con message (
 test("I1 · versiones: engineVersion 2 y version 5 (NO v3); sw.js sube a v102; motor solo filtra la clave; reloj, Viewer y Present sin diff", () => {
   assert.equal(run("FluyoScenarios.ENGINE_VERSION"), 2);
   assert.equal(run("projectToSerializable({}, {}).version"), 5);
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v117";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v118";/);
   const { undoI18n } = require("./fluyo-i18n-001-undo.cjs");   /* FLUYO-I18N-001 añade al precache js/i18n-en.js y js/i18n.js */
-  assert.equal(undoI18n("sw.js", read("sw.js")).replace('"fluyo-static-v117"', '"fluyo-static-v' + (102 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante");
+  assert.equal(undoI18n("sw.js", read("sw.js")).replace('"fluyo-static-v118"', '"fluyo-static-v' + (102 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante");
   const { undo029 } = require("./fluyo-018-29-undo.cjs"), { undo030 } = require("./fluyo-018-30-undo.cjs");   /* FLUYO-018.29 (R1 + G1) y FLUYO-018.30 van encima: se deshacen antes */
   for (const f of ["js/story-clock.js", "js/scenario-playback.js", "js/render.js", "js/viewer.js", "js/present-story.js", "js/link-codec.js", "js/share-url.js", "js/document-integrity.js", "index.html", "s/index.html"])
     assert.equal(undo029(f, undo030(f, undoI18n(f, read(f)))), atBase(f), f + " sin cambios");   /* FLUYO-I18N-001 encima de 018.30 */

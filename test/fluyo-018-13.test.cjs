@@ -35,7 +35,7 @@ test("tipografías: woff2 locales, licencia OFL incluida y @font-face sin tercer
 
 test("sw.js: CACHE v72, system.css y las tres fuentes precacheadas; nada de index.html queda fuera", () => {
   const sw = read("sw.js");
-  assert.match(sw, /const CACHE = "fluyo-static-v117";/);
+  assert.match(sw, /const CACHE = "fluyo-static-v118";/);
   const core = sw.slice(sw.indexOf("const ASSETS"), sw.indexOf("const PAGE_ASSETS"));
   for (const a of ["./css/system.css", ...FONTS.map((f) => "./assets/fonts/" + f)]) assert.ok(core.includes('"' + a + '"'), a + " en ASSETS (núcleo)");
   const html = read("index.html");

@@ -1,0 +1,39 @@
+<!-- FLUYO · logo Ruta para la cabecera del producto (editor, Viewer, páginas).
+     Reemplaza <span class="logo">flu<b>yo</b><span class="dots">…</span></span>.
+     Colores desde los tokens del producto: el trazo usa currentColor (--ink) y el envío --attention. -->
+
+<a class="logo" href="/" aria-label="Fluyo">
+  <svg viewBox="0 0 64 64" fill="none" stroke-linecap="round" stroke-linejoin="round" class="logoMark" aria-hidden="true">
+    <g class="pan">
+    <g class="old"><rect x="6" y="8" width="16" height="16" rx="4" stroke="currentColor" stroke-width="3.5"/><path d="M22 16 H36 V48 H42" stroke="currentColor" stroke-width="3.5"/></g>
+    <rect class="n2" x="42" y="40" width="16" height="16" rx="4" fill="currentColor" stroke="currentColor" stroke-width="3.5"/>
+    <path class="r2" d="M58 48 H72 V80 H78" stroke="currentColor" stroke-width="3.5"/>
+    <rect class="n3" x="78" y="72" width="16" height="16" rx="4" fill="currentColor"/>
+    </g>
+    <circle class="tok" cx="0" cy="0" r="5.5" fill="var(--attention)"/>
+  </svg>
+  <span class="logoWord">fluyo</span>
+</a>
+
+<style>
+.logo{display:inline-flex; align-items:center; gap:8px; color:var(--ink); text-decoration:none;}
+.logo .logoMark{width:24px; height:24px; flex:none;}
+.logo .logoWord{font-family:var(--font-serif); font-weight:400; font-size:var(--fs-display); line-height:1; letter-spacing:-.01em;}
+/* El sistema que avanza: el envío llega, aparece una caja nueva y la ruta se desplaza (4.8 s en bucle). */
+
+.logoMark{overflow:hidden}
+.logoMark .pan{animation:logoMark-pan 4.8s cubic-bezier(.45,0,.2,1) infinite}
+.logoMark .old{animation:logoMark-old 4.8s ease infinite}
+.logoMark .n2{transform-box:fill-box;transform-origin:center;animation:logoMark-n2 4.8s ease infinite}
+.logoMark .n3{transform-box:fill-box;transform-origin:center;opacity:0;animation:logoMark-n3 4.8s cubic-bezier(.2,0,0,1) infinite}
+.logoMark .r2{stroke-dasharray:52;stroke-dashoffset:52;animation:logoMark-r2 4.8s cubic-bezier(.45,0,.2,1) infinite}
+.logoMark .tok{offset-path:path("M22 16 H36 V48 H42");offset-rotate:0deg;offset-distance:50%;animation:logoMark-tok 4.8s infinite}
+@keyframes logoMark-tok{0%{offset-distance:50%;opacity:1;animation-timing-function:cubic-bezier(.45,0,.55,1)}17%{opacity:1}19%{offset-distance:100%;opacity:0}46%{offset-distance:0%;opacity:0;animation-timing-function:cubic-bezier(.45,0,.55,1)}49%{opacity:1}67%,100%{offset-distance:50%;opacity:1}}
+@keyframes logoMark-pan{0%,23%{transform:translate(0,0)}48%,100%{transform:translate(-36px,-32px)}}
+@keyframes logoMark-old{0%,23%{opacity:1}38%,100%{opacity:0}}
+@keyframes logoMark-n2{0%,18%{fill-opacity:1;transform:scale(1)}20.5%{transform:scale(1.14)}23%{fill-opacity:1;transform:scale(1)}44%,100%{fill-opacity:0;transform:scale(1)}}
+@keyframes logoMark-n3{0%,26%{opacity:0;transform:scale(.4)}44%,100%{opacity:1;transform:scale(1)}}
+@keyframes logoMark-r2{0%,25%{stroke-dashoffset:52}45%,100%{stroke-dashoffset:0}}
+@media (prefers-reduced-motion:reduce){.logoMark *{animation:none!important}.logoMark .old,.logoMark .n3{opacity:1}.logoMark .n3,.logoMark .r2{display:none}}
+
+</style>

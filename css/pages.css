@@ -68,15 +68,12 @@ main{ flex:1 0 auto; }
 }
 /* 50 px con el filete dentro, como la cabecera del editor y la del Viewer (border-box). */
 .siteHead .bar{ display:flex; align-items:center; gap:var(--s-2); min-height:calc(var(--hdr-h) - 1px); }
-/* Marca: la del editor y el Viewer (styles.css, share.css). Sin el gap del flex, que separaba «flu» y «yo». */
+/* Marca: la del editor y el Viewer (styles.css, share.css): símbolo Ruta + «fluyo» (identity.css, FLUYO-BRAND-RUTA-001). */
 .siteHead .logo{
-  display:flex; align-items:baseline; gap:0; flex:none; margin-inline-end:var(--s-4);
+  display:flex; align-items:center; gap:calc(8em / 21); flex:none; margin-inline-end:var(--s-4);
   font-family:var(--font-serif); font-weight:400; font-size:var(--fs-display); line-height:1; letter-spacing:-.01em;
   color:var(--ink); text-decoration:none;
 }
-.siteHead .logo b{ color:var(--attention); font-weight:400; }
-.siteHead .logo .dots{ margin-inline-start:7px; }
-.siteHead .logo .dots span{ width:5px; height:5px; margin-inline-start:2px; background:var(--attention); }
 .siteNav{ display:flex; align-items:center; gap:var(--s-1); min-width:0; }
 .siteNav a{
   display:inline-flex; align-items:center; min-height:var(--ctl-h); padding:0 var(--s-2);
@@ -202,7 +199,7 @@ td code{ white-space:nowrap; }
   .wrap{ padding-block-start:var(--s-6); }
   h2{ margin-block-start:var(--s-6); }
   .siteHead .logo{ margin-inline-end:var(--s-2); }
-  .siteHead .logo .dots{ display:none; }
+  .siteHead .logo .still{ display:inline; } .siteHead .logo :is(.loop, .loop *){ display:none; animation:none; }   /* donde iban sin puntos: el símbolo fijo */
   .card .preview{ padding:var(--s-3); }
   .siteLang{ margin-inline-start:0; }
 }

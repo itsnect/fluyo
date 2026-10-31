@@ -21,14 +21,8 @@ body{
 }
 #chrome .logo{
   font-family:var(--font-serif); font-size:var(--fs-display); line-height:1; letter-spacing:-.01em;
-  color:var(--ink); text-decoration:none; display:flex; align-items:baseline; gap:0; margin-right:10px; flex:none;
+  color:var(--ink); text-decoration:none; display:flex; align-items:center; gap:calc(8em / 21); margin-right:10px; flex:none;
 }
-#chrome .logo b{ color:var(--attention); font-weight:400; }
-#chrome .logo .dots{ margin-left:7px; }
-#chrome .logo .dots span{ display:inline-block; width:5px; height:5px; border-radius:50%; background:var(--attention); margin-left:2px; animation:flow 1.6s infinite; }
-#chrome .logo .dots span:nth-child(2){ animation-delay:.25s; opacity:.65; }
-#chrome .logo .dots span:nth-child(3){ animation-delay:.5s; opacity:.35; }
-@media (prefers-reduced-motion: reduce){ #chrome .logo .dots span{ animation:none; } }
 
 /* Páginas: nombre en serif (es significado), la activa levantada; con muchas, desliza. */
 #pgTabs{ display:flex; gap:2px; flex:1 1 auto; min-width:0; overflow-x:auto; scrollbar-width:thin; }
@@ -157,7 +151,7 @@ body.presenting #sv{ cursor:default; }
   #pgTabs{ display:none !important; }
   #pgSelect:not([hidden]){ display:block; flex:1 1 auto; min-width:0; max-width:220px; min-height:var(--ctl-h); margin:0 4px; font:400 15px/1.2 var(--font-serif); }
   #chrome .logo{ font-size:19px; margin-right:4px; }
-  #chrome .logo .dots{ display:none; }
+  #chrome .logo .still{ display:inline; } #chrome .logo :is(.loop, .loop *){ display:none; animation:none; }   /* donde iban sin puntos: el símbolo fijo */
   #btnPresent{ width:var(--ctl-h); min-width:var(--ctl-h); padding:0; }
   #btnPresent .lbl{ position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
   .tools .vdivider{ margin:0 2px; }

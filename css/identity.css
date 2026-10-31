@@ -4,13 +4,34 @@
   --text:#e8e6e1; --muted:#9a978f; --accent:#d08b5b; --accent2:#3aa7e8;
   --ui-font:13px/1.45 "Segoe UI", system-ui, sans-serif;
 }
-header .logo{font-family:Georgia,serif; font-size:19px; letter-spacing:.3px; margin-right:4px; display:flex; align-items:baseline; gap:7px;}
-header .logo b{color:var(--accent); font-weight:normal;}
-header .logo .dots span{display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--accent); margin-left:3px; animation:flow 1.6s infinite;}
-header .logo .dots span:nth-child(2){animation-delay:.25s; opacity:.65;}
-header .logo .dots span:nth-child(3){animation-delay:.5s; opacity:.35;}
-@keyframes flow{0%,100%{transform:translateY(0);}50%{transform:translateY(-3px);}}
-@media (prefers-reduced-motion: reduce){ header .logo .dots span{animation:none;} }
+/* Marca Ruta (FLUYO-BRAND-RUTA-001, decisión 324; referencia: .ai/referencias/logo-ruta/). Símbolo + «fluyo» en la cabecera del
+   editor, del Viewer y de las páginas; el tamaño, la letra y el color (--ink) los pone cada cabecera. 24 px con la palabra a 21 px,
+   separados 8 px (codigo/logo-cabecera.html): en em, para que el par escale con la palabra. El trazo es currentColor y el envío
+   --attention: sin colores sueltos. .still es el símbolo fijo (svg/fluyo-simbolo.svg, exacto); .loop, la animación de la referencia,
+   tal cual. El bucle solo corre si el sistema no pide menos movimiento; cada cabecera vuelve a .still donde antes ocultaba los puntos. */
+.logo .logoMark{width:calc(24em / 21); height:calc(24em / 21); flex:none; overflow:hidden;}
+.logoMark circle{fill:var(--attention);}
+.logoMark .loop{display:none;}
+/* El sistema que avanza: el envío llega, aparece una caja nueva y la ruta se desplaza (4.8 s en bucle). Las animaciones solo se
+   declaran aquí: un <g> con display:none no para las de sus hijos en Chrome, y el bucle oculto seguiría recalculando cada fotograma. */
+@media (prefers-reduced-motion: no-preference){
+.logoMark .still{display:none;} .logoMark .loop{display:inline;}
+.logoMark .pan{animation:logoMark-pan 4.8s cubic-bezier(.45,0,.2,1) infinite}
+.logoMark .old{animation:logoMark-old 4.8s ease infinite}
+.logoMark .n2{transform-box:fill-box;transform-origin:center;animation:logoMark-n2 4.8s ease infinite}
+.logoMark .n3{transform-box:fill-box;transform-origin:center;opacity:0;animation:logoMark-n3 4.8s cubic-bezier(.2,0,0,1) infinite}
+.logoMark .r2{stroke-dasharray:52;stroke-dashoffset:52;animation:logoMark-r2 4.8s cubic-bezier(.45,0,.2,1) infinite}
+.logoMark .tok{offset-path:path("M22 16 H36 V48 H42");offset-rotate:0deg;offset-distance:50%;animation:logoMark-tok 4.8s infinite}
+}
+@keyframes logoMark-tok{0%{offset-distance:50%;opacity:1;animation-timing-function:cubic-bezier(.45,0,.55,1)}17%{opacity:1}19%{offset-distance:100%;opacity:0}46%{offset-distance:0%;opacity:0;animation-timing-function:cubic-bezier(.45,0,.55,1)}49%{opacity:1}67%,100%{offset-distance:50%;opacity:1}}
+@keyframes logoMark-pan{0%,23%{transform:translate(0,0)}48%,100%{transform:translate(-36px,-32px)}}
+@keyframes logoMark-old{0%,23%{opacity:1}38%,100%{opacity:0}}
+@keyframes logoMark-n2{0%,18%{fill-opacity:1;transform:scale(1)}20.5%{transform:scale(1.14)}23%{fill-opacity:1;transform:scale(1)}44%,100%{fill-opacity:0;transform:scale(1)}}
+@keyframes logoMark-n3{0%,26%{opacity:0;transform:scale(.4)}44%,100%{opacity:1;transform:scale(1)}}
+@keyframes logoMark-r2{0%,25%{stroke-dashoffset:52}45%,100%{stroke-dashoffset:0}}
+/* Fijo (aquí y en cada cabecera donde antes se ocultaban los puntos): .still a la vista y el bucle quieto, no solo oculto.
+   El teléfono en apaisado también es móvil (la gramática de FLUYO-018.19). */
+@media (orientation:landscape) and (max-height:500px) and (pointer:coarse){ .logo .logoMark .still{display:inline;} .logo .logoMark :is(.loop, .loop *){display:none; animation:none;} }
 button, select{
   background:var(--panel2); color:var(--text); border:1px solid var(--line);
   border-radius:7px; padding:6px 11px; cursor:pointer; font:inherit;

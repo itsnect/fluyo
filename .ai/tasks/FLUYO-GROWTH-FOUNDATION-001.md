@@ -134,6 +134,16 @@ Tests de contrato antiguos actualizados (fijaban el payload anterior): `test/ana
 | Auditoría inglesa (ES/EN, escritorio y 390 px) | 0 claves que caen al español; 0 texto español visible en la interfaz; ver `FLUYO-I18N-EN-RELEASE-AUDIT.md` |
 | Detección con `released:true` (copia temporal) | en-US → tarjeta en inglés · es-CL → español · de-DE → inglés |
 
+### QA tras publicar el inglés (`2ca8877`, decisión 324)
+
+| Suite | Resultado |
+|---|---|
+| Growth unidad | 17 / 0 |
+| Growth navegador | 78 / 0 · detección real sin `?lang`: en-US → inglés, es-CL → español, de-DE (no publicado) → inglés; tarjeta, ejemplo en su edición, Viewer y `editor_opened.locale` coherentes |
+| i18n (catálogo, trinquete, puerta 324) | verde (incluida en la suite) |
+| Suite completa | 1856 · 1775 ok · 81 fallos, todos preexistentes (0 nuevos) |
+| Stories S1b / S2a / S2b · EXAMPLES-001 (Viewer/Share) | 47/0 · 50/0 · 40/0 · 40/0 |
+
 Recorridos de navegador cubiertos: nuevo escritorio (Explorar → Historia reproduciéndose → `story_completed` una sola vez aunque se salte atrás; reproducir de nuevo; Share ×3; creación ×4; Present), En blanco / Escape / tocar el lienzo, recurrente (`fluyo.ui.theme`, sesión guardada), `?ejemplo=` válido y desconocido, `#d=` en el editor, `/s/` es y en de principio a fin, enlace de diagrama, inglés, móvil 390 × 844 táctil es y en (tarjeta con 16 px de margen, objetivos de 56 px, Historia reproduciéndose), y en local (127.0.0.1) sin ningún script de Umami. Sin errores de consola. También probado en `file://`: sin errores.
 
 ## Limitaciones conocidas

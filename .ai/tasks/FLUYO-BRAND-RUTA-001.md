@@ -12,13 +12,13 @@ La marca anterior (palabra «fluyo» con el «yo» terracota y tres puntos anima
 
 ## Decisión
 
-**Decisión 324** (`.ai/DECISIONS.md`), que **sustituye a la 267** (la 267 queda en su sitio, marcada «Sustituida por la 324»). En corto:
+**Decisión 325** (`.ai/DECISIONS.md`), que **sustituye a la 267** (la 267 queda en su sitio, marcada «Sustituida por la 325»). En corto:
 
 - **Símbolo Ruta:** origen vacío → conexión ortogonal → destino lleno, con el envío terracota a mitad de camino. Una Historia mínima: algo sale, recorre el sistema y llega.
 - **Logo completo:** símbolo + «fluyo» en **Playfair Display 400**, todo en tinta; el terracota solo en el envío. Playfair es del wordmark: no se propaga a la UI, Stories, Viewer, páginas ni campañas (Newsreader y JetBrains Mono no cambian).
 - **Desktop animado** (bucle de 4.8 s); **reducir movimiento: fijo**; **móvil: fijo**, siempre con la palabra.
 - **Todas las superficies** comparten identidad: cabeceras, favicon, `logo.svg`, iconos PWA y OG.
-- Numeración: 320–323 son de FLUYO-GROWTH-FOUNDATION-001 (en su rama, sin integrar); esta tarea usa la 324 para no chocar.
+- Numeración: 320–324 son de FLUYO-GROWTH-FOUNDATION-001 (la 324, publicar el inglés, llegó a su rama mientras esta tarea estaba en curso; ninguna está en `main`); esta tarea usa la **325**. Los mensajes de los commits `1314de0`, `ae93a76`, `31e0e31` y `3e4ee17` dicen «decisión 324»: se escribieron antes de que Growth la tomara; la renumeración va en un commit aparte, sin reescribir la historia.
 
 ## Fuente: el paquete de referencias
 
@@ -102,7 +102,7 @@ Nunca se oculta el símbolo ni la palabra. Verificado sin recorte, sin chocar co
   1. `sw.js` y los tests que fijan `fluyo-static-v12x`: queda **v123** (conflicto trivial v122/v123).
   2. Cadena de deshacer: Growth y Ruta se colocan cada uno como último eslabón tras `undoOutcome`. Al integrar, `undoOutcome` llama a uno y ese llama al otro (el más nuevo primero), y los alcances que registran `PIECES_GF` registran también `PIECES_RUTA` y `BIN_RUTA`.
   3. Regenerar `test/fluyo-brand-ruta-001-undo.cjs` si Growth cambia algún archivo de la marca: hoy no comparten archivos servidos de marca. El 404, `index.html` y `s/index.html` sí los toca Growth en otras líneas, así que hay que regenerar las piezas con dos líneas de contexto.
-  4. Decisiones: Growth 320–323, Ruta 324. Sin choque.
+  4. Decisiones: Growth 320–324, Ruta 325. Sin choque.
 - OG: misma ruta y mismas meta tags (`og:image` 1200×630, `twitter:image`) en las páginas que la declaran. La caché externa de X, LinkedIn y WhatsApp es deuda conocida y no bloquea.
 
 ## QA
@@ -145,5 +145,5 @@ READY FOR PO QA. Pendiente del PO:
 
 ## Handoff
 
-- **Hecho:** marca Ruta en las once páginas, favicon, assets, CSS, CACHE v123, decisión 324, tests nuevos y actualizados.
+- **Hecho:** marca Ruta en las once páginas, favicon, assets, CSS, CACHE v123, decisión 325, tests nuevos y actualizados.
 - **Próximo paso:** QA del PO. Después, con su aprobación: rebase sobre `main` con Growth integrado (procedimiento en «Cache / release»), suite completa, push, deploy y smoke de producción (`test/fluyo-brand-ruta-001-browser.cjs` contra fluyo.space no aplica tal cual: sirve el árbol local; el smoke de producción se hace con el QA de navegador sobre la URL pública).

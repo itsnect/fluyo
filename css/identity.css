@@ -4,7 +4,7 @@
   --text:#e8e6e1; --muted:#9a978f; --accent:#d08b5b; --accent2:#3aa7e8;
   --ui-font:13px/1.45 "Segoe UI", system-ui, sans-serif;
 }
-/* Marca Ruta (FLUYO-BRAND-RUTA-001, decisión 324; referencia: .ai/referencias/logo-ruta/). Símbolo + «fluyo» en la cabecera del
+/* Marca Ruta (FLUYO-BRAND-RUTA-001, decisión 325; referencia: .ai/referencias/logo-ruta/). Símbolo + «fluyo» en la cabecera del
    editor, del Viewer y de las páginas; el tamaño, la letra y el color (--ink) los pone cada cabecera. 24 px con la palabra a 21 px,
    separados 8 px (codigo/logo-cabecera.html): en em, para que el par escale con la palabra. El trazo es currentColor y el envío
    --attention: sin colores sueltos. .still es el símbolo fijo (svg/fluyo-simbolo.svg, exacto); .loop, la animación de la referencia,

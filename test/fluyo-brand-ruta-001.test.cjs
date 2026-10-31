@@ -1,5 +1,5 @@
 "use strict";
-/* FLUYO-BRAND-RUTA-001 — La marca Ruta es la identidad de Fluyo (decisión 324, sustituye a la 267). Referencia: .ai/referencias/logo-ruta/.
+/* FLUYO-BRAND-RUTA-001 — La marca Ruta es la identidad de Fluyo (decisión 325, sustituye a la 267). Referencia: .ai/referencias/logo-ruta/.
    · R1 marca: en las once cabeceras (editor, Viewer, docs, ejemplos, legales, soporte, 404) el mismo símbolo inline + «fluyo»; .still es
      svg/fluyo-simbolo.svg exacto y .loop la animación de codigo/logo-cabecera.html, ambos con los colores en tokens.
    · R2 favicon: el data URI de la referencia, exacto, en las once páginas.
@@ -7,7 +7,7 @@
    · R4 movimiento: keyframes y reglas del bucle tal cual la referencia (4.8 s), declarados SOLO con prefers-reduced-motion: no-preference.
    · R5 fijo: donde antes se ocultaban los puntos (móvil, 701–860 del editor, teléfono en apaisado) el símbolo fijo y el bucle sin animar.
    · R6 nada de la marca anterior; Playfair solo en la palabra; «Hecho con Fluyo» igual.
-   · R7 decisión 324, la 267 marcada como sustituida, tarea.
+   · R7 decisión 325, la 267 marcada como sustituida, tarea.
    · C1 alcance frente a d7e1177 (git): solo estos archivos; undoRuta da la base EXACTA; sw.js solo CACHE v123; JS intacto.
    Lo visual (el bucle completo, móvil, tema oscuro, tamaños pequeños) lo prueba test/fluyo-brand-ruta-001-browser.cjs en Chrome. */
 const test = require("node:test");
@@ -123,10 +123,10 @@ test("R6 · nada de la marca anterior; Playfair solo en la palabra; «Hecho con 
   assert.ok(read("s/index.html").includes("Hecho con"), "«Hecho con Fluyo» sigue en el Viewer");
 });
 
-test("R7 · decisión 324 (sustituye a la 267), la 267 marcada y la tarea", () => {
+test("R7 · decisión 325 (sustituye a la 267), la 267 marcada y la tarea", () => {
   const d = read(".ai/DECISIONS.md");
-  assert.match(d, /\n324\. \*\*La marca Ruta es la identidad de Fluyo\*\*/);
-  assert.match(d, /\n267\. \*\(Sustituida por la 324 en FLUYO-BRAND-RUTA-001\.\)\* \*\*La marca fuera del HTML pertenece al Fluyo actual\*\*/);
+  assert.match(d, /\n325\. \*\*La marca Ruta es la identidad de Fluyo\*\*/);
+  assert.match(d, /\n267\. \*\(Sustituida por la 325 en FLUYO-BRAND-RUTA-001\.\)\* \*\*La marca fuera del HTML pertenece al Fluyo actual\*\*/);
   assert.ok(fs.existsSync(path.join(root, ".ai/tasks/FLUYO-BRAND-RUTA-001.md")));
 });
 

@@ -6,7 +6,7 @@
      actual marcada, el idioma hermano en el pie con su hreflang.
    · pages.css: todo valor de color en :root (tokens), nada de la identidad oscura anterior a 018.13.
    · 404.html: rutas absolutas, i18n de la decisión 261 (data-i18n + i18n.js), claves en inglés.
-   · Marca: favicon, logo.svg, manifest, iconos y og-image del Fluyo actual (desde FLUYO-BRAND-RUTA-001, decisión 324: la marca Ruta).
+   · Marca: favicon, logo.svg, manifest, iconos y og-image del Fluyo actual (desde FLUYO-BRAND-RUTA-001, decisión 325: la marca Ruta).
    · Alcance frente a la base: solo los archivos de esta tarea; editor, Viewer, Present, Share, kernel y runtime del SW intactos;
      undoShell devuelve la base EXACTA; CACHE v108. */
 const test = require("node:test");
@@ -41,7 +41,7 @@ const PAGES = [
   { file: "support/index.html", lang: "en", foot: "support", sib: ["../soporte/", "es"] },
 ];
 const ALL = [...PAGES.map((p) => p.file), "404.html"];
-/* FLUYO-BRAND-RUTA-001 (decisión 324): el favicon es el de la referencia Ruta, exacto; la marca de la cabecera, símbolo + «fluyo». */
+/* FLUYO-BRAND-RUTA-001 (decisión 325): el favicon es el de la referencia Ruta, exacto; la marca de la cabecera, símbolo + «fluyo». */
 const FAVICON = fs.readFileSync(path.join(root, ".ai/referencias/logo-ruta/svg/favicon-data-uri.txt"), "utf8").trim();
 const MARK = /<svg class="logoMark" [^>]*aria-hidden="true"[^>]*>[\s\S]*?<\/svg><span class="logoWord" translate="no">fluyo<\/span><\/a>/;
 const block = (html, open, close) => { const a = html.indexOf(open); assert.ok(a >= 0, "falta " + open); const b = html.indexOf(close, a); return html.slice(a, b + close.length); };

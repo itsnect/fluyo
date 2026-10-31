@@ -1,5 +1,5 @@
 "use strict";
-/* FLUYO-BRAND-RUTA-001 — Chrome REAL: la marca Ruta en las cabeceras (decisión 324). Propiedades observables, no píxeles de diseño:
+/* FLUYO-BRAND-RUTA-001 — Chrome REAL: la marca Ruta en las cabeceras (decisión 325). Propiedades observables, no píxeles de diseño:
      A · estados: escritorio → bucle a la vista y seis animaciones de 4.8 s en bucle; «reducir movimiento», móvil (390, 375), el editor
          de 701–860 y el teléfono en apaisado → el símbolo fijo y CERO animaciones vivas (ni estilos recalculados en 2 s);
          en todos: 24 px a 8 px de la palabra (en móvil del editor y el Viewer, a escala de la palabra a 19 px), centrados, sin recorte,

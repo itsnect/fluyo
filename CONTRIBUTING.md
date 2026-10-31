@@ -48,7 +48,7 @@ LICENSE                 MIT.
 ideas.md                Ideas parqueadas que aún no se implementan.
 
 assets/
-  logo.svg              Logo del proyecto (hueso y terracota: el mismo dibujo que el favicon).
+  logo.svg              Logo del proyecto: el símbolo Ruta sobre hueso, el mismo dibujo que el favicon (decisión 325; referencia en .ai/referencias/logo-ruta/).
   og-image.png          Imagen de previsualización social (1200x630), papel y tinta.
   icon-192.png          Icono de la PWA.
   icon-512.png          Icono de la PWA.

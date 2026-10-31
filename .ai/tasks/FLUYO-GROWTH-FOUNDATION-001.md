@@ -111,7 +111,17 @@ Tests de contrato antiguos actualizados (fijaban el payload anterior): `test/ana
 
 ## Evidencia
 
-(se completa abajo, «Resultados»)
+| Suite | Resultado |
+|---|---|
+| `fluyo-growth-foundation-001.test.cjs` | 14 / 0 |
+| `fluyo-growth-foundation-001-browser.cjs` (Chrome real) | 64 / 0 |
+| `fluyo-growth-foundation-001-mutations.cjs` | 22 / 22 detectadas |
+| Suite completa `node --test test/*.test.cjs` | 1853 tests · 1772 ok · 81 fallos, **todos preexistentes** (base d7e1177: 1839 · 83; 0 fallos nuevos, 2 de los conocidos pasan) |
+| Stories S1a / S1b / S2a / S2b (navegador) | 35/0 · 47/0 · 50/0 · 40/0 |
+| EXAMPLES-001 (navegador) | 40 / 0 |
+| SHELL-001 (navegador, playwright-core fuera del repo) | 137 / 2 (los 2 de siempre: cabecera de `/ejemplos/` a 320 px y el recuento de nodos de «Abrir en el editor»; deuda conocida) |
+
+Recorridos de navegador cubiertos: nuevo escritorio (Explorar → Historia reproduciéndose → `story_completed` una sola vez aunque se salte atrás; reproducir de nuevo; Share ×3; creación ×4; Present), En blanco / Escape / tocar el lienzo, recurrente (`fluyo.ui.theme`, sesión guardada), `?ejemplo=` válido y desconocido, `#d=` en el editor, `/s/` es y en de principio a fin, enlace de diagrama, inglés, móvil 390 × 844 táctil es y en (tarjeta con 16 px de margen, objetivos de 56 px, Historia reproduciéndose), y en local (127.0.0.1) sin ningún script de Umami. Sin errores de consola. También probado en `file://`: sin errores.
 
 ## Limitaciones conocidas
 

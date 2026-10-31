@@ -1,6 +1,6 @@
 # FLUYO-GROWTH-FOUNDATION-001 — Base para medir el funnel y activar en el primer minuto
 
-Estado: READY FOR PO QA (implementado en la rama `growth-foundation-001`; sin push ni despliegue)
+Estado: v122 READY FOR FINAL PO QA (rama `growth-foundation-001`; sin push, merge ni despliegue). D1–D4 aprobadas por el PO.
 Owner/agente actual: libre (espera QA del PO)
 
 > Repo público: este documento no contiene métricas, estrategia ni datos privados. Las cifras de uso se leen en el panel de analítica, fuera del repositorio.
@@ -50,7 +50,7 @@ Ningún nombre cambia. `editor_opened` es «app abierta» y `share_viewed` es «
 | Viewer | `viewer_story_started` | «Reproducir» en el Viewer | — | Viewer |
 | Viewer | `viewer_story_completed` | Esa reproducción llega al final, una vez | — | Viewer |
 | Viewer → editor | `share_opened_in_editor` | Sin cambios | — | Viewer |
-| Return | `editor_opened.returning` | Ver decisión 321 | `yes` / `no` | Editor |
+| Return | `editor_opened.returning` | Navegador con estado previo de Fluyo: `fluyo.seen` o cualquier clave `fluyo.*` (decisión 321) | `yes` / `no` | Editor |
 
 Sin cambios: `first_edit_completed`, `diagram_created`, `diagram_saved`, `diagram_exported`, `file_imported`, `gif_animation_added`, `link_failed`.
 
@@ -62,7 +62,7 @@ Nunca sale: contenido del diagrama, nombres de nodos, servicios o Historias, fra
 
 Local, nunca enviado: `localStorage["fluyo.seen"]="1"` (decisión 321). La política pública (`privacidad/`, `privacy/`) lista ahora el contrato exacto, explica «Primera visita» y deja de decir que Umami recibe pageviews (no lo hace desde 4dab746).
 
-## Decisión UX (decisión 322; texto y reproducción automática a revisar por el PO)
+## Decisión UX (decisión 322; D1–D3 aprobadas por el PO)
 
 Una tarjeta de papel en el centro del lienzo vacío, sin velo ni bloqueo:
 
@@ -121,18 +121,32 @@ Tests de contrato antiguos actualizados (fijaban el payload anterior): `test/ana
 | EXAMPLES-001 (navegador) | 40 / 0 |
 | SHELL-001 (navegador, playwright-core fuera del repo) | 137 / 2 (los 2 de siempre: cabecera de `/ejemplos/` a 320 px y el recuento de nodos de «Abrir en el editor»; deuda conocida) |
 
+### QA de cierre tras la revisión del PO (`5bbb094`)
+
+| Suite | Resultado |
+|---|---|
+| `fluyo-growth-foundation-001.test.cjs` | 16 / 0 (+2: paridad de marcas de la ayuda en inglés, `<title>`/enlaces/pista) |
+| `fluyo-growth-foundation-001-browser.cjs` | 66 / 0 (+ movimiento reducido: el ejemplo queda en su Historia sin arrancar) |
+| `fluyo-growth-foundation-001-mutations.cjs` | 22 / 22 |
+| Suite completa | 1855 · 1774 ok · 81 fallos, todos preexistentes (0 nuevos) |
+| Stories S1a / S1b / S2a / S2b · EXAMPLES-001 | 35/0 · 47/0 · 50/0 · 40/0 · 40/0 |
+| SHELL-001 | 137 / 2 (los 2 de siempre) |
+| Auditoría inglesa (ES/EN, escritorio y 390 px) | 0 claves que caen al español; 0 texto español visible en la interfaz; ver `FLUYO-I18N-EN-RELEASE-AUDIT.md` |
+| Detección con `released:true` (copia temporal) | en-US → tarjeta en inglés · es-CL → español · de-DE → inglés |
+
 Recorridos de navegador cubiertos: nuevo escritorio (Explorar → Historia reproduciéndose → `story_completed` una sola vez aunque se salte atrás; reproducir de nuevo; Share ×3; creación ×4; Present), En blanco / Escape / tocar el lienzo, recurrente (`fluyo.ui.theme`, sesión guardada), `?ejemplo=` válido y desconocido, `#d=` en el editor, `/s/` es y en de principio a fin, enlace de diagrama, inglés, móvil 390 × 844 táctil es y en (tarjeta con 16 px de margen, objetivos de 56 px, Historia reproduciéndose), y en local (127.0.0.1) sin ningún script de Umami. Sin errores de consola. También probado en `file://`: sin errores.
 
 ## Limitaciones conocidas
 
+- **`returning` significa navegador con estado previo de Fluyo**: no usuario autenticado, ni persona única, ni usuario identificado (D4, PO). Cuenta navegadores, no personas.
 - **Retorno = navegadores, no personas.** Modo privado, borrar datos del sitio u otro dispositivo cuentan como nuevo. Un usuario anterior a v122 que nunca editó ni cambió preferencias cuenta como nuevo una vez (y verá la tarjeta una vez).
 - **Adquisición sin origen.** El referrer se descarta a propósito (`beforeSend`); `entry` dice por qué puerta entró (directo, ejemplo, enlace), no de qué sitio.
 - **«Tarjeta mostrada» se infiere**: `editor_opened` {`entry: direct`, `returning: no`} ≈ tarjeta mostrada (salvo `localStorage` inaccesible, raro).
 - **`story_completed` cuenta llegar al final**, también saltando de momento en momento; no mide atención.
 - **El Viewer no escribe `fluyo.seen`**: quien solo vio un enlace compartido verá la tarjeta al abrir el editor (intencional).
-- **El inglés no está publicado** (decisión 269): un navegador en inglés ve la interfaz en español salvo con `?lang=en`. Publicarlo es decisión del PO; esta tarea no lo cambia.
+- **El inglés no está publicado** (decisión 269): un navegador en inglés ve la interfaz en español salvo con `?lang=en`. Auditoría y propuesta de publicación: [`FLUYO-I18N-EN-RELEASE-AUDIT.md`](FLUYO-I18N-EN-RELEASE-AUDIT.md) (recomendación: EN READY TO RELEASE, pendiente del PO; `released` sin cambiar).
 - En móvil, al reproducir el ejemplo la cámara sigue el momento y el diagrama no se ve entero (comportamiento previo de los ejemplos en 390 px).
-- La pista del lienzo vacío sigue nombrando «Ejemplo» (que está en «⋯») y en 390 px se corta: ahora solo la ve quien ya usó Fluyo y vacía el lienzo. Ver SHOULD FIX.
+- ~~La pista del lienzo vacío nombraba «Ejemplo»~~: corregido (`5bbb094`), ahora «Empieza añadiendo elementos al lienzo.» / «Start by adding elements to the canvas.», cabe a 390 px.
 
 ## Rollout
 
@@ -143,7 +157,16 @@ Recorridos de navegador cubiertos: nuevo escritorio (Explorar → Historia repro
 
 ## Estado de revisión del PO
 
-Pendiente. Decisiones a confirmar: D1 texto de la tarjeta; D2 reproducción automática al explorar; D3 `dismiss` al tocar el lienzo; D4 `returning` basado en cualquier clave `fluyo.*`.
+Implementación base **APPROVED** (2026-10-31) con ajustes de cierre, hechos en `5bbb094`:
+
+- D1 texto de la tarjeta: aprobado tal cual (ES y su adaptación EN).
+- D2 reproducción automática al explorar: aprobada; con `prefers-reduced-motion` queda lista sin arrancar (probado en navegador).
+- D3 `dismiss` por Escape o tocar el lienzo: aprobado; no se vuelve a mostrar (`fluyo.seen`).
+- D4 `returning`: aprobado con la definición «navegador con estado previo de Fluyo».
+- Pista del lienzo vacío neutral: hecho.
+- Auditoría de inglés: hecha; publicación pendiente de aprobación.
+
+Commits: `5bc88fb`, `ff68cea`, `5bbb094` (+ el de documentación de cierre). CACHE `v122`.
 
 ## Handoff
 

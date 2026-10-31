@@ -41,7 +41,7 @@ const MUTATIONS = [
 ];
 
 function copyTree(dest) {
-  for (const entry of ["js", "css", "test", "s", "ejemplos", "sw.js", "index.html"]) fs.cpSync(path.join(root, entry), path.join(dest, entry), { recursive: true });
+  for (const entry of ["js", "css", "test", "s", "ejemplos", "sw.js", "index.html", "404.html", "privacy", "support", "terms"]) fs.cpSync(path.join(root, entry), path.join(dest, entry), { recursive: true });
 }
 function runSuite(dir) {
   const r = spawnSync(process.execPath, UNIT, { cwd: dir, encoding: "utf8", timeout: 120000, env: { ...process.env, FLUYO_GIT_ROOT: root, FLUYO_ROOT: dir } });

@@ -46,10 +46,11 @@ const SURFACES = [
 const VIEWS = [
   { key: "d1440", vp: { width: 1440, height: 900 }, live: () => true, word: () => 21 },
   { key: "rm1440", vp: { width: 1440, height: 900 }, reduce: true, live: () => false, word: () => 21 },
-  { key: "w800", vp: { width: 800, height: 900 }, live: (s) => s.name !== "editor", word: () => 21 },
+  { key: "w800", vp: { width: 800, height: 900 }, live: (s) => s.name !== "editor", word: (s) => (s.name === "editor" ? 19 : 21) },
+  { key: "t768", vp: { width: 768, height: 1024 }, touch: true, live: (s) => s.name !== "editor", word: (s) => (s.name === "editor" ? 19 : 21) },
   { key: "m390", vp: { width: 390, height: 844 }, touch: true, live: () => false, word: (s) => (s.name === "editor" || s.name === "Viewer" ? 19 : 21) },
   { key: "m375", vp: { width: 375, height: 667 }, touch: true, live: () => false, word: (s) => (s.name === "editor" || s.name === "Viewer" ? 19 : 21) },
-  { key: "l844", vp: { width: 844, height: 390 }, touch: true, live: () => false, word: () => 21 },
+  { key: "l844", vp: { width: 844, height: 390 }, touch: true, live: () => false, word: (s) => (s.name === "editor" ? 19 : 21) },   /* 844 px: el editor está en su franja 701–860 */
 ];
 
 const state = (page, s) => page.evaluate(({ logo, head }) => {

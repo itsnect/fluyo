@@ -23,6 +23,7 @@ const MUTATIONS = [
   ["M8 las páginas en móvil esconden el símbolo", "css/pages.css", `.siteHead .logo .still{ display:inline; } .siteHead .logo :is(.loop, .loop *){ display:none; animation:none; }`, `.siteHead .logo .logoMark{ display:none; }`],
   ["M9 el teléfono en apaisado anima", ID, `@media (orientation:landscape) and (max-height:500px) and (pointer:coarse){ .logo .logoMark .still{display:inline;} .logo .logoMark :is(.loop, .loop *){display:none; animation:none;} }\n`, ``],
   ["M10 el par sin hueco", "css/pages.css", `display:flex; align-items:center; gap:calc(8em / 21); flex:none; margin-inline-end:var(--s-4);`, `display:flex; align-items:center; gap:0; flex:none; margin-inline-end:var(--s-4);`],
+  ["M24 el editor de 701–860 px vuelve a la palabra de 21 px (desborda a 768 táctil)", "css/styles.css", `  body > header .logo{font-size:19px;}   /* FLUYO-BRAND-RUTA-001`, `  body > header .logo{font-size:21px;}   /* FLUYO-BRAND-RUTA-001`],
   ["M11 el símbolo a 20 px", ID, `.logo .logoMark{width:calc(24em / 21); height:calc(24em / 21);`, `.logo .logoMark{width:calc(20em / 21); height:calc(20em / 21);`],
   /* tokens */
   ["M12 el envío en hex", ID, `.logoMark circle{fill:var(--attention);}`, `.logoMark circle{fill:#A33A22;}`],

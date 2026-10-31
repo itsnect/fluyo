@@ -109,6 +109,8 @@ test("R5 · fijo donde antes se ocultaban los puntos: el símbolo fijo y el bucl
     ["css/identity.css", "@media (orientation:landscape) and (max-height:500px) and (pointer:coarse){", ".logo .logoMark"],
   ];
   for (const [f, head, sel] of where) assert.ok(sp(mediaBody(read(f), head)).includes(STATIC(sel)), `${f} ${head} → ${sel}`);
+  /* editor de 701–860 px: el par a la escala del teléfono (palabra 19 px); con 21 px, a 768 px táctil la cabecera desbordaba 8 px */
+  assert.ok(mediaBody(read("css/styles.css"), "@media (min-width:701px) and (max-width:860px){").includes("body > header .logo{font-size:19px;}"), "701–860: palabra a 19 px");
   /* y la cabecera conserva lo demás: centrada, 8 px entre símbolo y palabra */
   for (const [f, sel] of [["css/styles.css", "body > header .logo{"], ["css/share.css", "#chrome .logo{"], ["css/pages.css", ".siteHead .logo{"]])
     assert.match(mediaBody(read(f), sel), /display:flex; align-items:center; gap:calc\(8em \/ 21\);/, f);

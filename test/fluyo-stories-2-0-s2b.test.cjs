@@ -266,7 +266,10 @@ test("C1 · kernel, formato, codec, Share, Present, Viewer, render, ejemplos y f
   /* FLUYO-GROWTH-FOUNDATION-001 va encima y toca algunos (eventos de analítica): con ella deshecha, igual que en la base */
   const { undoGrowth } = require("./fluyo-growth-foundation-001-undo.cjs");
   const stillChanged = (names) => names.split("\n").filter(Boolean).filter((f) => undoGrowth(f, read(f)) !== execFileSync("git", ["-C", gitRoot, "show", BASE + ":" + f], { encoding: "utf8" }).replace(/\r\n/g, "\n")).join("\n");
-  assert.equal(stillChanged(execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...KEEP], { encoding: "utf8" }).trim()), "");
+  /* FLUYO-BRAND-RUTA-001 va encima y cambia la marca de index.html, s/ y ejemplos/: con ella deshecha, igual que en la base */
+  const { undoRuta } = require("./fluyo-brand-ruta-001-undo.cjs");
+  const stillChanged = (names) => names.split("\n").filter(Boolean).filter((f) => undoRuta(f, read(f)) !== execFileSync("git", ["-C", gitRoot, "show", BASE + ":" + f], { encoding: "utf8" }).replace(/\r\n/g, "\n")).join("\n");
+  assert.equal(stillChanged(stillChanged(execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...KEEP], { encoding: "utf8" }).trim())), "");
   /* story-clock.js lo cambia la etiqueta del desenlace («Sin fallos»): con ella deshecha, igual que en la base */
   const { undoOutcome } = require("./fluyo-stories-2-0-outcome-undo.cjs");
   assert.equal(undoOutcome("js/story-clock.js", read("js/story-clock.js")), execFileSync("git", ["-C", gitRoot, "show", BASE + ":js/story-clock.js"], { encoding: "utf8" }).replace(/\r\n/g, "\n"));
@@ -282,12 +285,13 @@ test("C2 · alcance frente a 699bd7a: solo estos archivos servidos; undoS2b (par
   const { undoS2b, PIECES, NEW_FILES } = require("./fluyo-stories-2-0-s2b-undo.cjs");
   const { PIECES: PIECES_OUT } = require("./fluyo-stories-2-0-outcome-undo.cjs");   /* la etiqueta del desenlace va encima (undoS2b la deshace antes) */
   const { PIECES: PIECES_GF, NEW_FILES: NEW_GF } = require("./fluyo-growth-foundation-001-undo.cjs");   /* FLUYO-GROWTH-FOUNDATION-001, encima de la etiqueta del desenlace (undoOutcome la deshace antes) */
+  const { PIECES: PIECES_RUTA, BINARY_FILES: BIN_RUTA } = require("./fluyo-brand-ruta-001-undo.cjs");   /* FLUYO-BRAND-RUTA-001, encima de la etiqueta del desenlace (undoOutcome la deshace antes); BIN_RUTA: los PNG de la marca, sin piezas */
   const changed = execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean);
   const untracked = execFileSync("git", ["-C", gitRoot, "ls-files", "--others", "--exclude-standard", "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean);
-  assert.deepEqual([...new Set([...changed, ...untracked])].sort(), [...new Set(["css/styles.css", "js/editor-scenarios.js", "js/i18n-en-editor.js", "sw.js", ...Object.keys(PIECES_OUT), ...Object.keys(PIECES_GF), ...NEW_GF])].sort());
+  assert.deepEqual([...new Set([...changed, ...untracked])].sort(), [...new Set(["css/styles.css", "js/editor-scenarios.js", "js/i18n-en-editor.js", "sw.js", ...Object.keys(PIECES_OUT), ...Object.keys(PIECES_GF), ...NEW_GF, ...Object.keys(PIECES_RUTA), ...BIN_RUTA])].sort());
   assert.deepEqual(NEW_FILES, []);
   const noCache = (t) => t.replace(/\r\n/g, "\n").replace(/const CACHE = "fluyo-static-v\d+";/, "");
-  for (const f of [...new Set(Object.keys(PIECES).concat(Object.keys(PIECES_OUT), Object.keys(PIECES_GF), "sw.js"))])
+  for (const f of [...new Set(Object.keys(PIECES).concat(Object.keys(PIECES_OUT), Object.keys(PIECES_GF), Object.keys(PIECES_RUTA), "sw.js"))])
     assert.equal(noCache(undoS2b(f, read(f))), noCache(execFileSync("git", ["-C", gitRoot, "show", BASE + ":" + f], { encoding: "utf8" })), f + ": undoS2b exacto");
 });
 
@@ -301,5 +305,5 @@ test("C3 · claves nuevas en inglés y usadas; «Guardar nombre» retirada; sin 
   const diff = execFileSync("git", ["-C", gitRoot, "diff", "-U0", BASE, "--", "js/editor-scenarios.js"], { encoding: "utf8" }).split("\n").filter((l) => /^\+[^+]/.test(l))
     .filter((l) => !require("./fluyo-growth-foundation-001-undo.cjs").ADDED_LINES.has(l.slice(1))).join("\n");   /* sin las líneas de FLUYO-GROWTH-FOUNDATION-001, que va encima */
   assert.doesNotMatch(diff, /trackEvent|\.(purpose|variantOf|family)\b/);
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v122";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v123";/);
 });

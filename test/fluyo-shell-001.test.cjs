@@ -6,7 +6,7 @@
      actual marcada, el idioma hermano en el pie con su hreflang.
    · pages.css: todo valor de color en :root (tokens), nada de la identidad oscura anterior a 018.13.
    · 404.html: rutas absolutas, i18n de la decisión 261 (data-i18n + i18n.js), claves en inglés.
-   · Marca: favicon, logo.svg, manifest, iconos y og-image del Fluyo actual.
+   · Marca: favicon, logo.svg, manifest, iconos y og-image del Fluyo actual (desde FLUYO-BRAND-RUTA-001, decisión 324: la marca Ruta).
    · Alcance frente a la base: solo los archivos de esta tarea; editor, Viewer, Present, Share, kernel y runtime del SW intactos;
      undoShell devuelve la base EXACTA; CACHE v108. */
 const test = require("node:test");
@@ -26,6 +26,7 @@ const { PIECES: PIECES_ST2A } = require("./fluyo-stories-2-0-s2a-undo.cjs");   /
 const { PIECES: PIECES_ST2B } = require("./fluyo-stories-2-0-s2b-undo.cjs");   /* FLUYO-STORIES-2.0 S2b va encima de S2a (undoS2a la deshace antes) */
 const { PIECES: PIECES_OUT } = require("./fluyo-stories-2-0-outcome-undo.cjs");   /* FLUYO-STORIES-2.0 · etiqueta del desenlace, encima de S2b (undoS2b la deshace antes) */
 const { PIECES: PIECES_GF, NEW_FILES: NEW_GF } = require("./fluyo-growth-foundation-001-undo.cjs");   /* FLUYO-GROWTH-FOUNDATION-001, encima de la etiqueta del desenlace (undoOutcome la deshace antes) */
+const { PIECES: PIECES_RUTA } = require("./fluyo-brand-ruta-001-undo.cjs");   /* FLUYO-BRAND-RUTA-001, encima de la etiqueta del desenlace (undoOutcome la deshace antes) */
 const readS = (f) => undoS0(f, read(f));
 const BASE = "53552a2";
 
@@ -40,7 +41,9 @@ const PAGES = [
   { file: "support/index.html", lang: "en", foot: "support", sib: ["../soporte/", "es"] },
 ];
 const ALL = [...PAGES.map((p) => p.file), "404.html"];
-const FAVICON = "fill='%23F2EDE3'/%3E%3Ccircle cx='18' cy='32' r='7' fill='%23A33A22'/%3E";
+/* FLUYO-BRAND-RUTA-001 (decisión 324): el favicon es el de la referencia Ruta, exacto; la marca de la cabecera, símbolo + «fluyo». */
+const FAVICON = fs.readFileSync(path.join(root, ".ai/referencias/logo-ruta/svg/favicon-data-uri.txt"), "utf8").trim();
+const MARK = /<svg class="logoMark" [^>]*aria-hidden="true"[^>]*>[\s\S]*?<\/svg><span class="logoWord" translate="no">fluyo<\/span><\/a>/;
 const block = (html, open, close) => { const a = html.indexOf(open); assert.ok(a >= 0, "falta " + open); const b = html.indexOf(close, a); return html.slice(a, b + close.length); };
 
 test("<head>: identity.css → system.css → pages.css, mono precargada, theme-color hueso y favicon del producto", () => {
@@ -50,7 +53,7 @@ test("<head>: identity.css → system.css → pages.css, mono precargada, theme-
     assert.deepEqual(css, ["identity.css", "system.css", "pages.css"].map((c) => pre + "css/" + c), f + ": hojas");
     assert.ok(head.includes(`<link rel="preload" href="${pre}assets/fonts/ibm-plex-mono-latin-400.woff2" as="font" type="font/woff2" crossorigin>`), f + ": mono precargada");
     assert.match(head, /<meta name="theme-color" content="#F2EDE3">/, f + ": theme-color");
-    assert.ok(head.includes(FAVICON), f + ": favicon hueso y terracota");
+    assert.ok(head.includes('<link rel="icon" href="' + FAVICON + '">'), f + ": favicon Ruta");
     assert.doesNotMatch(h, /#111213|%23161616'\/%3E%3Ccircle|d08b5b/i, f + ": nada de la identidad oscura");
     assert.doesNotMatch(h, / style="/, f + ": sin estilos en línea");
     assert.doesNotMatch(h.replace(/<!--[\s\S]*?-->/g, ""), /<style/, f + ": sin <style>");
@@ -64,7 +67,7 @@ test("cabecera: el mismo marcado (marca · Ejemplos · Docs · «Abrir Fluyo»),
   const T = { es: ["Ejemplos", "Docs", "Abrir Fluyo", "Ir al contenido"], en: ["Examples", "Docs", "Open Fluyo", "Skip to content"] };
   for (const p of PAGES) {
     const h = read(p.file), head = block(h, `<header class="siteHead">`, "</header>"), [ex, docs, open, skip] = T[p.lang];
-    assert.ok(head.includes(`<a class="logo" href="../">flu<b>yo</b><span class="dots" aria-hidden="true"><span></span><span></span><span></span></span></a>`), p.file + ": marca");
+    assert.ok(head.includes('<a class="logo" href="../"><svg class="logoMark"') && MARK.test(head) && !/flu<b>yo<\/b>|class="dots"/.test(h), p.file + ": marca Ruta");
     const links = [...block(head, `<nav class="siteNav"`, "</nav>").matchAll(/<a href="([^"]+)"([^>]*)>([^<]+)<\/a>/g)].map((m) => [m[1], m[3], /aria-current="page"/.test(m[2])]);
     assert.deepEqual(links, [[p.nav === "examples" ? "./" : "../ejemplos/", ex, p.nav === "examples"], [p.nav === "docs" ? "./" : "../docs/", docs, p.nav === "docs"]], p.file + ": navegación");
     assert.ok(head.includes(`<a class="btn siteOpen" href="../"><svg class="ic" aria-hidden="true"><use href="#i-edit"/></svg><span>${open}</span></a>`), p.file + ": Abrir Fluyo");
@@ -120,7 +123,7 @@ test("pages.css: valores de color solo en :root, sobre los tokens del producto; 
   assert.match(rules, /var\(--font-serif\)/); assert.match(rules, /var\(--font-mono\)/);
   assert.deepEqual([...rootBlocks.matchAll(/#[0-9a-f]{3,8}\b/gi)].map((m) => m[0]), ["#161616"], "el único hex: el fondo del lienzo oscuro (contenido)");
   assert.ok(read("js/config.js").includes('dark : {bg:"#161616"'), "y es THEMES.dark.bg");
-  assert.match(css, /\.siteHead \.logo\{[^}]*gap:0/, "la marca sin el hueco de «flu yo»");
+  assert.match(css, /\.siteHead \.logo\{[^}]*align-items:center; gap:calc\(8em \/ 21\)/, "la marca: símbolo y palabra centrados, a 8 px con la palabra a 21 px (FLUYO-BRAND-RUTA-001)");
   assert.match(css, /@media \(pointer:coarse\)\{[^}]*\.siteNav a, \.btn\{ min-height:var\(--ctl-h-touch\); \}/, "44 px con el dedo");
   assert.doesNotMatch(css, /data-ui-theme/, "las páginas no siguen el tema oscuro de la interfaz (D3)");
   assert.doesNotMatch(css, /margin-left|margin-right|padding-left|padding-right|text-align:left/, "propiedades lógicas (idiomas RTL)");
@@ -140,8 +143,12 @@ test("404.html: rutas absolutas, i18n de la decisión 261 y salidas a Fluyo", ()
 });
 
 test("marca: logo.svg, manifest, iconos y og-image del Fluyo actual", () => {
+  /* FLUYO-BRAND-RUTA-001: los bytes de la referencia Ruta, sin redibujar (el detalle lo vigila test/fluyo-brand-ruta-001.test.cjs) */
+  const ref = (p) => fs.readFileSync(path.join(root, ".ai/referencias/logo-ruta", p));
+  assert.ok(fs.readFileSync(path.join(root, "assets/logo.svg")).equals(ref("svg/favicon.svg")), "logo.svg = svg/favicon.svg");
+  for (const [a, r] of [["icon-192.png", "png/icon-192.png"], ["icon-512.png", "png/icon-512.png"], ["og-image.png", "og/og-image.png"]]) assert.ok(fs.readFileSync(path.join(root, "assets", a)).equals(ref(r)), a);
   const svg = read("assets/logo.svg");
-  assert.match(svg, /fill="#F2EDE3"/); assert.equal((svg.match(/fill="#A33A22"/g) || []).length, 3); assert.doesNotMatch(svg, /#161616|#d08b5b/i);
+  assert.match(svg, /fill="#F2EDE3"/); assert.equal((svg.match(/fill="#a33a22"/g) || []).length, 1, "el envío, lo único terracota"); assert.doesNotMatch(svg, /#161616|#d08b5b/i);
   const man = JSON.parse(read("manifest.webmanifest"));
   assert.equal(man.background_color, "#F2EDE3"); assert.equal(man.theme_color, "#F2EDE3");
   const dims = (p) => { const b = fs.readFileSync(path.join(root, p)); assert.equal(b.toString("ascii", 1, 4), "PNG", p); return [b.readUInt32BE(16), b.readUInt32BE(20)]; };
@@ -159,7 +166,7 @@ test("alcance frente a " + BASE + ": solo los archivos de esta tarea; undoShell 
   assert.deepEqual(NEW_FILES, ["404.html"]);
   const SERVED = ["js", "s", "css", "assets", "index.html", "404.html", "sw.js", "manifest.webmanifest", "docs", "ejemplos", "privacidad", "privacy", "soporte", "support", "terminos", "terms"];
   const changed = execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean)
-    .filter((f) => !NEW_S0.includes(f) && !NEW_EX.includes(f) && !NEW_GF.includes(f) && !((PIECES_S0[f] || PIECES_S1[f] || require("./fluyo-i18n-002-s2a-undo.cjs").PIECES[f] || require("./fluyo-i18n-002-s4-undo.cjs").PIECES[f] || require("./fluyo-i18n-002-s2b-undo.cjs").PIECES[f] || PIECES_EX[f] || PIECES_S1A[f] || PIECES_S1B[f] || PIECES_ST2A[f] || PIECES_ST2B[f] || PIECES_OUT[f] || PIECES_GF[f]) && !NEW_FILES.includes(f) && readS(f) === atBase(f)));   /* lo que solo cambian I18N-002 S0, S1, S2a, S4, S2b y FLUYO-EXAMPLES-001 */
+    .filter((f) => !NEW_S0.includes(f) && !NEW_EX.includes(f) && !NEW_GF.includes(f) && !((PIECES_S0[f] || PIECES_S1[f] || require("./fluyo-i18n-002-s2a-undo.cjs").PIECES[f] || require("./fluyo-i18n-002-s4-undo.cjs").PIECES[f] || require("./fluyo-i18n-002-s2b-undo.cjs").PIECES[f] || PIECES_EX[f] || PIECES_S1A[f] || PIECES_S1B[f] || PIECES_ST2A[f] || PIECES_ST2B[f] || PIECES_OUT[f] || PIECES_GF[f] || PIECES_RUTA[f]) && !NEW_FILES.includes(f) && readS(f) === atBase(f)));   /* lo que solo cambian I18N-002 S0, S1, S2a, S4, S2b y FLUYO-EXAMPLES-001 */
   const untracked = execFileSync("git", ["-C", gitRoot, "ls-files", "--others", "--exclude-standard", "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean).filter((f) => !NEW_S0.includes(f) && !NEW_EX.includes(f) && !NEW_GF.includes(f));
   const FILES = Object.keys(PIECES).sort();
   assert.deepEqual(FILES, ["assets/logo.svg", "css/pages.css", "docs/index.html", "ejemplos/index.html", "index.html", "js/i18n-en.js", "manifest.webmanifest",
@@ -173,8 +180,8 @@ test("alcance frente a " + BASE + ": solo los archivos de esta tarea; undoShell 
     assert.deepEqual(b.map((l, i) => (l === a[i] ? null : l)).filter(Boolean).map((l) => l.slice(0, 16)), ['<link rel="icon"'], f + ": solo el favicon");
   }
   assert.ok(readS("js/i18n-en.js").startsWith(atBase("js/i18n-en.js").replace(/\n\};\n$/, "")), "i18n-en.js: nada cambia, solo se añaden claves");
-  assert.equal(readS("sw.js").replace('"fluyo-static-v122"', '"fluyo-static-v' + (108 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante (sin cambio de comportamiento)");
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v122";/);
+  assert.equal(readS("sw.js").replace('"fluyo-static-v123"', '"fluyo-static-v' + (108 - 1) + '"'), atBase("sw.js"), "sw.js: solo la constante (sin cambio de comportamiento)");
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v123";/);
   for (const f of ["css/system.css", "css/styles.css", "css/share.css", "css/identity.css", "js/i18n.js", "ejemplos/data/funnel-de-ventas.fluyo.json"]) assert.equal(readS(f), atBase(f), f + " sin cambios");
   for (const f of fs.readdirSync(path.join(root, "js")).filter((x) => x.endsWith(".js") && x !== "i18n-en.js" && !NEW_S0.includes("js/" + x) && !NEW_GF.includes("js/" + x))) assert.equal(readS("js/" + f), atBase("js/" + f), "js/" + f + " sin cambios");
 });

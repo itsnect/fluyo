@@ -209,7 +209,7 @@ async function journey(browser, base, vp, theme) {
       cap: __px.crossings(sv, (V.x + n.x * V.zoom) * d, top - 12 * d, top + (Math.min(16, n.h * .18) * 2 + 10) * V.zoom * d, stroke),
       cyan: __px.count(sv, [0, 0, sv.width, sv.height], __px.cyan), green1: __px.count(sv, rect(c1), __px.green), green4: __px.count(sv, rect(c4), __px.green),
       header: getComputedStyle(document.getElementById("chrome")).backgroundColor === surface, headerH: h,
-      logo: getComputedStyle(document.querySelector("#chrome .logo")).fontFamily, ui: getComputedStyle(document.getElementById("btnOpen")).fontFamily,
+      logo: getComputedStyle(document.querySelector("#chrome .logo .logoWord")).fontFamily, ui: getComputedStyle(document.getElementById("btnOpen")).fontFamily,
       theme: doc.theme, font: settings.font,
     };
   }, [stroke, theme]);

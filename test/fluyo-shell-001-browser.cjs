@@ -5,7 +5,7 @@
    B) Navegación: cabecera (Ejemplos ↔ Docs, marca y «Abrir Fluyo» → editor) y pie (legales ↔ hermana en inglés).
    C) 404: el servidor responde 404.html con estado 404 en cualquier ruta (como el hosting); en inglés con la preferencia guardada.
    D) Ejemplos sigue funcionando: «Abrir en el editor» carga el ejemplo en el editor.
-   E) Service worker: el editor instala fluyo-static-v122, precachea las páginas y, sin red, /docs/ se abre con el shell.
+   E) Service worker: el editor instala fluyo-static-v123, precachea las páginas y, sin red, /docs/ se abre con el shell.
    F) Comparación con el editor y el Viewer: misma cabecera (alto, filete, fondo) y misma marca (voz, cuerpo, colores).
    Capturas en FLUYO_SHOTS (o un directorio temporal). Uso: node test/fluyo-shell-001-browser.cjs (playwright-core vía NODE_PATH). */
 let chromium;
@@ -61,16 +61,16 @@ const VIEWS = [
   const measure = (page) => page.evaluate(() => {
     const cs = (el) => getComputedStyle(el), r = (el) => el.getBoundingClientRect();
     const head = document.querySelector(".siteHead"), bar = head.querySelector(".bar");
-    const logo = head.querySelector(".logo"), b = logo.querySelector("b");
+    const logo = head.querySelector(".logo"), mark = logo.querySelector(".logoMark"), word = logo.querySelector(".logoWord");   /* FLUYO-BRAND-RUTA-001 */
     const parts = [logo, ...head.querySelectorAll(".siteNav a"), head.querySelector(".siteOpen")];
     const tops = parts.map((e) => Math.round(r(e).top + r(e).height / 2));
-    const fl = document.createRange(); fl.setStart(logo.firstChild, 0); fl.setEnd(logo.firstChild, 3);
     return {
       bg: cs(document.body).backgroundColor, font: cs(document.body).fontFamily.split(",")[0], h1: document.querySelector("h1") ? cs(document.querySelector("h1")).fontFamily.split(",")[0] : null,
       fonts: [...document.fonts].filter((f) => f.status === "loaded").map((f) => f.family + " " + f.weight).sort(),
       headH: Math.round(r(head).height), barH: Math.round(r(bar).height), oneRow: Math.max(...tops) - Math.min(...tops) <= 2,
       hscroll: document.documentElement.scrollWidth > innerWidth,
-      gap: Math.round(r(b).left - fl.getBoundingClientRect().right), logoFont: cs(logo).fontFamily.split(",")[0], logoSize: cs(logo).fontSize, yo: cs(b).color, logoColor: cs(logo).color,
+      gap: Math.round(r(word).left - r(mark).right), logoFont: cs(word).fontFamily.split(",")[0], logoSize: cs(logo).fontSize, yo: cs(mark.querySelector(".still circle")).fill, logoColor: cs(logo).color,
+      plain: word.textContent === "fluyo" && !logo.querySelector("b, .dots"), markH: Math.round(r(mark).height),
       nav: [...head.querySelectorAll(".siteNav a")].map((a) => Math.round(r(a).height)), open: [Math.round(r(head.querySelector(".siteOpen")).width), Math.round(r(head.querySelector(".siteOpen")).height)],
       foot: [...document.querySelectorAll(".siteFoot a")].map((a) => Math.round(r(a).height)),
       btns: [...document.querySelectorAll("main .btn")].map((a) => Math.round(r(a).height)),
@@ -91,7 +91,7 @@ const VIEWS = [
         check(m.bg === "rgb(242, 237, 227)" && m.font === '"IBM Plex Mono"' && m.h1 === '"Playfair Display"', `${tag}: papel, Plex Mono y Playfair (${m.bg}, ${m.font}, ${m.h1})`);
         check(m.fonts.includes("IBM Plex Mono 400") && m.fonts.includes("Playfair Display 400"), `${tag}: fuentes cargadas (${m.fonts.join(", ")})`);
         check(m.oneRow && m.headH === 50 && !m.hscroll, `${tag}: cabecera en una fila de ${m.headH} px (filete incluido), sin scroll horizontal`);
-        check(m.gap <= 1 && m.logoFont === '"Playfair Display"' && m.yo === "rgb(163, 58, 34)", `${tag}: marca «fluyo» sin hueco (${m.gap} px) y «yo» terracota`);
+        check(m.gap === 8 && m.markH === 24 && m.plain && m.logoFont === '"Playfair Display"' && m.yo === "rgb(163, 58, 34)", `${tag}: marca Ruta — símbolo de ${m.markH} px a ${m.gap} px de «fluyo» (Playfair, sin «yo» aparte) y envío terracota`);
         if (v.hasTouch) check([...m.nav, m.open[1], ...m.foot, ...m.btns].every((h) => h >= 44) && m.open[0] >= 44, `${tag}: objetivos táctiles ≥ 44 px (nav ${m.nav}, abrir ${m.open}, pie min ${Math.min(...m.foot)}, botones ${[...new Set(m.btns)]})`);
         if (p.startsWith("/no-existe")) check(resp.status() === 404 && m.h1text === "Esta página no existe", `${tag}: 404 con el shell`);
         await page.screenshot({ path: path.join(shots, `${v.name}${p.replace(/\//g, "_")}.png`), fullPage: v.name !== "320" });
@@ -155,8 +155,8 @@ const VIEWS = [
       await page.evaluate(async () => { await navigator.serviceWorker.ready; });
       /* waitForFunction no espera a un predicado async: sondeo explícito, como fluyo-018-10-browser.cjs */
       for (const t0 = Date.now(); Date.now() - t0 < 30000; await page.waitForTimeout(200))
-        if (await page.evaluate(async () => { const c = await caches.open("fluyo-static-v122"); return !!(await c.match("./docs/")) && !!(await c.match("./css/pages.css")) && !!navigator.serviceWorker.controller; })) break;
-      check(JSON.stringify(await page.evaluate(() => caches.keys())) === '["fluyo-static-v122"]', "el editor instala fluyo-static-v122 con las páginas");
+        if (await page.evaluate(async () => { const c = await caches.open("fluyo-static-v123"); return !!(await c.match("./docs/")) && !!(await c.match("./css/pages.css")) && !!navigator.serviceWorker.controller; })) break;
+      check(JSON.stringify(await page.evaluate(() => caches.keys())) === '["fluyo-static-v123"]', "el editor instala fluyo-static-v123 con las páginas");
       offline = true; await ctx.setOffline(true);
       const doc = watch(await ctx.newPage(), "sw offline");
       await doc.goto(base + "/docs/");
@@ -170,7 +170,7 @@ const VIEWS = [
       const ctx = await ctxOf({ viewport: { width: 1440, height: 900 } }), page = watch(await ctx.newPage(), "cmp");
       const hdr = (sel, logo) => page.evaluate(([sel, logo]) => {
         const h = document.querySelector(sel), l = document.querySelector(logo), cs = getComputedStyle(h), cl = getComputedStyle(l);
-        return { h: Math.round(h.getBoundingClientRect().height), bg: cs.backgroundColor, rule: cs.borderBottomColor, font: cl.fontFamily.split(",")[0], size: cl.fontSize, ink: cl.color, yo: getComputedStyle(l.querySelector("b")).color };
+        return { h: Math.round(h.getBoundingClientRect().height), bg: cs.backgroundColor, rule: cs.borderBottomColor, font: getComputedStyle(l.querySelector(".logoWord")).fontFamily.split(",")[0], size: cl.fontSize, ink: cl.color, yo: getComputedStyle(l.querySelector(".logoMark circle")).fill };
       }, [sel, logo]);
       await page.goto(base + "/"); await page.evaluate(() => document.fonts.ready);
       const ed = await hdr("body > header", "body > header .logo");

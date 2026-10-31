@@ -119,7 +119,7 @@ async function journey(browser, base, vp) {
   /* FLUYO-018.14b (B5): la acción importante de la cabecera es Presentar; Exportar pasa a secundaria */
   if (!mobile) check(await bg(page, "body > header > #btnPresent") === await token(page, "--attention-fill") && await bg(page, "body > header > #btnExport") !== attention, "Presentar (acción importante) pinta el terracota; Exportar no");
   check(surface !== "rgb(17, 18, 19)" && surface !== "rgb(27, 29, 31)", "el chrome ya no es el gris oscuro de 018.12");
-  check(/Playfair Display/.test(await fam(page, "body > header .logo")) && /IBM Plex Mono/.test(await fam(page, "#btnShare")) && /IBM Plex Mono/.test(await fam(page, "body")),
+  check(/Playfair Display/.test(await fam(page, "body > header .logo .logoWord"))   /* FLUYO-BRAND-RUTA-001: la palabra de la marca Ruta */ && /IBM Plex Mono/.test(await fam(page, "#btnShare")) && /IBM Plex Mono/.test(await fam(page, "body")),
     "voces: marca en serif, controles y cuerpo en mono");
 
   /* ── Cabecera ── */
@@ -324,7 +324,7 @@ async function serviceWorker(browser, base) {
     const have = []; for (const w of want) if (await c.match(location.origin + "/" + w)) have.push(w);
     return { keys, have, want: want.length };
   });
-  check(cache.keys.length === 1 && cache.keys[0] === "fluyo-static-v122", "caché instalada: fluyo-static-v122 " + JSON.stringify(cache.keys));
+  check(cache.keys.length === 1 && cache.keys[0] === "fluyo-static-v123", "caché instalada: fluyo-static-v123 " + JSON.stringify(cache.keys));
   check(cache.have.length === cache.want, "system.css y las tres fuentes están precacheadas " + JSON.stringify(cache.have));
   await ctx.setOffline(true);
   await page.reload(); await page.waitForFunction(() => typeof renderTabs === "function"); await page.evaluate(() => document.fonts.ready);

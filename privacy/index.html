@@ -98,24 +98,33 @@
 
 <h3>Product analytics</h3>
 <p>The public site includes aggregate usage analytics, served by <a href="https://umami.is" target="_blank" rel="noopener">Umami Cloud</a>. <strong>No cookies and no fingerprinting</strong>, and no user identification.</p>
-<p>What is recorded is pageviews plus this closed list of events:</p>
-<div lang="es">
+<p>What is recorded is this closed list of events; automatic capture is off and there are no pageviews:</p>
 <table>
-  <tr><th>Evento</th><th>Significado y propiedades</th></tr>
-  <tr><td><code>editor_opened</code></td><td>Una vez por carga del editor. Sin propiedades.</td></tr>
-  <tr><td><code>first_edit_completed</code></td><td>Primera modificación real por carga del editor. No incluye selección, pan, zoom, navegación, importación o restauración. Sin propiedades.</td></tr>
-  <tr><td><code>diagram_created</code></td><td>Primera edición que deja nodos en un documento antes vacío, como máximo una vez por carga. Sin propiedades.</td></tr>
-  <tr><td><code>diagram_saved</code></td><td>Descarga explícita generada/iniciada desde Guardar; no autoguardado ni confirmación de escritura a disco. <code>format: fluyo_json</code>.</td></tr>
-  <tr><td><code>diagram_exported</code></td><td>Archivo generado y descarga iniciada. <code>format</code>: <code>gif</code>, <code>png</code>, <code>jpg</code> o <code>svg</code>. No confirma escritura a disco.</td></tr>
-  <tr><td><code>file_imported</code></td><td>Documento válido aplicado. <code>source</code>: <code>file</code> o <code>link</code>; <code>format: fluyo_json</code>. El origen no atribuye autoría MCP.</td></tr>
-  <tr><td><code>present_started</code></td><td>Entrada efectiva al modo presentación, también sin pantalla completa. Sin propiedades. No se mide presentación completada.</td></tr>
-  <tr><td><code>example_loaded</code></td><td><code>example</code>: identificador de un ejemplo de la lista fija.</td></tr>
-  <tr><td><code>gif_animation_added</code></td><td><code>anim</code>: clave de una de las ocho animaciones predefinidas.</td></tr>
-  <tr><td><code>link_failed</code></td><td><code>reason</code>: <code>decode</code>, <code>schema</code>, <code>too_large</code> o <code>unsupported</code>.</td></tr>
+  <tr><th>Event</th><th>Meaning and properties</th></tr>
+  <tr><td><code>editor_opened</code></td><td>Once per editor load. <code>entry</code>: <code>direct</code>, <code>example</code> (arrived with <code>?ejemplo=</code>) or <code>link</code> (arrived with <code>#d=</code>), never the URL. <code>returning</code>: <code>yes</code> if this browser had opened Fluyo before, <code>no</code> otherwise (see “First visit”). <code>locale</code>: interface language (<code>es</code>, <code>en</code>, <code>fr</code>, <code>ja</code>, <code>zh</code> or <code>other</code>).</td></tr>
+  <tr><td><code>first_edit_completed</code></td><td>First real change per editor load. Selection, pan, zoom, navigation, import and restore do not count. No properties.</td></tr>
+  <tr><td><code>diagram_created</code></td><td>First edit that leaves nodes in a previously empty document, at most once per load. No properties.</td></tr>
+  <tr><td><code>diagram_saved</code></td><td>Explicit download started from Save; not autosave, and no confirmation that it reached the disk. <code>format: fluyo_json</code>.</td></tr>
+  <tr><td><code>diagram_exported</code></td><td>File generated and download started. <code>format</code>: <code>gif</code>, <code>png</code>, <code>jpg</code> or <code>svg</code>. No confirmation that it reached the disk.</td></tr>
+  <tr><td><code>file_imported</code></td><td>A valid document was applied. <code>source</code>: <code>file</code> or <code>link</code>; <code>format: fluyo_json</code>. The source does not attribute MCP authorship.</td></tr>
+  <tr><td><code>present_started</code></td><td>Presentation mode actually entered, even without full screen. No properties.</td></tr>
+  <tr><td><code>example_loaded</code></td><td>A published example ended up open. <code>example</code>: identifier from the fixed list. <code>source</code>: <code>url</code> (<code>?ejemplo=</code>), <code>menu</code> (the “Example” button) or <code>entry</code> (the entry card).</td></tr>
+  <tr><td><code>entry_chosen</code></td><td>First visit only: what was done with the entry card. <code>choice</code>: <code>explore</code>, <code>blank</code> or <code>dismiss</code> (Escape, touching the canvas or opening something else).</td></tr>
+  <tr><td><code>story_created</code></td><td>A Story was created in the editor. <code>origin</code>: <code>new</code>, <code>variant</code> (“Another way from here” or “Duplicate as failure”) or <code>copy</code> (duplicate). Never its name or its sentences.</td></tr>
+  <tr><td><code>story_started</code></td><td>A Story started playing. <code>surface</code>: <code>editor</code> or <code>present</code>. <code>trigger</code>: <code>user</code> or <code>entry</code> (started by the entry card). Once per playback, not per step.</td></tr>
+  <tr><td><code>story_completed</code></td><td>That playback reached the end, watched or skipped through. <code>surface</code>: <code>editor</code> or <code>present</code>. Once per playback.</td></tr>
+  <tr><td><code>gif_animation_added</code></td><td><code>anim</code>: key of one of the eight built-in animations.</td></tr>
+  <tr><td><code>link_failed</code></td><td><code>reason</code>: <code>decode</code>, <code>schema</code>, <code>too_large</code> or <code>unsupported</code>.</td></tr>
+  <tr><td><code>share_created</code></td><td>After confirming and actually creating a link within the limit. <code>kind</code>: <code>story</code> or <code>diagram</code>. <code>variants</code>: <code>yes</code> if its other ways travel with it, <code>no</code> otherwise.</td></tr>
+  <tr><td><code>share_viewed</code></td><td>After the viewer's first successful render. <code>story</code>: <code>yes</code> if it carries a playable Story. <code>locale</code>: interface language, as above.</td></tr>
+  <tr><td><code>viewer_story_started</code></td><td>In the viewer, when “Play” is pressed. No properties.</td></tr>
+  <tr><td><code>viewer_story_completed</code></td><td>In the viewer, that playback reached the end. No properties. Once per playback.</td></tr>
+  <tr><td><code>share_opened_in_editor</code></td><td>When “Open in Fluyo” is explicitly pressed in the viewer. No properties.</td></tr>
 </table>
-<p><strong>El contenido de tus diagramas nunca se envía.</strong> Sólo se admiten los eventos y valores de estas listas cerradas. No se envían nombres de archivos o nodos, texto, imágenes, prompts, IDs de documentos ni datos personales. La comparación para detectar la primera edición ocurre sólo en memoria local.</p>
-<p><strong>No se envían URLs privadas.</strong> Se excluyen query y fragmento con <code>data-exclude-search</code> y <code>data-exclude-hash</code>; además, el filtro <code>data-before-send</code> reconstruye el payload con ruta fija <code>/</code>, título fijo <code>Fluyo</code> y referrer vacío. No se envían propiedades automáticas adicionales del navegador. La carga asíncrona usa una cola acotada en memoria; bloquear Umami no impide trabajar.</p>
-</div>
+<h3 id="first-visit">First visit</h3>
+<p>The first time this browser opens the editor without a document in the link, a card over the canvas offers to watch an example in motion or to start blank. So that it is not offered again, the editor stores the key <code>fluyo.seen</code> with the value <code>1</code> in <code>localStorage</code>: no date, no identifier, and it is never sent. It does not appear either if any other <code>fluyo.*</code> key exists (saved session, theme or language). The only thing that leaves is its consequence, <code>returning: yes/no</code> in <code>editor_opened</code>; it counts browsers, not people: a private window, cleared site data or another device count as new.</p>
+<p><strong>The content of your diagrams is never sent.</strong> Only the events and values in these closed lists are accepted. No file or node names, text, images, prompts, document IDs or personal data are sent. The comparison that detects the first edit happens only in local memory.</p>
+<p><strong>No private URLs are sent.</strong> Automatic capture is disabled with <code>data-auto-track="false"</code>. Query and fragment are excluded with <code>data-exclude-search</code> and <code>data-exclude-hash</code>; on top of that, the <code>data-before-send</code> filter rebuilds the payload with a fixed path <code>/</code>, a fixed title <code>Fluyo</code> and an empty referrer. No additional automatic browser properties are sent. Asynchronous loading uses a bounded in-memory queue; blocking Umami does not stop you from working.</p>
 <p>The analytics script loads <strong>only</strong> when the domain is <code>fluyo.space</code> or <code>www.fluyo.space</code>. If you clone the repository, open it locally or self-host it, that code never runs and no network call is made. Preview domains are deliberately excluded. The condition lives in <code>js/analytics.js</code>, in a single block, so you can verify it yourself.</p>
 <p>If you want zero analytics: run the project locally or self-hosted, or block the <code>cloud.umami.is</code> domain. Fluyo works the same — the analytics code is written to fail silently.</p>
 
@@ -187,7 +196,7 @@
 <table>
   <tr><th>Provider</th><th>What it sees</th><th>Why</th></tr>
   <tr><td><strong>Google Cloud</strong></td><td>Platform logs for both domains (IP, path, status, user agent), retained 7 days</td><td>Hosting</td></tr>
-  <tr><td><strong>Umami Cloud</strong></td><td>Pageviews and the events listed above, without cookies or identifiers</td><td>Editor analytics</td></tr>
+  <tr><td><strong>Umami Cloud</strong></td><td>The events listed above (no pageviews), without cookies or identifiers</td><td>Editor analytics</td></tr>
   <tr><td><strong>Cloudflare (cdnjs)</strong></td><td>The request for the <code>gif.js</code> file: IP and user agent</td><td>Delivery of the GIF library</td></tr>
 </table>
 <p>None of the three receives the content of your diagrams.</p>

@@ -49,8 +49,16 @@ function scheduleAnalyticsEdit(){
   clearTimeout(analyticsEditTimer);
   analyticsEditTimer=setTimeout(checkAnalyticsEdit,0);
 }
+/* FLUYO-GROWTH-FOUNDATION-001: por dónde entró esta carga (sin la URL: solo si traía ejemplo o enlace), si este navegador ya
+   había abierto Fluyo (js/entry.js; nunca un identificador) y el idioma de la interfaz. */
+function editorOpenedProps(){
+  const entry=(typeof EXAMPLE_SLUG!=="undefined" && EXAMPLE_SLUG) ? "example"
+    : (typeof DEEP_LINK_PAYLOAD!=="undefined" && DEEP_LINK_PAYLOAD) ? "link" : "direct";
+  const returning=(typeof ENTRY_STATE==="object" && ENTRY_STATE && ENTRY_STATE.returning) ? "yes" : "no";
+  return {entry, returning, locale:analyticsLocale()};
+}
 document.addEventListener("DOMContentLoaded",()=>{
   if(!document.getElementById("cv")) return;
   resetAnalyticsBaseline();
-  trackEvent("editor_opened");
+  trackEvent("editor_opened", editorOpenedProps());
 },{once:true});

@@ -101,23 +101,31 @@
 
 <h3>Telemetría de producto</h3>
 <p>En el sitio público hay analítica de uso agregada, servida por <a href="https://umami.is" target="_blank" rel="noopener">Umami Cloud</a>. <strong>Sin cookies y sin fingerprinting</strong>, y sin identificar usuarios.</p>
-<p>Lo que se registra es esta lista cerrada de eventos; la captura automática está desactivada:</p>
+<p>Lo que se registra es esta lista cerrada de eventos; la captura automática está desactivada y no hay pageviews:</p>
 <table>
   <tr><th>Evento</th><th>Significado y propiedades</th></tr>
-  <tr><td><code>editor_opened</code></td><td>Una vez por carga del editor. Sin propiedades.</td></tr>
+  <tr><td><code>editor_opened</code></td><td>Una vez por carga del editor. <code>entry</code>: <code>direct</code>, <code>example</code> (llegó con <code>?ejemplo=</code>) o <code>link</code> (llegó con <code>#d=</code>), sin la URL. <code>returning</code>: <code>yes</code> si este navegador ya había abierto Fluyo, <code>no</code> si no (ver «Primera visita»). <code>locale</code>: idioma de la interfaz (<code>es</code>, <code>en</code>, <code>fr</code>, <code>ja</code>, <code>zh</code> u <code>other</code>).</td></tr>
   <tr><td><code>first_edit_completed</code></td><td>Primera modificación real por carga del editor. No incluye selección, pan, zoom, navegación, importación o restauración. Sin propiedades.</td></tr>
   <tr><td><code>diagram_created</code></td><td>Primera edición que deja nodos en un documento antes vacío, como máximo una vez por carga. Sin propiedades.</td></tr>
   <tr><td><code>diagram_saved</code></td><td>Descarga explícita generada/iniciada desde Guardar; no autoguardado ni confirmación de escritura a disco. <code>format: fluyo_json</code>.</td></tr>
   <tr><td><code>diagram_exported</code></td><td>Archivo generado y descarga iniciada. <code>format</code>: <code>gif</code>, <code>png</code>, <code>jpg</code> o <code>svg</code>. No confirma escritura a disco.</td></tr>
   <tr><td><code>file_imported</code></td><td>Documento válido aplicado. <code>source</code>: <code>file</code> o <code>link</code>; <code>format: fluyo_json</code>. El origen no atribuye autoría MCP.</td></tr>
-  <tr><td><code>present_started</code></td><td>Entrada efectiva al modo presentación, también sin pantalla completa. Sin propiedades. No se mide presentación completada.</td></tr>
-  <tr><td><code>example_loaded</code></td><td><code>example</code>: identificador de un ejemplo de la lista fija.</td></tr>
+  <tr><td><code>present_started</code></td><td>Entrada efectiva al modo presentación, también sin pantalla completa. Sin propiedades.</td></tr>
+  <tr><td><code>example_loaded</code></td><td>Un ejemplo publicado quedó abierto. <code>example</code>: identificador de la lista fija. <code>source</code>: <code>url</code> (<code>?ejemplo=</code>), <code>menu</code> (botón «Ejemplo») o <code>entry</code> (tarjeta de entrada).</td></tr>
+  <tr><td><code>entry_chosen</code></td><td>Solo en la primera visita: qué se hizo con la tarjeta de entrada. <code>choice</code>: <code>explore</code>, <code>blank</code> o <code>dismiss</code> (Escape, tocar el lienzo o abrir otra cosa).</td></tr>
+  <tr><td><code>story_created</code></td><td>Se creó una Historia en el editor. <code>origin</code>: <code>new</code>, <code>variant</code> («Otra forma desde aquí» o «Duplicar como fallo») o <code>copy</code> (duplicar). Ni su nombre ni sus frases.</td></tr>
+  <tr><td><code>story_started</code></td><td>Empezó a reproducirse una Historia. <code>surface</code>: <code>editor</code> o <code>present</code>. <code>trigger</code>: <code>user</code> o <code>entry</code> (la arrancó la tarjeta de entrada). Una vez por reproducción, no por paso.</td></tr>
+  <tr><td><code>story_completed</code></td><td>Esa reproducción llegó al final, viéndola o saltando de momento en momento. <code>surface</code>: <code>editor</code> o <code>present</code>. Una vez por reproducción.</td></tr>
   <tr><td><code>gif_animation_added</code></td><td><code>anim</code>: clave de una de las ocho animaciones predefinidas.</td></tr>
   <tr><td><code>link_failed</code></td><td><code>reason</code>: <code>decode</code>, <code>schema</code>, <code>too_large</code> o <code>unsupported</code>.</td></tr>
-  <tr><td><code>share_created</code></td><td>Tras confirmar y crear efectivamente un enlace dentro del límite. Sin propiedades.</td></tr>
-  <tr><td><code>share_viewed</code></td><td>Después del primer render exitoso del viewer. Sin propiedades.</td></tr>
+  <tr><td><code>share_created</code></td><td>Tras confirmar y crear efectivamente un enlace dentro del límite. <code>kind</code>: <code>story</code> o <code>diagram</code>. <code>variants</code>: <code>yes</code> si viajan sus otras formas, <code>no</code> si no.</td></tr>
+  <tr><td><code>share_viewed</code></td><td>Después del primer render exitoso del viewer. <code>story</code>: <code>yes</code> si trae una Historia reproducible. <code>locale</code>: idioma de la interfaz, como arriba.</td></tr>
+  <tr><td><code>viewer_story_started</code></td><td>En el viewer, al pulsar «Reproducir». Sin propiedades.</td></tr>
+  <tr><td><code>viewer_story_completed</code></td><td>En el viewer, esa reproducción llegó al final. Sin propiedades. Una vez por reproducción.</td></tr>
   <tr><td><code>share_opened_in_editor</code></td><td>Al pulsar explícitamente Abrir en Fluyo en el viewer. Sin propiedades.</td></tr>
 </table>
+<h3 id="primera-visita">Primera visita</h3>
+<p>La primera vez que este navegador abre el editor sin traer un documento por el enlace, una tarjeta sobre el lienzo ofrece ver un ejemplo en marcha o empezar en blanco. Para no volver a ofrecerla, el editor guarda en <code>localStorage</code> la clave <code>fluyo.seen</code> con el valor <code>1</code>: sin fecha, sin identificador, y nunca se envía. Tampoco aparece si ya hay cualquier otra clave <code>fluyo.*</code> (sesión guardada, tema o idioma). Lo único que sale es su consecuencia, <code>returning: yes/no</code> en <code>editor_opened</code>; cuenta navegadores, no personas: en modo privado, tras borrar los datos del sitio o en otro dispositivo, cuenta como nuevo.</p>
 <p><strong>El contenido de tus diagramas nunca se envía a analytics.</strong> Sólo se admiten los eventos y valores de estas listas cerradas. No se envían nombres de archivos o nodos, texto, imágenes, prompts, IDs de documentos ni datos personales. La comparación para detectar la primera edición ocurre sólo en memoria local.</p>
 <p><strong>No se envían URLs privadas.</strong> La captura automática del proveedor está desactivada con <code>data-auto-track="false"</code>. Se excluyen query y fragmento con <code>data-exclude-search</code> y <code>data-exclude-hash</code>; además, el filtro <code>data-before-send</code> reconstruye el payload con ruta fija <code>/</code>, título fijo <code>Fluyo</code> y referrer vacío. No se envían propiedades automáticas adicionales del navegador. La carga asíncrona usa una cola acotada en memoria; bloquear Umami no impide trabajar.</p>
 <p>El script de analítica se carga <strong>únicamente</strong> cuando el dominio es <code>fluyo.space</code> o <code>www.fluyo.space</code>. Si clonas el repositorio, lo abres en local o lo self-hosteas, ese código no llega a ejecutarse y no se hace ninguna llamada de red. Los dominios de preview quedan fuera a propósito. La condición está en <code>js/analytics.js</code>, en un solo bloque, para que puedas verificarlo tú.</p>
@@ -191,7 +199,7 @@
 <table>
   <tr><th>Proveedor</th><th>Qué ve</th><th>Por qué</th></tr>
   <tr><td><strong>Google Cloud</strong></td><td>Logs de plataforma de los dos dominios (IP, ruta, estado, user-agent), retenidos 7 días</td><td>Alojamiento</td></tr>
-  <tr><td><strong>Umami Cloud</strong></td><td>Pageviews y los eventos de la lista de arriba, sin cookies ni identificadores</td><td>Analítica del editor</td></tr>
+  <tr><td><strong>Umami Cloud</strong></td><td>Los eventos de la lista de arriba (sin pageviews), sin cookies ni identificadores</td><td>Analítica del editor</td></tr>
   <tr><td><strong>Cloudflare (cdnjs)</strong></td><td>La petición del archivo <code>gif.js</code>: IP y user-agent</td><td>Entrega de la librería de GIF</td></tr>
 </table>
 <p>Ninguno de los tres recibe el contenido de tus diagramas.</p>

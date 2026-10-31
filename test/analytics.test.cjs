@@ -100,7 +100,9 @@ test('listas cerradas y payload sin URLs, títulos, IDs ni datos libres',()=>{
   assert.ok(!JSON.stringify(payload).includes('secreto'));
   assert.equal(payload.url,'/');assert.equal(payload.referrer,'');
   assert.equal(e.run('analyticsBeforeSend("identify",{})'),false);
-  assert.equal(e.run('analyticsBeforeSend("event",{name:"share_created"})').name,"share_created");
+  /* FLUYO-GROWTH-FOUNDATION-001 (decisión 320): share_created lleva kind y variants; sin ellos no sale */
+  assert.equal(e.run('analyticsBeforeSend("event",{name:"share_created"})'),false);
+  assert.equal(e.run('analyticsBeforeSend("event",{name:"share_created",data:{kind:"diagram",variants:"no"}})').name,"share_created");
   assert.equal(e.scripts[0].dataset.autoTrack,"false");
   assert.equal(e.scripts[0].dataset.excludeSearch,'true');
   assert.equal(e.scripts[0].dataset.excludeHash,'true');

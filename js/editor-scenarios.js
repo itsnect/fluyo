@@ -422,6 +422,7 @@ function scNewScenario() {
   scheduleAutosave();
   scRenderPanel();
   scNotice(FluyoI18n.t("stories.created", "{name} creada", { name: sc.name }));
+  scTrack("story_created", { origin: "new" });
   scBeginInlineName(true);
 }
 
@@ -437,6 +438,7 @@ function scDuplicateScenario() {
   scheduleAutosave();
   scRenderPanel();
   scNotice(FluyoI18n.t("stories.duplicated", "Historia duplicada: {name}", { name: copy.name }));
+  scTrack("story_created", { origin: "copy" });
 }
 
 function scDeleteScenario() {
@@ -607,7 +609,10 @@ function scTapAddStep(kind, targetId, pointerType) {
   scFeedback = { kind, ids: [targetId], until: now + 750 };
   scCommit();
   scScrollIntoView($("scStoryboard")?.querySelector?.('[data-step-id="' + step.id + '"]'));
-  if (created) scNotice(FluyoI18n.t("stories.created", "{name} creada", { name: sc.name }));
+  if (created) {
+    scNotice(FluyoI18n.t("stories.created", "{name} creada", { name: sc.name }));
+    scTrack("story_created", { origin: "new" });
+  }
   return step;
 }
 function scTapPointerDown(ev) {
@@ -691,8 +696,18 @@ function scDeleteStep(id) {
   scRenderButtons();
 }
 
+/* FLUYO-GROWTH-FOUNDATION-001: los eventos de la Historia (js/analytics.js, lista cerrada; nada del documento). Sin transporte
+   cargado (los arneses vm, el MCP) no se mide nada. */
+function scTrack(name, props) {
+  if (typeof trackEvent === "function") trackEvent(name, props);
+}
+/* Dónde se reproduce la ejecución en curso y si ya contó su final (story_completed, una vez por reproducción aunque después se
+   salte atrás y vuelva a terminar). */
+let scRunSurface = null,
+  scRunCounted = false;
 function scRun(opts) {
-  /* opts.present: Present reproduce con este mismo motor sin tocar el panel del editor. */
+  /* opts.present: Present reproduce con este mismo motor sin tocar el panel del editor.
+     opts.trigger: "entry" cuando la arranca la tarjeta de entrada (entry.js), no un clic en «Reproducir». */
   const inPresent = !!(opts && opts.present);
   if (scStatus === "running") return;
   if (scStatus === "completed") scReset();
@@ -714,6 +729,9 @@ function scRun(opts) {
   scPlayback = started.playback;
   scStatus = "running";
   scFollowedStep = null;
+  scRunSurface = inPresent ? "present" : "editor";
+  scRunCounted = false;
+  scTrack("story_started", { surface: scRunSurface, trigger: opts && opts.trigger === "entry" ? "entry" : "user" });
   /* FLUYO-018.14b: reproducir es del modo Historia (B1); la salida «Editar»/«Volver a editar» nunca se bloquea (B3). */
   if (!inPresent && typeof switchPanelTab === "function") switchPanelTab("scenarios");
   /* FLUYO-018.17 (D3): reproducir recupera el lienzo: la hoja ampliada vuelve a su altura de transporte (Ampliar sigue disponible). */
@@ -761,6 +779,10 @@ function scTick() {
   if (typeof presentStoryRefresh === "function") presentStoryRefresh();
   if (FluyoStory.isFinished(scPlayback)) {
     scStatus = "completed";
+    if (!scRunCounted && scRunSurface) {
+      scRunCounted = true;
+      scTrack("story_completed", { surface: scRunSurface });
+    }
     scRenderButtons();
     scRenderStatus();
     if (typeof presentStoryRefresh === "function") presentStoryRefresh();
@@ -2132,6 +2154,7 @@ function scDuplicateAsFailure(anchor) {
   scheduleAutosave();
   scRenderPanel();
   scNotice(FluyoI18n.t("stories.duplicated", "Historia duplicada: {name}", { name: copy.name }));
+  scTrack("story_created", { origin: "variant" });   /* «Duplicar como fallo»: otra forma de la misma Historia */
   scChooseFailure(anchor);
 }
 function scChooseFailure(anchor) {
@@ -2205,6 +2228,7 @@ function scBranchFrom(stepId) {
   scSetArrivalDependencies(copy, FluyoStoryClock.pruneArrivalDependencies(copy));
   scSelectStory(copy.id);
   scCommit();
+  scTrack("story_created", { origin: "variant" });
   scBeginInlineName(true);
   return true;
 }
@@ -3588,6 +3612,7 @@ function scApplyTargets(id, targets) {
       ? FluyoI18n.t("stories.created", "{name} creada", { name: sc.name })
       : valid.length === 1 ? FluyoI18n.t("place.added", "Añadido a la historia.") : FluyoI18n.t("place.addedMany", "{count} eventos añadidos al mismo tiempo.", { count: valid.length }),
   );
+  if (created) scTrack("story_created", { origin: "new" });
 }
 function scConfirmMulti() {
   const p = scPlacement;

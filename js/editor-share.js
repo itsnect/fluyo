@@ -118,7 +118,8 @@ async function confirmShare(){
     shareText("shareMessage", ()=>dropped
       ?FluyoI18n.t("share.othersTooLarge","Con sus otras formas el enlace era demasiado grande: solo viaja esta historia.")
       :isWebOrigin(location.href)? "" : FluyoI18n.t("share.publicViewer","El enlace abre el visor público de fluyo.space."));
-    trackEvent("share_created");
+    /* FLUYO-GROWTH-FOUNDATION-001: qué se compartió, sin nada del documento: Historia o diagrama, y si viajan sus otras formas. */
+    trackEvent("share_created",{kind:kind==="story"&&story?"story":"diagram",variants:withOthers?"yes":"no"});
     shareControl("shareCopy").focus();
   }catch(e){
     const tooLarge=e.code==="too_large" && e.stage==="url";

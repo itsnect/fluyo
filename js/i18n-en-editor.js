@@ -701,6 +701,12 @@ FLUYO_LOCALES.en=Object.assign(FLUYO_LOCALES.en || {}, {
      edición inglesa escrita a mano de ejemplos/data/en/ (FLUYO-EXAMPLES-001), no claves de este diccionario. */
   "example.page":"Example",
   "example.pageN":"Example {n}",
+  /* FLUYO-GROWTH-FOUNDATION-001 · la tarjeta de entrada del primer minuto (js/entry.js) */
+  "entry.title":"Explain your system, not just draw it.",
+  "entry.explore":"See a system in motion",
+  "entry.exploreSub":"An online checkout, told step by step.",
+  "entry.blank":"Start blank",
+  "entry.blankSub":"Draw your system, then tell what happens.",
   /* FLUYO-I18N-002 S3b · Propiedades: grupos, campo de contenido y nombres de forma (D-S3b-3: claves propias; D-S3b-4: una por contexto) */
   "prop.group.appearance":"Appearance",
   "prop.group.text":"Text",

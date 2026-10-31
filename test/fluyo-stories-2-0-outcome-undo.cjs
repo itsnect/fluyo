@@ -28,7 +28,10 @@ const PIECES = {
     ]
   ]
 };
+/* FLUYO-GROWTH-FOUNDATION-001 va encima de esta tarea (base d7e1177): se deshace primero (fluyo-growth-foundation-001-undo.cjs). */
+const { undoGrowth } = require("./fluyo-growth-foundation-001-undo.cjs");
 function undoOutcome(file, src) {
+  src = undoGrowth(file, src);
   const f = file.replace(/\\/g, "/"), pieces = PIECES[f];
   if (!pieces) return src;
   let out = src.replace(/\r\n/g, "\n");

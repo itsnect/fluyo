@@ -144,13 +144,15 @@ test('Assets externos y SVG malformado se rechazan en la frontera compartida',()
     assert.throws(()=>v.run('projectFromProjectData({doc:{pages:[{nodes:[{id:1,img:badImg}],edges:[]}]}})'),e=>e.code==='invalid_document');
   }
 });
-test('Analytics: los tres eventos eliminan payload, hash, contenido y propiedades',()=>{
+/* FLUYO-GROWTH-FOUNDATION-001 (decisión 320): share_created y share_viewed llevan propiedades enumeradas; el resto se quita. */
+test('Analytics: los tres eventos eliminan payload, hash, contenido y propiedades libres',()=>{
   const c=creator();
-  for(const name of ['share_created','share_viewed','share_opened_in_editor']){
-    const safe=c.run(`analyticsBeforeSend('event',{name:${JSON.stringify(name)},url:'https://fluyo.space/s/#d=PRIVATE_MARKER',title:'PRIVATE_MARKER',referrer:'PRIVATE_MARKER',data:{size:9,id:'PRIVATE_MARKER',hash:'#d=PRIVATE_MARKER'}})`);
+  for(const [name,valid] of [['share_created',{kind:'story',variants:'no'}],['share_viewed',{story:'yes',locale:'es'}],['share_opened_in_editor',{}]]){
+    const data=Object.assign({size:9,id:'PRIVATE_MARKER',hash:'#d=PRIVATE_MARKER'},valid);
+    const safe=c.run(`analyticsBeforeSend('event',{name:${JSON.stringify(name)},url:'https://fluyo.space/s/#d=PRIVATE_MARKER',title:'PRIVATE_MARKER',referrer:'PRIVATE_MARKER',data:${JSON.stringify(data)}})`);
     assert.ok(!JSON.stringify(safe).includes('PRIVATE_MARKER'));
     assert.equal(safe.url,'/');assert.equal(safe.title,'Fluyo');assert.equal(safe.referrer,'');
-    assert.equal(safe.data,undefined);
+    assert.equal(JSON.stringify(safe.data),Object.keys(valid).length?JSON.stringify(valid):undefined);
   }
   assert.equal(c.scripts[0].dataset.autoTrack,'false');
 });

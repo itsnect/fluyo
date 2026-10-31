@@ -252,11 +252,14 @@ test('Límite de URL con Historia: demasiado grande → stage url; el diagrama s
   assert.match(read('js/editor-share.js'),/demasiado grande para compartir mediante enlace\. Puedes exportarlo como archivo por ahora\./);
 });
 
-test('Privacidad: sólo share_viewed, sin propiedades, durante todo el playback',async()=>{
+/* FLUYO-GROWTH-FOUNDATION-001 (decisión 320): el Viewer cuenta además el inicio y el final de cada reproducción, y share_viewed
+   dice si había Historia y el idioma. Sigue sin salir nada del documento: solo valores de listas cerradas. */
+test('Privacidad: share_viewed y el inicio/fin de cada reproducción, solo con valores enumerados',async()=>{
   const v=await open(build(PAGO));
   v.el('stPlay').onclick();run(v);v.el('stPlay').onclick();v.advance(300);v.frames(1);v.el('stStop').onclick();
-  assert.deepEqual(v.names(),['share_viewed']);
-  assert.ok(v.events.every(e=>e.props===undefined||Object.keys(e.props).length===0));
+  assert.deepEqual(v.names(),['share_viewed','viewer_story_started','viewer_story_completed','viewer_story_started']);
+  assert.deepEqual({...v.events[0].props},{story:'yes',locale:'es'});
+  assert.ok(v.events.slice(1).every(e=>e.props===undefined||Object.keys(e.props).length===0));
   const src=read('js/viewer.js')+read('js/story-playback.js');
   assert.doesNotMatch(src,/localStorage|sessionStorage|indexedDB|fetch\(|XMLHttpRequest|sendBeacon/);
 });
@@ -284,7 +287,7 @@ test('Arquitectura: una sola receta de reproducción compartida; el viewer no ca
 
 test('Service worker: assets nuevos precacheados y versión subida',()=>{
   const sw=read('sw.js');
-  assert.match(sw,/fluyo-static-v121/);
+  assert.match(sw,/fluyo-static-v122/);
   for(const f of ['story-playback','scenario-engine','scenario-playback','viewer'])
     assert.ok(sw.includes('"./js/'+f+'.js"'),f);
   const idx=read('index.html');

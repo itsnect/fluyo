@@ -83,6 +83,7 @@ Mapa de una línea (detalle en `.ai/ARCHITECTURE.md`):
 - `js/deeplink.js` — documento embebido en la URL (`#d=`) sin pisar la sesión.
 - `js/examples.js` — carga de ejemplos (`?ejemplo=`) con lista blanca.
 - `js/analytics.js` — telemetría Umami, condicionada por hostname.
+- `js/entry.js` — la tarjeta de entrada del primer minuto (solo navegador nuevo, sin enlace profundo).
 - `sw.js` / `manifest.webmanifest` — PWA y offline.
 - `docs/`, `ejemplos/`, `privacidad/`, `soporte/` (+ variantes en inglés) — páginas estáticas.
 

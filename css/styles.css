@@ -1003,6 +1003,21 @@ body.presenting .scNow{display:none;}
 .scNowCaption:empty{display:none;}
 .scNowProgress{flex:none; font:500 var(--fs-label)/1 var(--font-mono); color:rgba(242,237,227,.62); letter-spacing:.04em; font-variant-numeric:tabular-nums;}
 .scNowProgress:empty{display:none;}
+/* FLUYO-GROWTH-FOUNDATION-001 — La entrada del primer minuto (js/entry.js). Una tarjeta de papel en el centro del lienzo vacío,
+   del mismo material que los modales (.card) pero sin velo ni bloqueo: el lienzo sigue a la vista y tocarlo la cierra. Dos
+   salidas apiladas, cada una con su línea de qué pasa al elegirla; la de «ver en marcha» es la destacada (button.primary). */
+.entryCard{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); z-index:7; box-sizing:border-box;
+  width:min(400px, calc(100% - 32px)); padding:22px 22px 20px; background:var(--surface); color:var(--ink);
+  border:1px solid var(--rule-2); border-radius:var(--r-lg); box-shadow:var(--shadow-menu);}
+.entryCard[hidden]{display:none;}
+.entryTitle{font:400 21px/1.25 var(--font-serif); color:var(--ink); margin:0 0 16px;}
+.entryActions{display:flex; flex-direction:column; gap:8px;}
+.entryOpt{display:flex; flex-direction:column; align-items:flex-start; gap:4px; width:100%; height:auto; min-height:var(--ctl-h-touch, 44px);
+  padding:10px 14px; text-align:left; white-space:normal;}
+.entryLbl{font:500 var(--fs-ui)/1.25 var(--font-mono);}
+.entrySub{font:400 var(--fs-label)/1.4 var(--font-mono); opacity:.78;}
+.entryOpt:not(.primary) .entrySub{color:var(--ink-3); opacity:1;}
+body.presenting .entryCard{display:none;}
 /* en el teléfono el momento manda: el estado queda como el punto (vivo / quieto en pausa; el botón ya dice Pausar o Reanudar)
    y su texto, para lectores de pantalla */
 @media (max-width:480px){ #scNowLabel{position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap;} }

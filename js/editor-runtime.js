@@ -62,8 +62,12 @@ function scheduleEditorResize(afterResize=null){
 
 function renderEditorFrame(){
   resizeEditorCanvas();
-  /* FLUYO-I18N-002 S1: la pista del lienzo vacío, en el idioma de la interfaz (render.js conserva el español por defecto) */
-  render(ctx,now(),{renderState:buildEditorRenderState(), emptyHint:typeof FluyoI18n==="object" ? FluyoI18n.t("editor.emptyCanvas","Elige una forma o icono a la izquierda y haz clic aquí — o pulsa «Ejemplo»") : undefined});
+  /* FLUYO-I18N-002 S1: la pista del lienzo vacío, en el idioma de la interfaz (render.js conserva el español por defecto).
+     FLUYO-GROWTH-FOUNDATION-001: con la tarjeta de entrada abierta (entry.js) el lienzo no dice nada: habla la tarjeta. */
+  if(typeof entryTick==="function") entryTick();
+  const frame={renderState:buildEditorRenderState(), emptyHint:typeof FluyoI18n==="object" ? FluyoI18n.t("editor.emptyCanvas","Elige una forma o icono a la izquierda y haz clic aquí — o pulsa «Ejemplo»") : undefined};
+  if(typeof entryVisible==="function" && entryVisible()) frame.emptyHint="";
+  render(ctx,now(),frame);
   /* El textarea de edición vive en el DOM, fuera del canvas. */
   if(typeof syncEditBoxIfMoved==="function") syncEditBoxIfMoved();
   /* Deshacer/Rehacer visibles (ui.js): el bucle es el único sitio por el que pasan todos los cambios de las pilas. */

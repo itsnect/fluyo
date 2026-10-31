@@ -95,7 +95,7 @@ $("btnDemo").onclick=()=>{
       centerView();
       scheduleAutosave();
       resetAnalyticsBaseline();
-      trackEvent("example_loaded",{example:"demo"});
+      trackEvent("example_loaded",{example:"demo",source:"menu"});
     })
     .catch(err=>{ console.warn(err); })   // sin red y sin caché: el botón no hace nada, como cualquier fetch fallido
     .finally(()=>{ demoLoading=false; });

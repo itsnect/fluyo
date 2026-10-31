@@ -373,6 +373,15 @@ try{ if(localStorage.getItem("fluyo.ui.props")==="folded") document.documentElem
         <span id="scNowCaption" class="scNowCaption" aria-live="polite"></span>
         <span id="scNowProgress" class="scNowProgress"></span>
       </div>
+      <!-- FLUYO-GROWTH-FOUNDATION-001: la entrada del primer minuto, solo para un navegador que nunca abrió Fluyo y sin documento
+           en la URL (js/entry.js). Sobre el lienzo vacío y sin bloquearlo: Escape o tocar el lienzo la cierran. -->
+      <section id="entryCard" class="entryCard" aria-labelledby="entryTitle" hidden>
+        <h2 id="entryTitle" class="entryTitle" data-i18n="entry.title">Explica tu sistema, no solo lo dibujes.</h2>
+        <div class="entryActions">
+          <button id="entryExplore" class="primary entryOpt" type="button"><span class="entryLbl" data-i18n="entry.explore">Ver un sistema en marcha</span><span class="entrySub" data-i18n="entry.exploreSub">Una compra online, contada paso a paso.</span></button>
+          <button id="entryBlank" class="entryOpt" type="button"><span class="entryLbl" data-i18n="entry.blank">Empezar en blanco</span><span class="entrySub" data-i18n="entry.blankSub">Dibuja tu sistema y cuenta qué pasa.</span></button>
+        </div>
+      </section>
     </div>
     <div id="iconDrawer" role="dialog" aria-label="Iconos" data-i18n-aria-label="rail.icons"></div>
     <div id="animDrawer" role="dialog" aria-label="GIFs animados" data-i18n-aria-label="drawer.gifs"></div>
@@ -1127,5 +1136,6 @@ try{ if(localStorage.getItem("fluyo.ui.props")==="folded") document.documentElem
 <script src="js/export.js"></script>
 <script src="js/share-url.js"></script>
 <script src="js/editor-share.js"></script>
+<script src="js/entry.js"></script>
 </body>
 </html>

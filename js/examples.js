@@ -103,7 +103,7 @@ function loadExampleFromURL(){
           if(eleccion==="keep") return;
           /* Con Historias, se abre en modo Historias con la primera seleccionada (export.js), como el botón «Ejemplo». */
           showExampleStories();
-          trackEvent("example_loaded",{example:EXAMPLE_SLUG});
+          trackEvent("example_loaded",{example:EXAMPLE_SLUG,source:"url"});
         }
       });
     })

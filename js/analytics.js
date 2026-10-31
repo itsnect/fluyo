@@ -73,17 +73,39 @@ const ANALYTICS_PROVIDER = {
 /* Lista cerrada validada antes de encolar y antes de enviar al proveedor.
    `share_viewed` y `share_opened_in_editor` se emiten desde el viewer de /s/
    (js/viewer.js): sin propiedades, sin ID, sin URL, sin nada del documento.
-   `share_created` se emite tras generar una URL válida en el editor. */
+   `share_created` se emite tras generar una URL válida en el editor.
+
+   FLUYO-GROWTH-FOUNDATION-001: ningún nombre cambia (las series siguen); se añaden propiedades enumeradas y los eventos de la
+   Historia y de la entrada. `editor_opened` hace de «app abierta» y `share_viewed` de «viewer abierto». Una propiedad fuera de
+   su lista descarta el evento ENTERO: por eso `locale` pasa siempre por analyticsLocale(). */
+const YES_NO = ["yes","no"];
+const ANALYTICS_LOCALES = ["es","en","fr","ja","zh","other"];
 const ANALYTICS_EVENTS = {
-  editor_opened:{}, first_edit_completed:{}, diagram_created:{},
+  editor_opened:{entry:["direct","example","link"], returning:YES_NO, locale:ANALYTICS_LOCALES},
+  first_edit_completed:{}, diagram_created:{},
   diagram_saved:{format:["fluyo_json"]}, present_started:{},
   diagram_exported:{format:["png","jpg","svg","gif"]},
   file_imported:{source:["file","link"],format:["fluyo_json"]},
-  example_loaded:{example:["demo","compra-online","inicio-de-sesion-oauth2","pedido-asincrono-cola","funnel-de-ventas","onboarding-de-cliente","cadena-de-suministro","kafka-event-pipeline","microservicios-api-gateway","oauth2-flujo-autenticacion","pipeline-etl-datos","arquitectura-serverless-aws"]},
+  example_loaded:{example:["demo","compra-online","inicio-de-sesion-oauth2","pedido-asincrono-cola","funnel-de-ventas","onboarding-de-cliente","cadena-de-suministro","kafka-event-pipeline","microservicios-api-gateway","oauth2-flujo-autenticacion","pipeline-etl-datos","arquitectura-serverless-aws"],
+    source:["url","menu","entry"]},
   gif_animation_added:{anim:["spinner","progress","ticket","errmove","check","typing","upload","pulse"]},
   link_failed:{reason:["decode","schema","too_large","unsupported"]},
-  share_created:{}, share_viewed:{}, share_opened_in_editor:{}
+  share_created:{kind:["story","diagram"], variants:YES_NO},
+  share_viewed:{story:YES_NO, locale:ANALYTICS_LOCALES},
+  share_opened_in_editor:{},
+  entry_chosen:{choice:["explore","blank","dismiss"]},
+  story_created:{origin:["new","variant","copy"]},
+  story_started:{surface:["editor","present"], trigger:["user","entry"]},
+  story_completed:{surface:["editor","present"]},
+  viewer_story_started:{}, viewer_story_completed:{}
 };
+/* El idioma de la interfaz de esta carga, reducido a la lista cerrada (nunca el del navegador ni el del documento). */
+function analyticsLocale(){
+  try{
+    const l=typeof FluyoI18n==="object" ? FluyoI18n.locale() : "es";
+    return ANALYTICS_LOCALES.includes(l) ? l : "other";
+  }catch(e){ return "other"; }
+}
 function analyticsProps(name, props={}){
   if(!Object.prototype.hasOwnProperty.call(ANALYTICS_EVENTS,name)) return null;
   const schema=ANALYTICS_EVENTS[name], clean={};

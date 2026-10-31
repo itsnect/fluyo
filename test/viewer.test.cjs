@@ -253,13 +253,15 @@ test('13. analytics no envía IDs, URLs ni contenido del documento',async()=>{
   await v.boot();
   v.frames(2);
   v.connect();
-  const payload=v.run(`analyticsBeforeSend("event",{name:"share_viewed",data:{id:"secreto",url:"https://x/s/secreto"},url:"https://fluyo.space/s/secreto",referrer:"https://fluyo.space/s/secreto",title:"secreto"})`);
+  /* FLUYO-GROWTH-FOUNDATION-001 (decisión 320): share_viewed lleva story y locale enumerados; lo demás se quita. */
+  const payload=v.run(`analyticsBeforeSend("event",{name:"share_viewed",data:{story:"yes",locale:"es",id:"secreto",url:"https://x/s/secreto"},url:"https://fluyo.space/s/secreto",referrer:"https://fluyo.space/s/secreto",title:"secreto"})`);
   assert.ok(payload, 'share_viewed debe pasar el filtro');
   assert.equal(payload.url, '/');
   assert.equal(payload.referrer, '');
   assert.equal(payload.title, 'Fluyo');
+  assert.equal(JSON.stringify(payload.data), '{"story":"yes","locale":"es"}');
   assert.ok(!JSON.stringify(payload).includes('secreto'), 'ningún dato sensible en el payload');
-  for(const e of v.events) assert.equal(JSON.stringify(e.props), '{}');
+  for(const e of v.events) assert.ok(['{}','{"story":"yes","locale":"es"}','{"story":"no","locale":"es"}'].includes(JSON.stringify(e.props)), JSON.stringify(e.props));
 });
 
 test('14. meta robots noindex, nofollow presente en el shell',()=>{

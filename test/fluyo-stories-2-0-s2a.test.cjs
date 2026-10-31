@@ -221,7 +221,10 @@ test("K1 · FluyoStoryClock: outcomeOf = el desenlace del motor (los tres ejempl
 test("C1 · kernel, codec, formato, render, ejemplos y fluyo-mcp intactos", () => {
   const KEEP = ["js/config.js", "js/safe-svg.js", "js/model.js", "js/scenario-engine.js", "js/scenario-playback.js", "js/story-playback.js", "js/document-integrity.js",
     "js/story-authoring.js", "js/render.js", "js/link-codec.js", "js/deeplink.js", "js/examples.js", "ejemplos"];
-  assert.equal(execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...KEEP], { encoding: "utf8" }).trim(), "");
+  /* FLUYO-GROWTH-FOUNDATION-001 va encima y toca algunos (eventos de analítica): con ella deshecha, igual que en la base */
+  const { undoGrowth } = require("./fluyo-growth-foundation-001-undo.cjs");
+  const stillChanged = (names) => names.split("\n").filter(Boolean).filter((f) => undoGrowth(f, read(f)) !== execFileSync("git", ["-C", gitRoot, "show", BASE + ":" + f], { encoding: "utf8" }).replace(/\r\n/g, "\n")).join("\n");
+  assert.equal(stillChanged(execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...KEEP], { encoding: "utf8" }).trim()), "");
   /* el editor de Historias lo cambia S2b (variantes): con S2b deshecha, igual que en la base */
   const { undoS2b } = require("./fluyo-stories-2-0-s2b-undo.cjs");
   assert.equal(undoS2b("js/editor-scenarios.js", read("js/editor-scenarios.js")), atBase("js/editor-scenarios.js").replace(/\r\n/g, "\n"), "js/editor-scenarios.js");
@@ -237,17 +240,19 @@ test("C2 · alcance frente a 7aa22f1: solo estos archivos servidos; undoS2a (par
   const { undoS2a, PIECES, NEW_FILES } = require("./fluyo-stories-2-0-s2a-undo.cjs");
   const { PIECES: PIECES_ST2B } = require("./fluyo-stories-2-0-s2b-undo.cjs");   /* FLUYO-STORIES-2.0 S2b va encima (undoS2a la deshace antes) */
   const { PIECES: PIECES_OUT } = require("./fluyo-stories-2-0-outcome-undo.cjs");   /* FLUYO-STORIES-2.0 · etiqueta del desenlace, encima de S2b (undoS2b la deshace antes) */
+  const { PIECES: PIECES_GF, NEW_FILES: NEW_GF } = require("./fluyo-growth-foundation-001-undo.cjs");   /* FLUYO-GROWTH-FOUNDATION-001, encima de la etiqueta del desenlace (undoOutcome la deshace antes) */
   const changed = execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean);
   const untracked = execFileSync("git", ["-C", gitRoot, "ls-files", "--others", "--exclude-standard", "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean);
   assert.deepEqual([...new Set([...changed, ...untracked])].sort(), ["css/share.css", "css/styles.css", "index.html", "js/editor-share.js", "js/i18n-en-editor.js", "js/i18n-en.js",
-    "js/present-story.js", "js/share-url.js", "js/story-clock.js", "js/viewer.js", "s/index.html", "sw.js", ...Object.keys(PIECES_ST2B), ...Object.keys(PIECES_OUT)].filter((f, i, a) => a.indexOf(f) === i).sort());
+    "js/present-story.js", "js/share-url.js", "js/story-clock.js", "js/viewer.js", "s/index.html", "sw.js", ...Object.keys(PIECES_ST2B), ...Object.keys(PIECES_OUT), ...Object.keys(PIECES_GF), ...NEW_GF].filter((f, i, a) => a.indexOf(f) === i).sort());
   assert.deepEqual(NEW_FILES, []);
   const noCache = (t) => t.replace(/\r\n/g, "\n").replace(/const CACHE = "fluyo-static-v\d+";/, "");
-  for (const f of [...new Set(Object.keys(PIECES).concat(Object.keys(PIECES_ST2B), Object.keys(PIECES_OUT), Object.keys(PIECES_OUT), "sw.js"))]) assert.equal(noCache(undoS2a(f, read(f))), noCache(atBase(f)), f + ": undoS2a exacto");
+  for (const f of [...new Set(Object.keys(PIECES).concat(Object.keys(PIECES_ST2B), Object.keys(PIECES_OUT), Object.keys(PIECES_GF), Object.keys(PIECES_OUT), Object.keys(PIECES_GF), "sw.js"))]) assert.equal(noCache(undoS2a(f, read(f))), noCache(atBase(f)), f + ": undoS2a exacto");
 });
 
 test("C3 · claves nuevas en inglés y usadas; sin Undo, analíticas ni campos nuevos; CACHE v119", () => {
-  const diff = execFileSync("git", ["-C", gitRoot, "diff", "-U0", BASE, "--", "js", "s", "index.html", ":(exclude)js/editor-scenarios.js"]   /* el editor de Historias lo cambia S2b (variantes) */, { encoding: "utf8" }).split("\n").filter((l) => /^\+[^+]/.test(l)).join("\n");
+  const diff = execFileSync("git", ["-C", gitRoot, "diff", "-U0", BASE, "--", "js", "s", "index.html", ":(exclude)js/editor-scenarios.js"]   /* el editor de Historias lo cambia S2b (variantes) */, { encoding: "utf8" }).split("\n").filter((l) => /^\+[^+]/.test(l))
+    .filter((l) => !require("./fluyo-growth-foundation-001-undo.cjs").ADDED_LINES.has(l.slice(1))).join("\n");   /* sin las líneas de FLUYO-GROWTH-FOUNDATION-001, que va encima */
   const html = read("index.html") + read("s/index.html"), es = read("js/editor-share.js"), en = read("js/i18n-en.js"), ene = read("js/i18n-en-editor.js");
   for (const k of ["share.others", "share.noteStoryOthers", "share.othersTooLarge"]) {
     assert.ok((es + html).includes(`"${k}"`), k + " se usa");
@@ -256,5 +261,5 @@ test("C3 · claves nuevas en inglés y usadas; sin Undo, analíticas ni campos n
   assert.ok(html.includes('data-i18n="story.others"') && en.includes('"story.others":"Other ways"'), "«Otras formas» / «Other ways»");
   assert.doesNotMatch(diff, /pushUndo|undoStack|trackEvent|scheduleAutosave/, "nada nuevo entra en Undo, autoguardado ni analíticas");
   assert.doesNotMatch(diff, /\.(purpose|variantOf|family)\b/, "ningún campo nuevo en el documento");
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v121";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v122";/);
 });

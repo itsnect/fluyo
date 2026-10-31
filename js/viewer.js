@@ -138,7 +138,11 @@ function renderViewerFrame(){
     if(flow) rs.scenarioRuntime.flow=flow;
   }
   render(sctx, now(), {renderState:rs, emptyHint:FluyoI18n.t("viewer.emptyPage","Esta página no contiene elementos.")});
-  if(story && story.status==="running" && !FluyoStoryClock.isPaused(story.clock) && FluyoStory.isFinished(story.playback)) story.status="completed";
+  if(story && story.status==="running" && !FluyoStoryClock.isPaused(story.clock) && FluyoStory.isFinished(story.playback)){
+    story.status="completed";
+    /* una vez por reproducción, aunque después se salte atrás y vuelva a terminar */
+    if(!story.counted){ story.counted=true; trackEvent("viewer_story_completed"); }
+  }
   storyRefresh();
   storyPlace();
 }
@@ -191,7 +195,8 @@ function storyPlay(){
   /* FLUYO-018.21: la misma receta + el instante visible de cada momento (dependencias de llegada) */
   const started=FluyoStoryClock.start(P(), sc, FluyoStoryClock.now(clock, performance.now()), FluyoI18n.t);
   if(!started.ok){ storyError=started.errors[0]||null; storyRefresh(); return; }
-  story={scenario:sc, playback:started.playback, status:"running", clock};
+  story={scenario:sc, playback:started.playback, status:"running", clock, counted:false};
+  trackEvent("viewer_story_started");
   followOn=true; followKey=null;
   storyRefresh();
 }
@@ -777,7 +782,8 @@ async function bootViewer(){
     }
     setStatus("");
     shareViewed=true;
-    trackEvent("share_viewed");
+    /* FLUYO-GROWTH-FOUNDATION-001: si lo que llegó trae una Historia reproducible y en qué idioma se ve; nada del documento. */
+    trackEvent("share_viewed",{story:storyScenario()?"yes":"no",locale:analyticsLocale()});
     viewerRaf=requestAnimationFrame(()=>viewerLoop(generation));
   }catch(e){ showShareError("invalid_document"); }
 }

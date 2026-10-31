@@ -218,6 +218,9 @@ async function liveEditor(browser, base) {
   await editorReady(page);
   await page.evaluate((fx) => { applyProjectData(JSON.parse(fx)); fitView(); clearSel(); renderTabs(); }, FIXTURE);
   await page.evaluate(() => { const n = doc.pages[doc.cur].nodes[0]; pushUndo(); n.x += 10; });
+  /* FLUYO-BRAND-RUTA-001: la lectura del zoom (#zoomPct) la sincroniza el bucle del editor un fotograma después de fitView; sin esperar
+     a ese fotograma, «antes» podía quedarse con el zoom anterior (80 %) según el reparto de fotogramas. Se compara el estado estable. */
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
   const before = { snap: await snapshot(page), doc: await page.evaluate(() => JSON.stringify(serializeProject())), undo: await page.evaluate(() => undoStack.length), pref: await page.evaluate(() => localStorage.getItem("fluyo.ui.lang")) };
   /* ida y vuelta pura (sin cambiar de estado): es → ja → zh → fr → en → es */
   await page.evaluate(() => FluyoI18n.setLocale("ja"));
@@ -283,7 +286,8 @@ async function pseudo(browser, base) {
       for (let n = w.nextNode(); n; n = w.nextNode()) {
         const t = n.data.trim(), el = n.parentElement;
         if (!/\p{L}/u.test(t) || !el || !el.getClientRects().length || getComputedStyle(el).visibility === "hidden") continue;
-        if (el.closest("[aria-hidden=true]") || /^(Fluyo|flu|yo)$/.test(t)) continue;
+        /* FLUYO-BRAND-RUTA-001: la palabra de la marca Ruta, «fluyo», lleva translate="no" (decisión 305): no se traduce */
+        if (el.closest("[aria-hidden=true], [translate=no]") || /^(Fluyo|fluyo|flu|yo)$/.test(t)) continue;
         if (!(n.data.includes(OPEN) || el.textContent.includes(OPEN))) out.push(t.slice(0, 40));
       }
     }

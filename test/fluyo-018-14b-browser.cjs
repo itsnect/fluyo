@@ -77,7 +77,10 @@ const MEASURE = ([touch, crit]) => {
   for (let y = 4; y < H; y += 12) for (let x = 4; x < W; x += 12) { n++; if (document.elementFromPoint(x, y) === cvEl) hit++; }
   const hdr = document.querySelector("body > header"), hr = hdr.getBoundingClientRect();
   const kids = [...hdr.querySelectorAll(":scope > *, :scope > .modeSwitch > *, :scope > .hdrHistory > *")].filter((e) => vis(e) && !e.classList.contains("hdrDiv") && !e.closest(".moreMenu"));
-  const rows = new Set(kids.map((e) => { const b = e.getBoundingClientRect(); return Math.round((b.top + b.height / 2) / 10); }));
+  /* filas = grupos de centros a más de 10 px; FLUYO-BRAND-RUTA-001: Math.round(centro / 10) partía en dos una fila cuando un centro caía
+     en 24,95 px y otro en 25,0 (el símbolo de 21,7 px se ajusta al píxel), sin ningún cambio visible */
+  const centers = kids.map((e) => { const b = e.getBoundingClientRect(); return b.top + b.height / 2; }).sort((a, b) => a - b);
+  const rows = { size: centers.length ? 1 + centers.filter((c, i) => i > 0 && c - centers[i - 1] > 10).length : 0 };
   const aside = document.querySelector("aside"), ar = vis(aside) ? aside.getBoundingClientRect() : null;
   const min = touch ? 40 : 28;
   const ctl = [...document.querySelectorAll("button, select, input:not([type=hidden]):not([type=file]), [role=button], a.menuItem, summary")].filter((e) => vis(e) && !e.closest("#presentBar,#presentStory,.scDialog,#shareDialog,.overlay,#iconDrawer,#animDrawer,#editBox,.swatches,.swRow"));   /* 018.23: «⋯» de una fila de color se mide con sus muestras (fluyo-018-23-browser) */

@@ -46,7 +46,7 @@ const FluyoI18n=(()=>{
      nunca se traduce; released: se ofrece en el selector y por detección. */
   const LANGS=[
     {code:"es", tag:"es", name:"Español", released:true},
-    {code:"en", tag:"en", name:"English", released:false},
+    {code:"en", tag:"en", name:"English", released:true},   /* decisión 324: publicado en v122 (FLUYO-I18N-EN-RELEASE-AUDIT) */
     {code:"fr", tag:"fr", name:"Français", released:false},
     {code:"ja", tag:"ja", name:"日本語", released:false},
     {code:"zh", tag:"zh-Hans", name:"简体中文", released:false}

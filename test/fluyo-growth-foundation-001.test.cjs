@@ -244,3 +244,13 @@ test("inglés publicable: <title> traducible y enlaces legales a la página del 
   assert.match(read("js/editor-runtime.js"), /FluyoI18n\.t\("editor\.emptyCanvas","Empieza añadiendo elementos al lienzo\."\)/);
   assert.equal(en["editor.emptyCanvas"], "Start by adding elements to the canvas.");
 });
+
+test("decisión 324: publicados el español y el inglés; fr/ja/zh siguen sin publicar; deuda y enlaces externos escritos", () => {
+  const src = read("js/i18n.js");
+  assert.match(src, /\{code:"en", tag:"en", name:"English", released:true\}/);
+  for (const c of ["fr", "ja", "zh"]) assert.ok(new RegExp('\{code:"' + c + '"[^}]*released:false\}').test(src), c + " sin publicar");
+  assert.match(read(".ai/DECISIONS.md"), /^324\. /m);
+  const audit = read(".ai/tasks/FLUYO-I18N-EN-RELEASE-AUDIT.md");
+  for (const s of ["/ejemplos/", "/docs/", "`fluyo.space/`"]) assert.ok(audit.includes(s), s);
+  assert.match(read("test/cdp-lite.cjs"), /--lang=es-ES/);
+});

@@ -74,17 +74,18 @@ test("runtime · plurales con Intl.PluralRules (params.count)", () => {
   assert.equal(en.I.t("p", P, { count: 2 }), "2 pages");
 });
 
-test("runtime · idioma de la carga: ?lang › preferencia de este navegador › español; sin detección automática; lo desconocido es español", () => {
+test("runtime · idioma de la carga: ?lang › preferencia de este navegador › sistema (publicados) › español", () => {
   assert.equal(i18n({ search: "?lang=en", stored: "es" }).I.locale(), "en", "la URL manda en esta carga");
   assert.equal(i18n({ search: "?lang=EN-us" }).I.locale(), "en", "etiqueta BCP 47 normalizada");
   assert.equal(i18n({ stored: "en" }).I.locale(), "en", "la preferencia guardada");
   assert.equal(i18n({ search: "?lang=de", stored: "en" }).I.locale(), "en", "un idioma sin diccionario se ignora");
   assert.equal(i18n({ search: "?lang=de" }).I.locale(), "es");
-  /* FLUYO-I18N-002 S0: la detección solo elige idiomas PUBLICADOS; mientras solo lo esté el español, nadie ve una interfaz a medias sin pedirla */
-  assert.equal(i18n({ languages: ["en-US", "en"] }).I.locale(), "es", "el inglés aún no está publicado: la detección no lo elige");
+  /* FLUYO-I18N-002 S0: la detección solo elige idiomas PUBLICADOS. Decisión 324 (v122): el inglés lo está */
+  assert.equal(i18n({ languages: ["en-US", "en"] }).I.locale(), "en", "inglés publicado: la detección lo elige");
+  assert.equal(i18n({ languages: ["es-CL"] }).I.locale(), "es", "un navegador en español sigue en español");
   assert.equal(i18n({ search: "?lang=en", withEn: false }).I.locale(), "es", "sin el diccionario cargado, español");
   assert.deepEqual([...i18n().I.supported()], ["es", "en", "fr", "ja", "zh"]);
-  assert.deepEqual([...i18n().I.released()], ["es"]);
+  assert.deepEqual([...i18n().I.released()], ["es", "en"]);   /* decisión 324: el inglés se publica en v122 */
 });
 
 test("runtime · setLocale: persist guarda la preferencia (solo en este navegador); sin persist, no", () => {

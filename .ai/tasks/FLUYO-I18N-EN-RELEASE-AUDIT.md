@@ -1,6 +1,6 @@
 # FLUYO-I18N-EN-RELEASE-AUDIT — ¿Se puede publicar el inglés?
 
-**Fecha:** 2026-10-31 · **Rama:** `growth-foundation-001` (dentro de FLUYO-GROWTH-FOUNDATION-001, release candidata v122) · **Estado:** auditoría hecha; correcciones pequeñas aplicadas; `released` del inglés **sin cambiar** (espera aprobación del PO).
+**Fecha:** 2026-10-31 · **Rama:** `growth-foundation-001` (dentro de FLUYO-GROWTH-FOUNDATION-001, release candidata v122) · **Estado:** APROBADA por el PO; **inglés publicado** (`released:true`, decisión 324) en la release v122.
 
 ## Método
 
@@ -70,12 +70,24 @@ Con esto, `index.html` pasa de 65 textos sin migrar a 0.
 
 Ninguno es interfaz visible, y la mayoría no se puede tocar sin entrar en el kernel. Esa puerta se escribió esperando cerrar S1–S3 y no se puede cumplir tal cual.
 
-## Recomendación: **EN READY TO RELEASE** (pendiente de aprobación del PO)
+## Recomendación: **EN READY TO RELEASE** — aprobada y aplicada (decisión 324)
 
-Cambio exacto para publicar el inglés (no aplicado):
+Cambio aplicado:
 
 1. `js/i18n.js`: `{code:"en", tag:"en", name:"English", released:true}`.
 2. Redefinir la puerta de la decisión 269 para el inglés como «diccionario completo + cero texto sin migrar en las páginas de la aplicación (`index.html`, `s/index.html`, `404.html`) + lo que quede en JS dentro de una lista explícita de no-interfaz». Eso implica actualizar `releaseProblems()` y las tres aserciones que hoy fijan «solo español publicado» en `test/fluyo-i18n-002-s0.test.cjs` (líneas 56, 59 y 235), y anotar la decisión.
 3. Mismo CACHE `v122` si entra en esta release (cambia un archivo servido de la candidata, que aún no está desplegada).
 
-**Efecto** (probado en una copia con `released:true`): un navegador en inglés ve la tarjeta y toda la interfaz en inglés sin `?lang`. Uno en español sigue en español. **Cualquier otro idioma** (de, pt, fr, ja…) recibe inglés, por la reserva de la decisión 270. El Viewer se comporta igual.
+**Efecto** (probado primero en una copia y después en la rama, `test/fluyo-growth-foundation-001-browser.cjs`): un navegador en inglés ve la tarjeta y toda la interfaz en inglés sin `?lang`. Uno en español sigue en español. **Cualquier otro idioma** (de, pt, fr, ja…) recibe inglés, por la reserva de la decisión 270. El Viewer se comporta igual.
+
+## Deuda aceptada por el PO para v122 (no se corrige en v122)
+
+- `/ejemplos/` sigue solo en español.
+- `/docs/` sigue solo en español.
+- Los documentos embebidos desde la galería pueden traer contenido en español.
+- La descripción y las etiquetas sociales actuales pueden seguir en español.
+- El texto técnico no visible del kernel y del MCP no bloquea la publicación.
+
+## Enlaces externos en inglés
+
+Hasta que exista una experiencia inglesa de ejemplos, los enlaces externos en inglés apuntan a **`fluyo.space/`** y nunca a `/ejemplos/`. Con el inglés publicado, `fluyo.space/` ya abre en inglés en un navegador en inglés (sin `?lang`).

@@ -1,6 +1,6 @@
 # FLUYO-GROWTH-FOUNDATION-001 — Base para medir el funnel y activar en el primer minuto
 
-Estado: v122 READY FOR FINAL PO QA (rama `growth-foundation-001`; sin push, merge ni despliegue). D1–D4 aprobadas por el PO.
+Estado: **v122 READY FOR MERGE / DEPLOY** (rama `growth-foundation-001`; sin push, merge ni despliegue: esperan instrucción del PO). D1–D4 aprobadas y congeladas; inglés publicado (decisión 324).
 Owner/agente actual: libre (espera QA del PO)
 
 > Repo público: este documento no contiene métricas, estrategia ni datos privados. Las cifras de uso se leen en el panel de analítica, fuera del repositorio.
@@ -144,7 +144,7 @@ Recorridos de navegador cubiertos: nuevo escritorio (Explorar → Historia repro
 - **«Tarjeta mostrada» se infiere**: `editor_opened` {`entry: direct`, `returning: no`} ≈ tarjeta mostrada (salvo `localStorage` inaccesible, raro).
 - **`story_completed` cuenta llegar al final**, también saltando de momento en momento; no mide atención.
 - **El Viewer no escribe `fluyo.seen`**: quien solo vio un enlace compartido verá la tarjeta al abrir el editor (intencional).
-- **El inglés no está publicado** (decisión 269): un navegador en inglés ve la interfaz en español salvo con `?lang=en`. Auditoría y propuesta de publicación: [`FLUYO-I18N-EN-RELEASE-AUDIT.md`](FLUYO-I18N-EN-RELEASE-AUDIT.md) (recomendación: EN READY TO RELEASE, pendiente del PO; `released` sin cambiar).
+- **Inglés publicado en v122** (decisión 324, [`FLUYO-I18N-EN-RELEASE-AUDIT.md`](FLUYO-I18N-EN-RELEASE-AUDIT.md)). Deuda aceptada: `/ejemplos/` y `/docs/` solo en español, contenido español en los documentos de la galería, descripción y etiquetas sociales en español. Los enlaces externos en inglés apuntan a `fluyo.space/`, no a `/ejemplos/`.
 - En móvil, al reproducir el ejemplo la cámara sigue el momento y el diagrama no se ve entero (comportamiento previo de los ejemplos en 390 px).
 - ~~La pista del lienzo vacío nombraba «Ejemplo»~~: corregido (`5bbb094`), ahora «Empieza añadiendo elementos al lienzo.» / «Start by adding elements to the canvas.», cabe a 390 px.
 

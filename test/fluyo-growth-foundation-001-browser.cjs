@@ -18,8 +18,8 @@ window.umami={track:function(n,d){var payload={website:cs.dataset.websiteId,host
 title:document.title,referrer:document.referrer||"https://referrer.example/",language:navigator.language,screen:"1x1",name:n,data:d};
 var p=bs?bs("event",payload):payload;if(p)window.__sent.push(p);return Promise.resolve();}};})();`;
 
-async function open(port, { mobile = false } = {}) {
-  const b = await launch(["--host-resolver-rules=MAP fluyo.space 127.0.0.1:" + port, "--disable-features=HttpsUpgrades"]), errors = [];
+async function open(port, { mobile = false, lang = null } = {}) {
+  const b = await launch(["--host-resolver-rules=MAP fluyo.space 127.0.0.1:" + port, "--disable-features=HttpsUpgrades", ...(lang ? ["--lang=" + lang, "--accept-lang=" + lang] : [])]), errors = [];
   b.on((d) => {
     if (d.method === "Runtime.exceptionThrown") errors.push(d.params.exceptionDetails.exception ? d.params.exceptionDetails.exception.description : d.params.exceptionDetails.text);
     if (d.method === "Runtime.consoleAPICalled" && d.params.type === "error") errors.push(d.params.args.map((a) => a.value || a.description).join(" "));
@@ -236,6 +236,24 @@ const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
         check(playing && eq(await b.find("story_started"), [{ surface: "editor", trigger: "entry" }]), `[${lang}] tocar Explorar: la Historia se reproduce`);
         check(await b.ev(`(() => { const n = document.getElementById("scNow"); return !!n && !n.hidden && n.getBoundingClientRect().width > 0; })()`), `[${lang}] el rótulo del momento se ve sobre el lienzo`);
         check(!b.errors.length, `[${lang}] sin errores de consola ` + b.errors.join(" | "));
+      } finally { b.close(); }
+    }
+
+    console.log("\nIDIOMA DEL NAVEGADOR, SIN ?lang (decisión 324: inglés publicado)");
+    for (const [lang, want, title] of [["en-US", "en", "Explain your system, not just draw it."], ["es-CL", "es", "Explica tu sistema, no solo lo dibujes."], ["de-DE", "en", "Explain your system, not just draw it."]]) {
+      const b = await open(port, { lang });
+      try {
+        await b.goto(BASE + "/", 900);
+        const r = await b.ev(`({ nav: navigator.languages, locale: FluyoI18n.locale(), html: document.documentElement.lang })`);
+        const c = await card(b);
+        check(r.locale === want && r.html === want && !!c && c.title === title && eq(await b.find("editor_opened"), [{ entry: "direct", returning: "no", locale: want }]),
+          `${lang} (${r.nav.join(",")}): interfaz ${r.locale}, tarjeta «${c && c.title}», editor_opened locale ${want}`);
+        await b.ev(`document.getElementById("entryExplore").click()`); await waitFor(b, `scStatus === "running"`, 8000);
+        const page = await b.ev(`P().name`);
+        check(want === "en" ? page === "Online checkout" : page === "Compra online", `${lang}: el ejemplo en su edición (${page}) y reproduciéndose`);
+        await b.goto(BASE + "/s/" + global.HASH, 1000);
+        check((await b.ev(`FluyoI18n.locale()`)) === want && eq((await b.find("share_viewed"))[0], { story: "no", locale: want }), `${lang}: el Viewer también en ${want}`);
+        check(!b.errors.length, `${lang}: sin errores de consola ` + b.errors.join(" | "));
       } finally { b.close(); }
     }
 

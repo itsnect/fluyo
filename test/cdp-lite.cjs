@@ -24,7 +24,10 @@ function serve(root) {
 async function launch(extra = []) {
   const port = 9300 + Math.floor(Math.random() * 500);
   const prof = fs.mkdtempSync(path.join(os.tmpdir(), "s4-prof-"));
-  const proc = spawn(CHROME, ["--headless=new", "--remote-debugging-port=" + port, "--user-data-dir=" + prof, "--no-first-run", "--no-default-browser-check", "--disable-gpu", "--force-device-scale-factor=1", "--window-size=1440,900", ...extra, "about:blank"], { stdio: "ignore" });
+  /* Decisión 324: con el inglés publicado, el idioma del navegador decide la interfaz. Los tests se escribieron en español: se fija
+     aquí, salvo que el test pida otro (--lang=… en extra). */
+  const lang = extra.some((a) => a.startsWith("--lang=")) ? [] : ["--lang=es-ES", "--accept-lang=es-ES"];
+  const proc = spawn(CHROME, ["--headless=new", "--remote-debugging-port=" + port, "--user-data-dir=" + prof, "--no-first-run", "--no-default-browser-check", "--disable-gpu", "--force-device-scale-factor=1", "--window-size=1440,900", ...lang, ...extra, "about:blank"], { stdio: "ignore" });
   let list;
   for (let i = 0; i < 60; i++) { try { list = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json(); if (list.length) break; } catch {} await new Promise((r) => setTimeout(r, 250)); }
   const page = list.find((t) => t.type === "page");

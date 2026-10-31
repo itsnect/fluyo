@@ -91,7 +91,7 @@ test("JS del cromo: sin texto de interfaz suelto; lo que queda es de otras slice
   assert.ok(!scan.jsHardcoded(read("js/ui.js")).some((x) => /^Limpiar página/.test(x.s)), "ui.js: la confirmación de Limpiar página pasa por FluyoI18n.t");
 });
 
-test("inglés completo, sin restos en español; fr/ja/zh sin claves nuevas (caen al inglés) y sin publicar", () => {
+test("inglés completo, sin restos en español; fr/ja/zh sin claves nuevas (caen al inglés) y sin publicar; el inglés, publicado (v122)", () => {
   const keys = new Set(scan.catalog().uses.map((u) => u.key));
   assert.deepEqual([...keys].filter((k) => !(k in EN)), [], "claves sin inglés");
   for (const [k, v] of Object.entries(EN)) for (const s of typeof v === "string" ? [v] : Object.values(v)) {
@@ -105,8 +105,8 @@ test("inglés completo, sin restos en español; fr/ja/zh sin claves nuevas (caen
   const ctx = vm.createContext({ URLSearchParams, Intl, location: { search: "" }, navigator: { languages: ["en-US"] } });
   for (const f of DICT_FILES) vm.runInContext(read(f), ctx);
   vm.runInContext(read("js/i18n.js"), ctx);
-  assert.deepEqual([...vm.runInContext("FluyoI18n.released()", ctx)], ["es"], "nada se publica en S1 (sin selector ni detección)");
-  assert.equal(vm.runInContext("FluyoI18n.locale()", ctx), "es", "un sistema en inglés sigue viendo español");
+  assert.deepEqual([...vm.runInContext("FluyoI18n.released()", ctx)], ["es", "en"], "S1 no publicó nada; el inglés se publica en v122 (decisión 324)");
+  assert.equal(vm.runInContext("FluyoI18n.locale()", ctx), "en", "decisión 324: un sistema en inglés ve inglés");
 });
 
 /* El texto visible del HTML (sin marcas ni atributos) */

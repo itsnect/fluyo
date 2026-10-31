@@ -50,13 +50,13 @@ const catalogBase = () => new Map(scan.catalog().uses.map((u) => [u.key, u.es]))
 
 /* ───────────── runtime ───────────── */
 
-test("registro: cinco idiomas con su etiqueta BCP 47 y su nombre propio; publicado solo el español", () => {
+test("registro: cinco idiomas con su etiqueta BCP 47 y su nombre propio; publicados el español y el inglés (decisión 324)", () => {
   assert.deepEqual(LANGS.map((l) => [l.code, l.tag, l.name]), [
     ["es", "es", "Español"], ["en", "en", "English"], ["fr", "fr", "Français"], ["ja", "ja", "日本語"], ["zh", "zh-Hans", "简体中文"]]);
-  assert.deepEqual(LANGS.filter((l) => l.released).map((l) => l.code), ["es"], "ningún idioma a medias se publica");
+  assert.deepEqual(LANGS.filter((l) => l.released).map((l) => l.code), ["es", "en"], "fr, ja y zh esperan revisión nativa (decisión 275)");
   const c = i18n();
   assert.deepEqual([...c.I.supported()], ["es", "en", "fr", "ja", "zh"]);
-  assert.deepEqual([...c.I.released()], ["es"]);
+  assert.deepEqual([...c.I.released()], ["es", "en"]);
   assert.deepEqual([...c.I.languages()].map((l) => [l.code, l.available]), CODES.map((x) => [x, true]));
   assert.equal(c.I.BASE, "es"); assert.equal(c.I.FALLBACK, "en");
   assert.deepEqual([...i18n({ files: [] }).I.languages()].map((l) => l.available), [true, false, false, false, false], "sin diccionarios, solo el español");
@@ -110,10 +110,11 @@ test("idioma de la carga: ?lang › preferencia › sistema (solo publicados; ot
   assert.equal(i18n({ search: "?lang=zh-TW" }).I.locale(), "zh", "zh-TW/zh-HK → chino simplificado");
   assert.equal(i18n({ search: "?lang=ja-JP", stored: "fr" }).I.locale(), "ja", "la URL manda en esta carga");
   assert.equal(i18n({ stored: "fr" }).I.locale(), "fr", "la preferencia guardada, aunque el idioma no esté publicado (solo la escribe el selector)");
-  assert.equal(i18n({ stored: "de", languages: ["fr-FR"] }).I.locale(), "es", "preferencia desconocida → sistema → solo publicados → español");
-  /* Hoy: solo el español publicado. Nadie recibe por detección un idioma a medias. */
-  for (const langs of [["en-US"], ["fr-CA", "en"], ["ja-JP"], ["zh-CN"], ["de-DE"], []]) assert.equal(i18n({ languages: langs }).I.locale(), "es", JSON.stringify(langs));
-  assert.equal(i18n({ languages: ["es-MX"] }).I.locale(), "es");
+  assert.equal(i18n({ stored: "de", languages: ["fr-FR"] }).I.locale(), "en", "preferencia desconocida → sistema → solo publicados → inglés");
+  /* Decisión 324 (v122): español e inglés publicados. Navegador en inglés → inglés; cualquier idioma no publicado (fr, ja, zh, de…)
+     → inglés (decisión 270); en español, español; sin idioma del sistema, el base. Nadie recibe por detección fr/ja/zh a medias. */
+  for (const langs of [["en-US"], ["en-GB"], ["fr-CA", "en"], ["ja-JP"], ["zh-CN"], ["de-DE"]]) assert.equal(i18n({ languages: langs }).I.locale(), "en", JSON.stringify(langs));
+  for (const langs of [["es-MX"], ["es-CL"], ["es"], ["de", "es-AR"], []]) assert.equal(i18n({ languages: langs }).I.locale(), "es", JSON.stringify(langs));
   /* Cuando se publiquen: la regla del producto. */
   const withPub = (codes, langs) => { const c = i18n(); for (const l of c.I.LANGS) l.released = l.code === "es" || codes.includes(l.code); return c.I.detect(langs); };
   assert.equal(withPub(["en"], ["de-DE", "it"]), "en", "cualquier otro → inglés");
@@ -222,18 +223,59 @@ test("común / editor: lo que usan el Viewer y el 404 está en el archivo común
 });
 
 /* Por qué un idioma no se puede publicar todavía (vacío = publicable). */
+/* Decisión 324 (supersede la puerta técnica de la 269): un idioma se publica con (1) el catálogo completo y (2) sin texto del
+   idioma base en las superficies del contrato de localización (las páginas de la app y todo lo que pinta JS). Lo que el escáner
+   cuenta y NO es interfaz está clasificado aquí, explícitamente: un archivo entero que no llega a la interfaz (NON_UI_FILES) o, en
+   un archivo de interfaz, la cadena exacta y su razón (NON_UI_STRINGS). Cualquier texto nuevo fuera de estas listas cierra la
+   puerta; el trinquete (fluyo-i18n-001) sigue impidiendo que crezca cualquier archivo. (3) El QA de navegador de las superficies
+   principales es parte de la publicación (FLUYO-I18N-EN-RELEASE-AUDIT), no de este test. */
+const NON_UI_FILES = {
+  "js/config.js": "datos: claves de grupo y nombres base de paleta e iconos; la interfaz los pinta por clave (paletteName, iconName, drawerGroupName)",
+  "js/story-authoring.js": "MCP (author_document): mensajes para el agente; el editor no carga este archivo",
+  "js/model.js": "kernel: valores de reserva; quien siembra desde la interfaz pasa el texto ya traducido (decisión 282)",
+  "js/document-integrity.js": "kernel: diagnóstico técnico; la interfaz muestra los errores de Historia por código (story.err.*)",
+};
+const NON_UI_STRINGS = {
+  "js/analytics.js": ["Fluyo"],                                                                  // título fijo del payload (no se ve)
+  "js/deeplink.js": ["No se pudo abrir el diagrama del enlace:"],                               // console.warn
+  "js/editor-scenarios.js": ["Options", "Enter", "Escape"],                                     // inglés ya / nombres de tecla
+  "js/examples.js": ["No se pudo cargar el ejemplo «"],                                         // console.warn
+  "js/geometry.js": ["IBM Plex Mono"], "js/skin.js": ["IBM Plex Mono"],                         // tipografía
+  "js/interaction.js": ["Enter", "Escape", "Backspace", "Home", "End", "Delete"],               // nombres de tecla
+  "js/link-codec.js": ["vacío", "versión "],                                                    // Error interno; la interfaz dice link.invalid
+  "js/render.js": ["render() requiere opts.renderState explícito"],                             // error de programación
+  "js/share-loader.js": ["Flujo principal", "Servicio", "Base de datos", "Estado", "Procesando", "Listo"],   // fixture de desarrollo (?s=demo)
+  "js/state.js": ["Autosave failed:"],                                                          // console.error
+  "js/story-playback.js": ["El motor registra la ocurrencia; no comprueba disponibilidad ni efecto."],   // nota del kernel para el MCP; el editor no la lee
+  "js/ui.js": ["Home", "End", "Enter", "Playfair Display", "IBM Plex Mono", "Fluyo", "Estados", "General", "Varios", "Azure", "Escape"],   // teclas, tipografías, marca y claves de grupo
+  "js/viewer.js": ["No se pudo preparar la copia editable.", "Escape", "Home", "End"],          // console.error y teclas
+  "index.html": [], "s/index.html": [],
+  "404.html": ["404", "GitHub", "MCP"],                                                         // código y nombres propios
+};
 function releaseProblems(code) {
   const base = catalogBase(), d = scan.dictionaries()[code] || { common: {}, editor: {} }, all = { ...d.common, ...d.editor };
   const problems = [...base.keys()].filter((k) => !(k in all)).map((k) => "sin traducir: " + k);
-  const h = scan.hardcoded();
-  const pending = Object.values(h.js).reduce((a, b) => a + b, 0) + Object.values(h.html).reduce((a, b) => a + b, 0);
-  if (pending) problems.push(`${pending} textos de interfaz sin migrar (test/i18n-scan.cjs)`);
+  for (const f of scan.jsFiles()) {
+    if (NON_UI_FILES[f]) continue;
+    for (const x of scan.jsHardcoded(scan.read(f))) if (!(NON_UI_STRINGS[f] || []).includes(x.s)) problems.push(`${f}:${x.line}: «${x.s}» sin migrar ni clasificar`);
+  }
+  for (const f of ["index.html", "s/index.html", "404.html"])
+    for (const i of scan.scanHtml(scan.read(f)).issues) if (!(NON_UI_STRINGS[f] || []).includes(i.text)) problems.push(`${f}: «${i.text}» sin migrar ni clasificar`);
   return problems;
 }
-test("puerta de publicación: un idioma solo se publica con el diccionario completo y la interfaz sin texto por migrar", () => {
+test("puerta de publicación (decisión 324): catálogo completo y ningún texto de interfaz sin migrar ni clasificar", () => {
   for (const l of LANGS.filter((x) => x.released && x.code !== "es")) assert.deepEqual(releaseProblems(l.code), [], l.code + " está publicado");
-  assert.ok(releaseProblems("en").length > 0, "hoy el inglés NO es publicable: queda interfaz por migrar (S1–S3)");
-  assert.ok(releaseProblems("en").every((p) => !p.startsWith("sin traducir")), "lo que ya está migrado, el inglés lo tiene entero");
+  assert.deepEqual(LANGS.filter((x) => x.released).map((x) => x.code), ["es", "en"]);
+  /* la lista de no-UI no esconde nada: cada cadena clasificada existe hoy en su archivo (si desaparece, se quita de la lista) */
+  for (const [f, list] of Object.entries(NON_UI_STRINGS)) {
+    const now = f.endsWith(".html") ? scan.scanHtml(scan.read(f)).issues.map((i) => i.text) : scan.jsHardcoded(scan.read(f)).map((x) => x.s);
+    for (const s of list) assert.ok(now.includes(s), `${f}: «${s}» ya no está; quítala de NON_UI_STRINGS`);
+  }
+  for (const f of Object.keys(NON_UI_FILES)) assert.ok(fs.existsSync(path.join(root, f)), f);
+  assert.ok(!read("index.html").includes("js/story-authoring.js"), "story-authoring.js no llega a la interfaz");
+  /* y la puerta sigue cerrando: un texto suelto nuevo en un archivo de interfaz la rompe */
+  const fake = scan.jsHardcoded('el.textContent = "Guardar cambios";');
+  assert.ok(fake.length === 1 && !(NON_UI_STRINGS["js/ui.js"] || []).includes(fake[0].s), "un texto de interfaz nuevo no está clasificado");
 });
 
 test("tipografía de cada idioma: francés con espacios insecables; japonés y chino con puntuación de ancho completo", () => {
@@ -396,7 +438,7 @@ test("pseudo-idioma de pruebas: todas las claves, marcadores intactos, +40 % y e
   assert.ok(pseudo("Reproducir").length >= Math.ceil("Reproducir".length * 1.4));
   const c = i18n({ search: "?lang=qps", extra: "FLUYO_LOCALES.qps=" + JSON.stringify(p) + ";" });
   assert.equal(c.I.locale(), "qps", "?lang acepta cualquier diccionario cargado");
-  assert.deepEqual([...c.I.released()], ["es"], "pero no lo publica ni lo detecta");
+  assert.deepEqual([...c.I.released()], ["es", "en"], "pero no lo publica ni lo detecta");
   for (const f of ["index.html", "s/index.html", "404.html", "sw.js"]) assert.doesNotMatch(read(f), /qps|i18n-pseudo/, f);
 });
 

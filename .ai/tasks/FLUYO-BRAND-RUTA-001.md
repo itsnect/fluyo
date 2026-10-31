@@ -80,13 +80,13 @@ Once páginas servidas: once marcas y once favicons sustituidos; no queda ningun
 | Contexto | Símbolo | Tamaño |
 |---|---|---|
 | Escritorio (editor ≥ 861 px, Viewer ≥ 701, páginas ≥ 621) | animado | 24 px, 8 px de hueco, palabra 21 px |
-| Editor 701–860 px (donde ya se ocultaban los puntos) | fijo | 24 / 8 / 21 |
+| Editor 701–860 px (donde ya se ocultaban los puntos) | fijo | 21,7 / 7,2 / 19 (a la escala del teléfono: con 21 px, a 768 px táctil la cabecera desbordaba 8 px y «Más» quedaba fuera) |
 | Editor y Viewer ≤ 700 px | fijo | 21,7 / 7,2 / 19 (escala con la palabra) |
 | Páginas ≤ 620 px | fijo | 24 / 8 / 21 |
 | Teléfono en apaisado (`landscape`, alto ≤ 500, puntero grueso) | fijo | según la superficie |
 | `prefers-reduced-motion: reduce` | fijo en todas | igual |
 
-Nunca se oculta el símbolo ni la palabra. Verificado sin recorte, sin chocar con el control siguiente y sin scroll horizontal en 1440, 800, 390×844, 375×667 y 844×390.
+Nunca se oculta el símbolo ni la palabra. Verificado sin recorte, sin chocar con el control siguiente y sin scroll horizontal en 1440, 800, 768×1024 táctil, 390×844, 375×667 y 844×390.
 
 ## Accesibilidad
 
@@ -111,7 +111,7 @@ Ver «Evidencia». Tests nuevos:
 
 - `test/fluyo-brand-ruta-001.test.cjs` (vm, 8): R1 marcado (construido desde la referencia), R2 favicon, R3 bytes de assets y manifest, R4 movimiento, R5 fijo, R6 marca anterior y tipografía, R7 decisiones, C1 alcance (git).
 - `test/fluyo-brand-ruta-001-browser.cjs` (Chrome): estados × vistas × superficies; fijo = `fluyo-simbolo.svg` píxel a píxel; fotogramas del bucle; interfaz oscura; SW v123 sin red; favicon y tamaños pequeños.
-- `test/fluyo-brand-ruta-001-mutations.cjs`: 23 regresiones que deben hacer fallar el test unitario.
+- `test/fluyo-brand-ruta-001-mutations.cjs`: 24 regresiones que deben hacer fallar el test unitario.
 - `test/fluyo-brand-ruta-001-undo.cjs`: `undoRuta`, el último eslabón de la cadena de deshacer (lo llama `undoOutcome`). Generado del diff con dos líneas de contexto.
 
 Tests existentes actualizados a la regla nueva (ninguno borrado):
@@ -120,17 +120,44 @@ Tests existentes actualizados a la regla nueva (ninguno borrado):
 - `fluyo-shell-001-browser.cjs`: la marca es símbolo de 24 px a 8 px de «fluyo» en Playfair, sin «yo» aparte, envío terracota; igual en las tres cabeceras.
 - `fluyo-018-13-browser.cjs` y `fluyo-018-14a-browser.cjs`: la voz serif de la marca se mide en `.logoWord`.
 - 88 archivos de test: `fluyo-static-v121` → `v123`.
+- `fluyo-018-14b-browser.cjs`: «una fila» se mide por grupos de centros a más de 10 px; `Math.round(centro / 10)` partía una fila en dos cuando un centro caía en 24,95 px y otro en 25,0, sin cambio visible.
+- `fluyo-i18n-002-s0-browser.cjs`: la foto «antes» de la ida y vuelta de idiomas espera dos fotogramas, porque `#zoomPct` lo sincroniza el bucle del editor tras `fitView`. La base hace lo mismo (80 % → 121 % un fotograma después). Su verificación de la cabecera exime lo que lleva `translate="no"` (la palabra de la marca).
 - Alcances antiguos que registran a la Stories-2.0 *outcome* (`i18n-002 s0…s3b`, `stories-2-0 s1a…s2b`): registran también `PIECES_RUTA` y `BIN_RUTA`. `shellOnly` (`fluyo-shell-001-undo.cjs`) conoce `PIECES_RUTA`. Las listas KEEP de Stories S1b, S2a y S2b comparan con `undoRuta` aplicado.
 
-## Evidencia
+## Evidencia (31-10-2026, Chrome real, Windows)
 
-(Se completa al cerrar la QA; ver la sección siguiente.)
+| Prueba | Resultado |
+|---|---|
+| `fluyo-brand-ruta-001.test.cjs` | 8/8 |
+| `fluyo-brand-ruta-001-mutations.cjs` | 24/24 detectadas |
+| `fluyo-brand-ruta-001-browser.cjs` | 190 OK, 0 fallos |
+| Suite completa (`node --test test/*.test.cjs`, clon limpio de la rama) | 1847 tests, 81 fallos: **los mismos 81 de la base** `d7e1177` (clon limpio, 1839 tests); 0 nuevos |
+| `fluyo-shell-001` (unidad) | 9/9 |
+| Chrome, regresión (10 suites, rama y base en secuencia) | 018-13 251/0 · 018-14a 230/0 · 018-14b 532/0 · 018-18 427/0 · SW-VIEWER 63/0 · EXAMPLES 40/0 · I18N-001 78/0 · I18N-002 S0 385/0 · S2b 40/0 · SHELL 137/2 (los 2 mismos de la base) |
+
+- **Fallos que no son de esta tarea:** en SHELL-001 Chrome, «320 /ejemplos/ sin scroll horizontal» (un `span.kind` de las tarjetas, 331 px en la base y aquí) y «Abrir en el editor carga el ejemplo». Iguales en la base. En la unidad, 018-25 #11 y 018-27 «release» fallan solo con `../fluyo-mcp` al lado, también en la base.
+- **El fijo es el SVG de la referencia:** pintado a 256 px, 0 píxeles distintos de 10 972 frente a `svg/fluyo-simbolo.svg`, con los colores de los tokens claros (`#16150f`, `#a33a22`).
+- **Sin animación donde no toca:** con «reducir movimiento», en móvil, en el editor de 701–860 y en apaisado, 0 animaciones vivas y 0 recálculos de estilo en 2 s. En escritorio, 6 animaciones de 4,8 s y ~75 recálculos de estilo + layout por segundo.
+- **Bucle:** fotogramas a 0, 0,9, 1,1, 1,7, 2,3, 3,2 y 4,0 s comparados con `preview/logo-animacion.gif` en los mismos instantes: mismas fases.
+- **Interfaz oscura del editor:** tinta `rgb(237, 231, 219)` y envío `rgb(222, 139, 113)`.
+- **SW:** `fluyo-static-v123` guarda `identity.css` con la marca nueva y, sin red, el editor sale de la caché con ella.
+- **Assets:** `logo.svg`, `icon-192` (192×192), `icon-512` (512×512) y `og-image` (1200×630), bytes idénticos a la referencia; revisados a ojo.
+- **Small-size gate** (favicon servido, el data URI con el cuadrado hueso):
+
+| Tamaño | Origen | Ruta | Destino | Envío terracota | Resultado |
+|---:|---|---|---|---|---|
+| 16 px | reconocible, suave (≈ 3 px, trazo < 1 px) | visible | claro (lleno) | visible (4 px) | PASA con nota |
+| 24 px | claro | clara | claro | claro | PASA |
+| 32 px | claro | clara | claro | claro | PASA |
+
+  Los PNG de 16/32 del paquete no son una versión optimizada para tamaños pequeños: son otra variante (a sangre, sin el cuadrado). No se usan y no se toca la geometría.
 
 ## Limitaciones conocidas
 
 - Contradicción 1 (envío del bucle en 28 frente a 32): visible solo como un salto de 1,5 px al pasar de escritorio a móvil o al activar «reducir movimiento». Pendiente de Creativa.
 - El favicon a 16 px: el origen vacío es la parte más débil (≈ 3 px, trazos de menos de 1 px). Se reconoce, pero suave. Ver «Small-size gate».
 - El bucle cuesta ~75 recálculos de estilo y layout por segundo en escritorio, solo en la cabecera.
+- **Cabecera del editor en tableta vertical:** a 768 px táctil, con la palabra a 19 px, cabe con el hueco en su mínimo (8 px; antes 22). Entre 701 y ~760 px táctil (iPad mini vertical, 744) la base **ya desbordaba** (43 px a 701); la marca lo agrava a 67 px. Deuda previa: propuesta de tarea aparte para la cabecera del editor en tableta.
 - `og:image:alt` del editor («Diagrama de arquitectura animado hecho con Fluyo») ya no describía la OG anterior y tampoco describe la nueva. No se toca: textos fuera de alcance. Propuesta: tarea de copy.
 - `apple-touch-icon-180.png` no se sirve (opcional en la referencia; el PO no lo pidió).
 - `PROMPT-PARA-EL-PO.md` viaja con la referencia (el README pide copiar la carpeta entera). Es el razonamiento de la propuesta de marca; menciona «una búsqueda rápida de marcas parecidas» antes de comunicarla. Como el repo es público (AGENTS §9), **el PO debe confirmar** antes del push que puede publicarse. Si no, se quita de la rama.
@@ -145,5 +172,6 @@ READY FOR PO QA. Pendiente del PO:
 
 ## Handoff
 
+- **Commits** (rama `brand-ruta-001`): `1314de0` feat · `ae93a76` fix (translate) · `31e0e31` test · `3e4ee17` docs · `1f44b8a` docs (325) · `f7ef2fb` fix (768 px) · `29f8460` test (carreras de medida) · y este cierre.
 - **Hecho:** marca Ruta en las once páginas, favicon, assets, CSS, CACHE v123, decisión 325, tests nuevos y actualizados.
 - **Próximo paso:** QA del PO. Después, con su aprobación: rebase sobre `main` con Growth integrado (procedimiento en «Cache / release»), suite completa, push, deploy y smoke de producción (`test/fluyo-brand-ruta-001-browser.cjs` contra fluyo.space no aplica tal cual: sirve el árbol local; el smoke de producción se hace con el QA de navegador sobre la URL pública).

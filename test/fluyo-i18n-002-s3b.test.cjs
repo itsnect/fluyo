@@ -329,8 +329,9 @@ test("A · alcance frente a 747eff8: solo estos archivos; undoS3b da la base EXA
     }
   }
   const bl = JSON.parse(read("test/fluyo-i18n-001-baseline.json"));
-  assert.equal(bl.html["index.html"], 65, "trinquete: index.html 219 → 65");
+  /* index.html: S3b lo dejó en 65; FLUYO-GROWTH-FOUNDATION-001 (inglés publicable) migró la ayuda con marcado y el <title> → 0 */
+  assert.ok(bl.html["index.html"] <= 65, "trinquete: index.html 219 → 65 (→ 0 después)");
   assert.equal(bl.js["js/ui.js"], 23, "trinquete: ui.js 70 → 23");
   const h = scan.hardcoded();
-  assert.equal(h.html["index.html"], 65); assert.equal(h.js["js/ui.js"], 23);
+  assert.equal(h.html["index.html"], bl.html["index.html"]); assert.equal(h.js["js/ui.js"], 23);
 });

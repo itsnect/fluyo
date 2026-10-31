@@ -51,7 +51,9 @@ const FluyoI18n=(()=>{
     {code:"ja", tag:"ja", name:"日本語", released:false},
     {code:"zh", tag:"zh-Hans", name:"简体中文", released:false}
   ];
-  const ATTRS=[["data-i18n-title","title"],["data-i18n-aria-label","aria-label"],["data-i18n-tip","data-tip"],["data-i18n-placeholder","placeholder"]];
+  /* FLUYO-GROWTH-FOUNDATION-001 (inglés publicable): data-i18n-link lleva un enlace a la página del mismo idioma (/privacy/ en vez de
+     /privacidad/). */
+  const ATTRS=[["data-i18n-title","title"],["data-i18n-aria-label","aria-label"],["data-i18n-tip","data-tip"],["data-i18n-placeholder","placeholder"],["data-i18n-link","href"]];
   const has=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
   const missing=new Set();
   const listeners=new Set();
@@ -174,6 +176,26 @@ const FluyoI18n=(()=>{
     if(!has(m,name)) m[name]=read();
     return m[name];
   }
+  /* Decisión 277: una línea que mezcla texto con teclas o énfasis se traduce ENTERA, con marcas {kbd:…} / {b:…} que se pintan
+     como nodos (textContent, nunca innerHTML). El texto base se lee del propio HTML. */
+  const RICH=/(\{(?:kbd|b):[^{}]*\})/;
+  function richOf(el){
+    let s="";
+    for(const n of el.childNodes||[]){
+      if(n.nodeType===3) s+=n.data;
+      else if(n.nodeType===1){ const tag=n.tagName.toLowerCase(); s+=(tag==="kbd"||tag==="b") ? "{"+tag+":"+n.textContent+"}" : n.textContent; }
+    }
+    return s.replace(/\s+/g," ").trim();
+  }
+  function setRich(el, text, d){
+    const nodes=String(text).split(RICH).filter(Boolean).map((p)=>{
+      const m=/^\{(kbd|b):([^{}]*)\}$/.exec(p);
+      if(!m) return d.createTextNode(p);
+      const e=d.createElement(m[1]); e.textContent=m[2]; return e;
+    });
+    while(el.firstChild) el.removeChild(el.firstChild);
+    for(const n of nodes) el.appendChild(n);
+  }
   function applyDom(root){
     const d=root || (typeof document!=="undefined" ? document : null);
     if(!d || typeof d.querySelectorAll!=="function") return;
@@ -182,6 +204,7 @@ const FluyoI18n=(()=>{
       const own=base(el, "", ()=>ownText(el));
       setOwnText(el, own, t(el.getAttribute("data-i18n"), own.body));
     }
+    for(const el of d.querySelectorAll("[data-i18n-rich]")) setRich(el, t(el.getAttribute("data-i18n-rich"), base(el, "rich", ()=>richOf(el))), d);
     for(const [data,attr] of ATTRS){
       for(const el of d.querySelectorAll("["+data+"]")) el.setAttribute(attr, t(el.getAttribute(data), base(el, attr, ()=>el.getAttribute(attr)||"")));
     }

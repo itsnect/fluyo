@@ -43,7 +43,7 @@ FLUYO_LOCALES.en=Object.assign(FLUYO_LOCALES.en || {}, {
   "common.cancel":"Cancel",
   "common.close":"Close",
   "editor.tell":"Explain the system",
-  "editor.emptyCanvas":"Pick a shape or icon on the left and click here — or press “Example”",
+  "editor.emptyCanvas":"Start by adding elements to the canvas.",
 
   /* Lienzo (ajustes del documento) */
   "canvas.settings":"Canvas settings",
@@ -701,6 +701,23 @@ FLUYO_LOCALES.en=Object.assign(FLUYO_LOCALES.en || {}, {
      edición inglesa escrita a mano de ejemplos/data/en/ (FLUYO-EXAMPLES-001), no claves de este diccionario. */
   "example.page":"Example",
   "example.pageN":"Example {n}",
+  /* FLUYO-GROWTH-FOUNDATION-001 · inglés publicable: título del documento, enlaces legales y «Atajos y gestos» */
+  "editor.docTitle":"Fluyo — animated architecture diagram editor with GIF export",
+  "more.privacyHref":"privacy/",
+  "more.supportHref":"support/",
+  "help.addShape":"Pick a shape on the left → click the canvas.",
+  "help.wheel":"{kbd:Mouse wheel} scroll · {kbd:Ctrl+Wheel} zoom.",
+  "help.pan":"{kbd:Right-click}, {kbd:Middle-click} or {kbd:Alt+Drag} to pan.",
+  "help.touch":"Touch: {b:one finger} pans the canvas, {b:two fingers} zoom, double tap edits.",
+  "help.connect":"Hover over a node and {b:drag the dot} that appears on the nearest side to connect.",
+  "help.multiSelect":"{b:Drag on empty space} to select several; {kbd:Shift}+click adds or removes.",
+  "help.clipboard":"{kbd:Ctrl+C} copy · {kbd:Ctrl+X} cut · {kbd:Ctrl+V} paste · {kbd:Ctrl+D} duplicate · {kbd:Ctrl+A} select all.",
+  "help.history":"{kbd:Ctrl+Z} undo · {kbd:Ctrl+Y} redo (or the arrows in the header).",
+  "help.edit":"Double-click = edit text. {kbd:Del} deletes, or use the {b:trash can} in the panel header. {kbd:Esc} cancels.",
+  "help.touchBar":"Touch: with something selected you get {b:Connect} and {b:Select several} at the top and the {b:trash can} at the bottom. Tap the active tab to rename the page.",
+  "help.present":"{kbd:P} presents full screen; {kbd:←} {kbd:→} change page.",
+  "help.arrowHandles":"With an arrow selected, drag its {b:ends} (circles) to change side or shape, its {b:elbows} (squares), and the {b:bars} of each segment to slide it; double-click an elbow to remove it.",
+  "help.reroute":"{kbd:R} returns an arrow to its {b:automatic route}, undoing the segments you moved.",
   /* FLUYO-GROWTH-FOUNDATION-001 · la tarjeta de entrada del primer minuto (js/entry.js) */
   "entry.title":"Explain your system, not just draw it.",
   "entry.explore":"See a system in motion",

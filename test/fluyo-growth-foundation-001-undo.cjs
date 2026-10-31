@@ -10,6 +10,12 @@ const NEW_FILES = ["js/entry.js"];
 
 /* [texto de esta tarea, texto de la base]. Si el texto de esta tarea no está (otra versión del archivo), no se toca nada. */
 const PIECES = {
+  "404.html": [
+    [
+      "    <p data-i18n=\"shell.license\">Fluyo · software libre, licencia MIT</p>\n    <nav aria-label=\"Legal y proyecto\" data-i18n-aria-label=\"shell.legal\">\n      <a href=\"/privacidad/\" data-i18n=\"shell.privacy\" data-i18n-link=\"shell.privacyPath\">Privacidad</a>\n      <a href=\"/terminos/\" data-i18n=\"shell.terms\" data-i18n-link=\"shell.termsPath\">Términos</a>\n      <a href=\"/soporte/\" data-i18n=\"shell.support\" data-i18n-link=\"shell.supportPath\">Soporte</a>\n      <a href=\"https://github.com/itsnect/fluyo\" target=\"_blank\" rel=\"noopener\">GitHub<svg class=\"ic\" aria-hidden=\"true\"><use href=\"#i-arrow\"/></svg></a>\n      <a href=\"https://github.com/itsnect/fluyo-mcp\" target=\"_blank\" rel=\"noopener\">MCP<svg class=\"ic\" aria-hidden=\"true\"><use href=\"#i-arrow\"/></svg></a>\n",
+      "    <p data-i18n=\"shell.license\">Fluyo · software libre, licencia MIT</p>\n    <nav aria-label=\"Legal y proyecto\" data-i18n-aria-label=\"shell.legal\">\n      <a href=\"/privacidad/\" data-i18n=\"shell.privacy\">Privacidad</a>\n      <a href=\"/terminos/\" data-i18n=\"shell.terms\">Términos</a>\n      <a href=\"/soporte/\" data-i18n=\"shell.support\">Soporte</a>\n      <a href=\"https://github.com/itsnect/fluyo\" target=\"_blank\" rel=\"noopener\">GitHub<svg class=\"ic\" aria-hidden=\"true\"><use href=\"#i-arrow\"/></svg></a>\n      <a href=\"https://github.com/itsnect/fluyo-mcp\" target=\"_blank\" rel=\"noopener\">MCP<svg class=\"ic\" aria-hidden=\"true\"><use href=\"#i-arrow\"/></svg></a>\n"
+    ]
+  ],
   "css/styles.css": [
     [
       ".scNowProgress{flex:none; font:500 var(--fs-label)/1 var(--font-mono); color:rgba(242,237,227,.62); letter-spacing:.04em; font-variant-numeric:tabular-nums;}\n.scNowProgress:empty{display:none;}\n/* FLUYO-GROWTH-FOUNDATION-001 — La entrada del primer minuto (js/entry.js). Una tarjeta de papel en el centro del lienzo vacío,\n   del mismo material que los modales (.card) pero sin velo ni bloqueo: el lienzo sigue a la vista y tocarlo la cierra. Dos\n   salidas apiladas, cada una con su línea de qué pasa al elegirla; la de «ver en marcha» es la destacada (button.primary). */\n.entryCard{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); z-index:7; box-sizing:border-box;\n  width:min(400px, calc(100% - 32px)); padding:22px 22px 20px; background:var(--surface); color:var(--ink);\n  border:1px solid var(--rule-2); border-radius:var(--r-lg); box-shadow:var(--shadow-menu);}\n.entryCard[hidden]{display:none;}\n.entryTitle{font:400 21px/1.25 var(--font-serif); color:var(--ink); margin:0 0 16px;}\n.entryActions{display:flex; flex-direction:column; gap:8px;}\n.entryOpt{display:flex; flex-direction:column; align-items:flex-start; gap:4px; width:100%; height:auto; min-height:var(--ctl-h-touch, 44px);\n  padding:10px 14px; text-align:left; white-space:normal;}\n.entryLbl{font:500 var(--fs-ui)/1.25 var(--font-mono);}\n.entrySub{font:400 var(--fs-label)/1.4 var(--font-mono); opacity:.78;}\n.entryOpt:not(.primary) .entrySub{color:var(--ink-3); opacity:1;}\nbody.presenting .entryCard{display:none;}\n/* en el teléfono el momento manda: el estado queda como el punto (vivo / quieto en pausa; el botón ya dice Pausar o Reanudar)\n   y su texto, para lectores de pantalla */\n",
@@ -17,6 +23,18 @@ const PIECES = {
     ]
   ],
   "index.html": [
+    [
+      "<meta name=\"referrer\" content=\"no-referrer\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n<title data-i18n=\"editor.docTitle\">Fluyo — editor de diagramas de arquitectura animados con export a GIF</title>\n<meta name=\"description\" content=\"Dibuja diagramas de arquitectura con flujo animado y expórtalos a GIF, PNG, JPG o SVG. Gratis, sin cuenta y sin backend: todo corre en tu navegador.\">\n<link rel=\"canonical\" href=\"https://fluyo.space/\">\n",
+      "<meta name=\"referrer\" content=\"no-referrer\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n<title>Fluyo — editor de diagramas de arquitectura animados con export a GIF</title>\n<meta name=\"description\" content=\"Dibuja diagramas de arquitectura con flujo animado y expórtalos a GIF, PNG, JPG o SVG. Gratis, sin cuenta y sin backend: todo corre en tu navegador.\">\n<link rel=\"canonical\" href=\"https://fluyo.space/\">\n"
+    ],
+    [
+      "        <div class=\"pgBody\">\n      <ul class=\"helpList\">\n        <li data-i18n=\"help.addShape\">Forma del menú izquierdo → clic en el lienzo.</li>\n        <li data-i18n-rich=\"help.wheel\"><kbd>Rueda ratón</kbd> mover · <kbd>Ctrl+Rueda</kbd> zoom.</li>\n        <li data-i18n-rich=\"help.pan\"><kbd>Clic derecho</kbd>, <kbd>Clic central</kbd> o <kbd>Alt+Arrastrar</kbd> para pan.</li>\n        <li data-i18n-rich=\"help.touch\">Táctil: <b>un dedo</b> mueve el plano, <b>dos dedos</b> hacen zoom, doble toque edita.</li>\n        <li data-i18n-rich=\"help.connect\">Pasa el ratón sobre un nodo y <b>arrastra el punto</b> que aparece en el lado más cercano para conectar.</li>\n        <li data-i18n-rich=\"help.multiSelect\"><b>Arrastra en el vacío</b> para seleccionar varios; <kbd>Shift</kbd>+clic suma o quita.</li>\n        <li data-i18n-rich=\"help.clipboard\"><kbd>Ctrl+C</kbd> copiar · <kbd>Ctrl+X</kbd> cortar · <kbd>Ctrl+V</kbd> pegar · <kbd>Ctrl+D</kbd> duplicar · <kbd>Ctrl+A</kbd> todo.</li>\n        <li data-i18n-rich=\"help.history\"><kbd>Ctrl+Z</kbd> deshacer · <kbd>Ctrl+Y</kbd> rehacer (o las flechas de la cabecera).</li>\n        <li data-i18n-rich=\"help.edit\">Doble clic = editar texto. <kbd>Supr</kbd> borra, o la <b>papelera</b> de la cabecera del panel. <kbd>Esc</kbd> cancela.</li>\n        <li data-i18n-rich=\"help.touchBar\">Táctil: con algo seleccionado salen <b>Conectar</b> y <b>Seleccionar varios</b> arriba y la <b>papelera</b> abajo. Toca la pestaña activa para renombrar la página.</li>\n        <li data-i18n-rich=\"help.present\"><kbd>P</kbd> presenta a pantalla completa; <kbd>←</kbd> <kbd>→</kbd> cambian de página.</li>\n        <li data-i18n-rich=\"help.arrowHandles\">Con una flecha seleccionada, arrastra sus <b>extremos</b> (círculos) para cambiar de lado o de forma, sus <b>codos</b> (cuadrados) y las <b>barras</b> de cada tramo para deslizar un tramo; doble clic en un codo lo elimina.</li>\n        <li data-i18n-rich=\"help.reroute\"><kbd>R</kbd> devuelve una flecha a su <b>ruta automática</b>, deshaciendo los tramos que hayas movido.</li>\n      </ul>\n        </div>\n",
+      "        <div class=\"pgBody\">\n      <ul class=\"helpList\">\n        <li>Forma del menú izquierdo → clic en el lienzo.</li>\n        <li><kbd>Rueda ratón</kbd> mover · <kbd>Ctrl+Rueda</kbd> zoom.</li>\n        <li><kbd>Clic derecho</kbd>, <kbd>Clic central</kbd> o <kbd>Alt+Arrastrar</kbd> para pan.</li>\n        <li>Táctil: <b>un dedo</b> mueve el plano, <b>dos dedos</b> hacen zoom, doble toque edita.</li>\n        <li>Pasa el ratón sobre un nodo y <b>arrastra el punto</b> que aparece en el lado más cercano para conectar.</li>\n        <li><b>Arrastra en el vacío</b> para seleccionar varios; <kbd>Shift</kbd>+clic suma o quita.</li>\n        <li><kbd>Ctrl+C</kbd> copiar · <kbd>Ctrl+X</kbd> cortar · <kbd>Ctrl+V</kbd> pegar · <kbd>Ctrl+D</kbd> duplicar · <kbd>Ctrl+A</kbd> todo.</li>\n        <li><kbd>Ctrl+Z</kbd> deshacer · <kbd>Ctrl+Y</kbd> rehacer (o las flechas de la cabecera).</li>\n        <li>Doble clic = editar texto. <kbd>Supr</kbd> borra, o la <b>papelera</b> de la cabecera del panel. <kbd>Esc</kbd> cancela.</li>\n        <li>Táctil: con algo seleccionado salen <b>Conectar</b> y <b>Seleccionar varios</b> arriba y la <b>papelera</b> abajo. Toca la pestaña activa para renombrar la página.</li>\n        <li><kbd>P</kbd> presenta a pantalla completa; <kbd>←</kbd> <kbd>→</kbd> cambian de página.</li>\n        <li>Con una flecha seleccionada, arrastra sus <b>extremos</b> (círculos) para cambiar de lado o de forma, sus <b>codos</b> (cuadrados) y las <b>barras</b> de cada tramo para deslizar un tramo; doble clic en un codo lo elimina.</li>\n        <li><kbd>R</kbd> devuelve una flecha a su <b>ruta automática</b>, deshaciendo los tramos que hayas movido.</li>\n      </ul>\n        </div>\n"
+    ],
+    [
+      "        <a class=\"menuItem\" href=\"docs/\" data-i18n=\"shell.docs\"><svg class=\"ic\" aria-hidden=\"true\"><use href=\"#i-book\"/></svg>Docs</a>\n        <a class=\"menuItem\" href=\"ejemplos/\" data-i18n=\"shell.examples\"><svg class=\"ic\" aria-hidden=\"true\"><use href=\"#i-layers\"/></svg>Ejemplos</a>\n        <a class=\"menuItem\" href=\"privacidad/\" data-i18n=\"shell.privacy\" data-i18n-link=\"more.privacyHref\"><svg class=\"ic\" aria-hidden=\"true\"><use href=\"#i-shield\"/></svg>Privacidad</a>\n        <a class=\"menuItem\" href=\"soporte/\" data-i18n=\"shell.support\" data-i18n-link=\"more.supportHref\"><svg class=\"ic\" aria-hidden=\"true\"><use href=\"#i-help\"/></svg>Soporte</a>\n      </nav>\n      <a class=\"menuItem ossLink\" href=\"https://github.com/itsnect/fluyo\" target=\"_blank\" rel=\"noopener\">\n",
+      "        <a class=\"menuItem\" href=\"docs/\" data-i18n=\"shell.docs\"><svg class=\"ic\" aria-hidden=\"true\"><use href=\"#i-book\"/></svg>Docs</a>\n        <a class=\"menuItem\" href=\"ejemplos/\" data-i18n=\"shell.examples\"><svg class=\"ic\" aria-hidden=\"true\"><use href=\"#i-layers\"/></svg>Ejemplos</a>\n        <a class=\"menuItem\" href=\"privacidad/\" data-i18n=\"shell.privacy\"><svg class=\"ic\" aria-hidden=\"true\"><use href=\"#i-shield\"/></svg>Privacidad</a>\n        <a class=\"menuItem\" href=\"soporte/\" data-i18n=\"shell.support\"><svg class=\"ic\" aria-hidden=\"true\"><use href=\"#i-help\"/></svg>Soporte</a>\n      </nav>\n      <a class=\"menuItem ossLink\" href=\"https://github.com/itsnect/fluyo\" target=\"_blank\" rel=\"noopener\">\n"
+    ],
     [
       "        <span id=\"scNowProgress\" class=\"scNowProgress\"></span>\n      </div>\n      <!-- FLUYO-GROWTH-FOUNDATION-001: la entrada del primer minuto, solo para un navegador que nunca abrió Fluyo y sin documento\n           en la URL (js/entry.js). Sobre el lienzo vacío y sin bloquearlo: Escape o tocar el lienzo la cierran. -->\n      <section id=\"entryCard\" class=\"entryCard\" aria-labelledby=\"entryTitle\" hidden>\n        <h2 id=\"entryTitle\" class=\"entryTitle\" data-i18n=\"entry.title\">Explica tu sistema, no solo lo dibujes.</h2>\n        <div class=\"entryActions\">\n          <button id=\"entryExplore\" class=\"primary entryOpt\" type=\"button\"><span class=\"entryLbl\" data-i18n=\"entry.explore\">Ver un sistema en marcha</span><span class=\"entrySub\" data-i18n=\"entry.exploreSub\">Una compra online, contada paso a paso.</span></button>\n          <button id=\"entryBlank\" class=\"entryOpt\" type=\"button\"><span class=\"entryLbl\" data-i18n=\"entry.blank\">Empezar en blanco</span><span class=\"entrySub\" data-i18n=\"entry.blankSub\">Dibuja tu sistema y cuenta qué pasa.</span></button>\n        </div>\n      </section>\n    </div>\n    <div id=\"iconDrawer\" role=\"dialog\" aria-label=\"Iconos\" data-i18n-aria-label=\"rail.icons\"></div>\n",
       "        <span id=\"scNowProgress\" class=\"scNowProgress\"></span>\n      </div>\n    </div>\n    <div id=\"iconDrawer\" role=\"dialog\" aria-label=\"Iconos\" data-i18n-aria-label=\"rail.icons\"></div>\n"
@@ -40,7 +58,7 @@ const PIECES = {
   ],
   "js/editor-runtime.js": [
     [
-      "function renderEditorFrame(){\n  resizeEditorCanvas();\n  /* FLUYO-I18N-002 S1: la pista del lienzo vacío, en el idioma de la interfaz (render.js conserva el español por defecto).\n     FLUYO-GROWTH-FOUNDATION-001: con la tarjeta de entrada abierta (entry.js) el lienzo no dice nada: habla la tarjeta. */\n  if(typeof entryTick===\"function\") entryTick();\n  const frame={renderState:buildEditorRenderState(), emptyHint:typeof FluyoI18n===\"object\" ? FluyoI18n.t(\"editor.emptyCanvas\",\"Elige una forma o icono a la izquierda y haz clic aquí — o pulsa «Ejemplo»\") : undefined};\n  if(typeof entryVisible===\"function\" && entryVisible()) frame.emptyHint=\"\";\n  render(ctx,now(),frame);\n  /* El textarea de edición vive en el DOM, fuera del canvas. */\n  if(typeof syncEditBoxIfMoved===\"function\") syncEditBoxIfMoved();\n",
+      "function renderEditorFrame(){\n  resizeEditorCanvas();\n  /* FLUYO-I18N-002 S1: la pista del lienzo vacío, en el idioma de la interfaz (render.js conserva el español por defecto).\n     FLUYO-GROWTH-FOUNDATION-001: con la tarjeta de entrada abierta (entry.js) el lienzo no dice nada: habla la tarjeta.\n     La pista es neutral (PO): no nombra «Ejemplo», «⋯» ni «la izquierda», que no valen en todas las disposiciones. */\n  if(typeof entryTick===\"function\") entryTick();\n  const frame={renderState:buildEditorRenderState(), emptyHint:typeof FluyoI18n===\"object\" ? FluyoI18n.t(\"editor.emptyCanvas\",\"Empieza añadiendo elementos al lienzo.\") : undefined};\n  if(typeof entryVisible===\"function\" && entryVisible()) frame.emptyHint=\"\";\n  render(ctx,now(),frame);\n  /* El textarea de edición vive en el DOM, fuera del canvas. */\n  if(typeof syncEditBoxIfMoved===\"function\") syncEditBoxIfMoved();\n",
       "function renderEditorFrame(){\n  resizeEditorCanvas();\n  /* FLUYO-I18N-002 S1: la pista del lienzo vacío, en el idioma de la interfaz (render.js conserva el español por defecto) */\n  render(ctx,now(),{renderState:buildEditorRenderState(), emptyHint:typeof FluyoI18n===\"object\" ? FluyoI18n.t(\"editor.emptyCanvas\",\"Elige una forma o icono a la izquierda y haz clic aquí — o pulsa «Ejemplo»\") : undefined});\n  /* El textarea de edición vive en el DOM, fuera del canvas. */\n  if(typeof syncEditBoxIfMoved===\"function\") syncEditBoxIfMoved();\n"
     ]
   ],
@@ -102,8 +120,32 @@ const PIECES = {
   ],
   "js/i18n-en-editor.js": [
     [
-      "  \"example.page\":\"Example\",\n  \"example.pageN\":\"Example {n}\",\n  /* FLUYO-GROWTH-FOUNDATION-001 · la tarjeta de entrada del primer minuto (js/entry.js) */\n  \"entry.title\":\"Explain your system, not just draw it.\",\n  \"entry.explore\":\"See a system in motion\",\n  \"entry.exploreSub\":\"An online checkout, told step by step.\",\n  \"entry.blank\":\"Start blank\",\n  \"entry.blankSub\":\"Draw your system, then tell what happens.\",\n  /* FLUYO-I18N-002 S3b · Propiedades: grupos, campo de contenido y nombres de forma (D-S3b-3: claves propias; D-S3b-4: una por contexto) */\n  \"prop.group.appearance\":\"Appearance\",\n",
+      "  \"common.close\":\"Close\",\n  \"editor.tell\":\"Explain the system\",\n  \"editor.emptyCanvas\":\"Start by adding elements to the canvas.\",\n\n  /* Lienzo (ajustes del documento) */\n",
+      "  \"common.close\":\"Close\",\n  \"editor.tell\":\"Explain the system\",\n  \"editor.emptyCanvas\":\"Pick a shape or icon on the left and click here — or press “Example”\",\n\n  /* Lienzo (ajustes del documento) */\n"
+    ],
+    [
+      "  \"example.page\":\"Example\",\n  \"example.pageN\":\"Example {n}\",\n  /* FLUYO-GROWTH-FOUNDATION-001 · inglés publicable: título del documento, enlaces legales y «Atajos y gestos» */\n  \"editor.docTitle\":\"Fluyo — animated architecture diagram editor with GIF export\",\n  \"more.privacyHref\":\"privacy/\",\n  \"more.supportHref\":\"support/\",\n  \"help.addShape\":\"Pick a shape on the left → click the canvas.\",\n  \"help.wheel\":\"{kbd:Mouse wheel} scroll · {kbd:Ctrl+Wheel} zoom.\",\n  \"help.pan\":\"{kbd:Right-click}, {kbd:Middle-click} or {kbd:Alt+Drag} to pan.\",\n  \"help.touch\":\"Touch: {b:one finger} pans the canvas, {b:two fingers} zoom, double tap edits.\",\n  \"help.connect\":\"Hover over a node and {b:drag the dot} that appears on the nearest side to connect.\",\n  \"help.multiSelect\":\"{b:Drag on empty space} to select several; {kbd:Shift}+click adds or removes.\",\n  \"help.clipboard\":\"{kbd:Ctrl+C} copy · {kbd:Ctrl+X} cut · {kbd:Ctrl+V} paste · {kbd:Ctrl+D} duplicate · {kbd:Ctrl+A} select all.\",\n  \"help.history\":\"{kbd:Ctrl+Z} undo · {kbd:Ctrl+Y} redo (or the arrows in the header).\",\n  \"help.edit\":\"Double-click = edit text. {kbd:Del} deletes, or use the {b:trash can} in the panel header. {kbd:Esc} cancels.\",\n  \"help.touchBar\":\"Touch: with something selected you get {b:Connect} and {b:Select several} at the top and the {b:trash can} at the bottom. Tap the active tab to rename the page.\",\n  \"help.present\":\"{kbd:P} presents full screen; {kbd:←} {kbd:→} change page.\",\n  \"help.arrowHandles\":\"With an arrow selected, drag its {b:ends} (circles) to change side or shape, its {b:elbows} (squares), and the {b:bars} of each segment to slide it; double-click an elbow to remove it.\",\n  \"help.reroute\":\"{kbd:R} returns an arrow to its {b:automatic route}, undoing the segments you moved.\",\n  /* FLUYO-GROWTH-FOUNDATION-001 · la tarjeta de entrada del primer minuto (js/entry.js) */\n  \"entry.title\":\"Explain your system, not just draw it.\",\n  \"entry.explore\":\"See a system in motion\",\n  \"entry.exploreSub\":\"An online checkout, told step by step.\",\n  \"entry.blank\":\"Start blank\",\n  \"entry.blankSub\":\"Draw your system, then tell what happens.\",\n  /* FLUYO-I18N-002 S3b · Propiedades: grupos, campo de contenido y nombres de forma (D-S3b-3: claves propias; D-S3b-4: una por contexto) */\n  \"prop.group.appearance\":\"Appearance\",\n",
       "  \"example.page\":\"Example\",\n  \"example.pageN\":\"Example {n}\",\n  /* FLUYO-I18N-002 S3b · Propiedades: grupos, campo de contenido y nombres de forma (D-S3b-3: claves propias; D-S3b-4: una por contexto) */\n  \"prop.group.appearance\":\"Appearance\",\n"
+    ]
+  ],
+  "js/i18n-en.js": [
+    [
+      "  \"shell.terms\":\"Terms\",\n  \"shell.support\":\"Support\",\n  \"shell.privacyPath\":\"/privacy/\",\n  \"shell.termsPath\":\"/terms/\",\n  \"shell.supportPath\":\"/support/\",\n  \"notfound.docTitle\":\"Page not found · Fluyo\",\n  \"notfound.title\":\"This page doesn't exist\",\n",
+      "  \"shell.terms\":\"Terms\",\n  \"shell.support\":\"Support\",\n  \"notfound.docTitle\":\"Page not found · Fluyo\",\n  \"notfound.title\":\"This page doesn't exist\",\n"
+    ]
+  ],
+  "js/i18n.js": [
+    [
+      "    {code:\"zh\", tag:\"zh-Hans\", name:\"简体中文\", released:false}\n  ];\n  /* FLUYO-GROWTH-FOUNDATION-001 (inglés publicable): data-i18n-link lleva un enlace a la página del mismo idioma (/privacy/ en vez de\n     /privacidad/). */\n  const ATTRS=[[\"data-i18n-title\",\"title\"],[\"data-i18n-aria-label\",\"aria-label\"],[\"data-i18n-tip\",\"data-tip\"],[\"data-i18n-placeholder\",\"placeholder\"],[\"data-i18n-link\",\"href\"]];\n  const has=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);\n  const missing=new Set();\n",
+      "    {code:\"zh\", tag:\"zh-Hans\", name:\"简体中文\", released:false}\n  ];\n  const ATTRS=[[\"data-i18n-title\",\"title\"],[\"data-i18n-aria-label\",\"aria-label\"],[\"data-i18n-tip\",\"data-tip\"],[\"data-i18n-placeholder\",\"placeholder\"]];\n  const has=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);\n  const missing=new Set();\n"
+    ],
+    [
+      "    return m[name];\n  }\n  /* Decisión 277: una línea que mezcla texto con teclas o énfasis se traduce ENTERA, con marcas {kbd:…} / {b:…} que se pintan\n     como nodos (textContent, nunca innerHTML). El texto base se lee del propio HTML. */\n  const RICH=/(\\{(?:kbd|b):[^{}]*\\})/;\n  function richOf(el){\n    let s=\"\";\n    for(const n of el.childNodes||[]){\n      if(n.nodeType===3) s+=n.data;\n      else if(n.nodeType===1){ const tag=n.tagName.toLowerCase(); s+=(tag===\"kbd\"||tag===\"b\") ? \"{\"+tag+\":\"+n.textContent+\"}\" : n.textContent; }\n    }\n    return s.replace(/\\s+/g,\" \").trim();\n  }\n  function setRich(el, text, d){\n    const nodes=String(text).split(RICH).filter(Boolean).map((p)=>{\n      const m=/^\\{(kbd|b):([^{}]*)\\}$/.exec(p);\n      if(!m) return d.createTextNode(p);\n      const e=d.createElement(m[1]); e.textContent=m[2]; return e;\n    });\n    while(el.firstChild) el.removeChild(el.firstChild);\n    for(const n of nodes) el.appendChild(n);\n  }\n  function applyDom(root){\n    const d=root || (typeof document!==\"undefined\" ? document : null);\n",
+      "    return m[name];\n  }\n  function applyDom(root){\n    const d=root || (typeof document!==\"undefined\" ? document : null);\n"
+    ],
+    [
+      "      setOwnText(el, own, t(el.getAttribute(\"data-i18n\"), own.body));\n    }\n    for(const el of d.querySelectorAll(\"[data-i18n-rich]\")) setRich(el, t(el.getAttribute(\"data-i18n-rich\"), base(el, \"rich\", ()=>richOf(el))), d);\n    for(const [data,attr] of ATTRS){\n      for(const el of d.querySelectorAll(\"[\"+data+\"]\")) el.setAttribute(attr, t(el.getAttribute(data), base(el, attr, ()=>el.getAttribute(attr)||\"\")));\n",
+      "      setOwnText(el, own, t(el.getAttribute(\"data-i18n\"), own.body));\n    }\n    for(const [data,attr] of ATTRS){\n      for(const el of d.querySelectorAll(\"[\"+data+\"]\")) el.setAttribute(attr, t(el.getAttribute(data), base(el, attr, ()=>el.getAttribute(attr)||\"\")));\n"
     ]
   ],
   "js/viewer.js": [
@@ -163,8 +205,23 @@ const ADDED_LINES = new Set([
 "          trackEvent(\"example_loaded\", {example:EXAMPLE_DEMO, source:\"entry\"});",
 "          trackEvent(\"example_loaded\",{example:EXAMPLE_SLUG,source:\"url\"});",
 "        </div>",
+"        <a class=\"menuItem\" href=\"privacidad/\" data-i18n=\"shell.privacy\" data-i18n-link=\"more.privacyHref\"><svg class=\"ic\" aria-hidden=\"true\"><use href=\"#i-shield\"/></svg>Privacidad</a>",
+"        <a class=\"menuItem\" href=\"soporte/\" data-i18n=\"shell.support\" data-i18n-link=\"more.supportHref\"><svg class=\"ic\" aria-hidden=\"true\"><use href=\"#i-help\"/></svg>Soporte</a>",
 "        <div class=\"entryActions\">",
 "        <h2 id=\"entryTitle\" class=\"entryTitle\" data-i18n=\"entry.title\">Explica tu sistema, no solo lo dibujes.</h2>",
+"        <li data-i18n-rich=\"help.arrowHandles\">Con una flecha seleccionada, arrastra sus <b>extremos</b> (círculos) para cambiar de lado o de forma, sus <b>codos</b> (cuadrados) y las <b>barras</b> de cada tramo para deslizar un tramo; doble clic en un codo lo elimina.</li>",
+"        <li data-i18n-rich=\"help.clipboard\"><kbd>Ctrl+C</kbd> copiar · <kbd>Ctrl+X</kbd> cortar · <kbd>Ctrl+V</kbd> pegar · <kbd>Ctrl+D</kbd> duplicar · <kbd>Ctrl+A</kbd> todo.</li>",
+"        <li data-i18n-rich=\"help.connect\">Pasa el ratón sobre un nodo y <b>arrastra el punto</b> que aparece en el lado más cercano para conectar.</li>",
+"        <li data-i18n-rich=\"help.edit\">Doble clic = editar texto. <kbd>Supr</kbd> borra, o la <b>papelera</b> de la cabecera del panel. <kbd>Esc</kbd> cancela.</li>",
+"        <li data-i18n-rich=\"help.history\"><kbd>Ctrl+Z</kbd> deshacer · <kbd>Ctrl+Y</kbd> rehacer (o las flechas de la cabecera).</li>",
+"        <li data-i18n-rich=\"help.multiSelect\"><b>Arrastra en el vacío</b> para seleccionar varios; <kbd>Shift</kbd>+clic suma o quita.</li>",
+"        <li data-i18n-rich=\"help.pan\"><kbd>Clic derecho</kbd>, <kbd>Clic central</kbd> o <kbd>Alt+Arrastrar</kbd> para pan.</li>",
+"        <li data-i18n-rich=\"help.present\"><kbd>P</kbd> presenta a pantalla completa; <kbd>←</kbd> <kbd>→</kbd> cambian de página.</li>",
+"        <li data-i18n-rich=\"help.reroute\"><kbd>R</kbd> devuelve una flecha a su <b>ruta automática</b>, deshaciendo los tramos que hayas movido.</li>",
+"        <li data-i18n-rich=\"help.touch\">Táctil: <b>un dedo</b> mueve el plano, <b>dos dedos</b> hacen zoom, doble toque edita.</li>",
+"        <li data-i18n-rich=\"help.touchBar\">Táctil: con algo seleccionado salen <b>Conectar</b> y <b>Seleccionar varios</b> arriba y la <b>papelera</b> abajo. Toca la pestaña activa para renombrar la página.</li>",
+"        <li data-i18n-rich=\"help.wheel\"><kbd>Rueda ratón</kbd> mover · <kbd>Ctrl+Rueda</kbd> zoom.</li>",
+"        <li data-i18n=\"help.addShape\">Forma del menú izquierdo → clic en el lienzo.</li>",
 "        abrirLabel:FluyoI18n.t(\"incoming.openExample\",\"Abrir el ejemplo y descartar la sesión\"),",
 "        onResuelto:eleccion=>{",
 "        paginaLabel:FluyoI18n.t(\"incoming.addExample\",\"Añadir el ejemplo como página nueva\"),",
@@ -173,18 +230,29 @@ const ADDED_LINES = new Set([
 "      /* Sin red y sin caché: la tarjeta se va y queda el lienzo en blanco, que funciona igual. */",
 "      <!-- FLUYO-GROWTH-FOUNDATION-001: la entrada del primer minuto, solo para un navegador que nunca abrió Fluyo y sin documento",
 "      </section>",
+"      <a href=\"/privacidad/\" data-i18n=\"shell.privacy\" data-i18n-link=\"shell.privacyPath\">Privacidad</a>",
+"      <a href=\"/soporte/\" data-i18n=\"shell.support\" data-i18n-link=\"shell.supportPath\">Soporte</a>",
+"      <a href=\"/terminos/\" data-i18n=\"shell.terms\" data-i18n-link=\"shell.termsPath\">Términos</a>",
 "      <section id=\"entryCard\" class=\"entryCard\" aria-labelledby=\"entryTitle\" hidden>",
 "      console.warn(err);",
+"      const e=d.createElement(m[1]); e.textContent=m[2]; return e;",
 "      const k=storage.key(i);",
+"      const m=/^\\{(kbd|b):([^{}]*)\\}$/.exec(p);",
+"      else if(n.nodeType===1){ const tag=n.tagName.toLowerCase(); s+=(tag===\"kbd\"||tag===\"b\") ? \"{\"+tag+\":\"+n.textContent+\"}\" : n.textContent; }",
 "      entryClose(\"blank\");",
 "      entryClose(\"explore\");",
+"      if(!m) return d.createTextNode(p);",
+"      if(n.nodeType===3) s+=n.data;",
 "      if(typeof k===\"string\" && k.startsWith(\"fluyo.\")) return {available:true, returning:true};",
 "      presentIncomingDocument(d, {",
 "      scRunCounted = true;",
 "      scTrack(\"story_completed\", { surface: scRunSurface });",
 "      trackEvent(\"example_loaded\",{example:\"demo\",source:\"menu\"});",
 "      });",
-"     FLUYO-GROWTH-FOUNDATION-001: con la tarjeta de entrada abierta (entry.js) el lienzo no dice nada: habla la tarjeta. */",
+"     /privacidad/). */",
+"     FLUYO-GROWTH-FOUNDATION-001: con la tarjeta de entrada abierta (entry.js) el lienzo no dice nada: habla la tarjeta.",
+"     La pista es neutral (PO): no nombra «Ejemplo», «⋯» ni «la izquierda», que no valen en todas las disposiciones. */",
+"     como nodos (textContent, nunca innerHTML). El texto base se lee del propio HTML. */",
 "     opts.trigger: \"entry\" cuando la arranca la tarjeta de entrada (entry.js), no un clic en «Reproducir». */",
 "     · `localStorage` responde (sin él no se podría recordar la elección y saldría en cada carga).",
 "     · editor (no /s/), y la URL no trae documento (`?ejemplo=`, `#d=`): un enlace profundo nunca acaba interceptado;",
@@ -198,14 +266,20 @@ const ADDED_LINES = new Set([
 "    /* una vez por reproducción, aunque después se salte atrás y vuelva a terminar */",
 "    : (typeof DEEP_LINK_PAYLOAD!==\"undefined\" && DEEP_LINK_PAYLOAD) ? \"link\" : \"direct\";",
 "    const l=typeof FluyoI18n===\"object\" ? FluyoI18n.locale() : \"es\";",
+"    const nodes=String(text).split(RICH).filter(Boolean).map((p)=>{",
+"    for(const el of d.querySelectorAll(\"[data-i18n-rich]\")) setRich(el, t(el.getAttribute(\"data-i18n-rich\"), base(el, \"rich\", ()=>richOf(el))), d);",
+"    for(const n of el.childNodes||[]){",
+"    for(const n of nodes) el.appendChild(n);",
 "    for(let i=0; i<storage.length; i++){",
 "    if (!scRunCounted && scRunSurface) {",
 "    if(!storage) return {available:false, returning:false};",
 "    if(!story.counted){ story.counted=true; trackEvent(\"viewer_story_completed\"); }",
 "    if(new URLSearchParams(search||\"\").has(\"ejemplo\")) return true;",
 "    if(storage.getItem(ENTRY_SEEN_KEY)!==null) return {available:true, returning:true};",
+"    let s=\"\";",
 "    return /(?:^|[#&])d=/.test(hash||\"\");",
 "    return ANALYTICS_LOCALES.includes(l) ? l : \"other\";",
+"    return s.replace(/\\s+/g,\" \").trim();",
 "    return {available:true, returning:false};",
 "    scNotice(FluyoI18n.t(\"stories.created\", \"{name} creada\", { name: sc.name }));",
 "    scTrack(\"story_created\", { origin: \"new\" });",
@@ -213,8 +287,10 @@ const ADDED_LINES = new Set([
 "    story.status=\"completed\";",
 "    trackEvent(\"share_created\",{kind:kind===\"story\"&&story?\"story\":\"diagram\",variants:withOthers?\"yes\":\"no\"});",
 "    trackEvent(\"share_viewed\",{story:storyScenario()?\"yes\":\"no\",locale:analyticsLocale()});",
+"    while(el.firstChild) el.removeChild(el.firstChild);",
 "    }",
 "    })",
+"    });",
 "   Cargar después de examples.js, deeplink.js, state.js, editor-scenarios.js y export.js (usa fetchExample, urlBringsDocument,",
 "   Cuándo aparece — TODAS a la vez:",
 "   FLUYO-GROWTH-FOUNDATION-001: ningún nombre cambia (las series siguen); se añaden propiedades enumeradas y los eventos de la",
@@ -237,14 +313,37 @@ const ADDED_LINES = new Set([
 "   salte atrás y vuelva a terminar). */",
 "   su lista descarta el evento ENTERO: por eso `locale` pasa siempre por analyticsLocale(). */",
 "  \"./js/entry.js\",",
+"  \"editor.docTitle\":\"Fluyo — animated architecture diagram editor with GIF export\",",
+"  \"editor.emptyCanvas\":\"Start by adding elements to the canvas.\",",
 "  \"entry.blank\":\"Start blank\",",
 "  \"entry.blankSub\":\"Draw your system, then tell what happens.\",",
 "  \"entry.explore\":\"See a system in motion\",",
 "  \"entry.exploreSub\":\"An online checkout, told step by step.\",",
 "  \"entry.title\":\"Explain your system, not just draw it.\",",
+"  \"help.addShape\":\"Pick a shape on the left → click the canvas.\",",
+"  \"help.arrowHandles\":\"With an arrow selected, drag its {b:ends} (circles) to change side or shape, its {b:elbows} (squares), and the {b:bars} of each segment to slide it; double-click an elbow to remove it.\",",
+"  \"help.clipboard\":\"{kbd:Ctrl+C} copy · {kbd:Ctrl+X} cut · {kbd:Ctrl+V} paste · {kbd:Ctrl+D} duplicate · {kbd:Ctrl+A} select all.\",",
+"  \"help.connect\":\"Hover over a node and {b:drag the dot} that appears on the nearest side to connect.\",",
+"  \"help.edit\":\"Double-click = edit text. {kbd:Del} deletes, or use the {b:trash can} in the panel header. {kbd:Esc} cancels.\",",
+"  \"help.history\":\"{kbd:Ctrl+Z} undo · {kbd:Ctrl+Y} redo (or the arrows in the header).\",",
+"  \"help.multiSelect\":\"{b:Drag on empty space} to select several; {kbd:Shift}+click adds or removes.\",",
+"  \"help.pan\":\"{kbd:Right-click}, {kbd:Middle-click} or {kbd:Alt+Drag} to pan.\",",
+"  \"help.present\":\"{kbd:P} presents full screen; {kbd:←} {kbd:→} change page.\",",
+"  \"help.reroute\":\"{kbd:R} returns an arrow to its {b:automatic route}, undoing the segments you moved.\",",
+"  \"help.touch\":\"Touch: {b:one finger} pans the canvas, {b:two fingers} zoom, double tap edits.\",",
+"  \"help.touchBar\":\"Touch: with something selected you get {b:Connect} and {b:Select several} at the top and the {b:trash can} at the bottom. Tap the active tab to rename the page.\",",
+"  \"help.wheel\":\"{kbd:Mouse wheel} scroll · {kbd:Ctrl+Wheel} zoom.\",",
+"  \"more.privacyHref\":\"privacy/\",",
+"  \"more.supportHref\":\"support/\",",
+"  \"shell.privacyPath\":\"/privacy/\",",
+"  \"shell.supportPath\":\"/support/\",",
+"  \"shell.termsPath\":\"/terms/\",",
 "  $(\"entryBlank\").onclick=()=>entryClose(\"blank\");",
 "  $(\"entryExplore\").onclick=entryExplore;",
 "  $(\"wrap\").addEventListener(\"pointerdown\", ev=>{ if(entryOpen && !entryBusy && !card.contains(ev.target)) entryClose(\"dismiss\"); }, true);",
+"  /* Decisión 277: una línea que mezcla texto con teclas o énfasis se traduce ENTERA, con marcas {kbd:…} / {b:…} que se pintan",
+"  /* FLUYO-GROWTH-FOUNDATION-001 (inglés publicable): data-i18n-link lleva un enlace a la página del mismo idioma (/privacy/ en vez de",
+"  /* FLUYO-GROWTH-FOUNDATION-001 · inglés publicable: título del documento, enlaces legales y «Atajos y gestos» */",
 "  /* FLUYO-GROWTH-FOUNDATION-001 · la tarjeta de entrada del primer minuto (js/entry.js) */",
 "  /* FLUYO-I18N-002 S1: la pista del lienzo vacío, en el idioma de la interfaz (render.js conserva el español por defecto).",
 "  /* Tocar el lienzo (no la tarjeta) es empezar en blanco sin decirlo; el gesto sigue su curso normal. */",
@@ -284,9 +383,11 @@ const ADDED_LINES = new Set([
 "  <tr><th>Event</th><th>Meaning and properties</th></tr>",
 "  border:1px solid var(--rule-2); border-radius:var(--r-lg); box-shadow:var(--shadow-menu);}",
 "  card.hidden=false;",
+"  const ATTRS=[[\"data-i18n-title\",\"title\"],[\"data-i18n-aria-label\",\"aria-label\"],[\"data-i18n-tip\",\"data-tip\"],[\"data-i18n-placeholder\",\"placeholder\"],[\"data-i18n-link\",\"href\"]];",
+"  const RICH=/(\\{(?:kbd|b):[^{}]*\\})/;",
 "  const card=$(\"entryCard\");",
 "  const entry=(typeof EXAMPLE_SLUG!==\"undefined\" && EXAMPLE_SLUG) ? \"example\"",
-"  const frame={renderState:buildEditorRenderState(), emptyHint:typeof FluyoI18n===\"object\" ? FluyoI18n.t(\"editor.emptyCanvas\",\"Elige una forma o icono a la izquierda y haz clic aquí — o pulsa «Ejemplo»\") : undefined};",
+"  const frame={renderState:buildEditorRenderState(), emptyHint:typeof FluyoI18n===\"object\" ? FluyoI18n.t(\"editor.emptyCanvas\",\"Empieza añadiendo elementos al lienzo.\") : undefined};",
 "  const returning=(typeof ENTRY_STATE===\"object\" && ENTRY_STATE && ENTRY_STATE.returning) ? \"yes\" : \"no\";",
 "  const state=entryStorageState(storage);",
 "  document.addEventListener(\"keydown\", ev=>{ if(/^Esc(ape)?$/.test(ev.key) && entryOpen && !entryBusy) entryClose(\"dismiss\"); });",
@@ -300,6 +401,8 @@ const ADDED_LINES = new Set([
 "  fetchExample(EXAMPLE_DEMO)",
 "  first_edit_completed:{}, diagram_created:{},",
 "  for(const b of document.querySelectorAll(\"#entryCard button\")) b.disabled=true;",
+"  function richOf(el){",
+"  function setRich(el, text, d){",
 "  if (created) scTrack(\"story_created\", { origin: \"new\" });",
 "  if (created) {",
 "  if (typeof trackEvent === \"function\") trackEvent(name, props);",
@@ -374,6 +477,7 @@ const ADDED_LINES = new Set([
 "<p>The first time this browser opens the editor without a document in the link, a card over the canvas offers to watch an example in motion or to start blank. So that it is not offered again, the editor stores the key <code>fluyo.seen</code> with the value <code>1</code> in <code>localStorage</code>: no date, no identifier, and it is never sent. It does not appear either if any other <code>fluyo.*</code> key exists (saved session, theme or language). The only thing that leaves is its consequence, <code>returning: yes/no</code> in <code>editor_opened</code>; it counts browsers, not people: a private window, cleared site data or another device count as new.</p>",
 "<p>What is recorded is this closed list of events; automatic capture is off and there are no pageviews:</p>",
 "<script src=\"js/entry.js\"></script>",
+"<title data-i18n=\"editor.docTitle\">Fluyo — editor de diagramas de arquitectura animados con export a GIF</title>",
 "body.presenting .entryCard{display:none;}",
 "const ANALYTICS_LOCALES = [\"es\",\"en\",\"fr\",\"ja\",\"zh\",\"other\"];",
 "const ENTRY_SEEN_KEY = \"fluyo.seen\";",

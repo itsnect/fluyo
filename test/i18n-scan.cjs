@@ -151,8 +151,15 @@ const decode = (s) => s.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&qu
 function attrsOf(s) { const a = {}; for (const m of s.matchAll(/([\w:-]+)(?:\s*=\s*"([^"]*)")?/g)) a[m[1]] = m[2] === undefined ? "" : decode(m[2]); return a; }
 /* Recorre el HTML (sin <script>, <style> ni comentarios): marcas data-i18n* y texto visible sin marca. */
 function scanHtml(html) {
-  const src = html.replace(/<!--[\s\S]*?-->/g, "").replace(/<script[\s\S]*?<\/script>/g, "").replace(/<style[\s\S]*?<\/style>/g, "");
+  let src = html.replace(/<!--[\s\S]*?-->/g, "").replace(/<script[\s\S]*?<\/script>/g, "").replace(/<style[\s\S]*?<\/style>/g, "");
   const marks = [], issues = [], stack = [];
+  /* Decisión 277: una línea con marcado (data-i18n-rich) es UNA frase con marcas {kbd:…} / {b:…}, leída como la lee js/i18n.js
+     (richOf): texto de los nodos, espacios colapsados. Su contenido no cuenta como texto suelto. */
+  src = src.replace(/<(\w+)([^>]*?)\sdata-i18n-rich="([^"]+)"([^>]*)>([\s\S]*?)<\/\1>/g, (all, tag, a1, key, a2, inner) => {
+    const es = decode(inner.replace(/<(kbd|b)(?:\s[^>]*)?>([\s\S]*?)<\/\1>/g, "{$1:$2}").replace(/<[^>]+>/g, "")).replace(/\s+/g, " ").trim();
+    marks.push({ key, es, where: "rich" });
+    return "<" + tag + a1 + a2 + "></" + tag + ">";
+  });
   for (const m of src.matchAll(/<(\/?)([a-zA-Z][\w-]*)([^>]*?)(\/?)>|([^<]+)/g)) {
     if (m[5] !== undefined) {
       const text = decode(m[5]);
@@ -174,6 +181,8 @@ function scanHtml(html) {
     const tag = name.toLowerCase();
     if (close) { while (stack.length && stack.pop().name !== tag); continue; }
     const attrs = attrsOf(rest);
+    /* FLUYO-GROWTH-FOUNDATION-001: data-i18n-link → el enlace a la página del mismo idioma (su texto base es el href) */
+    if (attrs["data-i18n-link"] !== undefined) marks.push({ key: attrs["data-i18n-link"], es: attrs.href || "", where: "href" });
     /* FLUYO-I18N-002 S3b (D-S3b-6): translate="no" exime también los atributos del elemento y de su subárbol (el placeholder
        «SELECT FROM WHERE» son palabras clave de SQL, no texto de interfaz) */
     const noTranslate = attrs.translate === "no" || stack.some((e) => e.attrs.translate === "no");

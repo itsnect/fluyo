@@ -211,3 +211,36 @@ test("cableado: Historia — un story_started por ejecución, story_completed co
   assert.match(v, /if\(!story\.counted\)\{ story\.counted=true; trackEvent\("viewer_story_completed"\); \}/);
   assert.equal((v.match(/trackEvent\("viewer_story_started"\)/g) || []).length, 1);
 });
+
+/* ───────────── Inglés publicable (FLUYO-I18N-EN-RELEASE-AUDIT) ───────────── */
+
+test("decisión 277: cada línea de ayuda es UNA frase; el inglés lleva las mismas marcas {kbd}/{b}, en el mismo orden", () => {
+  const scan = require("./i18n-scan.cjs");
+  const rich = scan.scanHtml(read("index.html")).marks.filter((m) => m.where === "rich");
+  assert.equal(rich.length, 12, "12 líneas con marcado (la primera es texto liso)");
+  const en = scan.dictionaries().en.editor;
+  const kinds = (s) => [...String(s).matchAll(/\{(kbd|b):[^{}]*\}/g)].map((m) => m[1]).join(",");
+  for (const m of rich) {
+    assert.ok(typeof en[m.key] === "string", "en: " + m.key);
+    assert.equal(kinds(en[m.key]), kinds(m.es), m.key + ": mismas marcas");
+    assert.doesNotMatch(en[m.key], /[áéíóúñ¿¡]/, m.key + ": en inglés");
+  }
+  /* las teclas que se nombran en el idioma de la interfaz se traducen (decisión 277): «Supr» → «Del» */
+  assert.match(en["help.edit"], /\{kbd:Del\}/);
+});
+
+test("inglés publicable: <title> traducible y enlaces legales a la página del mismo idioma; el 404 también", () => {
+  assert.match(read("index.html"), /<title data-i18n="editor\.docTitle">/);
+  const en = { ...require("./i18n-scan.cjs").dictionaries().en.common, ...require("./i18n-scan.cjs").dictionaries().en.editor };
+  assert.doesNotMatch(en["editor.docTitle"], /[áéíóúñ]/);
+  assert.equal(en["more.privacyHref"], "privacy/"); assert.equal(en["more.supportHref"], "support/");
+  for (const [k, v] of [["shell.privacyPath", "/privacy/"], ["shell.termsPath", "/terms/"], ["shell.supportPath", "/support/"]]) {
+    assert.equal(en[k], v); assert.ok(fs.existsSync(path.join(root, v, "index.html")), v + " existe");
+    assert.ok(read("404.html").includes('data-i18n-link="' + k + '"'), "404: " + k);
+  }
+  for (const v of ["privacy", "support"]) assert.ok(fs.existsSync(path.join(root, v, "index.html")));
+  assert.match(read("js/i18n.js"), /\["data-i18n-link","href"\]/);
+  /* el lienzo vacío no remite a nada que no se vea («Ejemplo» vive en «⋯») */
+  assert.match(read("js/editor-runtime.js"), /FluyoI18n\.t\("editor\.emptyCanvas","Empieza añadiendo elementos al lienzo\."\)/);
+  assert.equal(en["editor.emptyCanvas"], "Start by adding elements to the canvas.");
+});

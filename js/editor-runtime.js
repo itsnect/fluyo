@@ -63,9 +63,10 @@ function scheduleEditorResize(afterResize=null){
 function renderEditorFrame(){
   resizeEditorCanvas();
   /* FLUYO-I18N-002 S1: la pista del lienzo vacío, en el idioma de la interfaz (render.js conserva el español por defecto).
-     FLUYO-GROWTH-FOUNDATION-001: con la tarjeta de entrada abierta (entry.js) el lienzo no dice nada: habla la tarjeta. */
+     FLUYO-GROWTH-FOUNDATION-001: con la tarjeta de entrada abierta (entry.js) el lienzo no dice nada: habla la tarjeta.
+     La pista es neutral (PO): no nombra «Ejemplo», «⋯» ni «la izquierda», que no valen en todas las disposiciones. */
   if(typeof entryTick==="function") entryTick();
-  const frame={renderState:buildEditorRenderState(), emptyHint:typeof FluyoI18n==="object" ? FluyoI18n.t("editor.emptyCanvas","Elige una forma o icono a la izquierda y haz clic aquí — o pulsa «Ejemplo»") : undefined};
+  const frame={renderState:buildEditorRenderState(), emptyHint:typeof FluyoI18n==="object" ? FluyoI18n.t("editor.emptyCanvas","Empieza añadiendo elementos al lienzo.") : undefined};
   if(typeof entryVisible==="function" && entryVisible()) frame.emptyHint="";
   render(ctx,now(),frame);
   /* El textarea de edición vive en el DOM, fuera del canvas. */

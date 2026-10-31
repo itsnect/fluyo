@@ -239,6 +239,17 @@ const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
       } finally { b.close(); }
     }
 
+    console.log("\nMOVIMIENTO REDUCIDO (prefers-reduced-motion: reduce)");
+    { const b = await open(port);
+      try {
+        await b.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
+        await b.goto(BASE + "/", 900);
+        await b.ev(`document.getElementById("entryExplore").click()`);
+        const opened = await waitFor(b, `P().name === "Compra online" && !!scActiveScenario()`, 8000); await sleep(600);
+        check(opened && (await b.ev(`scStatus`)) === "idle" && !(await b.find("story_started")).length, "Explorar abre el ejemplo en su Historia, lista para «Reproducir», sin arrancar sola");
+        check(eq(await b.find("example_loaded"), [{ example: "compra-online", source: "entry" }]) && eq(await b.find("entry_chosen"), [{ choice: "explore" }]), "y lo cuenta igual: example_loaded {entry} · entry_chosen {explore}");
+      } finally { b.close(); } }
+
     console.log("\nSIN ANALÍTICA FUERA DE fluyo.space (127.0.0.1)");
     { const b = await open(port);
       try {

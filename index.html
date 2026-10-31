@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fluyo — editor de diagramas de arquitectura animados con export a GIF</title>
+<title data-i18n="editor.docTitle">Fluyo — editor de diagramas de arquitectura animados con export a GIF</title>
 <meta name="description" content="Dibuja diagramas de arquitectura con flujo animado y expórtalos a GIF, PNG, JPG o SVG. Gratis, sin cuenta y sin backend: todo corre en tu navegador.">
 <link rel="canonical" href="https://fluyo.space/">
 <meta property="og:title" content="Fluyo — editor de diagramas de arquitectura animados con export a GIF">
@@ -289,19 +289,19 @@ try{ if(localStorage.getItem("fluyo.ui.props")==="folded") document.documentElem
         <summary><span class="pgTitle" data-i18n="more.shortcuts">Atajos y gestos</span></summary>
         <div class="pgBody">
       <ul class="helpList">
-        <li>Forma del menú izquierdo → clic en el lienzo.</li>
-        <li><kbd>Rueda ratón</kbd> mover · <kbd>Ctrl+Rueda</kbd> zoom.</li>
-        <li><kbd>Clic derecho</kbd>, <kbd>Clic central</kbd> o <kbd>Alt+Arrastrar</kbd> para pan.</li>
-        <li>Táctil: <b>un dedo</b> mueve el plano, <b>dos dedos</b> hacen zoom, doble toque edita.</li>
-        <li>Pasa el ratón sobre un nodo y <b>arrastra el punto</b> que aparece en el lado más cercano para conectar.</li>
-        <li><b>Arrastra en el vacío</b> para seleccionar varios; <kbd>Shift</kbd>+clic suma o quita.</li>
-        <li><kbd>Ctrl+C</kbd> copiar · <kbd>Ctrl+X</kbd> cortar · <kbd>Ctrl+V</kbd> pegar · <kbd>Ctrl+D</kbd> duplicar · <kbd>Ctrl+A</kbd> todo.</li>
-        <li><kbd>Ctrl+Z</kbd> deshacer · <kbd>Ctrl+Y</kbd> rehacer (o las flechas de la cabecera).</li>
-        <li>Doble clic = editar texto. <kbd>Supr</kbd> borra, o la <b>papelera</b> de la cabecera del panel. <kbd>Esc</kbd> cancela.</li>
-        <li>Táctil: con algo seleccionado salen <b>Conectar</b> y <b>Seleccionar varios</b> arriba y la <b>papelera</b> abajo. Toca la pestaña activa para renombrar la página.</li>
-        <li><kbd>P</kbd> presenta a pantalla completa; <kbd>←</kbd> <kbd>→</kbd> cambian de página.</li>
-        <li>Con una flecha seleccionada, arrastra sus <b>extremos</b> (círculos) para cambiar de lado o de forma, sus <b>codos</b> (cuadrados) y las <b>barras</b> de cada tramo para deslizar un tramo; doble clic en un codo lo elimina.</li>
-        <li><kbd>R</kbd> devuelve una flecha a su <b>ruta automática</b>, deshaciendo los tramos que hayas movido.</li>
+        <li data-i18n="help.addShape">Forma del menú izquierdo → clic en el lienzo.</li>
+        <li data-i18n-rich="help.wheel"><kbd>Rueda ratón</kbd> mover · <kbd>Ctrl+Rueda</kbd> zoom.</li>
+        <li data-i18n-rich="help.pan"><kbd>Clic derecho</kbd>, <kbd>Clic central</kbd> o <kbd>Alt+Arrastrar</kbd> para pan.</li>
+        <li data-i18n-rich="help.touch">Táctil: <b>un dedo</b> mueve el plano, <b>dos dedos</b> hacen zoom, doble toque edita.</li>
+        <li data-i18n-rich="help.connect">Pasa el ratón sobre un nodo y <b>arrastra el punto</b> que aparece en el lado más cercano para conectar.</li>
+        <li data-i18n-rich="help.multiSelect"><b>Arrastra en el vacío</b> para seleccionar varios; <kbd>Shift</kbd>+clic suma o quita.</li>
+        <li data-i18n-rich="help.clipboard"><kbd>Ctrl+C</kbd> copiar · <kbd>Ctrl+X</kbd> cortar · <kbd>Ctrl+V</kbd> pegar · <kbd>Ctrl+D</kbd> duplicar · <kbd>Ctrl+A</kbd> todo.</li>
+        <li data-i18n-rich="help.history"><kbd>Ctrl+Z</kbd> deshacer · <kbd>Ctrl+Y</kbd> rehacer (o las flechas de la cabecera).</li>
+        <li data-i18n-rich="help.edit">Doble clic = editar texto. <kbd>Supr</kbd> borra, o la <b>papelera</b> de la cabecera del panel. <kbd>Esc</kbd> cancela.</li>
+        <li data-i18n-rich="help.touchBar">Táctil: con algo seleccionado salen <b>Conectar</b> y <b>Seleccionar varios</b> arriba y la <b>papelera</b> abajo. Toca la pestaña activa para renombrar la página.</li>
+        <li data-i18n-rich="help.present"><kbd>P</kbd> presenta a pantalla completa; <kbd>←</kbd> <kbd>→</kbd> cambian de página.</li>
+        <li data-i18n-rich="help.arrowHandles">Con una flecha seleccionada, arrastra sus <b>extremos</b> (círculos) para cambiar de lado o de forma, sus <b>codos</b> (cuadrados) y las <b>barras</b> de cada tramo para deslizar un tramo; doble clic en un codo lo elimina.</li>
+        <li data-i18n-rich="help.reroute"><kbd>R</kbd> devuelve una flecha a su <b>ruta automática</b>, deshaciendo los tramos que hayas movido.</li>
       </ul>
         </div>
       </details>
@@ -311,8 +311,8 @@ try{ if(localStorage.getItem("fluyo.ui.props")==="folded") document.documentElem
       <nav id="siteLinks" aria-label="Enlaces del proyecto" data-i18n-aria-label="more.links">
         <a class="menuItem" href="docs/" data-i18n="shell.docs"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg>Docs</a>
         <a class="menuItem" href="ejemplos/" data-i18n="shell.examples"><svg class="ic" aria-hidden="true"><use href="#i-layers"/></svg>Ejemplos</a>
-        <a class="menuItem" href="privacidad/" data-i18n="shell.privacy"><svg class="ic" aria-hidden="true"><use href="#i-shield"/></svg>Privacidad</a>
-        <a class="menuItem" href="soporte/" data-i18n="shell.support"><svg class="ic" aria-hidden="true"><use href="#i-help"/></svg>Soporte</a>
+        <a class="menuItem" href="privacidad/" data-i18n="shell.privacy" data-i18n-link="more.privacyHref"><svg class="ic" aria-hidden="true"><use href="#i-shield"/></svg>Privacidad</a>
+        <a class="menuItem" href="soporte/" data-i18n="shell.support" data-i18n-link="more.supportHref"><svg class="ic" aria-hidden="true"><use href="#i-help"/></svg>Soporte</a>
       </nav>
       <a class="menuItem ossLink" href="https://github.com/itsnect/fluyo" target="_blank" rel="noopener">
         <svg class="ic" aria-hidden="true"><use href="#i-github"/></svg>

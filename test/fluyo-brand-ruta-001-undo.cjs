@@ -4,10 +4,10 @@
    favicon de esas once páginas, las reglas de la marca (css/identity.css, styles.css, share.css, pages.css) y assets/logo.svg.
    La constante CACHE de sw.js la resuelve cada test; los PNG (iconos y og-image) son binarios y ningún alcance los lee.
    Es la última de la cadena: undoOutcome (fluyo-stories-2-0-outcome-undo.cjs) la llama la primera, así los alcances de slices
-   anteriores la reciben sin cambiar. Cada pieza se sustituye por el texto exacto de la base de esta tarea (d7e1177, Stories 2.0
-   cerrada). Generado del diff con dos líneas de contexto. Si esta tarea cambia y esto no, los alcances antiguos fallan: es lo que
+   anteriores la reciben sin cambiar. Cada pieza se sustituye por el texto exacto de la base de esta tarea (ebf72cf: FLUYO-GROWTH-FOUNDATION-001,
+   v122, sobre Stories 2.0 cerrada). Growth se deshace después, con undoGrowth. Generado del diff con dos líneas de contexto. Si esta tarea cambia y esto no, los alcances antiguos fallan: es lo que
    se quiere. El alcance de esta tarea lo vigila test/fluyo-brand-ruta-001.test.cjs. */
-const BASE_RUTA = "d7e1177";
+const BASE_RUTA = "ebf72cf";
 /* Esta tarea no añade archivos servidos. */
 const NEW_FILES = [];
 /* Archivos servidos BINARIOS que cambia esta tarea (bytes de .ai/referencias/logo-ruta/): no tienen piezas; los alcances antiguos los excluyen. */

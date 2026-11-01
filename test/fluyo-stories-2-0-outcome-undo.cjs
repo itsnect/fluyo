@@ -28,13 +28,13 @@ const PIECES = {
     ]
   ]
 };
-/* FLUYO-GROWTH-FOUNDATION-001 va encima de esta tarea (base d7e1177): se deshace primero (fluyo-growth-foundation-001-undo.cjs). */
+/* Encima de esta tarea (base d7e1177) van FLUYO-GROWTH-FOUNDATION-001 (v122) y, sobre ella, FLUYO-BRAND-RUTA-001 (v123):
+   se deshacen primero, de la más reciente a la más antigua (Ruta → Growth). */
 const { undoGrowth } = require("./fluyo-growth-foundation-001-undo.cjs");
-/* FLUYO-BRAND-RUTA-001 va encima de esta tarea (base d7e1177): se deshace primero (fluyo-brand-ruta-001-undo.cjs). */
 const { undoRuta } = require("./fluyo-brand-ruta-001-undo.cjs");
 function undoOutcome(file, src) {
-  src = undoGrowth(file, src);
   src = undoRuta(file, src);
+  src = undoGrowth(file, src);
   const f = file.replace(/\\/g, "/"), pieces = PIECES[f];
   if (!pieces) return src;
   let out = src.replace(/\r\n/g, "\n");

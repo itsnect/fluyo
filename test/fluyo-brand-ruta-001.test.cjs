@@ -8,7 +8,7 @@
    · R5 fijo: donde antes se ocultaban los puntos (móvil, 701–860 del editor, teléfono en apaisado) el símbolo fijo y el bucle sin animar.
    · R6 nada de la marca anterior; Playfair solo en la palabra; «Hecho con Fluyo» igual.
    · R7 decisión 325, la 267 marcada como sustituida, tarea.
-   · C1 alcance frente a d7e1177 (git): solo estos archivos; undoRuta da la base EXACTA; sw.js solo CACHE v123; JS intacto.
+   · C1 alcance frente a ebf72cf, Growth v122 (git): solo estos archivos; undoRuta da la base EXACTA; sw.js solo CACHE v123; JS intacto.
    Lo visual (el bucle completo, móvil, tema oscuro, tamaños pequeños) lo prueba test/fluyo-brand-ruta-001-browser.cjs en Chrome. */
 const test = require("node:test");
 const assert = require("node:assert/strict");
@@ -18,7 +18,7 @@ const root = path.resolve(process.env.FLUYO_ROOT || path.join(__dirname, ".."));
 const read = (p) => fs.readFileSync(path.join(root, p), "utf8").replace(/\r\n/g, "\n");
 const REF = ".ai/referencias/logo-ruta/";
 const ref = (p) => read(REF + p);
-const BASE = "d7e1177";
+const BASE = "ebf72cf";   /* FLUYO-GROWTH-FOUNDATION-001 (v122): la base de esta tarea tras reintegrarla */
 
 const PAGES = ["index.html", "s/index.html", "404.html", "docs/index.html", "ejemplos/index.html", "privacidad/index.html", "privacy/index.html",
   "terminos/index.html", "terms/index.html", "soporte/index.html", "support/index.html"];
@@ -146,7 +146,7 @@ test("C1 · alcance frente a " + BASE + ": solo los archivos de esta tarea; undo
   assert.deepEqual(Object.keys(PIECES).sort(), FILES);
   assert.deepEqual([...new Set([...changed, ...untracked])].sort(), [...FILES, "assets/icon-192.png", "assets/icon-512.png", "assets/og-image.png", "sw.js"].sort());
   for (const f of FILES) assert.equal(undoRuta(f, read(f)), atBase(f), f + ": undoRuta exacto");
-  assert.equal(read("sw.js").replace('const CACHE = "fluyo-static-v123";', 'const CACHE = "fluyo-static-v121";'), atBase("sw.js"), "sw.js: solo la constante");
+  assert.equal(read("sw.js").replace('const CACHE = "fluyo-static-v123";', 'const CACHE = "fluyo-static-v122";'), atBase("sw.js"), "sw.js: solo la constante");
   assert.match(read("sw.js"), /const CACHE = "fluyo-static-v123";/);
   /* index.html y s/index.html: solo la marca y el favicon */
   for (const f of ["index.html", "s/index.html"]) {

@@ -223,11 +223,10 @@ test("C1 · kernel, codec, formato, render, ejemplos y fluyo-mcp intactos", () =
     "js/story-authoring.js", "js/render.js", "js/link-codec.js", "js/deeplink.js", "js/examples.js", "ejemplos"];
   /* FLUYO-GROWTH-FOUNDATION-001 va encima y toca algunos (eventos de analítica): con ella deshecha, igual que en la base */
   const { undoGrowth } = require("./fluyo-growth-foundation-001-undo.cjs");
-  const stillChanged = (names) => names.split("\n").filter(Boolean).filter((f) => undoGrowth(f, read(f)) !== execFileSync("git", ["-C", gitRoot, "show", BASE + ":" + f], { encoding: "utf8" }).replace(/\r\n/g, "\n")).join("\n");
-  /* FLUYO-BRAND-RUTA-001 va encima y cambia la marca de index.html, s/ y ejemplos/: con ella deshecha, igual que en la base */
+  /* FLUYO-BRAND-RUTA-001 va encima de Growth y cambia la marca (index.html, s/, ejemplos/): se deshace antes */
   const { undoRuta } = require("./fluyo-brand-ruta-001-undo.cjs");
-  const stillChanged = (names) => names.split("\n").filter(Boolean).filter((f) => undoRuta(f, read(f)) !== execFileSync("git", ["-C", gitRoot, "show", BASE + ":" + f], { encoding: "utf8" }).replace(/\r\n/g, "\n")).join("\n");
-  assert.equal(stillChanged(stillChanged(execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...KEEP], { encoding: "utf8" }).trim())), "");
+  const stillChanged = (names) => names.split("\n").filter(Boolean).filter((f) => undoGrowth(f, undoRuta(f, read(f))) !== execFileSync("git", ["-C", gitRoot, "show", BASE + ":" + f], { encoding: "utf8" }).replace(/\r\n/g, "\n")).join("\n");
+  assert.equal(stillChanged((execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...KEEP], { encoding: "utf8" }).trim())), "");
   /* el editor de Historias lo cambia S2b (variantes): con S2b deshecha, igual que en la base */
   const { undoS2b } = require("./fluyo-stories-2-0-s2b-undo.cjs");
   assert.equal(undoS2b("js/editor-scenarios.js", read("js/editor-scenarios.js")), atBase("js/editor-scenarios.js").replace(/\r\n/g, "\n"), "js/editor-scenarios.js");

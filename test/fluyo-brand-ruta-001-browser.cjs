@@ -5,10 +5,12 @@
          en todos: 24 px a 8 px de la palabra (en móvil del editor y el Viewer, a escala de la palabra a 19 px), centrados, sin recorte,
          sin pisar el control siguiente y sin scroll horizontal;
      B · el fijo es svg/fluyo-simbolo.svg: el mismo dibujo pintado en un lienzo, píxel a píxel (en los colores de los tokens);
-     C · el bucle: el último fotograma es el logo (origen vacío, conexión, destino lleno), el primero también; el envío pasa por el destino;
+     C · el bucle: el último fotograma es el logo (origen vacío, conexión, destino lleno), el primero también; el envío pasa por el destino
+         y descansa en (36,32), donde lo pinta el fijo;
      D · tokens: interfaz oscura del editor → tinta #EDE7DB y envío #DE8B71; las páginas y el Viewer siguen en claro;
      E · Service Worker: CACHE v123 guarda identity.css con la marca nueva y, sin red, el editor la pinta;
      F · favicon de las once páginas y tamaños pequeños (16, 24, 32 px): capturas para el gate del PO;
+     H · cabecera del editor a 701, 720, 744, 760 y 768 px táctil (es/en, Editar/Historias): una fila, «Más» a la vista, nada fuera;
      G · 0 errores de consola.
    Uso: node test/fluyo-brand-ruta-001-browser.cjs   (Playwright vía NODE_PATH; FLUYO_BROWSER=chrome por defecto; FLUYO_SHOTS=<dir>) */
 let chromium;
@@ -140,7 +142,7 @@ const recalcs = async (page) => {
       const f0 = await at(0), fEnd = await at(4799.9), fArr = await at(0.185 * 4800);
       check(f0.old.o === 1 && f0.n2.x === 50 && f0.n2.y === 48 && f0.n2.f === 1 && f0.n3.o === 0, "fotograma 0: origen y conexión a la vista, destino lleno en (50,48), sin caja nueva");
       check(fEnd.old.o === 0 && fEnd.n2.x === 14 && fEnd.n2.y === 16 && fEnd.n2.f === 0 && fEnd.n3.o === 1 && fEnd.n3.x === 50 && fEnd.n3.y === 48, "último fotograma: el destino es ahora el origen (vacío) y la caja nueva el destino: el logo otra vez");
-      check(f0.tok.x === 36 && fEnd.tok.x === 36 && f0.tok.y === fEnd.tok.y && f0.tok.o === 1, `el envío vuelve a su sitio (36,${f0.tok.y}); referencia: offset-distance 50 %`);
+      check(f0.tok.x === 36 && f0.tok.y === 32 && fEnd.tok.x === 36 && fEnd.tok.y === 32 && f0.tok.o === 1 && fEnd.tok.o === 1, `el envío empieza y termina en (36,32), el círculo del fijo: sin salto al pasar al fijo (${f0.tok.x},${f0.tok.y} → ${fEnd.tok.x},${fEnd.tok.y})`);
       check(fArr.tok.x >= 41 && fArr.tok.y === 48, `el envío llega al destino (${fArr.tok.x},${fArr.tok.y})`);
       for (const t of [0, 900, 1100, 1700, 2300, 3200, 4000]) { await at(t); await page.locator(".siteHead .logo").screenshot({ path: path.join(shots, `C-frame-${String(t).padStart(4, "0")}.png`) }); }
       await ctx.close();
@@ -189,6 +191,31 @@ const recalcs = async (page) => {
       const px = await page.evaluate(() => { const i = document.getElementById("f16"), c = document.createElement("canvas"); c.width = c.height = 16; const g = c.getContext("2d"); g.drawImage(i, 0, 0, 16, 16); const d = g.getImageData(0, 0, 16, 16).data; let red = 0, dark = 0; for (let k = 0; k < d.length; k += 4) { if (d[k] > 120 && d[k + 1] < 110 && d[k + 2] < 100) red++; if (d[k] < 90 && d[k + 1] < 90 && d[k + 2] < 90) dark++; } return { red, dark }; });
       check(px.red >= 2 && px.dark >= 15, `16 px: el envío terracota (${px.red} px) y la tinta (${px.dark} px) siguen ahí`);
       await ctx.close();
+    }
+    console.log("\nH) cabecera del editor en tableta vertical táctil (701–768 px), con un documento abierto");
+    {
+      const FX = fs.readFileSync(path.join(root, "test/fixtures/fluyo-017-1-cliente-kafka-comercio.fluyo.json"), "utf8");
+      for (const lang of ["es", "en"]) for (const st of ["Editar", "Historias"]) for (const w of [701, 720, 744, 760, 768]) {
+        const ctx = await browser.newContext({ viewport: { width: w, height: 1024 }, hasTouch: true, isMobile: true, serviceWorkers: "block", locale: lang }), page = watch(await ctx.newPage(), `H ${w} ${lang}`);
+        await page.goto(base + "/?lang=" + lang); await page.evaluate(() => document.fonts.ready);
+        if (await page.locator("#autosaveModal").isVisible().catch(() => false)) await page.locator("#autosaveDiscard").click();
+        await page.evaluate((fx) => { applyProjectData(JSON.parse(fx)); fitView(); clearSel(); renderTabs(); }, FX);
+        if (st === "Historias") await page.click("#tabScenarios");
+        await page.waitForTimeout(250);
+        const h = await page.evaluate(() => {
+          const hd = document.querySelector("body > header"), hr = hd.getBoundingClientRect(), r = (e) => e.getBoundingClientRect();
+          const kids = [...hd.children].filter((e) => e.getClientRects().length && r(e).width > 0);
+          const out = kids.filter((e) => r(e).right > hr.right + 0.5 || r(e).left < hr.left - 0.5).map((e) => e.id || e.className.split(" ")[0]);
+          const cs = kids.map((e) => r(e).top + r(e).height / 2).sort((a, b) => a - b), rows = 1 + cs.filter((c, i) => i && c - cs[i - 1] > 10).length;
+          const more = r(document.getElementById("btnMore")), logo = r(hd.querySelector(".logo"));
+          return { rows, out, more: more.width > 0 && more.right <= hr.right + 0.5 && more.left >= hr.left, ov: hd.scrollWidth - hd.clientWidth,
+            doc: document.documentElement.scrollWidth - document.documentElement.clientWidth, mark: hd.querySelector(".logoMark").getBoundingClientRect().width > 0, word: hd.querySelector(".logoWord").textContent, logoIn: logo.left >= hr.left && logo.right <= hr.right };
+        });
+        check(h.rows === 1 && h.more && h.out.length === 0 && h.ov <= 0 && h.doc <= 0 && h.mark && h.word === "fluyo" && h.logoIn,
+          `${w} táctil ${lang} ${st}: una fila, «Más» a la vista, ningún control fuera, sin desborde (${h.ov}/${h.doc} px), símbolo + «fluyo» ${h.out.length ? JSON.stringify(h.out) : ""}`);
+        if (lang === "es") await page.locator("body > header").screenshot({ path: path.join(shots, `H-${w}-${st}.png`) });
+        await ctx.close();
+      }
     }
     check(errors.length === 0, "0 errores de consola/página" + (errors.length ? ": " + errors.slice(0, 5).join(" | ") : ""));
   } finally { await browser.close(); server.close(); }

@@ -4,7 +4,8 @@
      svg/fluyo-simbolo.svg exacto y .loop la animación de codigo/logo-cabecera.html, ambos con los colores en tokens.
    · R2 favicon: el data URI de la referencia, exacto, en las once páginas.
    · R3 assets: logo.svg, iconos y og-image son los bytes de la referencia; manifest intacto.
-   · R4 movimiento: keyframes y reglas del bucle tal cual la referencia (4.8 s), declarados SOLO con prefers-reduced-motion: no-preference.
+   · R4 movimiento: keyframes y reglas del bucle de la referencia (4.8 s), con el envío en reposo donde lo pinta el fijo (57,6923 %, el
+     círculo de svg/fluyo-simbolo.svg; la referencia animada decía 50 %), declarados SOLO con prefers-reduced-motion: no-preference.
    · R5 fijo: donde antes se ocultaban los puntos (móvil, 701–860 del editor, teléfono en apaisado) el símbolo fijo y el bucle sin animar.
    · R6 nada de la marca anterior; Playfair solo en la palabra; «Hecho con Fluyo» igual.
    · R7 decisión 325, la 267 marcada como sustituida, tarea.
@@ -79,13 +80,20 @@ const idCss = () => read("css/identity.css");
 const refCss = () => ref("codigo/logo-cabecera.html").match(/<style>([\s\S]*?)<\/style>/)[1];
 const mediaBody = (css, head) => { const a = css.indexOf(head); assert.ok(a >= 0, "falta " + head); let i = css.indexOf("{", a) + 1, d = 1; const s = i; for (; d; i++) d += css[i] === "{" ? 1 : css[i] === "}" ? -1 : 0; return css.slice(s, i - 1); };
 
-test("R4 · movimiento: keyframes y reglas del bucle tal cual la referencia (4.8 s), declarados solo sin «reducir movimiento»", () => {
-  const css = idCss(), r = refCss();
+test("R4 · movimiento: keyframes y reglas del bucle de la referencia (4.8 s), el envío en reposo donde lo pinta el fijo, declarados solo sin «reducir movimiento»", () => {
+  /* El fijo manda (PO): el envío descansa en el círculo de svg/fluyo-simbolo.svg, no en el 50 % de la referencia animada (36,28). */
+  const still = ref("svg/fluyo-simbolo.svg"), [cx, cy] = still.match(/<circle cx="([\d.]+)" cy="([\d.]+)"/).slice(1).map(Number);
+  const seg = [[22, 16, 36, 16], [36, 16, 36, 48], [36, 48, 42, 48]], len = seg.reduce((s, [a, b, c, d]) => s + Math.hypot(c - a, d - b), 0);
+  let at = 0; for (const [a, b, c, d] of seg) { if ((a === c && cx === a && cy >= Math.min(b, d) && cy <= Math.max(b, d)) || (b === d && cy === b && cx >= Math.min(a, c) && cx <= Math.max(a, c))) { at += Math.hypot(cx - a, cy - b); break; } at += Math.hypot(c - a, d - b); }
+  const REST = (at / len * 100).toFixed(4) + "%";
+  assert.equal(REST, "57.6923%", `el círculo del fijo (${cx},${cy}) está a ${at} de ${len} por la ruta`);
+  const css = idCss(), r = refCss().replace(/offset-distance:50%/g, "offset-distance:" + REST);
+  assert.equal((refCss().match(/offset-distance:50%/g) || []).length, 3, "la referencia lo dejaba en el 50 % en la regla, al empezar y al terminar");
   const kf = (t) => [...t.matchAll(/@keyframes logoMark-[a-z0-9]+\{.*\}\}/g)].map((m) => m[0]).sort();
-  assert.equal(kf(r).length, 6); assert.deepEqual(kf(css), kf(r), "las seis @keyframes, idénticas");
+  assert.equal(kf(r).length, 6); assert.deepEqual(kf(css), kf(r), "las seis @keyframes, idénticas (salvo el reposo del envío)");
   const rules = (t) => [...t.matchAll(/^\.logoMark \.(pan|old|n2|n3|r2|tok)\{.*\}$/gm)].map((m) => m[0]).sort();
   const motion = mediaBody(css, "@media (prefers-reduced-motion: no-preference){");
-  assert.equal(rules(r).length, 6); assert.deepEqual(rules(motion), rules(r), "las seis reglas del bucle, idénticas y dentro de no-preference");
+  assert.equal(rules(r).length, 6); assert.deepEqual(rules(motion), rules(r), "las seis reglas del bucle, idénticas (salvo el reposo del envío) y dentro de no-preference");
   assert.ok(rules(r).every((x) => /4\.8s/.test(x)) && rules(r).every((x) => /infinite/.test(x)), "4.8 s en bucle");
   assert.match(motion, /\.logoMark \.still\{display:none;\} \.logoMark \.loop\{display:inline;\}/, "con movimiento: el bucle a la vista, el fijo no");
   const outside = css.replace(motion, "");
@@ -111,6 +119,10 @@ test("R5 · fijo donde antes se ocultaban los puntos: el símbolo fijo y el bucl
   for (const [f, head, sel] of where) assert.ok(sp(mediaBody(read(f), head)).includes(STATIC(sel)), `${f} ${head} → ${sel}`);
   /* editor de 701–860 px: el par a la escala del teléfono (palabra 19 px); con 21 px, a 768 px táctil la cabecera desbordaba 8 px */
   assert.ok(mediaBody(read("css/styles.css"), "@media (min-width:701px) and (max-width:860px){").includes("body > header .logo{font-size:19px;}"), "701–860: palabra a 19 px");
+  /* tableta vertical táctil < 768 px: sin filetes (701–767) y Presentar en icono (701–743), para que «Más» quede a la vista */
+  assert.equal(sp(mediaBody(read("css/styles.css"), "@media (min-width:701px) and (max-width:767px) and (pointer:coarse){")).trim(), sp("body > header > .hdrDiv{display:none;}"), "701–767 táctil: sin filetes");
+  const present = sp(mediaBody(read("css/styles.css"), "@media (min-width:701px) and (max-width:743px) and (pointer:coarse){"));
+  assert.ok(present.includes(sp("body > header > #btnPresent .lbl{position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap;}")) && present.includes(sp("body > header > #btnPresent{width:var(--ctl-h); min-width:var(--ctl-h); padding:0;}")), "701–743 táctil: Presentar en icono, con su nombre oculto");
   /* y la cabecera conserva lo demás: centrada, 8 px entre símbolo y palabra */
   for (const [f, sel] of [["css/styles.css", "body > header .logo{"], ["css/share.css", "#chrome .logo{"], ["css/pages.css", ".siteHead .logo{"]])
     assert.match(mediaBody(read(f), sel), /display:flex; align-items:center; gap:calc\(8em \/ 21\);/, f);
@@ -146,7 +158,8 @@ test("C1 · alcance frente a " + BASE + ": solo los archivos de esta tarea; undo
   assert.deepEqual(Object.keys(PIECES).sort(), FILES);
   assert.deepEqual([...new Set([...changed, ...untracked])].sort(), [...FILES, "assets/icon-192.png", "assets/icon-512.png", "assets/og-image.png", "sw.js"].sort());
   for (const f of FILES) assert.equal(undoRuta(f, read(f)), atBase(f), f + ": undoRuta exacto");
-  assert.equal(read("sw.js").replace('const CACHE = "fluyo-static-v123";', 'const CACHE = "fluyo-static-v122";'), atBase("sw.js"), "sw.js: solo la constante");
+  const noCache = (s) => s.replace(/\r\n/g, "\n").replace(/const CACHE = "fluyo-static-v\d+";/, "");
+  assert.equal(noCache(read("sw.js")), noCache(atBase("sw.js")), "sw.js: solo la constante");
   assert.match(read("sw.js"), /const CACHE = "fluyo-static-v123";/);
   /* index.html y s/index.html: solo la marca y el favicon */
   for (const f of ["index.html", "s/index.html"]) {

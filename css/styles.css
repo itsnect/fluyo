@@ -1096,6 +1096,16 @@ body.scPlaybackOn #wrap::after{box-shadow:inset 0 0 0 2px var(--active), inset 0
   body > header .logo{font-size:19px;}   /* FLUYO-BRAND-RUTA-001: el par Ruta a la escala del teléfono; a 768 px táctil no cabía (8 px) */
   body > header .logo .still{display:inline;} body > header .logo :is(.loop, .loop *){display:none; animation:none;}   /* donde iban sin puntos: el símbolo fijo */
 }
+/* FLUYO-BRAND-RUTA-001: tableta vertical táctil por debajo de 768 px (iPad mini, 744). El par Ruta mide 25 px más que «fluyo» y la
+   cabecera ya no cabía (la base ya desbordaba por debajo de 744). Sin filetes, como en el teléfono (34 px); por debajo de 744,
+   Presentar se queda además en icono (su nombre sigue en el texto oculto y el title), como Compartir en esta franja. «Más» siempre a la vista. */
+@media (min-width:701px) and (max-width:767px) and (pointer:coarse){
+  body > header > .hdrDiv{display:none;}
+}
+@media (min-width:701px) and (max-width:743px) and (pointer:coarse){
+  body > header > #btnPresent .lbl{position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap;}
+  body > header > #btnPresent{width:var(--ctl-h); min-width:var(--ctl-h); padding:0;}
+}
 
 /* ---- Móvil (≤700 px) ---- */
 /* FLUYO-018.19: también el teléfono en apaisado (táctil y ≤ 500 px de alto): la misma gramática del teléfono. Lo que cambia en

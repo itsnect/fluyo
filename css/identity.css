@@ -21,9 +21,11 @@
 .logoMark .n2{transform-box:fill-box;transform-origin:center;animation:logoMark-n2 4.8s ease infinite}
 .logoMark .n3{transform-box:fill-box;transform-origin:center;opacity:0;animation:logoMark-n3 4.8s cubic-bezier(.2,0,0,1) infinite}
 .logoMark .r2{stroke-dasharray:52;stroke-dashoffset:52;animation:logoMark-r2 4.8s cubic-bezier(.45,0,.2,1) infinite}
-.logoMark .tok{offset-path:path("M22 16 H36 V48 H42");offset-rotate:0deg;offset-distance:50%;animation:logoMark-tok 4.8s infinite}
+.logoMark .tok{offset-path:path("M22 16 H36 V48 H42");offset-rotate:0deg;offset-distance:57.6923%;animation:logoMark-tok 4.8s infinite}
 }
-@keyframes logoMark-tok{0%{offset-distance:50%;opacity:1;animation-timing-function:cubic-bezier(.45,0,.55,1)}17%{opacity:1}19%{offset-distance:100%;opacity:0}46%{offset-distance:0%;opacity:0;animation-timing-function:cubic-bezier(.45,0,.55,1)}49%{opacity:1}67%,100%{offset-distance:50%;opacity:1}}
+/* El envío descansa donde lo pinta el símbolo fijo (svg/fluyo-simbolo.svg, círculo en 36,32): 30 de los 52 de la ruta = 57,6923 %.
+   La referencia animada lo dejaba en el 50 % (36,28) y saltaba 4 unidades al pasar al fijo; manda el fijo (PO, FLUYO-BRAND-RUTA-001). */
+@keyframes logoMark-tok{0%{offset-distance:57.6923%;opacity:1;animation-timing-function:cubic-bezier(.45,0,.55,1)}17%{opacity:1}19%{offset-distance:100%;opacity:0}46%{offset-distance:0%;opacity:0;animation-timing-function:cubic-bezier(.45,0,.55,1)}49%{opacity:1}67%,100%{offset-distance:57.6923%;opacity:1}}
 @keyframes logoMark-pan{0%,23%{transform:translate(0,0)}48%,100%{transform:translate(-36px,-32px)}}
 @keyframes logoMark-old{0%,23%{opacity:1}38%,100%{opacity:0}}
 @keyframes logoMark-n2{0%,18%{fill-opacity:1;transform:scale(1)}20.5%{transform:scale(1.14)}23%{fill-opacity:1;transform:scale(1)}44%,100%{fill-opacity:0;transform:scale(1)}}

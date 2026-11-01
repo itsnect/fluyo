@@ -1,6 +1,6 @@
 # FLUYO-GROWTH-FOUNDATION-001 — Base para medir el funnel y activar en el primer minuto
 
-Estado: **v122 READY FOR MERGE / DEPLOY** (rama `growth-foundation-001`; sin push, merge ni despliegue: esperan instrucción del PO). D1–D4 aprobadas y congeladas; inglés publicado (decisión 324).
+Estado: **PRODUCTION VERIFIED / CLOSED** (2026-11-01). En producción desde `ebf72cf` (`main`), fluyo.space sirve `fluyo-static-v122`; smoke de producción 30/0.
 Owner/agente actual: libre (espera QA del PO)
 
 > Repo público: este documento no contiene métricas, estrategia ni datos privados. Las cifras de uso se leen en el panel de analítica, fuera del repositorio.
@@ -143,6 +143,18 @@ Tests de contrato antiguos actualizados (fijaban el payload anterior): `test/ana
 | i18n (catálogo, trinquete, puerta 324) | verde (incluida en la suite) |
 | Suite completa | 1856 · 1775 ok · 81 fallos, todos preexistentes (0 nuevos) |
 | Stories S1b / S2a / S2b · EXAMPLES-001 (Viewer/Share) | 47/0 · 50/0 · 40/0 · 40/0 |
+
+### Producción (2026-11-01)
+
+- `origin/main`: `d7e1177..ebf72cf` (avance rápido desde `growth-foundation-001`); Vercel desplegó y `https://fluyo.space/sw.js` sirve `fluyo-static-v122`. `sw.js`, `index.html`, `js/entry.js`, `js/i18n.js`, `js/analytics.js`, `js/editor-scenarios.js`, `js/viewer.js`, `js/i18n-en-editor.js` y `privacy/index.html` servidos idénticos byte a byte al commit.
+- Smoke en Chrome real contra `https://fluyo.space` (Umami sustituido por un falso con el `beforeSend` de producción: sin tráfico de prueba en la analítica real): **30 / 0**.
+  - Idioma automático: es-CL → español; en-US → inglés; de-DE (no publicado) → inglés.
+  - Usuario nuevo ve la tarjeta; recurrente no (`returning: yes`).
+  - «Ver un sistema en marcha» abre el ejemplo en su edición y reproduce la Story hasta el final; con `prefers-reduced-motion` queda lista sin arrancar.
+  - `?ejemplo=`, `#d=` y `/s/` no se interceptan.
+  - Share (enlace de Historia creado en producción) y Viewer en es y en, con inicio y final de la reproducción.
+  - Ningún payload saliente lleva contenido del proyecto, URL, referrer ni campos extra.
+  - Service worker instalado con la caché `fluyo-static-v122` y controlando la recarga.
 
 Recorridos de navegador cubiertos: nuevo escritorio (Explorar → Historia reproduciéndose → `story_completed` una sola vez aunque se salte atrás; reproducir de nuevo; Share ×3; creación ×4; Present), En blanco / Escape / tocar el lienzo, recurrente (`fluyo.ui.theme`, sesión guardada), `?ejemplo=` válido y desconocido, `#d=` en el editor, `/s/` es y en de principio a fin, enlace de diagrama, inglés, móvil 390 × 844 táctil es y en (tarjeta con 16 px de margen, objetivos de 56 px, Historia reproduciéndose), y en local (127.0.0.1) sin ningún script de Umami. Sin errores de consola. También probado en `file://`: sin errores.
 

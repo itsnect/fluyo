@@ -38,7 +38,7 @@ test("alcance: kernel, render, geometría, exportación, enlace y URL corta idé
   assert.match(read("sw.js"), /const CACHE = "fluyo-static-v123";/);
   assert.doesNotMatch(read("js/story-clock.js"), /document\.|window\.|requestAnimationFrame|setTimeout|setInterval|localStorage|Date\.now|Math\.random|performance\./, "story-clock.js sigue puro");
   const mcp = path.join(root, "..", "fluyo-mcp", "scripts", "sync-kernel.ts");
-  if (fs.existsSync(mcp)) assert.ok(!fs.readFileSync(mcp, "utf8").includes("story-clock"), "story-clock.js sigue fuera del kernel del MCP");
+  void mcp;   /* Desde FLUYO-MCP-STORY-AUTHORING-001 (decisión 327) el MCP carga story-clock.js por el desenlace: por eso debe seguir puro (arriba). */
 });
 
 /* ───────── R1 ───────── */

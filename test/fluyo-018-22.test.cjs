@@ -1,7 +1,7 @@
 "use strict";
 /* FLUYO-018.22 — Dependencias de llegada en el MCP (lado Fluyo). Rápido (vm, sin navegador).
-   · la REGLA de validez y la forma canónica viven en model.js (kernel, la copia fluyo-mcp); story-clock.js la reexporta y sigue
-     fuera del kernel;
+   · la REGLA de validez y la forma canónica viven en model.js (kernel, la copia fluyo-mcp); story-clock.js la reexporta (desde
+     FLUYO-MCP-STORY-AUTHORING-001, decisión 327, el MCP también lo carga, por el desenlace);
    · FluyoAuthoring (kernel del MCP) crea la cadena A→B→C y Fluyo la reproduce 0 → 1100 → 1600 → 2700 (y 0 → 500 → 1100);
    · el editor sigue usando las mismas funciones al eliminar y duplicar; duplicar copia solo lo válido;
    · CACHE v80. El contrato completo (validación, remove/duplicate, describe, mutaciones) está en fluyo-mcp/test/fluyo-018-22.test.ts.
@@ -57,7 +57,7 @@ test("integración: la cadena creada por FluyoAuthoring se ve 0 → 1100 → 160
   assert.deepEqual(play(indep), [0, 500, 1100]);
 });
 
-test("kernel: la regla está en model.js; story-clock.js la reexporta (mismas funciones) y no entra en el kernel", () => {
+test("kernel: la regla está en model.js; story-clock.js la reexporta (mismas funciones)", () => {
   const k = ctx(["config.js", "safe-svg.js", "model.js", "scenario-engine.js", "scenario-playback.js", "story-playback.js", "story-clock.js"]);
   assert.equal(k(`return ["arrivalDependencies","arrivalCandidates","pruneArrivalDependencies","withArrivalWait","withoutArrivalWaits","copyArrivalWaits"].every(n => FluyoStoryClock[n] === globalThis[n])
     && FluyoStoryClock.stepWaits === arrivalStepWaits && FluyoStoryClock.momentWaits === arrivalMomentWaits;`), true);
@@ -65,7 +65,7 @@ test("kernel: la regla está en model.js; story-clock.js la reexporta (mismas fu
   const sync = path.join(root, "..", "fluyo-mcp", "scripts", "sync-kernel.ts");
   if (fs.existsSync(sync)) {
     const list = fs.readFileSync(sync, "utf8");
-    assert.ok(list.includes('"model.js"') && list.includes('"story-authoring.js"') && !list.includes('"story-clock.js"'));
+    assert.ok(list.includes('"model.js"') && list.includes('"story-authoring.js"'));
   }
 });
 

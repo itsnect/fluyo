@@ -37,7 +37,7 @@ test("alcance: kernel (model, config, motor, playback, story-playback, integrida
   }
 });
 
-test("story-clock.js: fuera del kernel, cargado por el editor y el Viewer tras story-playback.js, precacheado; CACHE v77", () => {
+test("story-clock.js: cargado por el editor y el Viewer tras story-playback.js, precacheado; CACHE v77", () => {
   const sw = read("sw.js"), html = read("index.html"), viewer = read("s/index.html");
   assert.match(sw, /const CACHE = "fluyo-static-v123";/);
   assert.ok(sw.includes('"./js/story-clock.js"'), "precacheado");
@@ -49,7 +49,7 @@ test("story-clock.js: fuera del kernel, cargado por el editor y el Viewer tras s
     for (const u of local) assert.ok(sw.includes('"./' + u.replace(/^\.\//, "") + '"'), "en el precache: " + u);
   }
   const mcp = path.join(root, "..", "fluyo-mcp", "scripts", "sync-kernel.ts");
-  if (fs.existsSync(mcp)) assert.ok(!fs.readFileSync(mcp, "utf8").includes("story-clock"), "fluyo-mcp no copia story-clock.js: no es kernel");
+  /* Desde FLUYO-MCP-STORY-AUTHORING-001 (decisión 327) el MCP lo carga por el desenlace; lo que no cambia es que debe poder cargarse sin navegador (abajo). */
   const clock = read("js/story-clock.js");
   assert.doesNotMatch(clock, /document\.|window\.|requestAnimationFrame|setTimeout|setInterval|localStorage|Date\.now|Math\.random|performance\./, "puro: el tiempo real lo pasa quien llama");
 });

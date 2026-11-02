@@ -274,7 +274,7 @@ test("C1 · kernel, formato, codec, Share, Present, Viewer, render, ejemplos y f
   assert.equal(undoOutcome("js/story-clock.js", read("js/story-clock.js")), execFileSync("git", ["-C", gitRoot, "show", BASE + ":js/story-clock.js"], { encoding: "utf8" }).replace(/\r\n/g, "\n"));
   const mcp = path.join(root, "..", "fluyo-mcp");
   if (fs.existsSync(path.join(mcp, ".git"))) {
-    assert.equal(execFileSync("git", ["-C", mcp, "rev-parse", "--short", "HEAD"], { encoding: "utf8" }).trim(), "464f4e0", "fluyo-mcp sigue en 464f4e0");
+    execFileSync("git", ["-C", mcp, "merge-base", "--is-ancestor", "464f4e0", "HEAD"]);   /* parte de 464f4e0: esta slice no lo tocó; lo posterior (STORY-AUTHORING-001) no la cambia */
     assert.equal(execFileSync("git", ["-C", mcp, "status", "--porcelain", "--untracked-files=no"], { encoding: "utf8" }).trim(), "", "sin cambios en fluyo-mcp");
   }
 });

@@ -346,7 +346,12 @@ test("M · el kernel del MCP (si está al lado) es este kernel: sha256 de cada a
   const gen = path.join(root, "..", "fluyo-mcp", "src", "generated", "kernel-sources.ts");
   if (!fs.existsSync(gen)) return t.skip("sin fluyo-mcp hermano");
   const ts = fs.readFileSync(gen, "utf8");
-  const files = ["config.js", "safe-svg.js", "model.js", "scenario-engine.js", "scenario-playback.js", "story-playback.js", "document-integrity.js", "story-authoring.js"];
+  /* La lista la da el propio MCP: cambió en FLUYO-MCP-STORY-AUTHORING-001 (story-clock.js, decisión 327). */
+  const files = [...ts.replace(/
+/g, "
+").matchAll(/name: "([^"]+)",
+    sha256:/g)].map((m) => m[1]);
+  assert.ok(files.includes("model.js") && files.includes("story-authoring.js"), "el MCP declara su kernel");
   const sha = (s) => crypto.createHash("sha256").update(s, "utf8").digest("hex");
   const own = files.map((f) => [f, sha(read("js/" + f))]);
   for (const [f, h] of own) assert.ok(ts.includes(`name: "${f}",\n    sha256: "${h}"`), f + ": el MCP lleva este archivo");

@@ -108,7 +108,41 @@ La primera regla, en español, **falló en la QA**: Haiku recibió una petición
 
 ## QA
 
-Resultados y regresión: ver el cierre de la tarea en el informe al PO y `FLUYO-MCP-STORY-AUTHORING-001-evidencia\` (fuera del repo).
+Evidencia reproducible en `C:\Proyectos\fluyo-new\FLUYO-MCP-STORY-AUTHORING-001-evidencia\` (fuera del repo).
+
+**Escenarios A–E y enlace humano, en Chrome real contra fluyo.space v123, con el MCP de la rama: 24/0.**
+
+| Escenario | Resultado |
+|---|---|
+| A · éxito | MCP `no_failures`; UI «Sin fallos» |
+| B · fallo | MCP `failed`, momento 3, `target_down`, Bank; UI «Falla en el paso 3» |
+| C · referencia inválida | Estructurado, corto y con candidatos |
+| D · Historias existentes | Intactas byte a byte y por Trace; `STORY_OUTCOME_CHANGED` cuando cambian |
+| E · round-trip | MCP → UI («Falla aquí» real) → serializar → MCP: UI y MCP coinciden; la otra Historia conserva su Trace |
+| Enlace humano | Lectura sin revisión; sin revisión no se escribe; revisión incorrecta y enlace truncado, rechazados |
+| «Falla aquí» | **Trace MCP == el de la acción real de la UI** |
+
+**Paridad del desenlace:** MCP == Editor (también al terminar de reproducir) == Viewer (portada, final y «Otras formas») == Present (portada y reproducido hasta el final).
+
+**Agent QA, verificada con el registro del servidor y volviendo a ejecutar cada documento final.** Sin pistas internas.
+
+| Cliente | Modelo | Intención | Llamadas | Rechazos | Resultado | Idioma |
+|---|---|---|---|---|---|---|
+| **Nativo** (Claude Code, stdio) | Sonnet | Compra con éxito, enlace | 2 | 0 | 5 pasos, `no_failures` | Inglés ✅ |
+| **Nativo** | Haiku | Banco caído, **solo enlace** (1.ª regla) | 2 | 0 | `failed`, momento 3 | **Español ❌** |
+| **Nativo** | Haiku | Lo mismo (regla final) | 2 | 0 | `failed`, momento 3 | Inglés ✅ |
+| CLI | Sonnet | Banco caído, con Historia previa | 6 | 0 | `failed`, momento 3; previa idéntica | Inglés ✅ |
+| CLI | Sonnet | Lo mismo, en español (1.ª regla) | 4 | 0 | `failed`, momento 3; previa idéntica | Español ✅ |
+| CLI | Haiku | Lo mismo, en español (regla final) | 2 | 0 | `failed`, momento 3; previa idéntica | Español ✅ |
+
+**Sin cubrir con cliente nativo:** español y fallo sobre una Historia existente. El clasificador de permisos del entorno bloqueó esas dos sesiones, y se dejaron sin reintentar. Solo hay evidencia por CLI.
+
+**Regresión:**
+
+- MCP: `npm test` 969/969 (antes 918/919; el fallo era el test desfasado de `reverse`).
+- Mutaciones: S1 40/40; TE-002 18/18, TE-003 16/16, TE-004 14/14, MSG 27/27, REV 32/32, CC 11/11, DESC 12/12.
+- Respuestas: 149 sobre 22 documentos, idénticas a `464f4e0` sin los campos nuevos.
+- `fluyo`: en los 33 archivos de test que leen el MCP hermano, los mismos 17 fallos con el MCP anterior y con esta rama; **delta 0**. Se adaptaron 4 tests que fijaban `story-clock.js` fuera del kernel o el SHA exacto del hermano, y otro (`fluyo-018-22`).
 
 ## Limitations
 

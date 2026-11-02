@@ -2,7 +2,7 @@
 
 Estado: READY FOR PO QA (sin push, sin merge, sin deploy)
 Owner/agente actual: libre (implementado por Claude Code, 31-10-2026)
-Rama: `brand-ruta-001` (worktree `fluyo-ruta`), base `d7e1177` (Stories 2.0 cerrada, CACHE v121). Release objetivo: **`fluyo-static-v123`**.
+Rama: `brand-ruta-001` (worktree `fluyo-ruta`), base `origin/main @ 3ff0336` (Growth v122 en producción; código de producto `ebf72cf`), reintegrada el 01-11-2026 (antes salía de `d7e1177`). Release objetivo: **`fluyo-static-v123`**.
 
 > Repo público: este archivo puede publicarse. Ver `AGENTS.md` §9.
 
@@ -39,7 +39,7 @@ La marca anterior (palabra «fluyo» con el «yo» terracota y tres puntos anima
 
 No se inventó una tercera variante: cada parte usa la referencia más específica y la diferencia queda aquí.
 
-1. **El envío del bucle no descansa donde el del símbolo fijo.** El bucle (`logo-cabecera.html` y el GIF) deja el envío en `offset-distance: 50 %` del camino `M22 16 H36 V48 H42` (52 u) → **(36, 28)**. El símbolo fijo (`fluyo-simbolo.svg`, favicon, iconos, OG) lo tiene en **(36, 32)**, el centro del tramo vertical (≈ 57,7 %). A 24 px son 1,5 px. Además, el destino del bucle lleva trazo (19,5 u) y el del fijo no (16 u). Por eso «el último fotograma es idéntico al logo fijo» no es exacto. **Resolución:** el bucle se copia tal cual (el PO pidió no «mejorar» la animación); el fijo (reducir movimiento y móvil) es el SVG fijo exacto, porque el PO pidió «no usar una frame aproximada». Las dos geometrías no se mezclan. **Pregunta para Creativa:** ¿el bucle debe descansar en 57,69 %? Es un cambio de un número en dos keyframes. Lo vigila la mutación M3: si se cambia, hay que actualizar la referencia primero.
+1. **El envío del bucle no descansa donde el del símbolo fijo.** El bucle (`logo-cabecera.html` y el GIF) deja el envío en `offset-distance: 50 %` del camino `M22 16 H36 V48 H42` (52 u) → **(36, 28)**. El símbolo fijo (`fluyo-simbolo.svg`, favicon, iconos, OG) lo tiene en **(36, 32)**, el centro del tramo vertical (≈ 57,7 %). A 24 px son 1,5 px. Además, el destino del bucle lleva trazo (19,5 u) y el del fijo no (16 u). Por eso «el último fotograma es idéntico al logo fijo» no es exacto. **Resolución (PO, revisión de v123): el fijo manda.** El envío del bucle descansa en el 57,6923 % (30 de 52), el círculo de `fluyo-simbolo.svg` en (36,32); el resto del bucle es el de la referencia y el fijo no cambia. Ya no hay salto al pasar al fijo. Lo vigilan R4 (deriva el reposo del fijo), M3 (vuelve al 50 %) y el Chrome C (fotogramas 0 y final en 36,32).
 2. **Proporción del lockup.** `INSTRUCCIONES` §1 dice que el símbolo mide 0,95 del cuerpo de la palabra y se separa 0,28 (así son `svg/fluyo-logo*.svg` y `preview/logo-fijo.png`). Para la cabecera, el mismo documento (§3) y `logo-cabecera.html` piden **24 px y 8 px con la palabra a 21 px** (1,14 y 0,38). La cabecera usa lo específico de la cabecera; los SVG del lockup quedan para usos fuera del HTML.
 3. **Favicons PNG de 16/32 px.** No están optimizados píxel a píxel: son otra variante (símbolo a sangre, sin el cuadrado hueso). El favicon servido es el data URI (con el cuadrado), como pide la referencia. Ver «Small-size gate».
 
@@ -72,7 +72,7 @@ Once páginas servidas: once marcas y once favicons sustituidos; no queda ningun
 ## Contrato de la animación
 
 - Bucle de **4.8 s**, `infinite`, capas `pan`, `old`, `n2`, `r2`, `n3`, `tok`: el envío llega al destino, el destino late, la ruta avanza, aparece una caja nueva, sale otro envío y vuelve al logo. Keyframes y curvas, idénticos a `logo-cabecera.html` (R4 compara el texto).
-- Fotograma 0 = último fotograma: origen vacío, conexión, destino lleno en (50,48) del viewBox; envío en (36,28) (ver contradicción 1).
+- Fotograma 0 = último fotograma: origen vacío, conexión, destino lleno en (50,48) del viewBox; envío en (36,32), donde lo pinta el fijo (ver contradicción 1).
 - Coste medido en escritorio (Chrome): ~75 recálculos de estilo + layout por segundo, solo de la cabecera. Los puntos anteriores también se animaban sin fin.
 
 ## Contrato responsive
@@ -80,6 +80,7 @@ Once páginas servidas: once marcas y once favicons sustituidos; no queda ningun
 | Contexto | Símbolo | Tamaño |
 |---|---|---|
 | Escritorio (editor ≥ 861 px, Viewer ≥ 701, páginas ≥ 621) | animado | 24 px, 8 px de hueco, palabra 21 px |
+| Editor 701–767 px táctil | fijo | como la fila siguiente; además sin filetes, y en 701–743 Presentar en icono (cabecera en una fila con «Más» a la vista) |
 | Editor 701–860 px (donde ya se ocultaban los puntos) | fijo | 21,7 / 7,2 / 19 (a la escala del teléfono: con 21 px, a 768 px táctil la cabecera desbordaba 8 px y «Más» quedaba fuera) |
 | Editor y Viewer ≤ 700 px | fijo | 21,7 / 7,2 / 19 (escala con la palabra) |
 | Páginas ≤ 620 px | fijo | 24 / 8 / 21 |
@@ -97,12 +98,9 @@ Nunca se oculta el símbolo ni la palabra. Verificado sin recorte, sin chocar co
 ## Cache / release
 
 - `sw.js`: `CACHE = "fluyo-static-v123"`. Las listas de precache no cambian: `identity.css`, `styles.css`, `share.css`, `pages.css` y las páginas ya estaban; al cambiar la versión, el SW instala todo de nuevo y borra la caché anterior.
-- **v122 no se toma:** es de FLUYO-GROWTH-FOUNDATION-001 (rama `growth-foundation-001`, sin integrar en `main` al empezar). Esta rama sale de `main` (`d7e1177`) y no toca Growth.
-- **Para integrar después de v122** (rebase sobre `main` con Growth dentro):
-  1. `sw.js` y los tests que fijan `fluyo-static-v12x`: queda **v123** (conflicto trivial v122/v123).
-  2. Cadena de deshacer: Growth y Ruta se colocan cada uno como último eslabón tras `undoOutcome`. Al integrar, `undoOutcome` llama a uno y ese llama al otro (el más nuevo primero), y los alcances que registran `PIECES_GF` registran también `PIECES_RUTA` y `BIN_RUTA`.
-  3. Regenerar `test/fluyo-brand-ruta-001-undo.cjs` si Growth cambia algún archivo de la marca: hoy no comparten archivos servidos de marca. El 404, `index.html` y `s/index.html` sí los toca Growth en otras líneas, así que hay que regenerar las piezas con dos líneas de contexto.
-  4. Decisiones: Growth 320–324, Ruta 325. Sin choque.
+- **Reintegrada sobre v122** (`origin/main @ 3ff0336`, Growth en producción): rebase de los commits de la tarea sobre Growth. Conflictos resueltos: `sw.js` y ~90 tests (v122/v123 → **v123**); `.ai/DECISIONS.md` (320–324 de Growth, 325 de Ruta); registros de deshacer (`PIECES_GF`/`NEW_GF` y `PIECES_RUTA`/`BIN_RUTA`, los dos); S1b, S2a y S2b deshacen Ruta y luego Growth.
+- **Cadena de deshacer:** `undoOutcome` llama primero a `undoRuta` y luego a `undoGrowth` (de la más reciente a la más antigua). `undoRuta` se generó frente a `ebf72cf`: sus piezas devuelven el texto exacto de Growth v122. El test 019-1 prohíbe la versión anterior de CACHE en los tests: el alcance de Ruta compara `sw.js` sin la constante.
+- **Repo público:** `PROMPT-PARA-EL-PO.md` se quitó de la referencia **y del historial de la rama** (sin publicar). `README.md` e `INSTRUCCIONES-PARA-CODE.md` de la referencia lo siguen nombrando (son bytes de la referencia; no se tocan).
 - OG: misma ruta y mismas meta tags (`og:image` 1200×630, `twitter:image`) en las páginas que la declaran. La caché externa de X, LinkedIn y WhatsApp es deuda conocida y no bloquea.
 
 ## QA
@@ -111,8 +109,8 @@ Ver «Evidencia». Tests nuevos:
 
 - `test/fluyo-brand-ruta-001.test.cjs` (vm, 8): R1 marcado (construido desde la referencia), R2 favicon, R3 bytes de assets y manifest, R4 movimiento, R5 fijo, R6 marca anterior y tipografía, R7 decisiones, C1 alcance (git).
 - `test/fluyo-brand-ruta-001-browser.cjs` (Chrome): estados × vistas × superficies; fijo = `fluyo-simbolo.svg` píxel a píxel; fotogramas del bucle; interfaz oscura; SW v123 sin red; favicon y tamaños pequeños.
-- `test/fluyo-brand-ruta-001-mutations.cjs`: 24 regresiones que deben hacer fallar el test unitario.
-- `test/fluyo-brand-ruta-001-undo.cjs`: `undoRuta`, el último eslabón de la cadena de deshacer (lo llama `undoOutcome`). Generado del diff con dos líneas de contexto.
+- `test/fluyo-brand-ruta-001-mutations.cjs`: 26 regresiones que deben hacer fallar el test unitario (las 24 de antes, M3 y M4 al reposo nuevo, y M25/M26 para la cabecera en tableta táctil).
+- `test/fluyo-brand-ruta-001-undo.cjs`: `undoRuta`, el último eslabón de la cadena de deshacer (lo llama `undoOutcome`, antes que `undoGrowth`); base `ebf72cf`. Generado del diff con dos líneas de contexto.
 
 Tests existentes actualizados a la regla nueva (ninguno borrado):
 
@@ -124,16 +122,36 @@ Tests existentes actualizados a la regla nueva (ninguno borrado):
 - `fluyo-i18n-002-s0-browser.cjs`: la foto «antes» de la ida y vuelta de idiomas espera dos fotogramas, porque `#zoomPct` lo sincroniza el bucle del editor tras `fitView`. La base hace lo mismo (80 % → 121 % un fotograma después). Su verificación de la cabecera exime lo que lleva `translate="no"` (la palabra de la marca).
 - Alcances antiguos que registran a la Stories-2.0 *outcome* (`i18n-002 s0…s3b`, `stories-2-0 s1a…s2b`): registran también `PIECES_RUTA` y `BIN_RUTA`. `shellOnly` (`fluyo-shell-001-undo.cjs`) conoce `PIECES_RUTA`. Las listas KEEP de Stories S1b, S2a y S2b comparan con `undoRuta` aplicado.
 
-## Evidencia (31-10-2026, Chrome real, Windows)
+## Evidencia (01-11-2026, Chrome real, Windows; v122 + Ruta frente a `origin/main @ 3ff0336`)
 
-| Prueba | Resultado |
-|---|---|
-| `fluyo-brand-ruta-001.test.cjs` | 8/8 |
-| `fluyo-brand-ruta-001-mutations.cjs` | 24/24 detectadas |
-| `fluyo-brand-ruta-001-browser.cjs` | 190 OK, 0 fallos |
-| Suite completa (`node --test test/*.test.cjs`, clon limpio de la rama) | 1847 tests, 81 fallos: **los mismos 81 de la base** `d7e1177` (clon limpio, 1839 tests); 0 nuevos |
-| `fluyo-shell-001` (unidad) | 9/9 |
-| Chrome, regresión (10 suites, rama y base en secuencia) | 018-13 251/0 · 018-14a 230/0 · 018-14b 532/0 · 018-18 427/0 · SW-VIEWER 63/0 · EXAMPLES 40/0 · I18N-001 78/0 · I18N-002 S0 385/0 · S2b 40/0 · SHELL 137/2 (los 2 mismos de la base) |
+| Prueba | `3ff0336` (v122) | Rama (v123) |
+|---|---|---|
+| `fluyo-brand-ruta-001.test.cjs` | — | 8/8 |
+| `fluyo-brand-ruta-001-mutations.cjs` | — | 26/26 detectadas |
+| `fluyo-brand-ruta-001-browser.cjs` | — | 210 OK, 0 fallos (incluye H: cabecera a 701/720/744/760/768 táctil, es/en, Editar/Historias) |
+| Suite completa (`node --test test/*.test.cjs`, clones limpios) | 1856 tests, 81 fallos | 1864 tests, 81 fallos: **los mismos 81**; 0 nuevos |
+| Growth Chrome (es-CL → es, en-US → en, de-DE → en de respaldo, movimiento reducido, eventos) | 78/0 | 78/0 |
+| I18N-002 S0 (puerta de idiomas) | 384/1 (carrera de `#zoomPct`) | 385/0 |
+| I18N-001 | 78/0 | 78/0 |
+| Stories S1b · S2a · S2b | 47/0 · 50/0 · 40/0 | 47/0 · 50/0 · 40/0 |
+| Examples | 40/0 | 40/0 |
+| Share: `qa-share-hash` · `share-browser` | OK · falla en el 3.er bloque (clic en `#cv`) | OK · el mismo fallo |
+| Viewer (SW-VIEWER-001) | 63/0 | 63/0 |
+| Shell | 137/2 | 137/2 (los mismos) |
+| Responsive: 018-13 · 018-14a · 018-14b · 018-18 | 251/0 · 230/0 · 532/0 · 427/0 | 251/0 · 230/0 · 532/0 · 427/0 |
+| SW 019-2 (actualización) | no ejecutable en una copia sin git | 85/0 |
+
+**Cabecera del editor, táctil, con documento** (desborde en px; `Más` a la vista):
+
+| Ancho | v122 | Ruta antes del arreglo | Ruta (v123) |
+|---:|---|---|---|
+| 701 | 43, «Más» fuera | 67, fuera | 0, a la vista |
+| 720 | 24, «Más» fuera | 48, fuera | 0, a la vista |
+| 744 | 0 | 24, fuera | 0, a la vista |
+| 760 | 0 | 8, fuera | 0, a la vista |
+| 768 | 0 | 0 | 0, a la vista |
+
+Una fila y ningún control fuera en es/en y en Editar/Historias. `share-post-qa-browser` necesita el script actual de Umami como argumento (NOT RUN en los dos lados).
 
 - **Fallos que no son de esta tarea:** en SHELL-001 Chrome, «320 /ejemplos/ sin scroll horizontal» (un `span.kind` de las tarjetas, 331 px en la base y aquí) y «Abrir en el editor carga el ejemplo». Iguales en la base. En la unidad, 018-25 #11 y 018-27 «release» fallan solo con `../fluyo-mcp` al lado, también en la base.
 - **El fijo es el SVG de la referencia:** pintado a 256 px, 0 píxeles distintos de 10 972 frente a `svg/fluyo-simbolo.svg`, con los colores de los tokens claros (`#16150f`, `#a33a22`).
@@ -154,24 +172,18 @@ Tests existentes actualizados a la regla nueva (ninguno borrado):
 
 ## Limitaciones conocidas
 
-- Contradicción 1 (envío del bucle en 28 frente a 32): visible solo como un salto de 1,5 px al pasar de escritorio a móvil o al activar «reducir movimiento». Pendiente de Creativa.
 - El favicon a 16 px: el origen vacío es la parte más débil (≈ 3 px, trazos de menos de 1 px). Se reconoce, pero suave. Ver «Small-size gate».
 - El bucle cuesta ~75 recálculos de estilo y layout por segundo en escritorio, solo en la cabecera.
-- **Cabecera del editor en tableta vertical:** a 768 px táctil, con la palabra a 19 px, cabe con el hueco en su mínimo (8 px; antes 22). Entre 701 y ~760 px táctil (iPad mini vertical, 744) la base **ya desbordaba** (43 px a 701); la marca lo agrava a 67 px. Deuda previa: propuesta de tarea aparte para la cabecera del editor en tableta.
+- **Cabecera del editor en tableta táctil:** a 701–743 px Presentar se queda en icono (nombre en el texto oculto y el `title`). En la base, por debajo de 744, «Más» quedaba fuera.
 - `og:image:alt` del editor («Diagrama de arquitectura animado hecho con Fluyo») ya no describía la OG anterior y tampoco describe la nueva. No se toca: textos fuera de alcance. Propuesta: tarea de copy.
 - `apple-touch-icon-180.png` no se sirve (opcional en la referencia; el PO no lo pidió).
-- `PROMPT-PARA-EL-PO.md` viaja con la referencia (el README pide copiar la carpeta entera). Es el razonamiento de la propuesta de marca; menciona «una búsqueda rápida de marcas parecidas» antes de comunicarla. Como el repo es público (AGENTS §9), **el PO debe confirmar** antes del push que puede publicarse. Si no, se quita de la rama.
 
 ## Estado para el PO
 
-READY FOR PO QA. Pendiente del PO:
-1. QA visual en su navegador (editor, Viewer, páginas, móvil).
-2. Decidir sobre la contradicción 1 (con Creativa) y confirmar que `PROMPT-PARA-EL-PO.md` puede ser público.
-3. Orden de release: integrar Growth (v122) y después esta rama (v123), con el procedimiento de «Cache / release».
-4. Push, merge, deploy y smoke de producción: solo con su aprobación.
+**v123 READY FOR MERGE / DEPLOY** (01-11-2026), sobre `origin/main @ 3ff0336`. Push, merge, deploy y smoke de producción: solo con la aprobación del PO.
 
 ## Handoff
 
-- **Commits** (rama `brand-ruta-001`): `1314de0` feat · `ae93a76` fix (translate) · `31e0e31` test · `3e4ee17` docs · `1f44b8a` docs (325) · `f7ef2fb` fix (768 px) · `29f8460` test (carreras de medida) · y este cierre.
+- **Commits** (rama `brand-ruta-001`, sobre `3ff0336`; reescritos al reintegrar y al quitar `PROMPT-PARA-EL-PO.md`): `bdae57b` feat · `3e8c484` fix (translate) · `f4fd449` test · `b2bfcc2` docs · `f3486a3` docs (325) · `c05e86e` fix (768 px) · `56d8ec4` test (carreras) · `c6ec445` docs · `50087dc` test (reintegración) · `2bbd522` docs · `ff66396` fix (tableta y reposo del envío) · `b28941e` docs (325) · y este cierre.
 - **Hecho:** marca Ruta en las once páginas, favicon, assets, CSS, CACHE v123, decisión 325, tests nuevos y actualizados.
 - **Próximo paso:** QA del PO. Después, con su aprobación: rebase sobre `main` con Growth integrado (procedimiento en «Cache / release»), suite completa, push, deploy y smoke de producción (`test/fluyo-brand-ruta-001-browser.cjs` contra fluyo.space no aplica tal cual: sirve el árbol local; el smoke de producción se hace con el QA de navegador sobre la URL pública).

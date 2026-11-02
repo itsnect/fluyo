@@ -1,6 +1,6 @@
 # FLUYO-MCP-STORY-AUTHORING-001 · Agente → Historia → Revisión humana
 
-**Estado: S1 «Reliable Story Authoring Contract» VERIFIED / READY FOR PUSH + DEPLOY** (QA funcional del PO aprobada y gate de mutaciones superado, 2026-11-02). Sin push ni deploy todavía. Fase 0: [FLUYO-MCP-STORY-AUTHORING-001-AUDIT.md](FLUYO-MCP-STORY-AUTHORING-001-AUDIT.md), aprobada por el PO. Decisiones 326–330.
+**Estado: S1 «Reliable Story Authoring Contract» PRODUCTION VERIFIED / CLOSED** (2026-11-02): `fluyo-mcp` `4a172f1` en Cloud Run `fluyo-mcp-00036-jhh`, 100 % del tráfico; `verify-deploy` 21/21; smoke de S1 33/0. Fase 0: [FLUYO-MCP-STORY-AUTHORING-001-AUDIT.md](FLUYO-MCP-STORY-AUTHORING-001-AUDIT.md), aprobada por el PO. Decisiones 326–330.
 
 Base: `fluyo` `origin/main` `9eeeb42` (v123) · `fluyo-mcp` `origin/main` `464f4e0`. Rama en los dos repos: `mcp-story-authoring-001`. **`fluyo` solo cambia documentación:** v124 sigue libre.
 
@@ -152,4 +152,14 @@ Evidencia reproducible en `C:\Proyectos\fluyo-new\FLUYO-MCP-STORY-AUTHORING-001-
 
 ## Rollout
 
-Solo `fluyo-mcp`: worktree limpio, `deploy mcp.bat`, `verify-deploy` y smoke en producción, **con aprobación explícita**. `fluyo.space` no cambia.
+Publicado el 2026-11-02, con aprobación del PO:
+
+- **Push por fast-forward:** `fluyo-mcp` `464f4e0..4a172f1`; `fluyo` `9eeeb42..e001b9d`, solo `.ai/` y `test/`.
+- **Deploy:** worktree limpio y detached en `4a172f1`, con el comando de `deploy mcp.bat` (`gcloud run deploy fluyo-mcp --source . --region=us-central1`, más `--quiet`). `fluyo-mcp-00036-jhh` al 100 %; antes, `00035-qvg`.
+- **`verify-deploy.sh https://mcp.fluyo.space`:** 21/21.
+- **Smoke de S1 en producción:** 33/0. Catálogo y 20 respuestas idénticos byte a byte a la build aprobada; UI real con el mismo desenlace y Trace de «Falla aquí» en el editor; Viewer y Present con el mismo desenlace.
+- **Sin cambios:** DNS, autenticación y `fluyo.space`, que sigue sirviendo v123. **v124 sigue libre.**
+
+**Language en producción:** el catálogo desplegado es byte a byte el aprobado, y sobre ese catálogo pasó la QA de idioma. No se repitió una ejecución de agente contra el endpoint de producción, como autorizó el PO.
+
+**Siguiente y único trabajo:** `FLUYO-MCP-STORY-AUTHORING-VARIANTS-EXPERIMENT`, con agentes ciegos sobre el contrato desplegado. Sin `variantOf`, `create_variant`, `upToStepId` ni tools nuevas antes de tener evidencia.

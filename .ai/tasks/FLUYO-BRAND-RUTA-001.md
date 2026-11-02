@@ -178,9 +178,21 @@ Una fila y ningún control fuera en es/en y en Editar/Historias. `share-post-qa-
 - `og:image:alt` del editor («Diagrama de arquitectura animado hecho con Fluyo») ya no describía la OG anterior y tampoco describe la nueva. No se toca: textos fuera de alcance. Propuesta: tarea de copy.
 - `apple-touch-icon-180.png` no se sirve (opcional en la referencia; el PO no lo pidió).
 
-## Estado para el PO
+## Estado
 
-**v123 READY FOR MERGE / DEPLOY** (01-11-2026), sobre `origin/main @ 3ff0336`. Push, merge, deploy y smoke de producción: solo con la aprobación del PO.
+**PRODUCTION VERIFIED / CLOSED.** `origin/main` = `b585f83` (avance rápido desde `3ff0336`), desplegado por Vercel; fluyo.space sirve `fluyo-static-v123`. Siguiente CACHE libre: v124.
+
+**Smoke de producción (Chrome real contra https://fluyo.space, Umami interceptado): 40/0.**
+
+- `sw.js` en v123; `logo.svg`, `icon-192`, `icon-512`, `og-image`, `identity.css` y `styles.css` con los bytes de la rama.
+- Las once páginas: símbolo + «fluyo» (`translate="no"`), sin puntos, favicon Ruta, 0 errores de consola (solo el 404 del documento que se visita a propósito).
+- Escritorio: 6 animaciones y el envío empieza y termina en (36,32). «Reducir movimiento»: símbolo fijo y 0 animaciones.
+- Cabecera del editor a 701, 720, 744, 760 y 768 px táctil, en es y en: una fila, «Más» a la vista, nada fuera, 0 px de desborde.
+- Idioma del navegador sin `?lang`: es-CL → es, en-US → en, de-DE → en.
+- Enlace para compartir generado; Viewer a 1280 y 390 px con la marca; Stories: `compra-online` abre en Historias.
+- Service worker en instalación limpia: 77 entradas en `fluyo-static-v123`, `identity.css` con el reposo nuevo y, sin red, el editor sale de la caché con la marca.
+
+**Sin medir en producción:** la actualización real de v122 a v123 en un navegador con la caché anterior (cubierta en local por 019-2, 85/0); los eventos reales de Umami (interceptados a propósito); la caché externa de la OG en X, LinkedIn y WhatsApp (deuda conocida).
 
 ## Handoff
 

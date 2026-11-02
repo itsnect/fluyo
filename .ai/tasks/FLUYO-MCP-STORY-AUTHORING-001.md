@@ -135,7 +135,7 @@ Evidencia reproducible en `C:\Proyectos\fluyo-new\FLUYO-MCP-STORY-AUTHORING-001-
 | CLI | Sonnet | Lo mismo, en español (1.ª regla) | 4 | 0 | `failed`, momento 3; previa idéntica | Español ✅ |
 | CLI | Haiku | Lo mismo, en español (regla final) | 2 | 0 | `failed`, momento 3; previa idéntica | Español ✅ |
 
-**Sin cubrir con cliente nativo:** español y fallo sobre una Historia existente. El clasificador de permisos del entorno bloqueó esas dos sesiones, y se dejaron sin reintentar. Solo hay evidencia por CLI.
+**Sin cubrir con cliente nativo:** español y fallo sobre una Historia existente. El clasificador de permisos del entorno bloqueó esas dos sesiones, y se dejaron sin reintentar. Solo hay evidencia por CLI, **que el PO aceptó como válida para pasar a su QA (2026-11-02)**.
 
 **Regresión:**
 

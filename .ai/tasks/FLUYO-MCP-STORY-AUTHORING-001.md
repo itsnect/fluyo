@@ -1,6 +1,6 @@
 # FLUYO-MCP-STORY-AUTHORING-001 · Agente → Historia → Revisión humana
 
-**Estado: S1 «Reliable Story Authoring Contract» implementada en local, sin push ni deploy.** Fase 0: [FLUYO-MCP-STORY-AUTHORING-001-AUDIT.md](FLUYO-MCP-STORY-AUTHORING-001-AUDIT.md), aprobada por el PO. Decisiones 326–330.
+**Estado: S1 «Reliable Story Authoring Contract» VERIFIED / READY FOR PUSH + DEPLOY** (QA funcional del PO aprobada y gate de mutaciones superado, 2026-11-02). Sin push ni deploy todavía. Fase 0: [FLUYO-MCP-STORY-AUTHORING-001-AUDIT.md](FLUYO-MCP-STORY-AUTHORING-001-AUDIT.md), aprobada por el PO. Decisiones 326–330.
 
 Base: `fluyo` `origin/main` `9eeeb42` (v123) · `fluyo-mcp` `origin/main` `464f4e0`. Rama en los dos repos: `mcp-story-authoring-001`. **`fluyo` solo cambia documentación:** v124 sigue libre.
 
@@ -140,7 +140,7 @@ Evidencia reproducible en `C:\Proyectos\fluyo-new\FLUYO-MCP-STORY-AUTHORING-001-
 **Regresión:**
 
 - MCP: `npm test` 969/969 (antes 918/919; el fallo era el test desfasado de `reverse`).
-- Mutaciones: S1 40/40; TE-002 18/18, TE-003 16/16, TE-004 14/14, MSG 27/27, REV 32/32, CC 11/11, DESC 12/12.
+- Mutaciones, las 25 suites del repo: 579 en total, **563 detectadas, 0 supervivientes**. S1 41/41. Las 16 obsoletas restantes (8 suites 017–019) son anteriores a S1: las mismas en `464f4e0`. S1 solo causó 7 obsoletas o errores en suites que ya pasaban (TE-003, MSG, DESC, `scenarios-semantics-5`, `018-22`), y todas se actualizaron y se detectan.
 - Respuestas: 149 sobre 22 documentos, idénticas a `464f4e0` sin los campos nuevos.
 - `fluyo`: en los 33 archivos de test que leen el MCP hermano, los mismos 17 fallos con el MCP anterior y con esta rama; **delta 0**. Se adaptaron 6 tests (`fluyo-018-18`, `fluyo-018-22`, `fluyo-018-29`, `fluyo-i18n-002-s2b`, `fluyo-stories-2-0-s2a` y `-s2b`), que fijaban `story-clock.js` fuera del kernel, la lista del kernel o el SHA exacto del hermano. Ninguno se sirve.
 

@@ -142,7 +142,7 @@ Evidencia reproducible en `C:\Proyectos\fluyo-new\FLUYO-MCP-STORY-AUTHORING-001-
 - MCP: `npm test` 969/969 (antes 918/919; el fallo era el test desfasado de `reverse`).
 - Mutaciones: S1 40/40; TE-002 18/18, TE-003 16/16, TE-004 14/14, MSG 27/27, REV 32/32, CC 11/11, DESC 12/12.
 - Respuestas: 149 sobre 22 documentos, idénticas a `464f4e0` sin los campos nuevos.
-- `fluyo`: en los 33 archivos de test que leen el MCP hermano, los mismos 17 fallos con el MCP anterior y con esta rama; **delta 0**. Se adaptaron 4 tests que fijaban `story-clock.js` fuera del kernel o el SHA exacto del hermano, y otro (`fluyo-018-22`).
+- `fluyo`: en los 33 archivos de test que leen el MCP hermano, los mismos 17 fallos con el MCP anterior y con esta rama; **delta 0**. Se adaptaron 6 tests (`fluyo-018-18`, `fluyo-018-22`, `fluyo-018-29`, `fluyo-i18n-002-s2b`, `fluyo-stories-2-0-s2a` y `-s2b`), que fijaban `story-clock.js` fuera del kernel, la lista del kernel o el SHA exacto del hermano. Ninguno se sirve.
 
 ## Limitations
 

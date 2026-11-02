@@ -154,7 +154,7 @@ Frente a «Otra forma desde aquí»:
 ## Limitaciones
 
 - **Muestra:** 2 ejecuciones por caso y modelo. Sirve para ver patrones, no para dar tasas.
-- **Limite de peticiones:** lancé 12 sesiones a la vez y hubo 30 errores de transporte. El proxy no los reintentó porque buscaba `429|rate` y el error dice «Demasiadas peticiones»: es un fallo mío. Los agentes los vieron y esperaron; cuatro usaron `sleep` por shell pese a la instrucción (run-05, 07, 08, 10; solo esperas, ninguna lectura de archivos). No los cuento como fallo semántico. No puedo descartar del todo que el ruido influyera, pero hay fallos sin transporte alguno (run-03, 04, 16) y un acierto en V3 también sin él (run-15).
+- **Límite de peticiones:** lancé 12 sesiones a la vez y hubo 30 errores de transporte. El proxy no los reintentó porque buscaba `429|rate` y el error dice «Demasiadas peticiones»: es un fallo mío. Los agentes los vieron y esperaron; cuatro usaron `sleep` por shell pese a la instrucción (run-05, 07, 08, 10; solo esperas, ninguna lectura de archivos). No los cuento como fallo semántico. No puedo descartar del todo que el ruido influyera, pero hay fallos sin transporte alguno (run-03, 04, 16) y un acierto en V3 también sin él (run-15).
 - **Intervenciones de transporte, sin pistas sobre el modelo:**
 
   | Ejecución | Qué pasó |

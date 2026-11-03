@@ -330,7 +330,7 @@ Cada uno lo resolvió distinto:
 | Run | Qué hizo o anunció | Consecuencia |
 |---|---|---|
 | run-20 | Hizo fallar el paso 3, conservando 1 y 2, y lo dijo | Prefijo idéntico a la UI |
-| run-24 | Metió el DOWN en el momento 1 | **Prefijo alterado, y le dijo al usuario que los pasos 1 y 2 quedaban «unchanged»** |
+| run-24 | Metió el DOWN en el momento 1 | **Prefijo alterado.** Le dijo al usuario que los pasos 1 y 2 quedaban «unchanged», aunque también que Payment caía en el momento 1 |
 | run-19, run-28 | Anunciaron un DOWN antes del paso 2 | No se llegó a escribir |
 
 No afecta al gate, que solo mide si pregunta. V1 no lo revela porque el banco falla más adelante. **Tras la aclaración, una petición así puede seguir produciendo un prefijo incorrecto.** Requiere decisión del PO sobre qué debe significar.
@@ -339,9 +339,9 @@ No afecta al gate, que solo mide si pregunta. V1 no lo revela porque el banco fa
 
 - **Muestra:** 2 ejecuciones por caso y modelo. Un solo fallo separa 3/4 de 4/4, y 4/4 tampoco demostraría fiabilidad total.
 - **run-24 recibió respuesta y no fue mía.** La transcripción registra la opción recomendada, «Successful purchase», a las 00:22:39, y no puedo saber quién la dio. La pregunta y las 0 escrituras previas son anteriores, así que no cambia su PASS. Las otras dos que preguntaron quedaron sin respuesta.
-- **El catálogo antiguo estaba a la vista.** Las sesiones ven también el conector de la cuenta, con la description anterior; tres lo mencionaron. Ninguna lo usó. Ocurría igual en la Fase A, y no puedo descartar que influyera.
+- **El catálogo antiguo estaba a la vista.** Las sesiones ven también el conector de la cuenta, con la description anterior; siete lo mencionaron en su informe. Ninguna lo usó. Ocurría igual en la Fase A, y no puedo descartar que influyera.
 - **Las sesiones ven nombres de otras sesiones** (`vx-run-…`) en un aviso del sistema: solo nombres y estado, sin contenido del experimento.
-- **Corrección de medida en la Fase A, sin efecto en sus resultados:** mi expresión de transporte también contaba llamadas correctas cuyo enlace contenía «429». Los 30 errores de transporte fueron 29: run-13 tuvo 6 y su cuarta llamada fue correcta. Lo vi porque en la Fase B marcaba run-18. La Fase A queda como estaba; aquí ya solo cuentan las llamadas fallidas.
+- **Corrección de medida en la Fase A, sin efecto en sus resultados:** mi expresión de transporte también contaba llamadas correctas cuyo enlace contenía «429». Los 30 errores de transporte fueron 29: run-13 tuvo 6, y su `run_story` final fue correcto, así que hizo 3 llamadas buenas, no 2. Lo vi porque en la Fase B marcaba run-18. La Fase A queda como estaba; aquí ya solo cuentan las llamadas fallidas.
 - **El texto probado es una hipótesis confirmada solo en esta muestra.** No se ha medido en otros clientes ni en producción.
 
 ## Recommendation

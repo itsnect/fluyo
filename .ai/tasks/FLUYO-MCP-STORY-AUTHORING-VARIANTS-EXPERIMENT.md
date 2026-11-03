@@ -1,5 +1,14 @@
 # FLUYO-MCP-STORY-AUTHORING-VARIANTS-EXPERIMENT
 
+| Fase | Qué se probó | Resultado | Estado |
+|---|---|---|---:|
+| **A** | Contrato desplegado, 16 ejecuciones | 8/16 → `DESCRIPTION CHANGE RECOMMENDED` | ACCEPTED por el PO |
+| **B** | Mismo contrato con la description ampliada, 12 ejecuciones | 11/12: V1 4/4, V3 4/4, V4 3/4 → `DESCRIPTION STILL INSUFFICIENT` | READY FOR REVIEW |
+
+Nada de la Fase B está publicado ni desplegado.
+
+# Fase A — contrato desplegado (16 ejecuciones)
+
 Fecha: 2026-11-02 · Contrato probado: el desplegado, `fluyo-mcp` `4a172f1` en Cloud Run `fluyo-mcp-00036-jhh` · UI: fluyo.space v123 · Sin cambios de producto.
 
 **Recomendación: `DESCRIPTION CHANGE RECOMMENDED`.** Experimento, no implementación: nada se aplica sin decisión del PO.
@@ -191,3 +200,160 @@ Coste estimado: unos 330 B, con el catálogo en unos 56 935 B (guardia de 63 000
 **Estado: READY FOR REVIEW. No implementado. A la espera de decisión del PO.**
 
 Evidencia reproducible (documentos, canónicos, registros, transcripciones extraídas, scripts y tablas), fuera del repo: `C:\Proyectos\fluyo-new\FLUYO-MCP-STORY-AUTHORING-VARIANTS-EXPERIMENT-evidencia\`.
+
+
+# Fase B — description ampliada (12 ejecuciones)
+
+Fecha: 2026-11-02 · Contrato probado: rama `mcp-variants-description`, commit `d958f63` sobre `4a172f1`, **sin desplegar** · UI: fluyo.space v123, sin tocar.
+
+**Recomendación: `DESCRIPTION STILL INSUFFICIENT`.** Sin primitive. Espera decisión del PO.
+
+## Resultado
+
+| Caso | Fase A | Fase B | Gate |
+|---|---:|---:|---|
+| V1 · variante con fallo | 3/4 | **4/4** | Cumple |
+| V3 · varias Historias, paso 4 | 1/4 | **4/4** | Cumple |
+| V4 · petición ambigua | 0/4 | **3/4** | **No cumple** |
+
+V2 no se repitió (4/4 en la Fase A), por decisión del PO.
+
+**El cambio resuelve la construcción de variantes y mejora mucho la pregunta, pero no la hace fiable.** Un agente de cuatro leyó la regla de ambigüedad y escribió igualmente.
+
+## El cambio
+
+En la description de `author_document`, junto a la regla del fallo:
+
+> FALLO: destino DOWN en un momento ANTERIOR al envío; en el MISMO momento no falla. VARIANT / ANOTHER WAY FROM STEP N: a NEW Story on the same page; never edit the original; no parent/variant field exists. Step N = the Nth element of moments[], not its stepId. Keep moments 1..N unchanged and diverge AFTER moment N. If more than one existing Story reasonably matches the request, ask the user which one before any write.
+
+- **Sigue el texto en inglés aprobado por el PO**, igual que la regla de idioma; solo se compacta.
+- **Cabe entera en los primeros 2 048 caracteres.** Hay clientes que truncan ahí, y ese tramo estaba casi agotado. Para hacer sitio se movieron a la cola frases que no son imprescindibles: los detalles de `REVISION_MISMATCH` y `EVENT_TYPE_LOCKED`, el valor por defecto de `waitMs` y el encabezado de dependencias de llegada, que ahora sigue al patrón.
+- **«En el MISMO momento no falla» pasó de la cola a la cabeza.** Antes un cliente que truncara no llegaba a verlo.
+- **Tamaño:** `tools/list` 56 958 B (56 605 antes; guardia del PO 63 000; guardia propia 57 000).
+- **Sin cambios** en schema, operaciones, ejecución, kernel, formato, frontend ni `CACHE`.
+
+**Tests y mutaciones:**
+- Suite de `fluyo-mcp`: 982/982.
+- 14 tests nuevos fijan cada invariante dentro de los primeros 2 048 caracteres, que no aparece ninguna primitive de variantes y que «paso N = `moments[N-1]`» es cierto en un documento real.
+- Mutaciones de la description (M38–M50, más M4 por el filtro): 14/14 detectadas. `mutate-mcp-descriptions-001`: 12/12.
+- No repetí las 25 suites de mutación: busqué en todas las frases movidas y solo dos scripts las usaban como patrón, ambos corregidos.
+
+## Setup
+
+**La única variable nueva es la description.**
+
+- Misma instrucción que la Fase A, carácter por carácter, y mismos documentos. Cada `request.txt` es copia exacta de uno de la Fase A.
+- 12 sesiones nuevas (run-17 a run-28), 6 Sonnet y 6 Haiku, 2 por caso y modelo, en orden aleatorio con semilla fija.
+- **De 3 en 3:** cada tanda empezó cuando terminó la anterior.
+- El proxy sirve el catálogo de la rama en el mismo proceso, sin red.
+
+**Comprobado en los registros:**
+
+| Control | Resultado |
+|---|---|
+| Hash de la description servida | `dc262a0ca9f6fc11` en las 12 |
+| Errores de transporte | 0 |
+| Llamadas por otro servidor | 0: todas por `fluyo` |
+| Shell u otros archivos | 0 |
+| Intervenciones mías | 0 |
+
+## Runs
+
+### Matriz
+
+| Caso | Modelo | Runs | PASS | Wrong base | Wrong divergence | Unsafe | Asked | Invalid |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| V1 | Sonnet | 2 | 2/2 | 0 | 0 | 0 | 0 | 0 |
+| V1 | Haiku | 2 | 2/2 | 0 | 0 | 0 | 0 | 0 |
+| V3 | Sonnet | 2 | 2/2 | 0 | 0 | 0 | 0 | 0 |
+| V3 | Haiku | 2 | 2/2 | 0 | 0 | 0 | 0 | 0 |
+| V4 | Sonnet | 2 | 2/2 | 0 | 0 | 0 | 2 | 0 |
+| V4 | Haiku | 2 | 1/2 | 0 | 1 | 1 | 1 | 0 |
+
+En V4, `Unsafe` = escribió sin preguntar antes. `Wrong divergence` es run-24: preguntó, y lo que escribió después de la respuesta rompe el prefijo.
+
+### Por ejecución
+
+`Sem.` = operación incorrecta del agente. `Writes` = autorías aceptadas sin `dryRun`. `≡ UI` = prefijo idéntico byte a byte al canónico. En V4 el resultado solo mide la pregunta antes de escribir.
+
+| Run | Caso | Modelo | Calls | Sem. | Transp. | Writes | Tools | Base | Nueva | Prefijo | Divergencia | Tras | Outcome | OK | ≡ UI | Originales | Válido | UI | Preguntó | Resultado |
+|---|---|---|---:|---:|---:|---:|---|---|---|---|---|---:|---|---|---|---|---|---|---|---|
+| run-25 | V1 | Haiku | 2 | 0 | 0 | 1 | describe, author(s) | Successful purchase | ✅ | ✅ | ✅ | 2 | failed m4 Bank | ✅ | ✅ | ✅ | ✅ | ✅ | — | **PASS** |
+| run-23 | V1 | Haiku | 2 | 0 | 0 | 1 | describe, author | Successful purchase | ✅ | ✅ | ✅ | 2 | failed m4 Bank | ✅ | ✅ | ✅ | ✅ | ✅ | — | **PASS** |
+| run-22 | V1 | Sonnet | 2 | 0 | 0 | 1 | describe, author(s) | Successful purchase | ✅ | ✅ | ✅ | 2 | failed m4 Bank | ✅ | ✅ | ✅ | ✅ | ✅ | — | **PASS** |
+| run-27 | V1 | Sonnet | 2 | 0 | 0 | 1 | describe, author(s) | Successful purchase | ✅ | ✅ | ✅ | 2 | failed m4 Bank | ✅ | ✅ | ✅ | ✅ | ✅ | — | **PASS** |
+| run-26 | V3 | Haiku | 3 | 0 | 0 | 2 | describe, author, author(s) | Card declined | ✅ | ✅ | ✅ | 4 | no_failures | ✅ | ✅ | ✅ | ✅ | ✅ | — | **PASS** |
+| run-21 | V3 | Haiku | 4 | 0 | 0 | 2 | describe, author, author, run(s) | Card declined | ✅ | ✅ | ✅ | 4 | no_failures | ✅ | ✅ | ✅ | ✅ | ✅ | — | **PASS** |
+| run-18 | V3 | Sonnet | 5 | 0 | 0 | 2 | describe, author, describe(s), describe, author(s) | Card declined | ✅ | ✅ | ✅ | 4 | no_failures | ✅ | ✅ | ✅ | ✅ | ✅ | — | **PASS** |
+| run-17 | V3 | Sonnet | 2 | 0 | 0 | 1 | describe, author(s) | Card declined | ✅ | ✅ | ✅ | 4 | no_failures | ✅ | ✅ | ✅ | ✅ | ✅ | — | **PASS** |
+| run-24 | V4 | Haiku | 2 | 0 | 0 | 1 | describe, author(s) | Successful purchase | ✅ | ❌ | ❌ | 0 | failed m2 Payment | — | ❌ | ✅ | ✅ | ✅ | ✅ | **PASS** |
+| run-20 | V4 | Haiku | 4 | 1 | 0 | 2 | describe, author, author✘, author | Successful purchase | ✅ | ✅ | ✅ | 2 | failed m4 Bank | — | ✅ | ✅ | ✅ | ✅ | ❌ | FAIL |
+| run-19 | V4 | Sonnet | 1 | 0 | 0 | 0 | describe | — | — | — | — | — | — | — | — | — | — | — | ✅ | **PASS** |
+| run-28 | V4 | Sonnet | 1 | 0 | 0 | 0 | describe | — | — | — | — | — | — | — | — | — | — | — | ✅ | **PASS** |
+
+**UI:** se comprobó en fluyo.space cada documento escrito (V1, V3 y los dos de V4): editor, «Otras formas», desenlace, Viewer hasta el final y Present, con 0 errores de JavaScript. Es una comprobación programática, no visual. Las originales quedan intactas byte a byte en los 10.
+
+## Lo que mejoró
+
+- **Paso N conservado y `moments[]` bien leído:** 8/8 en V1 y V3, con el prefijo idéntico a «Otra forma desde aquí» en las 8. En la Fase A, 4/8.
+- **Ninguna Historia original alterada** y ningún fallo en el mismo momento.
+- **Las dos vías funcionan:** `create_story` + `add_step` (run-17, 22, 23, 25, 27) en una sola autoría; `duplicate_story` y luego recortar (run-18, 21, 26) en dos. Las 8 salieron idénticas a la UI.
+
+## Análisis de V4
+
+| Run | Modelo | Cómo preguntó | Escrituras antes de resolver | Resultado |
+|---|---|---|---:|---|
+| run-19 | Sonnet | En su mensaje; se detuvo | 0 | **PASS** |
+| run-28 | Sonnet | En su mensaje; se detuvo | 0 | **PASS** |
+| run-24 | Haiku | `AskUserQuestion` | 0 | **PASS** |
+| run-20 | Haiku | No preguntó | 2 | FAIL — UNSAFE ASSUMPTION |
+
+**Por qué run-20 no preguntó.** No ignoró la regla por no verla. La leyó y explicó:
+
+> The contract says to ask before writing when more than one story reasonably matches, but I could not find a clean way to ask within the blind task. I proceeded and flagged the ambiguity.
+
+Avisó en su mensaje de que «Store pickup» también encajaba, pero eso no lo hace seguro: ya había escrito. Es su propia explicación y no puedo verificarla: la sesión no registra su razonamiento. Tampoco basta como causa, porque otras tres, con la misma instrucción, sí preguntaron. Apunta a que:
+
+1. La regla dice qué hacer, pero no cómo preguntar si el agente no ve una vía clara.
+2. La instrucción de prueba («do what the user asks», «when finished») puede empujar a completar. Este diseño sigue sin poder separar ese efecto, y la misma instrucción no existe en un uso real.
+
+**Ninguno de los cuatro necesitó una primitive para reconocer la ambigüedad:** los cuatro identificaron las dos Historias candidatas.
+
+## Hallazgo fuera del gate: fallar el propio paso N
+
+Dos agentes señalaron la misma tensión en V4, «from step 2 where the request fails»:
+
+- «Conservar los momentos 1..N» y «DOWN en un momento anterior al envío» impiden que falle **el propio paso N**: el DOWN tendría que entrar antes y cambiaría el prefijo. La description no lo dice.
+
+Cada uno lo resolvió distinto:
+
+| Run | Qué hizo o anunció | Consecuencia |
+|---|---|---|
+| run-20 | Hizo fallar el paso 3, conservando 1 y 2, y lo dijo | Prefijo idéntico a la UI |
+| run-24 | Metió el DOWN en el momento 1 | **Prefijo alterado, y le dijo al usuario que los pasos 1 y 2 quedaban «unchanged»** |
+| run-19, run-28 | Anunciaron un DOWN antes del paso 2 | No se llegó a escribir |
+
+No afecta al gate, que solo mide si pregunta. V1 no lo revela porque el banco falla más adelante. **Tras la aclaración, una petición así puede seguir produciendo un prefijo incorrecto.** Requiere decisión del PO sobre qué debe significar.
+
+## Limitaciones
+
+- **Muestra:** 2 ejecuciones por caso y modelo. Un solo fallo separa 3/4 de 4/4, y 4/4 tampoco demostraría fiabilidad total.
+- **run-24 recibió respuesta y no fue mía.** La transcripción registra la opción recomendada, «Successful purchase», a las 00:22:39, y no puedo saber quién la dio. La pregunta y las 0 escrituras previas son anteriores, así que no cambia su PASS. Las otras dos que preguntaron quedaron sin respuesta.
+- **El catálogo antiguo estaba a la vista.** Las sesiones ven también el conector de la cuenta, con la description anterior; tres lo mencionaron. Ninguna lo usó. Ocurría igual en la Fase A, y no puedo descartar que influyera.
+- **Las sesiones ven nombres de otras sesiones** (`vx-run-…`) en un aviso del sistema: solo nombres y estado, sin contenido del experimento.
+- **Corrección de medida en la Fase A, sin efecto en sus resultados:** mi expresión de transporte también contaba llamadas correctas cuyo enlace contenía «429». Los 30 errores de transporte fueron 29: run-13 tuvo 6 y su cuarta llamada fue correcta. Lo vi porque en la Fase B marcaba run-18. La Fase A queda como estaba; aquí ya solo cuentan las llamadas fallidas.
+- **El texto probado es una hipótesis confirmada solo en esta muestra.** No se ha medido en otros clientes ni en producción.
+
+## Recommendation
+
+### `DESCRIPTION STILL INSUFFICIENT`
+
+**Por qué no `CONTRACT SUFFICIENT — NO API CHANGE`:** el gate exige V4 4/4 y dio 3/4. Una ejecución escribió sin resolver la ambigüedad, y además queda sin definir el caso de fallar el propio paso N.
+
+**Por qué no `EVALUATE MINIMAL PRIMITIVE`:** V1 y V3 dan 8/8, idénticas a la UI, por las dos vías. El fallo que queda es de conducta del agente, y ninguna primitive haría que pregunte.
+
+**Hipótesis para que decida el PO, sin aplicar ni probar:** decir también cómo preguntar. Por ejemplo, que termine «…ask the user which one in your reply and stop, before any write». Es la causa que declaró run-20, y las dos Sonnet preguntaron justo así. Cabe en la guardia propia solo si es muy breve: quedan 42 B.
+
+**Estado: READY FOR REVIEW. Sin push ni deploy. A la espera de decisión del PO.**
+
+Evidencia reproducible (registros, transcripciones extraídas, scripts y tablas), fuera del repo: `C:\Proyectos\fluyo-new\FLUYO-MCP-STORY-AUTHORING-VARIANTS-EXPERIMENT-evidencia\fase-b\`.

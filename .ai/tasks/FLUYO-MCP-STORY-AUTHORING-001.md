@@ -164,4 +164,4 @@ Publicado el 2026-11-02, con aprobación del PO:
 
 **Language en producción:** el catálogo desplegado es byte a byte el aprobado, y sobre ese catálogo pasó la QA de idioma. No se repitió una ejecución de agente contra el endpoint de producción, como autorizó el PO.
 
-**Trabajo siguiente, ya hecho:** `FLUYO-MCP-STORY-AUTHORING-VARIANTS-EXPERIMENT`, con agentes ciegos. Resultado: 8/16 con el contrato de S1 y 11/12 con la description ampliada, publicada en `d958f63`. Decisión del PO: `CONTRACT SUFFICIENT — NO API CHANGE`.
+**Trabajo siguiente, ya hecho:** `FLUYO-MCP-STORY-AUTHORING-VARIANTS-EXPERIMENT`, con agentes ciegos. Resultado: 8/16 con el contrato de S1 y 11/12 con la description ampliada, publicada en `d958f63`. Decisión del PO: `CONTRACT SUFFICIENT — NO API CHANGE`. «Another way from step N» conserva el paso N; pedir que además falle es una contradicción que el agente debe aclarar (decisión 333). Esa frase entra en el catálogo con su próxima modificación real, sin deploy propio.

@@ -385,4 +385,19 @@ Evidencia reproducible (registros, transcripciones extraídas, scripts y tablas)
 
 Como autorizó el PO, no se repitieron ejecuciones de agentes tras el deploy: el catálogo desplegado es byte a byte el aprobado.
 
-**Queda abierto, sin bloquear el cierre:** qué debe significar fallar el propio paso N (ver «Hallazgo fuera del gate»). El PO no lo ha decidido. Hasta entonces, una petición así puede producir un prefijo distinto del canónico, como en run-24.
+### Fallar el propio paso N: decisión del PO
+
+Resuelve el «Hallazgo fuera del gate» (decisión 333).
+
+**«Another way from step N» conserva el paso N y diverge DESPUÉS de él.** El paso N pertenece al prefijo compartido y esa variante no puede modificarlo. Un envío solo falla si el DOWN ocurre en un momento anterior, así que hacer fallar el paso N exige divergir antes de N. Una petición que pida las dos cosas es una contradicción.
+
+**Lo que se espera del agente:** no escribir en silencio, no reinterpretar «from N» como «replace N», y pedir aclaración entre:
+
+1. Crear otra forma después del paso N.
+2. Hacer que el paso N falle, empezando la divergencia antes.
+
+**Pendiente de catálogo, sin deploy propio.** La frase se incorpora en la próxima modificación real del catálogo MCP. Texto propuesto, sin probar:
+
+> If the request also needs step N itself to fail or change, that contradicts "from step N": do not write; ask whether to diverge after step N, or to make step N fail, which means diverging before it.
+
+Hasta entonces, el catálogo desplegado no incluye esta regla, y una petición así puede producir un prefijo distinto del canónico, como en run-24. Al incorporarla hay que hacer sitio: el tramo de 2 048 caracteres está casi lleno (`PATRÓN` empieza en el 2 046) y solo quedan 42 B bajo la guardia propia de 57 000.

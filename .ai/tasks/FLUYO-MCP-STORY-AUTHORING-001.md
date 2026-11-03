@@ -1,6 +1,8 @@
 # FLUYO-MCP-STORY-AUTHORING-001 · Agente → Historia → Revisión humana
 
-**Estado: S1 «Reliable Story Authoring Contract» PRODUCTION VERIFIED / CLOSED** (2026-11-02): `fluyo-mcp` `4a172f1` en Cloud Run `fluyo-mcp-00036-jhh`, 100 % del tráfico; `verify-deploy` 21/21; smoke de S1 33/0. Fase 0: [FLUYO-MCP-STORY-AUTHORING-001-AUDIT.md](FLUYO-MCP-STORY-AUTHORING-001-AUDIT.md), aprobada por el PO. Decisiones 326–330.
+**Estado: FLUYO-MCP-STORY-AUTHORING-001 — PRODUCTION VERIFIED / CLOSED** (2026-11-02), incluidas las variantes: `fluyo-mcp` `d958f63` en Cloud Run `fluyo-mcp-00037-hbl`; `verify-deploy` 21/21; smoke 46/0. Cubre autoría de Historias, enlaces de personas, desenlaces, avisos de efectos laterales, errores estructurados, neutralidad de idioma, paridad del fallo y variantes, sin ninguna tool específica de Stories ni de variantes. Evidencia de variantes: [`FLUYO-MCP-STORY-AUTHORING-VARIANTS-EXPERIMENT.md`](FLUYO-MCP-STORY-AUTHORING-VARIANTS-EXPERIMENT.md).
+
+**Estado de S1 al cerrarse: «Reliable Story Authoring Contract» PRODUCTION VERIFIED / CLOSED** (2026-11-02): `fluyo-mcp` `4a172f1` en Cloud Run `fluyo-mcp-00036-jhh`, 100 % del tráfico; `verify-deploy` 21/21; smoke de S1 33/0. Fase 0: [FLUYO-MCP-STORY-AUTHORING-001-AUDIT.md](FLUYO-MCP-STORY-AUTHORING-001-AUDIT.md), aprobada por el PO. Decisiones 326–330.
 
 Base: `fluyo` `origin/main` `9eeeb42` (v123) · `fluyo-mcp` `origin/main` `464f4e0`. Rama en los dos repos: `mcp-story-authoring-001`. **`fluyo` solo cambia documentación:** v124 sigue libre.
 
@@ -162,4 +164,4 @@ Publicado el 2026-11-02, con aprobación del PO:
 
 **Language en producción:** el catálogo desplegado es byte a byte el aprobado, y sobre ese catálogo pasó la QA de idioma. No se repitió una ejecución de agente contra el endpoint de producción, como autorizó el PO.
 
-**Siguiente y único trabajo:** `FLUYO-MCP-STORY-AUTHORING-VARIANTS-EXPERIMENT`, con agentes ciegos sobre el contrato desplegado. Sin `variantOf`, `create_variant`, `upToStepId` ni tools nuevas antes de tener evidencia.
+**Trabajo siguiente, ya hecho:** `FLUYO-MCP-STORY-AUTHORING-VARIANTS-EXPERIMENT`, con agentes ciegos. Resultado: 8/16 con el contrato de S1 y 11/12 con la description ampliada, publicada en `d958f63`. Decisión del PO: `CONTRACT SUFFICIENT — NO API CHANGE`.

@@ -3,9 +3,9 @@
 | Fase | Qué se probó | Resultado | Estado |
 |---|---|---|---:|
 | **A** | Contrato desplegado, 16 ejecuciones | 8/16 → `DESCRIPTION CHANGE RECOMMENDED` | ACCEPTED por el PO |
-| **B** | Mismo contrato con la description ampliada, 12 ejecuciones | 11/12: V1 4/4, V3 4/4, V4 3/4 → `DESCRIPTION STILL INSUFFICIENT` | READY FOR REVIEW |
+| **B** | Mismo contrato con la description ampliada, 12 ejecuciones | 11/12: V1 4/4, V3 4/4, V4 3/4 | ACCEPTED por el PO: `CONTRACT SUFFICIENT — NO API CHANGE` |
 
-Nada de la Fase B está publicado ni desplegado.
+**Cerrado y en producción:** `fluyo-mcp` `d958f63` en Cloud Run `fluyo-mcp-00037-hbl`. Sin ninguna tool específica de Stories ni de variantes. Detalle en «Decisión del PO y publicación», al final.
 
 # Fase A — contrato desplegado (16 ejecuciones)
 
@@ -206,7 +206,7 @@ Evidencia reproducible (documentos, canónicos, registros, transcripciones extra
 
 Fecha: 2026-11-02 · Contrato probado: rama `mcp-variants-description`, commit `d958f63` sobre `4a172f1`, **sin desplegar** · UI: fluyo.space v123, sin tocar.
 
-**Recomendación: `DESCRIPTION STILL INSUFFICIENT`.** Sin primitive. Espera decisión del PO.
+**Recomendación entregada: `DESCRIPTION STILL INSUFFICIENT`,** sin primitive. **El PO decidió `CONTRACT SUFFICIENT — NO API CHANGE`:** ver el final del documento.
 
 ## Resultado
 
@@ -354,6 +354,35 @@ No afecta al gate, que solo mide si pregunta. V1 no lo revela porque el banco fa
 
 **Hipótesis para que decida el PO, sin aplicar ni probar:** decir también cómo preguntar. Por ejemplo, que termine «…ask the user which one in your reply and stop, before any write». Es la causa que declaró run-20, y las dos Sonnet preguntaron justo así. Cabe en la guardia propia solo si es muy breve: quedan 42 B.
 
-**Estado: READY FOR REVIEW. Sin push ni deploy. A la espera de decisión del PO.**
+**Estado al entregar: READY FOR REVIEW, sin push ni deploy.** El análisis se conserva tal como se entregó al PO.
 
 Evidencia reproducible (registros, transcripciones extraídas, scripts y tablas), fuera del repo: `C:\Proyectos\fluyo-new\FLUYO-MCP-STORY-AUTHORING-VARIANTS-EXPERIMENT-evidencia\fase-b\`.
+
+## Decisión del PO y publicación
+
+**`CONTRACT SUFFICIENT — NO API CHANGE`.** Fase B aceptada: V1 y V3 resueltos, y en V4 tres de cuatro preguntaron antes de escribir.
+
+**El 1/4 restante de V4 queda como `ACCEPTED AGENT-LEVEL AMBIGUITY LIMITATION`, no como primitive que falte.** El MCP puede expresar la variante. Elegir entre dos Historias candidatas a partir de una intención humana exigiría una capa de interpretación semántica que no pertenece a Fluyo. La description sigue pidiendo preguntar antes de escribir, y el contrato no necesita un 100 % de obediencia del modelo. El producto sigue siendo: el agente escribe, Fluyo valida y la persona revisa.
+
+**No se implementa:** `variantOf`, `create_variant`, `upToStepId`, tools ni operaciones nuevas, ni cambios de formato. Tampoco la hipótesis de decir cómo preguntar, que el PO no adoptó.
+
+### Publicación (2026-11-02)
+
+| Gate | Resultado |
+|---|---|
+| Tools / operaciones | 15 / 29 |
+| Catálogo | 56 958 B (guardia 63 000) |
+| Suite de `fluyo-mcp` | 983/983, contra el `fluyo` actual |
+| Mutaciones | `story-authoring-001` 51/51; `descriptions-001` 12/12 |
+| Patrones de mutación | 93 de `server.ts` comprobados en los 25 scripts; ninguno obsoleto por este cambio |
+| Diff frente a `4a172f1` | `src/server.ts` (solo description), un test y dos scripts de mutación |
+
+- **Push por fast-forward:** `fluyo-mcp` `4a172f1..d958f63`.
+- **Deploy:** worktree limpio y detached en `d958f63`. `fluyo-mcp-00037-hbl` al 100 %; antes, `00036-jhh`.
+- **`verify-deploy.sh https://mcp.fluyo.space`:** 21/21.
+- **Smoke de producción:** 46/0. Comprueba cada regla nueva dentro de los primeros 2 048 caracteres, el hash `dc262a0ca9f6fc11` de la description probada en la Fase B, el catálogo y 22 respuestas idénticos byte a byte a la build aprobada, una variante real con operaciones existentes, G1–G5 sin regresión y la UI real.
+- **Sin cambios:** kernel, formato, frontend, DNS, autenticación y `fluyo.space`, que sigue sirviendo v123. **v124 sigue libre.**
+
+Como autorizó el PO, no se repitieron ejecuciones de agentes tras el deploy: el catálogo desplegado es byte a byte el aprobado.
+
+**Queda abierto, sin bloquear el cierre:** qué debe significar fallar el propio paso N (ver «Hallazgo fuera del gate»). El PO no lo ha decidido. Hasta entonces, una petición así puede producir un prefijo distinto del canónico, como en run-24.

@@ -262,7 +262,7 @@ test("C3 · claves nuevas en inglés, ninguna clave muerta y CACHE actual (v118 
   for (const k of ["stories.emptyDrag", "stories.emptyWillAppear", "event.emptyHint"]) {
     assert.ok(!ed.includes(`"${k}"`) && !en.includes(`"${k}":`), k + " retirada de los dos lados");
   }
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v123";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v124";/);
 });
 
 test("C4 · en Historias el doble clic y el doble toque no editan el texto del elemento", () => {

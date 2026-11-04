@@ -63,7 +63,7 @@ Estas restricciones describen el **estado técnico actual**, verificado contra e
 - **Hoy: sin build ni dependencias**: HTML + CSS + JS vanilla. Cambiarlo requiere decisión previa en `.ai/DECISIONS.md`.
 - **Hoy: scripts clásicos** (no módulos ES): `js/*.js` se cargan como `<script src>` clásicos y comparten ámbito global. Un solo `import` de nivel superior rompería hoy la apertura desde `file://`. Un test en CI (vive en el repo del MCP) vigila la configuración actual.
 - **Formato `.fluyo.json`**: versionado y retrocompatible. Los `id` son únicos por página y comparten `nextId` entre nodos y flechas; `x`,`y` son el centro del nodo. Nunca renombrar claves ya guardadas (`shape`, `anim`, claves de `ICONS`/`ANIMS`…).
-- **Privacidad**: el contenido de los diagramas nunca sale del navegador. La telemetría (`js/analytics.js`) solo carga en el dominio oficial y solo envía valores de listas cerradas.
+- **Privacidad**: el editor funciona principalmente en el navegador y no envía el contenido de los diagramas a un servidor; los documentos enviados explícitamente al MCP sí los procesa su servicio remoto. La telemetría (`js/analytics.js`) solo carga en el dominio oficial y solo envía valores de listas cerradas.
 - **Service worker**: cualquier PR que toque un archivo servido debe subir la constante `CACHE` en `sw.js` (cache-first, sin revalidación).
 - **Commits**: no crear commits ni pushes salvo petición explícita del usuario.
 

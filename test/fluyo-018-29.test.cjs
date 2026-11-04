@@ -35,7 +35,7 @@ test("alcance: kernel, render, geometría, exportación, enlace y URL corta idé
     try { head = execFileSync("git", ["-C", gitRoot, "show", "HEAD:" + f], { encoding: "utf8" }).replace(/\r\n/g, "\n"); } catch { return; }   // sin git (copia de mutaciones)
     assert.equal(read(f), head, f + " sin cambios");
   }
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v123";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v124";/);
   assert.doesNotMatch(read("js/story-clock.js"), /document\.|window\.|requestAnimationFrame|setTimeout|setInterval|localStorage|Date\.now|Math\.random|performance\./, "story-clock.js sigue puro");
   const mcp = path.join(root, "..", "fluyo-mcp", "scripts", "sync-kernel.ts");
   void mcp;   /* Desde FLUYO-MCP-STORY-AUTHORING-001 (decisión 327) el MCP carga story-clock.js por el desenlace: por eso debe seguir puro (arriba). */

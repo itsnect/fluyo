@@ -342,9 +342,9 @@ test("A · alcance frente a 7305355: solo estos archivos; undoS3a da la base EXA
   const untracked = execFileSync("git", ["-C", gitRoot, "ls-files", "--others", "--exclude-standard", "--", ...SERVED], { encoding: "utf8" }).split("\n").filter(Boolean).filter((f) => !s3bOnly(f));
   assert.deepEqual([...new Set([...changed, ...untracked])].sort(), [...FILES, "sw.js"].sort());
   for (const f of FILES) assert.equal(undoS3a(f, read(f)), atBase(f), f + ": undoS3a exacto");
-  assert.equal(undoEx("sw.js", read("sw.js")).replace('"fluyo-static-v123"', '"fluyo-static-v' + (114 - 1) + '"'), atBase("sw.js"), "sw.js: solo CACHE (sin archivos nuevos)");
+  assert.equal(undoEx("sw.js", read("sw.js")).replace('"fluyo-static-v124"', '"fluyo-static-v' + (114 - 1) + '"'), atBase("sw.js"), "sw.js: solo CACHE (sin archivos nuevos)");
   assert.ok(read("test/fluyo-i18n-002-s3a-undo.cjs").includes("src = undoS3b(file, src);"), "undoS3a deshace antes S3b, que va encima");
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v123";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v124";/);
   assert.ok(read("test/fluyo-i18n-002-s2b-undo.cjs").includes("src = undoS3a(file, src);"), "undoS2b deshace antes esta tarea");
   for (const f of ["js/config.js", "js/model.js", "js/story-playback.js", "js/safe-svg.js", "js/i18n-en.js", "js/i18n-fr.js", "js/i18n-ja.js", "js/i18n-zh.js",
     "js/i18n-fr-editor.js", "js/i18n-ja-editor.js", "js/i18n-zh-editor.js", "index.html", "s/index.html", "404.html", "css/system.css", "css/styles.css"])

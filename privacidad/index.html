@@ -50,7 +50,7 @@
 <main class="wrap" id="main">
 
 <h1>Política de privacidad</h1>
-<p class="lead">Última actualización: 26 de agosto de 2026.</p>
+<p class="lead">Última actualización: 4 de noviembre de 2026.</p>
 
 <p>Fluyo son <strong>dos cosas distintas</strong> con dos comportamientos de datos distintos, y esta política las trata por separado porque mezclarlas sería engañoso:</p>
 
@@ -74,7 +74,7 @@
 </table>
 
 <div class="note">
-  <p>Si solo usas el editor en <a href="../">fluyo.space</a> y nunca has añadido el conector MCP remoto, <strong>la sección B no te aplica en absoluto</strong>: ningún diagrama tuyo ha salido nunca de tu navegador.</p>
+  <p>Si solo usas el editor en <a href="../">fluyo.space</a> y nunca has añadido el conector MCP remoto, <strong>la sección B no te aplica en absoluto</strong>: el editor no ha enviado tus diagramas a ningún servidor. Lo único que puede sacarlos de tu equipo es lo que tú hagas con un archivo o con un enlace.</p>
 </div>
 
 <h2>Quién es el responsable</h2>
@@ -86,22 +86,22 @@
 <p>El editor es un <strong>sitio de archivos estáticos</strong>. No hay servidor de aplicación, no hay base de datos y no hay ninguna API propia a la que el navegador llame. Todo —dibujar, animar, calcular el layout y codificar el GIF— ocurre en tu equipo con el procesador de tu equipo.</p>
 
 <h3>Tus diagramas</h3>
-<p><strong>No se envían a ninguna parte.</strong> No hay backend al que puedan ir. Cuando pulsas <em>Guardar</em>, el navegador descarga un archivo <code>.fluyo.json</code> a tu disco; cuando pulsas <em>Abrir</em>, lo lee desde tu disco. En ninguno de los dos casos hay una petición de red.</p>
+<p><strong>Usando el editor, no salen de tu navegador.</strong> No hay backend al que puedan ir. Cuando pulsas <em>Guardar</em>, el navegador descarga un archivo <code>.fluyo.json</code> a tu disco; cuando pulsas <em>Abrir</em>, lo lee desde tu disco. En ninguno de los dos casos hay una petición de red.</p>
 
 <h3 id="enlace">Diagramas que llegan por un enlace</h3>
 <p>Hay un tercer camino: una URL de la forma <code>fluyo.space/#d=…</code> lleva el diagrama <strong>dentro del propio enlace</strong>, comprimido y codificado. Es lo que devuelve el servidor MCP para que puedas ver el diagrama animado sin guardar ningún archivo.</p>
-<p><strong>Ese contenido tampoco llega a ningún servidor.</strong> Va detrás de la almohadilla, y el navegador no envía el fragmento de una URL: ni en la petición ni en la cabecera <code>Referer</code>. Puedes comprobarlo tú — sirve el proyecto en local, abre uno de estos enlaces y mira el registro de acceso: la línea dice <code>GET /index.html</code> y nada más.</p>
+<p><strong>Ese contenido no viaja en la petición HTTP.</strong> Va detrás de la almohadilla, y el navegador no envía el fragmento de una URL: ni en la petición ni en la cabecera <code>Referer</code>. Puedes comprobarlo tú — sirve el proyecto en local, abre uno de estos enlaces y mira el registro de acceso: la línea muestra la ruta y nada del fragmento. Lo que sí llega al servidor es lo anterior a la almohadilla: la ruta y, si la hay, la query, como <code>?ejemplo=</code> o <code>?lang=</code>, que no llevan tu documento. El contenido solo llega a un servidor si se lo envías expresamente, por ejemplo al pasarle el enlace o el documento al servidor MCP.</p>
 <p><strong>Lo que sí conviene que sepas:</strong> el diagrama va <strong>codificado, no cifrado</strong>. Cualquiera que reciba el enlace puede leerlo. Además queda en el historial de tu navegador —que se sincroniza entre tus dispositivos si tienes esa opción activada— y en cualquier sitio por el que pases el enlace. Compártelo con el mismo criterio con el que compartirías el archivo.</p>
 
 <h3>Compartir una copia mediante enlace</h3>
-<p>La acción <strong>Compartir</strong> pide confirmación y genera <code>fluyo.space/s/#d=…</code> con una copia completa del diagrama. Cualquiera con el enlace puede verla. Fluyo no almacena esta copia en un servidor y no puede revocar el enlace. Los cambios posteriores del editor no modifican la copia. El límite de esta versión es de 64 KiB para la URL final; si se supera, puedes exportar el archivo.</p>
+<p>La acción <strong>Compartir</strong> pide confirmación y genera <code>fluyo.space/s/#d=…</code> con una copia completa del diagrama. Cualquiera con el enlace puede verla. La copia viaja en el fragmento <code>#d=</code>, así que tampoco va en la petición HTTP. Fluyo no almacena esta copia en un servidor y no puede revocar el enlace. Los cambios posteriores del editor no modifican la copia. El límite de esta versión es de 64 KiB para la URL final; si se supera, puedes exportar el archivo.</p>
 
 <h3>Autoguardado</h3>
 <p>La sesión en curso se guarda en el <code>localStorage</code> de tu navegador, bajo la clave <code>fluyo.autosave.v1</code>. Es almacenamiento local de tu equipo, no un servidor: nadie más puede leerlo, y se borra al limpiar los datos del sitio en tu navegador.</p>
 
 <h3>Telemetría de producto</h3>
-<p>En el sitio público hay analítica de uso agregada, servida por <a href="https://umami.is" target="_blank" rel="noopener">Umami Cloud</a>. <strong>Sin cookies y sin fingerprinting</strong>, y sin identificar usuarios.</p>
-<p>Lo que se registra es esta lista cerrada de eventos; la captura automática está desactivada y no hay pageviews:</p>
+<p>En el sitio público hay analítica de uso servida por <a href="https://umami.is" target="_blank" rel="noopener">Umami Cloud</a>, <strong>sin cookies y sin identificarte por tu nombre o tu cuenta</strong>, aunque Umami deriva un identificador de sesión.</p>
+<p>Lo que Fluyo envía es esta lista cerrada de eventos; la captura automática está desactivada y no hay pageviews:</p>
 <table>
   <tr><th>Evento</th><th>Significado y propiedades</th></tr>
   <tr><td><code>editor_opened</code></td><td>Una vez por carga del editor. <code>entry</code>: <code>direct</code>, <code>example</code> (llegó con <code>?ejemplo=</code>) o <code>link</code> (llegó con <code>#d=</code>), sin la URL. <code>returning</code>: <code>yes</code> si este navegador ya había abierto Fluyo, <code>no</code> si no (ver «Primera visita»). <code>locale</code>: idioma de la interfaz (<code>es</code>, <code>en</code>, <code>fr</code>, <code>ja</code>, <code>zh</code> u <code>other</code>).</td></tr>
@@ -124,15 +124,16 @@
   <tr><td><code>viewer_story_completed</code></td><td>En el viewer, esa reproducción llegó al final. Sin propiedades. Una vez por reproducción.</td></tr>
   <tr><td><code>share_opened_in_editor</code></td><td>Al pulsar explícitamente Abrir en Fluyo en el viewer. Sin propiedades.</td></tr>
 </table>
+<p><strong>Lo que Umami obtiene de la propia petición.</strong> Como cualquier servidor, Umami recibe tu dirección IP y tu User-Agent. A partir de ellos registra <strong>país, región y ciudad aproximados, navegador, sistema operativo y tipo de dispositivo</strong>, y calcula un identificador de sesión con un hash del sitio, la IP, el User-Agent y una sal que, según Umami, rota cada mes por defecto. También según Umami, la IP se procesa de forma transitoria para esos cálculos y no se guarda como campo en sus registros de analítica, aunque Umami y sus proveedores pueden anotarla en registros operativos y de seguridad, separados de la analítica. Quien administra Fluyo puede ver esos datos derivados y la secuencia de eventos de cada sesión en el panel de Umami, y los consulta para entender cómo se usa Fluyo. Fluyo no envía a Umami ningún identificador de usuario ni de cuenta, y no publica actividad por sesión. El identificador de sesión evita el uso de cookies, pero no es una garantía de anonimato absoluto.</p>
 <h3 id="primera-visita">Primera visita</h3>
 <p>La primera vez que este navegador abre el editor sin traer un documento por el enlace, una tarjeta sobre el lienzo ofrece ver un ejemplo en marcha o empezar en blanco. Para no volver a ofrecerla, el editor guarda en <code>localStorage</code> la clave <code>fluyo.seen</code> con el valor <code>1</code>: sin fecha, sin identificador, y nunca se envía. Tampoco aparece si ya hay cualquier otra clave <code>fluyo.*</code> (sesión guardada, tema o idioma). Lo único que sale es su consecuencia, <code>returning: yes/no</code> en <code>editor_opened</code>; cuenta navegadores, no personas: en modo privado, tras borrar los datos del sitio o en otro dispositivo, cuenta como nuevo.</p>
-<p><strong>El contenido de tus diagramas nunca se envía a analytics.</strong> Sólo se admiten los eventos y valores de estas listas cerradas. No se envían nombres de archivos o nodos, texto, imágenes, prompts, IDs de documentos ni datos personales. La comparación para detectar la primera edición ocurre sólo en memoria local.</p>
+<p><strong>El contenido de tus diagramas nunca se envía a analytics.</strong> Sólo se admiten los eventos y valores de estas listas cerradas. Los eventos no llevan nombres de archivos o nodos, texto, imágenes, prompts, IDs de documentos ni datos personales. La comparación para detectar la primera edición ocurre sólo en memoria local.</p>
 <p><strong>No se envían URLs privadas.</strong> La captura automática del proveedor está desactivada con <code>data-auto-track="false"</code>. Se excluyen query y fragmento con <code>data-exclude-search</code> y <code>data-exclude-hash</code>; además, el filtro <code>data-before-send</code> reconstruye el payload con ruta fija <code>/</code>, título fijo <code>Fluyo</code> y referrer vacío. No se envían propiedades automáticas adicionales del navegador. La carga asíncrona usa una cola acotada en memoria; bloquear Umami no impide trabajar.</p>
 <p>El script de analítica se carga <strong>únicamente</strong> cuando el dominio es <code>fluyo.space</code> o <code>www.fluyo.space</code>. Si clonas el repositorio, lo abres en local o lo self-hosteas, ese código no llega a ejecutarse y no se hace ninguna llamada de red. Los dominios de preview quedan fuera a propósito. La condición está en <code>js/analytics.js</code>, en un solo bloque, para que puedas verificarlo tú.</p>
 <p>Si quieres cero telemetría: usa el proyecto en local o self-hosteado, o bloquea el dominio <code>cloud.umami.is</code>. Fluyo funciona igual — la analítica está escrita para fallar en silencio.</p>
 
 <h3>La otra petición externa</h3>
-<p>Aparte del script de analítica de arriba, el editor hace una <strong>única</strong> petición a un tercero: carga <a href="https://github.com/jnordberg/gif.js" target="_blank" rel="noopener">gif.js</a> —y su <code>gif.worker.js</code>— desde el CDN de <strong>cdnjs (Cloudflare)</strong>, que es la librería que codifica el GIF. Es una descarga de código: <strong>no se le envía nada tuyo</strong>. Como en cualquier petición HTTP, Cloudflare ve tu IP y tu user-agent al servir el archivo. El service worker la precachea en la primera visita, así que en visitas posteriores normalmente ni siquiera se pide.</p>
+<p>Aparte del script de analítica de arriba, el editor hace una <strong>única</strong> petición a un tercero: carga <a href="https://github.com/jnordberg/gif.js" target="_blank" rel="noopener">gif.js</a> —y su <code>gif.worker.js</code>— desde el CDN de <strong>cdnjs (Cloudflare)</strong>, que es la librería que codifica el GIF. Es una descarga de código: <strong>no se le envía ningún contenido tuyo</strong>. Como en cualquier petición HTTP, Cloudflare ve tu IP y tu user-agent al servir el archivo. El service worker la precachea en la primera visita, así que en visitas posteriores normalmente ni siquiera se pide.</p>
 <p>Umami sirve su script en <code>cloud.umami.is</code> y recibe los eventos sanitizados en <code>gateway.umami.is</code>. Son los <strong>únicos servicios de terceros</strong> a los que el editor llama, y esta lista sí es completa: no hay fuentes, iconos ni hojas de estilo externas. Todo lo demás se sirve desde <code>fluyo.space</code>.</p>
 
 <h2>B. El servidor MCP en mcp.fluyo.space</h2>
@@ -149,7 +150,7 @@
 
 <h3>Cómo se usa y cuánto dura</h3>
 <p><strong>Se procesa en memoria y se descarta.</strong> Cada petición HTTP construye un servidor nuevo, atiende el mensaje y lo tira. No hay base de datos, no hay disco, no hay caché y no hay sesiones: el servidor es <em>stateless</em> por diseño, no por configuración. El documento existe en la memoria del proceso el tiempo que tarda la petición —milisegundos— y desaparece con ella.</p>
-<p><strong>Nada se persiste. Nada se comparte. Nada se usa para entrenar nada.</strong></p>
+<p><strong>El servidor no lo guarda, no lo reenvía a otros servicios y no lo usa para entrenar nada.</strong> Como corre en Cloud Run, el documento pasa por la infraestructura de Google mientras dura la petición.</p>
 <p><strong>El enlace que devuelve.</strong> Junto al diagrama, las herramientas devuelven una URL <code>fluyo.space/#d=&hellip;</code> que lo abre en el editor. Se construye dentro del mismo proceso, con el documento que acaba de recibir: no hay petici&oacute;n nueva a ning&uacute;n sitio, no se guarda en ninguna parte y no queda registrada. Lo que ese enlace significa para quien lo comparte est&aacute; explicado arriba, en <a href="#enlace">Diagramas que llegan por un enlace</a>.</p>
 
 <h3>Qué se registra</h3>
@@ -180,43 +181,45 @@
 <p>Una precisión honesta: <code>@hono/node-server</code>, que es la pieza que adapta la petición HTTP, puede escribir a la consola errores de conexión —<code>ECONNRESET</code> y similares, típicos de un cliente que corta a mitad—. <strong>Esos mensajes son errores de socket y no contienen datos del usuario</strong>: no llevan el documento, ni las etiquetas, ni los argumentos de ninguna herramienta.</p>
 
 <h2>Logs de la plataforma de alojamiento</h2>
-<p>Los dos dominios —<code>fluyo.space</code> y <code>mcp.fluyo.space</code>— están alojados en <strong>Google Cloud</strong>, en servicios separados de la misma cuenta. El servidor MCP corre concretamente en <strong>Cloud Run</strong>.</p>
-<p>Como cualquier proveedor de alojamiento, Google Cloud mantiene <strong>sus propios registros de plataforma</strong> en Cloud Logging, independientes de los del servidor MCP y fuera del control del código de este proyecto. En el caso de Cloud Run, la plataforma escribe un registro por petición <strong>automáticamente, antes de que la petición llegue a nuestro código</strong>. Esos registros incluyen:</p>
+<p>Los dos dominios tienen proveedores distintos: <code>fluyo.space</code> está alojado en <strong>Vercel</strong>, y <code>mcp.fluyo.space</code> en <strong>Google Cloud</strong>, concretamente en <strong>Cloud Run</strong>. <strong>Cloudflare</strong> resuelve el DNS de <code>fluyo.space</code>, sin hacer de proxy: las peticiones HTTP a ese dominio no pasan por él.</p>
+<p><strong>Vercel</strong> atiende las peticiones al sitio, así que recibe tu IP, la ruta solicitada con su query, tu user-agent y otras cabeceras. Sus registros son de varios tipos, y no todos los plazos están confirmados. Según la documentación de Vercel, en el plan Hobby que usa Fluyo los <em>runtime logs</em> se conservan 1 hora. No hemos confirmado un plazo para sus <em>request logs</em> ni para sus <em>CDN requests</em>, ni hemos encontrado uno publicado para sus registros operativos y de seguridad. Usando el editor, el contenido de tus diagramas no le llega, tampoco el fragmento <code>#d=</code> de un enlace.</p>
+<p>Como proveedor de alojamiento del servidor MCP, Google Cloud mantiene <strong>sus propios registros de plataforma</strong> en Cloud Logging, independientes de los del servidor MCP y fuera del control del código de este proyecto. En el caso de Cloud Run, la plataforma escribe un registro por petición <strong>automáticamente, antes de que la petición llegue a nuestro código</strong>. Esos registros incluyen:</p>
 <ul>
   <li>La <strong>dirección IP</strong> del cliente.</li>
   <li>La <strong>ruta</strong> solicitada y el método HTTP.</li>
   <li>El <strong>código de estado</strong> de la respuesta y su latencia.</li>
-  <li>El <strong>user-agent</strong> y otras cabeceras de la petición.</li>
+  <li>El <strong>user-agent</strong> y, si la petición lo trae, el <code>Referer</code>.</li>
 </ul>
-<p><strong>Retención: 7 días.</strong> No es el valor por omisión —Google Cloud Logging retiene 30 días por defecto—, sino uno configurado explícitamente en el bucket <code>_Default</code>. El comando exacto que lo fija está publicado en el <a href="https://github.com/itsnect/fluyo-mcp#retención-de-logs" target="_blank" rel="noopener">README del servidor</a>, para que esta cifra sea verificable y no una promesa.</p>
+<p><strong>Retención en Google Cloud: 7 días.</strong> No es el valor por omisión —Google Cloud Logging retiene 30 días por defecto—, sino uno configurado explícitamente en el bucket <code>_Default</code>. El comando exacto que lo fija está publicado en el <a href="https://github.com/itsnect/fluyo-mcp#retención-de-logs" target="_blank" rel="noopener">README del servidor</a>, para que esta cifra sea verificable y no una promesa.</p>
 <p>No contienen el cuerpo de las peticiones, así que <strong>el contenido de tus diagramas no aparece en ellos</strong>.</p>
-<p>Conviene no confundir estos registros con el de la aplicación descrito más arriba: son dos cosas distintas. El registro de la aplicación <strong>no escribe ningún dato del usuario, ni siquiera la IP</strong>, y eso seguirá siendo cierto pase lo que pase con la retención de la plataforma. Los registros de plataforma sí contienen la IP, y por eso caducan a los 7 días.</p>
+<p>Conviene no confundir estos registros con el de la aplicación descrito más arriba: son dos cosas distintas. El registro de la aplicación <strong>no escribe ningún dato del usuario, ni siquiera la IP</strong>, y eso seguirá siendo cierto pase lo que pase con la retención de la plataforma. Los registros de plataforma de Cloud Run sí contienen la IP, y por eso caducan a los 7 días.</p>
 <p>Para el tratamiento que Google hace de esos datos como proveedor de infraestructura, consulta su <a href="https://cloud.google.com/terms/cloud-privacy-notice" target="_blank" rel="noopener">aviso de privacidad de Google Cloud</a>.</p>
 
 <h2>Con quién se comparten los datos</h2>
-<p><strong>Con nadie.</strong> No se venden, no se ceden, no se usan para publicidad y no se usan para entrenar modelos. No hay perfilado ni decisiones automatizadas sobre personas.</p>
-<p>Los únicos terceros que intervienen son proveedores de infraestructura, cada uno con su propio papel acotado:</p>
+<p><strong>Fluyo no vende datos</strong> y no los usa para publicidad ni para entrenar modelos. El producto no lee los datos de analítica ni toma con ellos decisiones automatizadas sobre personas. Lo que Umami registra por sesión y quién lo consulta se describe en «Telemetría de producto».</p>
+<p>Para funcionar, el sitio necesita proveedores de alojamiento, de distribución de recursos y de analítica. Al atender una petición reciben información que puede ser personal, como tu IP y tu User-Agent, y la tratan para prestar ese servicio y según sus propias condiciones. Esto es lo que recibe cada uno y para qué:</p>
 <table>
-  <tr><th>Proveedor</th><th>Qué ve</th><th>Por qué</th></tr>
-  <tr><td><strong>Google Cloud</strong></td><td>Logs de plataforma de los dos dominios (IP, ruta, estado, user-agent), retenidos 7 días</td><td>Alojamiento</td></tr>
-  <tr><td><strong>Umami Cloud</strong></td><td>Los eventos de la lista de arriba (sin pageviews), sin cookies ni identificadores</td><td>Analítica del editor</td></tr>
-  <tr><td><strong>Cloudflare (cdnjs)</strong></td><td>La petición del archivo <code>gif.js</code>: IP y user-agent</td><td>Entrega de la librería de GIF</td></tr>
+  <tr><th>Proveedor</th><th>Qué recibe</th><th>Para qué</th></tr>
+  <tr><td><strong>Vercel</strong></td><td>Las peticiones a <code>fluyo.space</code>: IP, ruta con su query, user-agent y otras cabeceras. Según Vercel, los <em>runtime logs</em> del plan Hobby se conservan 1 hora; el resto de plazos no están confirmados</td><td>Alojamiento y distribución de la aplicación web</td></tr>
+  <tr><td><strong>Google Cloud</strong></td><td>Las peticiones a <code>mcp.fluyo.space</code>, con el documento que envíes al servidor MCP, que se procesa en memoria. Los logs de plataforma de esas peticiones (IP, ruta, estado, user-agent) se retienen 7 días y no incluyen el cuerpo</td><td>Alojamiento y ejecución del servidor MCP</td></tr>
+  <tr><td><strong>Umami Cloud</strong></td><td>Los eventos de la lista de arriba (sin pageviews), más IP y User-Agent en la petición, de los que deriva ubicación aproximada, navegador, sistema operativo, dispositivo y un identificador de sesión sin cookies. <em>Retención de los registros de analítica: 6 meses, la que Umami declara para el plan Hobby que usa Fluyo.</em></td><td>Analítica de uso</td></tr>
+  <tr><td><strong>Cloudflare</strong></td><td>En cdnjs, la petición de los archivos de <code>gif.js</code>: IP y user-agent. Como DNS de <code>fluyo.space</code>, las consultas de resolución; no las peticiones HTTP</td><td>Entrega de la librería de GIF y DNS</td></tr>
 </table>
-<p>Ninguno de los tres recibe el contenido de tus diagramas.</p>
+<p>En el uso normal del editor, ninguno de ellos recibe el contenido de tus diagramas. Si envías un documento al servidor MCP, llega a ese servidor en Cloud Run, como explica la sección B. Un enlace con <code>#d=</code> lleva el diagrama dentro: lo recibe quien lo abra y cualquier servicio por el que lo pases.</p>
 
 <h2>Menores</h2>
-<p>Fluyo no está dirigido a menores de 13 años y no recoge conscientemente datos de ellos. Como no hay cuentas ni registro, tampoco hay ningún perfil que pudiera pertenecer a un menor.</p>
+<p>Fluyo no está dirigido a menores de 13 años y no recoge conscientemente datos de ellos. Como no hay cuentas ni registro, tampoco hay ninguna cuenta que pudiera pertenecer a un menor.</p>
 
 <h2>Tus derechos</h2>
-<p>La situación práctica es poco habitual y conviene decirla tal cual: <strong>no hay ninguna cuenta, ningún perfil y ningún registro tuyo que consultar, rectificar o borrar</strong>, porque no se guarda nada que te identifique.</p>
+<p>La situación práctica es poco habitual y conviene decirla tal cual: <strong>no hay ninguna cuenta tuya que consultar, rectificar o borrar</strong>, porque Fluyo no te pide nombre, correo ni registro.</p>
 <ul>
   <li>Tus diagramas están en tu equipo. Para borrarlos, borra los archivos y limpia los datos del sitio en tu navegador.</li>
-  <li>Los datos que sí existen fuera de tu equipo —los logs de plataforma— caducan solos con la retención indicada arriba.</li>
+  <li>Los datos que sí existen fuera de tu equipo son los logs de plataforma, con la retención indicada arriba cuando está confirmada; los registros operativos y de seguridad que Vercel, Umami o Cloudflare puedan tener; y los registros de sesión de Umami, descritos en «Telemetría de producto». Como no están vinculados a una cuenta, normalmente no podemos localizar los tuyos.</li>
   <li>Aun así, si quieres ejercer cualquier derecho de acceso, rectificación, supresión, oposición o portabilidad, escribe a <strong><a href="mailto:nectdnb@gmail.com">nectdnb@gmail.com</a></strong> y se atiende.</li>
 </ul>
 
 <h2>Verificarlo por tu cuenta</h2>
-<p>Todo lo anterior es comprobable: el código de las dos partes es público y con licencia MIT.</p>
+<p>Lo que hace el código de Fluyo es comprobable: el código de las dos partes es público y con licencia MIT.</p>
 <ul>
   <li><a href="https://github.com/itsnect/fluyo" target="_blank" rel="noopener">github.com/itsnect/fluyo</a> — el editor. La telemetría está aislada en <code>js/analytics.js</code>.</li>
   <li><a href="https://github.com/itsnect/fluyo-mcp" target="_blank" rel="noopener">github.com/itsnect/fluyo-mcp</a> — el servidor MCP. Qué se registra y qué no está en <code>src/http-logging.ts</code>; el límite por IP, en <code>src/http-security.ts</code>.</li>

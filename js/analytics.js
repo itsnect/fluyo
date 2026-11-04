@@ -35,7 +35,7 @@ const UMAMI_WEBSITE_ID = "bf627279-0eb4-4be4-aee7-ce020e7e66f6";
    los eventos custom de Vercel requieren plan Pro. En el plan Hobby la llamada
    va('event', …) no falla, pero el evento se descarta del lado del servidor —
    la instrumentación existiría sin medir nada. Umami tiene eventos custom en
-   su plan gratuito, y además no usa cookies ni fingerprinting, que es
+   su plan gratuito, no usa cookies y su identificador de sesión es
    coherente con lo que este proyecto le promete a quien lo usa. */
 const ANALYTICS_PROVIDER = {
   /* Inyecta el script del proveedor. Solo se llama si el host ya coincidió.

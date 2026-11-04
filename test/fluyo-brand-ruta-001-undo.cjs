@@ -172,7 +172,10 @@ const PIECES = {
     ]
   ]
 };
+/* Encima de esta tarea va FLUYO-PRIVACY-GEO-001 (v124): se deshace primero. */
+const { undoGeo } = require("./fluyo-privacy-geo-001-undo.cjs");
 function undoRuta(file, src) {
+  src = undoGeo(file, src);
   const f = file.replace(/\\/g, "/"), pieces = PIECES[f];
   if (!pieces) return src;
   let out = src.replace(/\r\n/g, "\n");

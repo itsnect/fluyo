@@ -190,7 +190,7 @@ test("cableado: entry.js va detrás de lo que usa, en el SW, y solo en el editor
   const at = (f) => order.indexOf(f);
   for (const dep of ["examples.js", "deeplink.js", "state.js", "editor-scenarios.js", "export.js", "ui.js"]) assert.ok(at(dep) < at("entry.js"), dep);
   assert.match(read("sw.js"), /"\.\/js\/entry\.js"/);
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v123";/);   /* v123: FLUYO-BRAND-RUTA-001 va encima */
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v124";/);   /* v123: FLUYO-BRAND-RUTA-001 va encima */
   assert.ok(!read("s/index.html").includes("entry.js"));
   assert.match(html, /<section id="entryCard"[^>]*hidden>/);
   for (const k of ["entry.title", "entry.explore", "entry.exploreSub", "entry.blank", "entry.blankSub"]) {

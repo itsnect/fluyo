@@ -156,11 +156,11 @@ Se puede usar de dos formas. Como **conector remoto**, pegando `https://mcp.fluy
 
 ## Privacidad y telemetría
 
-**Tus diagramas nunca salen de tu navegador.** No hay backend al que puedan ir: Fluyo es un sitio de archivos estáticos. El dibujado, la animación y la codificación del GIF ocurren en tu equipo, y el autoguardado escribe en el `localStorage` de tu navegador, no en un servidor.
+**Usando el editor, tus diagramas no salen de tu navegador.** No hay backend al que puedan ir: Fluyo es un sitio de archivos estáticos. El dibujado, la animación y la codificación del GIF ocurren en tu equipo, y el autoguardado escribe en el `localStorage` de tu navegador, no en un servidor.
 
-En el sitio público **fluyo.space** hay telemetría de producto: pageviews y cinco eventos de uso agregados — si se creó un diagrama, si se exportó y en qué formato, si se cargó un ejemplo, si se importó un archivo y si se usó un GIF animado. Sin cookies, sin fingerprinting y sin identificar usuarios.
+En el sitio público **fluyo.space** hay telemetría de producto: una lista cerrada de eventos de uso, sin pageviews. Sin cookies y sin identificarte por tu nombre o tu cuenta, aunque Umami deriva de cada petición un identificador de sesión y una ubicación aproximada. Los eventos y lo que obtiene el proveedor están en la [política de privacidad](https://fluyo.space/privacidad/).
 
-**El contenido de tus diagramas no se envía nunca**, ni entero ni en fragmentos. Los eventos solo llevan valores de una lista cerrada, como `png` o `gif`. Nada de etiquetas, nombres de nodos, texto ni imágenes.
+**La telemetría no envía el contenido de tus diagramas**, ni entero ni en fragmentos. Los eventos solo llevan valores de una lista cerrada, como `png` o `gif`. Nada de etiquetas, nombres de nodos, texto ni imágenes.
 
 El script de telemetría se carga **únicamente** cuando el hostname es el dominio oficial. Si clonas este repositorio, lo abres en local o lo self-hosteas, no se ejecuta ninguna telemetría y no se hace ninguna llamada de red: no es que los datos se descarten, es que ese código no llega a correr. Los dominios de preview quedan fuera a propósito, porque son pruebas del mantenedor y no tráfico real.
 

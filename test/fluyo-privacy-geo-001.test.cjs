@@ -24,11 +24,14 @@ test("alcance frente a " + BASE + ": solo las dos políticas, docs/, los comenta
   const changed = execFileSync("git", ["-C", gitRoot, "diff", "--name-only", BASE, "--", ...SERVED], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).split("\n").filter(Boolean);
   const FILES = ["docs/index.html", "index.html", "js/analytics.js", ES, EN];
   assert.deepEqual(Object.keys(PIECES).sort(), FILES);
-  assert.deepEqual(changed.sort(), [...FILES, "sw.js"].sort());
+  /* FLUYO-PUBLIC-PRESENCE-001 va encima: sus archivos cambian, y undoGeo la deshace primero */
+  const { PIECES: PIECES_PRESENCE, undoPresence } = require("./fluyo-public-presence-001-undo.cjs");
+  assert.deepEqual(changed.sort(), [...new Set([...FILES, "sw.js", ...Object.keys(PIECES_PRESENCE)])].sort());
+  for (const f of Object.keys(PIECES_PRESENCE)) if (!FILES.includes(f)) assert.equal(undoGeo(f, read(f)), atBase(f), f + ": undoGeo exacto");
   for (const f of FILES) assert.equal(undoGeo(f, read(f)), atBase(f), f + ": undoGeo exacto");
   const noCache = (s) => s.replace(/const CACHE = "fluyo-static-v\d+";/, "");
   assert.equal(noCache(read("sw.js")), noCache(atBase("sw.js")), "sw.js: solo la constante");
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v124";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v125";/);
   /* js/analytics.js: una sola línea, dentro del comentario del proveedor; sin él, el archivo es idéntico a la base. */
   const noWhy = (s) => s.replace(/\/\* Se eligió Umami Cloud sobre Vercel Web Analytics[\s\S]*?\*\//, "");
   assert.notEqual(noWhy(read("js/analytics.js")), read("js/analytics.js"), "el comentario sigue ahí");
@@ -37,9 +40,10 @@ test("alcance frente a " + BASE + ": solo las dos políticas, docs/, los comenta
   assert.equal(an.length, bn.length); assert.equal(bn.filter((l, i) => l !== an[i]).length, 1, "js/analytics.js: una línea");
   /* index.html: solo dos líneas, ambas dentro del comentario de telemetría; sin él, el archivo es idéntico a la base. */
   const noComment = (s) => s.replace(/<!--\n  Telemetría — solo en el sitio público[\s\S]*?-->/, "");
-  assert.notEqual(noComment(read("index.html")), read("index.html"), "el comentario sigue ahí");
-  assert.equal(noComment(read("index.html")), noComment(atBase("index.html")), "index.html: fuera del comentario, nada cambia");
-  const a = atBase("index.html").split("\n"), b = read("index.html").split("\n");
+  const indexGeo = undoPresence("index.html", read("index.html"));
+  assert.notEqual(noComment(indexGeo), indexGeo, "el comentario sigue ahí");
+  assert.equal(noComment(indexGeo), noComment(atBase("index.html")), "index.html: fuera del comentario, nada cambia");
+  const a = atBase("index.html").split("\n"), b = indexGeo.split("\n");
   assert.equal(a.length, b.length); assert.equal(b.filter((l, i) => l !== a[i]).length, 2, "index.html: dos líneas");
   assert.equal(read("js/editor-analytics.js"), atBase("js/editor-analytics.js"), "ningún evento cambia");
 });

@@ -164,9 +164,9 @@ const recalcs = async (page) => {
     {
       const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } }), page = watch(await ctx.newPage(), "E");
       await page.goto(base + "/"); await page.evaluate(() => navigator.serviceWorker.ready);
-      await page.waitForFunction(() => caches.has("fluyo-static-v124"), null, { timeout: 20000 });
-      const c = await page.evaluate(async () => { const k = await caches.keys(), cc = await caches.open("fluyo-static-v124"); const css = await (await cc.match("./css/identity.css")).text(); return { k, mark: /logoMark-tok/.test(css) && !/\.dots/.test(css) }; });
-      check(c.k.includes("fluyo-static-v124") && c.mark, `caché ${c.k.join(", ")} con identity.css de la marca Ruta`);
+      await page.waitForFunction(() => caches.has("fluyo-static-v125"), null, { timeout: 20000 });
+      const c = await page.evaluate(async () => { const k = await caches.keys(), cc = await caches.open("fluyo-static-v125"); const css = await (await cc.match("./css/identity.css")).text(); return { k, mark: /logoMark-tok/.test(css) && !/\.dots/.test(css) }; });
+      check(c.k.includes("fluyo-static-v125") && c.mark, `caché ${c.k.join(", ")} con identity.css de la marca Ruta`);
       offline = true; await ctx.setOffline(true);
       await page.reload(); await page.waitForSelector("body > header .logoMark");
       const o = await page.evaluate(() => ({ loop: getComputedStyle(document.querySelector("body > header .logoMark .loop")).display, n: document.getAnimations().length > 0 }));

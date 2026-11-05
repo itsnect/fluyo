@@ -61,6 +61,7 @@ FLUYO_LOCALES.en=Object.assign(FLUYO_LOCALES.en || {}, {
   "shell.open":"Open Fluyo",
   "shell.license":"Fluyo · free software, MIT licence",
   "shell.legal":"Legal and project",
+  "shell.social":"Fluyo on social media",
   "shell.privacy":"Privacy",
   "shell.terms":"Terms",
   "shell.support":"Support",

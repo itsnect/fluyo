@@ -180,6 +180,14 @@ Lee **[CONTRIBUTING.md](CONTRIBUTING.md)** — trae la estructura de archivos co
 
 ---
 
+## Contacto
+
+Fallos y mejoras, mejor como [issue](https://github.com/itsnect/fluyo/issues). Para todo lo demás, incluidos la privacidad y los avisos de seguridad: [hello@fluyo.space](mailto:hello@fluyo.space).
+
+Fluyo también está en [Instagram](https://www.instagram.com/fluyospace/), [TikTok](https://www.tiktok.com/@fluyospace) y [YouTube](https://www.youtube.com/@fluyospace).
+
+---
+
 ## Licencia
 
 [MIT](LICENSE) © 2026 Claudio Jiménez Flores y los contribuidores de Fluyo.

@@ -156,12 +156,12 @@ test("C1 · alcance frente a " + BASE + ": solo los archivos de esta tarea; undo
   const FILES = ["404.html", "assets/logo.svg", "css/identity.css", "css/pages.css", "css/share.css", "css/styles.css", "docs/index.html", "ejemplos/index.html",
     "index.html", "privacidad/index.html", "privacy/index.html", "s/index.html", "soporte/index.html", "support/index.html", "terminos/index.html", "terms/index.html"];
   assert.deepEqual(Object.keys(PIECES).sort(), FILES);
-  assert.deepEqual([...new Set([...changed, ...untracked])].sort(), [...FILES, "assets/icon-192.png", "assets/icon-512.png", "assets/og-image.png", "sw.js", "js/analytics.js"].sort());
+  assert.deepEqual([...new Set([...changed, ...untracked])].sort(), [...FILES, "assets/icon-192.png", "assets/icon-512.png", "assets/og-image.png", "sw.js", "js/analytics.js", "js/i18n-en-editor.js", "js/i18n-en.js"].sort());   /* i18n-en: la clave de redes de FLUYO-PUBLIC-PRESENCE-001, que va encima */
   assert.equal(undoRuta("js/analytics.js", read("js/analytics.js")), atBase("js/analytics.js"), "js/analytics.js: solo el comentario de FLUYO-PRIVACY-GEO-001, que va encima");
-  for (const f of FILES) assert.equal(undoRuta(f, read(f)), atBase(f), f + ": undoRuta exacto");
+  for (const f of [...FILES, "js/i18n-en-editor.js", "js/i18n-en.js"]) assert.equal(undoRuta(f, read(f)), atBase(f), f + ": undoRuta exacto");
   const noCache = (s) => s.replace(/\r\n/g, "\n").replace(/const CACHE = "fluyo-static-v\d+";/, "");
   assert.equal(noCache(read("sw.js")), noCache(atBase("sw.js")), "sw.js: solo la constante");
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v124";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v125";/);
   /* index.html y s/index.html: solo la marca y el favicon */
   const { undoGeo } = require("./fluyo-privacy-geo-001-undo.cjs");   /* FLUYO-PRIVACY-GEO-001 va encima: cambia el comentario de telemetría */
   for (const f of ["index.html", "s/index.html"]) {

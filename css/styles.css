@@ -889,6 +889,7 @@ aside.scenariosOpen{box-sizing:border-box;width:320px;flex:0 0 320px;overflow:hi
 .uiSection{padding-bottom:6px; border-bottom:1px solid var(--rule);}
 .moreLinks{padding-top:4px;}
 #siteLinks{display:grid; grid-template-columns:1fr 1fr; gap:1px;}
+#socialLinks{display:grid; grid-template-columns:repeat(3,1fr); gap:1px;}
 .moreLinks .ossLink{align-items:flex-start;}
 .moreLinks .ossLink .ic{margin-top:2px;}
 .moreLinks .ossText{display:flex; flex-direction:column; gap:2px; min-width:0;}

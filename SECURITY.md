@@ -2,7 +2,7 @@
 
 ## Dónde reportar
 
-Abre un [security advisory privado](https://github.com/itsnect/fluyo/security/advisories/new) en este repositorio. Si no puedes, abre un issue normal **sin incluir los detalles del exploit** y pide un canal privado.
+Abre un [security advisory privado](https://github.com/itsnect/fluyo/security/advisories/new) en este repositorio. Si no puedes, escribe a [hello@fluyo.space](mailto:hello@fluyo.space).
 
 Por favor, no publiques el detalle en un issue público hasta que haya un arreglo disponible.
 

@@ -133,7 +133,10 @@ const PIECES = {
     ]
   ]
 };
+/* Encima de esta tarea va FLUYO-PUBLIC-PRESENCE-001 (v125): se deshace primero. */
+const { undoPresence } = require("./fluyo-public-presence-001-undo.cjs");
 function undoGeo(file, src) {
+  src = undoPresence(file, src);
   const f = file.replace(/\\/g, "/"), pieces = PIECES[f];
   if (!pieces) return src;
   let out = src.replace(/\r\n/g, "\n");

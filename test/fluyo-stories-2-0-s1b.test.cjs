@@ -343,5 +343,5 @@ test("C3 · claves nuevas en inglés, todas usadas, y CACHE v118", () => {
     assert.ok(sc.includes(`"${k}"`), k + " se usa (story-clock.js)");
     assert.ok(en.includes(`"${k}":`), k + " en inglés (también el Viewer)");
   }
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v124";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v125";/);
 });

@@ -304,5 +304,5 @@ test("C3 · claves nuevas en inglés y usadas; «Guardar nombre» retirada; sin 
   const diff = execFileSync("git", ["-C", gitRoot, "diff", "-U0", BASE, "--", "js/editor-scenarios.js"], { encoding: "utf8" }).split("\n").filter((l) => /^\+[^+]/.test(l))
     .filter((l) => !require("./fluyo-growth-foundation-001-undo.cjs").ADDED_LINES.has(l.slice(1))).join("\n");   /* sin las líneas de FLUYO-GROWTH-FOUNDATION-001, que va encima */
   assert.doesNotMatch(diff, /trackEvent|\.(purpose|variantOf|family)\b/);
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v124";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v125";/);
 });

@@ -264,5 +264,5 @@ test("C3 · claves nuevas en inglés y usadas; sin Undo, analíticas ni campos n
   assert.ok(html.includes('data-i18n="story.others"') && en.includes('"story.others":"Other ways"'), "«Otras formas» / «Other ways»");
   assert.doesNotMatch(diff, /pushUndo|undoStack|trackEvent|scheduleAutosave/, "nada nuevo entra en Undo, autoguardado ni analíticas");
   assert.doesNotMatch(diff, /\.(purpose|variantOf|family)\b/, "ningún campo nuevo en el documento");
-  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v124";/);
+  assert.match(read("sw.js"), /const CACHE = "fluyo-static-v125";/);
 });

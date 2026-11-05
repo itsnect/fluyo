@@ -103,6 +103,7 @@ FLUYO_LOCALES.en=Object.assign(FLUYO_LOCALES.en || {}, {
   "more.shortcuts":"Shortcuts and gestures",
   "more.project":"Project",
   "more.links":"Project links",
+  "more.social":"Fluyo on social media",
   "more.contribute":"Contribute on GitHub",
   "more.mcp":"Use it with your AI via MCP",
   "more.oss":"Fluyo is free and open source. Contributions are welcome.",
